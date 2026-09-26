@@ -6,6 +6,7 @@ option go_package = "github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1
 
 import "google/protobuf/duration.proto";
 import "google/protobuf/timestamp.proto";
+import "gridos/v1/device.proto";
 import "gridos/v1/dispatch.proto";
 import "gridos/v1/telemetry.proto";
 
@@ -29,6 +30,62 @@ message DeviceState {
   bool stale = 11;
   google.protobuf.Timestamp telemetry_observed_at = 12;
   string load_zone = 13;
+  string site_id = 14;
+  string reliability_trait = 15;
+}
+
+message ForecastSite {
+  string site_id = 1;
+  string load_profile_type = 2;
+  string load_zone = 3;
+  string weather_zone = 4;
+  string county = 5;
+}
+
+message ForecastValue {
+  double value = 1;
+  double lower = 2;
+  double upper = 3;
+  string feature_version = 4;
+  string model_version = 5;
+  string value_kind = 6;
+  DataProvenance provenance = 7;
+}
+
+message ForecastSiteLoad {
+  string site_id = 1;
+  google.protobuf.Timestamp interval_begin_time = 2;
+  ForecastValue load_kwh = 3;
+}
+
+message ForecastRegionalPrice {
+  string load_zone = 1;
+  google.protobuf.Timestamp interval_begin_time = 2;
+  ForecastValue price_per_mwh = 3;
+}
+
+message ForecastOutageRisk {
+  string county = 1;
+  google.protobuf.Timestamp interval_begin_time = 2;
+  ForecastValue probability = 3;
+}
+
+message ForecastDeviceAvailability {
+  string device_id = 1;
+  google.protobuf.Timestamp interval_begin_time = 2;
+  ForecastValue probability = 3;
+}
+
+message ForecastRequest {
+  OptimizationRequest request = 1;
+}
+
+message ForecastResponse {
+  repeated ForecastSiteLoad site_loads = 1;
+  repeated ForecastRegionalPrice regional_prices = 2;
+  repeated ForecastOutageRisk outage_risks = 3;
+  repeated ForecastDeviceAvailability device_availability = 4;
+  repeated string unavailable_sources = 5;
 }
 
 message OptimizationRequest {
@@ -43,6 +100,8 @@ message OptimizationRequest {
   google.protobuf.Duration budget = 9;
   MeasurementBoundary measurement_boundary = 10;
   repeated DeviceState devices = 11;
+  repeated ForecastSite sites = 12;
+  ForecastResponse forecast = 13;
 }
 
 message ObjectiveBreakdown {
@@ -109,5 +168,6 @@ message OptimizeResponse {
 }
 
 service OptimizationService {
+  rpc Forecast(ForecastRequest) returns (ForecastResponse);
   rpc Optimize(OptimizeRequest) returns (OptimizeResponse);
 }
