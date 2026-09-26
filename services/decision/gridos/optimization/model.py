@@ -16,6 +16,7 @@ from gridos.fallback.planner import (
     exclusion_reason,
     plan_fallback,
 )
+from gridos.solver.bounded import SolverFault, solve_within_budget
 
 
 @dataclass(frozen=True, slots=True)
@@ -33,11 +34,8 @@ class ConstraintMargins:
     power_kw: float
 
 
-@dataclass(frozen=True, slots=True)
-class OptimizedPlan:
-    schedules: tuple[DeviceSchedule, ...]
-    exclusions: tuple[Exclusion, ...]
-    shortfalls: tuple[Shortfall, ...]
+@dataclass(frozen=True, slots=True, kw_only=True)
+class OptimizedPlan(FallbackPlan):
     objective: ObjectiveBreakdown
     margins: ConstraintMargins
     feasible_fallback: FallbackPlan
@@ -166,7 +164,16 @@ def optimize(devices: list[DeviceState], intervals: list[PlanningInterval]) -> O
         tuple(schedules),
         tuple(exclusions),
         tuple(shortfalls),
-        objective,
-        margins,
-        plan_fallback(devices, intervals),
+        objective=objective,
+        margins=margins,
+        feasible_fallback=plan_fallback(devices, intervals),
     )
+
+
+def optimize_with_budget(
+    devices: list[DeviceState], intervals: list[PlanningInterval], budget_seconds: float
+) -> FallbackPlan:
+    outcome = solve_within_budget(optimize, devices, intervals, budget_seconds)
+    if isinstance(outcome, SolverFault):
+        return plan_fallback(devices, intervals)
+    return outcome
