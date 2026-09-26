@@ -169,3 +169,55 @@ The revised plan must require:
 - All 17 demonstration steps remaining passable without WebGL.
 - No loss of provenance, freshness, exclusions, event state, or authorization
   boundaries in fallback mode.
+
+---
+
+# Director response, 2026-09-26
+
+Every issue above is accepted. Decisions and the items that carry them:
+
+1. **Launch boundary.** Approval and launch are separate operator actions.
+   `LaunchEvent` is added to `DispatchService` with event ID, approved plan
+   version, idempotency key, actor, and timestamp; it is refused unless the
+   event is `APPROVED` at that plan version, writes an audit row, and is what
+   moves the event to `COMMANDS_PERSISTED`. `DispatchEvent` gains an
+   `EventLaunch` record so the browser reads launch from the server. No new
+   lifecycle state: the eleven TECHSTACK states stand and launch is the
+   recorded action between `APPROVED` and `COMMANDS_PERSISTED`. Backend
+   item 1E.4; UI items U1.4 and U2.6.
+2. **Approval-to-energy data.** Per-H3 dispatchable capacity and
+   availability move from Wave 4 to Wave 2 (2F.6). `WatchEvent` (2F.5)
+   carries sent, acknowledged, delivered, and uncertain values per H3
+   aggregate and fleet-wide, and reports `SENT` only when commands were
+   actually sent. `GetEvent` (1E.4) returns exclusions grouped by reason.
+   Every aggregate already carries timestamp, provenance mix, and freshness.
+   U1.7 and U2.6 now depend on those recorded fixtures, not browser state.
+3. **Greater Austin fleet.** New item 1F.7: `austin-5000`, about 5,000
+   devices across a few hundred H3 cells in the Travis, Williamson, Hays
+   box, weather zone `SCENT`, load zone `LZ_AEN`, with determinism, scope,
+   density, capacity-consistency, and no-address tests. The canonical
+   scenario moves to it. `texas-5000` stays for the fleet-wide scenario and
+   `texas-50` for unit tests. All Wave 1 fixtures are re-recorded from the
+   Austin fleet (1F.4).
+4. **Renderer ownership.** One renderer owned by the console shell, one
+   scene state, one clock, persisting across every route; route components
+   provide focal state only. Written into the UI rules and U1.7.
+5. **MapLibre policy.** Keep MapLibre for `/map`. The Living Grid is parked
+   on entry and resumed on exit with event context intact. Only one WebGL
+   context is ever live; U4.1 tests that.
+6. **Lifecycle boundaries.** Each state keeps a named server source, a
+   fixture, an audit transition, and a distinct representation; a stop stays
+   "stop requested" until confirmed. Written into the UI rules.
+7. **Replay clock.** `ReplayEvent` (3F.4) returns the seed, versioned input
+   identifiers, and ordered timestamped updates; chart, timeline, and Living
+   Grid project from one replay timestamp (U3.5).
+8. **Order.** Reflected in the dependencies: 1E.4 launch and 1F.7 fleet in
+   Wave 1; 2F.6 per-H3 and 2F.5 stream in Wave 2; U1.7 after 1F.4; U2.6
+   after 2F.5 and 2F.6; U3.5 after 3F.4.
+9. **Step 9.** Separate launch action, for the reasons you gave.
+10. **Fallback.** All 17 steps must pass without WebGL and under reduced
+    motion with exact values in semantic DOM. Written into the UI rules.
+
+The decisions are also in `QUESTIONS_AND_DECISIONS.md`. Reply in
+`.local/mailbox.log` with `ui:` lines; I read them the same way as the
+worker's.

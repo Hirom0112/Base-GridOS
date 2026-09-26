@@ -679,7 +679,8 @@ Owns: `services/control/internal/storage/` (including
 ### Lane 1E — fleet twin, eligibility, control API
 
 Owns: `services/control/internal/fleet/`, `services/control/internal/api/`,
-`services/control/internal/report/`, `services/control/cmd/control`.
+`services/control/internal/report/`, `services/control/cmd/control`,
+`contracts/gridos/v1/api.proto` (additive only, `buf breaking` is the gate).
 
 - `[x]` 1E.1 `[P]` RED: `fleet/twin_test.go`: the twin holds the latest
   accepted state per site; a command being issued does not change the twin
@@ -697,10 +698,19 @@ Owns: `services/control/internal/fleet/`, `services/control/internal/api/`,
 - `[~]` 1E.4 `[after 1D.6]` ConnectRPC server `cmd/control` with handlers:
   `GetFleetSummary`, `ListSites` (H3 aggregate by default, exact location
   only with the separately granted `site_location` permission),
-  `CreateEventRequest`, `GetEvent`, `ApproveEvent`. Authorization enforced
-  server-side for the six FULL_SPEC §11 roles; the approver role is required
-  for `ApproveEvent`. Tests use the generated Connect client.
-  Verify: `go test ./services/control/internal/api/` passes including a 403 for the wrong role.
+  `CreateEventRequest`, `GetEvent`, `ApproveEvent`, and `LaunchEvent`.
+  Launch is a separate operator action from approval (FULL_SPEC §9 steps 8
+  and 9): `LaunchEvent` carries event ID, approved plan version, idempotency
+  key, actor, and timestamp, is rejected unless the event is `APPROVED` at
+  that plan version, writes an audit row, and is what moves the event to
+  `COMMANDS_PERSISTED`. It is added to `DispatchService` in `api.proto`
+  along with an `EventLaunch` record (`requested_by`, `requested_at`,
+  `plan_version`) on `DispatchEvent`, so the browser never infers launch.
+  `GetEvent` also returns the eligibility exclusions grouped by reason with
+  counts. Authorization enforced server-side for the six FULL_SPEC §11
+  roles; the approver role is required for `ApproveEvent` and `LaunchEvent`.
+  Tests use the generated Connect client.
+  Verify: `go test ./services/control/internal/api/` passes including a 403 for the wrong role and a rejection of `LaunchEvent` on a non-approved event.
 - `[~]` 1E.5 `[after 1B.2, 1C.8, 1D.9]` Phase 1 straight-line dispatcher (no
   Temporal yet, replaced in Wave 2): create event, freeze snapshot, call the
   decision service, run the safety gate, require approval, persist intents,
@@ -714,7 +724,8 @@ Owns: `services/control/internal/fleet/`, `services/control/internal/api/`,
 
 Owns: `services/control/internal/ingest/`, `tests/end-to-end/`, the
 `Makefile` `demo` and `plugins` targets, `buf.gen.yaml`,
-`testdata/fixtures/api/` (recording).
+`testdata/fixtures/api/` (recording), `tools/generation/fleet/` and
+`testdata/fleets/` and `testdata/scenarios/` (for 1F.7 only).
 
 - `[~]` 1F.1 `[P]` RED: `ingest_test.go`: the control-side gRPC telemetry
   receive service acknowledges receipt only after a durable write, so the
@@ -732,9 +743,11 @@ Owns: `services/control/internal/ingest/`, `tests/end-to-end/`, the
   safety approved, operator approval recorded, intents persisted before any
   network send, gateway acknowledges, telemetry ingested, basic report
   contains provenance and versions. Verify: `make demo` comes up and `go test ./tests/end-to-end/ -run VerticalSlice` passes.
-- `[~]` 1F.4 `[after 1F.3]` Record real responses for every Wave 1 method
-  from the running demo stack with `mockapi record`, replacing the
-  hand-authored fixtures. Verify: `go test ./tools/development/mockapi/ -run Fixtures` passes on the recordings and every Wave 1 file in `testdata/fixtures/api/` changed.
+- `[~]` 1F.4 `[after 1F.3, 1F.7]` Record real responses for every Wave 1
+  method from the running demo stack seeded with the `austin-5000` fleet
+  (not `texas-50`, which stays a unit-test fleet) using `mockapi record`,
+  replacing the hand-authored fixtures. `ListSites` must show a few hundred
+  H3 cells with per-cell dispatchable capacity and availability state. Verify: `go test ./tools/development/mockapi/ -run Fixtures` passes on the recordings and every Wave 1 file in `testdata/fixtures/api/` changed.
 - `[~]` 1F.5 `[after 1F.3]` Duplicate-delivery end to end: publish the same
   `command_id` twice through the outbox; the gateway shows one physical
   effect and storage shows one acknowledgement. Verify: `go test ./tests/end-to-end/ -run DuplicateDelivery` passes.
@@ -747,6 +760,18 @@ Owns: `services/control/internal/ingest/`, `tests/end-to-end/`, the
   installs them. Found at Gate 0: the Buf Schema Registry rate-limited
   remote plugins after repeated regeneration by six agents.
   Verify: `make plugins && make generate` succeeds with the network to buf.build blocked (`env HTTPS_PROXY=http://127.0.0.1:9 make generate`).
+
+- `[~]` 1F.7 `[P]` Greater Austin demonstration fleet: a generator preset
+  `austin-5000` (seed 20260926) placing approximately 5,000 devices inside a
+  Greater Austin bounding box (Travis, Williamson, Hays) at H3 resolution 7,
+  weather zone `SCENT`, load zone `LZ_AEN`, spread over a few hundred cells;
+  `testdata/fleets/austin-5000.jsonl` checked in; the canonical scenario
+  switched to `austin-5000` and `LZ_AEN` with a target the fleet's real
+  capacity supports; `texas-5000` retained for the fleet-wide scenario and
+  `texas-50` for unit tests. RED tests: determinism, every cell inside the
+  box, cell count between 200 and 600, aggregate capacity consistent with
+  the sum of devices, no address-like fields. Raised by the UI track in
+  `ISSUES.md` issue 3. Verify: `uv run --project tools/generation pytest tools/generation -k austin` passes and `wc -l testdata/fleets/austin-5000.jsonl` prints 5000.
 
 ### Gate 1
 
@@ -929,9 +954,17 @@ Owns: `services/gateway-simulator/tests/`, `services/control/internal/api/events
   `make demo` and record the result in the gate report; route failures to the
   UI track or the owning backend lane. Verify: `pnpm --dir apps/console playwright test demo-path` executed and output saved.
 - `[ ]` 2F.5 `[after 2C.7]` `internal/api/events`: `WatchEvent`
-  server-streaming Connect method emitting sent, acknowledged, delivered, and
-  uncertain-interval updates as reconciliation produces them, registered in
-  `cmd/control`. Verify: `go test ./services/control/internal/api/events/ -run Watch` passes and a client sees an update within 5 s of new telemetry.
+  server-streaming Connect method emitting the event state plus sent,
+  acknowledged, delivered, and uncertain-interval values, both fleet-wide
+  and per H3 aggregate, as reconciliation produces them, registered in
+  `cmd/control`. The first update after `LaunchEvent` reports `SENT` only
+  when commands have actually been sent. Verify: `go test ./services/control/internal/api/events/ -run Watch` passes and a client sees an update within 5 s of new telemetry.
+
+- `[ ]` 2F.6 `[after 1E.4]` Per-H3 dispatchable capacity and availability
+  state in `ListSites` (moved forward from Wave 4 at the UI track's request,
+  `ISSUES.md` issue 2): each cell carries dispatchable MW now, reserved MWh,
+  device counts by operating state, and aggregate metadata.
+  Verify: `go test ./services/control/internal/fleet/ -run H3` passes.
 
 ### Gate 2
 
@@ -1090,7 +1123,9 @@ Owns: `services/control/internal/replay/`, `services/control/cmd/replay`,
   responses with intervals, a `fallback=true` case, and `ValidateAlternative`
   violations into `testdata/fixtures/api/`. Verify: `go test ./tools/development/mockapi/ -run Fixtures` passes.
 - `[ ]` 3F.4 `[after 3F.2]` `internal/api/replay`: `ReplayEvent` Connect
-  method returning the diff for the console. Verify: `go test ./services/control/internal/api/replay/` passes.
+  method returning the seed, versioned input identifiers, and the ordered
+  event updates with timestamps, so the console can drive one replay clock,
+  plus the diff. Verify: `go test ./services/control/internal/api/replay/` passes.
 - `[ ]` 3F.5 `[after 3D.5]` Run the UI track's `demo-path` spec at the gate
   and record the result. Verify: output saved in the gate report.
 
@@ -1448,12 +1483,12 @@ Owns: `README.md`, `docs/operations/` (except `security/`), `AGENTS.md`.
 | Wave | A | B | C | D | E | F | Total |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | 0 | 5 | 9 | 7 | 6 | 8 | 4 | 39 |
-| 1 | 8 | 7 | 10 | 9 | 6 | 6 | 46 |
-| 2 | 5 | 7 | 7 | 6 | 6 | 5 | 36 |
+| 1 | 8 | 7 | 10 | 9 | 6 | 7 | 47 |
+| 2 | 5 | 7 | 7 | 6 | 6 | 6 | 37 |
 | 3 | 6 | 8 | 4 | 5 | 4 | 5 | 32 |
 | 4 | 7 | 6 | 4 | 3 | 5 | 5 | 30 |
 | 5 | 3 | 3 | 4 | 6 | 4 | 4 | 24 |
-| | | | | | | | **207** |
+| | | | | | | | **209** |
 
 154 items are fully parallel and 48 wait on one other lane. Plus the five
 standing items applied every wave. The UI track adds 40 items of its own in

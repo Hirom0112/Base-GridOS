@@ -71,6 +71,25 @@ From the specs:
   are drawn as three different things (FULL_SPEC §4 invariant 3, §9 step 13).
 - A stop request is shown as requested, not as heard, until an
   acknowledgement or telemetry confirms it (`docs/domain/system-understanding.md`).
+- Approval and launch are separate operator actions. Launch is only ever
+  shown from the server's `EventLaunch` record, and command-flow motion
+  begins only when `WatchEvent` reports `SENT`, never from the approval or
+  launch response.
+- Every lifecycle boundary keeps its own representation: approved, launch
+  requested, commands persisted, sent, acknowledged or uncertain, executing,
+  verified, reconciled, reported.
+- One renderer, owned by the authenticated console shell, persists across
+  every route with one normalized scene state and one clock. Route
+  components supply focal state only. While `/map` is active the Living Grid
+  is paused and parked and MapLibre is the only canvas; it resumes without
+  losing event context. Only one renderer is ever active.
+- Replay has one clock: the report chart, the audit timeline, and the Living
+  Grid all project from the same replay timestamp, driven by the seed,
+  versions, and ordered updates that `ReplayEvent` returns.
+- All 17 demo steps stay passable with WebGL disabled and under reduced
+  motion, with exact sent, acknowledged, and delivered values in semantic DOM
+  and no loss of provenance, freshness, exclusions, event state, or
+  authorization boundaries.
 - A `0%` plan is explained as "no customer-designated reserve above protected
   limits", never as an empty battery (FULL_SPEC §5.10).
 - The anomaly alert uses the fixed wording "energy anomaly signal" and no
@@ -112,7 +131,7 @@ defines it, and the FULL_SPEC §9 demo steps it must make pass.
 | Shell: top bar, left nav, status strip, provenance badge | all | none | `visual-system.md` "Composition", FULL_SPEC §2 | all |
 | Fleet command center | `/fleet` | `FleetService.GetFleetSummary`, `ListSites`, `ContextService.GetMarketContext`, `GetWeatherContext`, `GetOutageRisk`, `ListDispatchWindows` | FULL_SPEC §5.1 | 1 |
 | Dispatch request | `/dispatch/new` | `DispatchService.CreateEventRequest` | FULL_SPEC §9 steps 2 and 3 | 2, 3 |
-| Plan explanation and approval | `/dispatch/:eventId` | `GetEvent`, `GetPlanExplanation`, `ValidateAlternative`, `ApproveEvent` | FULL_SPEC §5.5, §5.6, §9 steps 4 to 9 | 4, 5, 6, 8, 9 |
+| Plan explanation, approval, launch | `/dispatch/:eventId` | `GetEvent`, `GetPlanExplanation`, `ValidateAlternative`, `ApproveEvent`, `LaunchEvent` | FULL_SPEC §5.5, §5.6, §9 steps 4 to 9 | 4, 5, 6, 8, 9 |
 | Live event | `/events/:eventId` | `EventsService.WatchEvent` (server stream), `GetEvent`, `EmergencyStop` | FULL_SPEC §5.7, §9 steps 10 to 15 | 10, 11, 12, 13, 14, 15 |
 | Event report and comparison | `/events/:eventId/report`, `/events/compare` | `ReportService.GetEventReport`, `CompareEvents`, `ReplayEvent` | FULL_SPEC §5.9, §9 steps 16 and 17 | 16, 17 |
 | Map | `/map` | `GeoService.ListCells`, `Drilldown`, plus the local style and basemap the control plane serves | FULL_SPEC §5.2 | 2 (region pick) |
@@ -178,18 +197,21 @@ the Vitest test or the Playwright step is written before the view.
 - `[ ]` U1.3 `[after BUILD_ORDER 1F.4]` Both views against recorded real
   responses through the mock server, then against `make demo`.
   Verify: `vitest run fleet dispatch` and a manual run against `make demo`.
-- `[ ]` U1.4 `[after BUILD_ORDER 1E.5]` Approval screen: step-up
-  confirmation, reason for every excluded device, plan version shown.
-  Verify: `vitest run approval`.
+- `[ ]` U1.4 `[after BUILD_ORDER 1E.5]` Approval and launch screen: step-up
+  confirmation for each, exclusions grouped by reason from `GetEvent`, plan
+  version shown, and the launch state drawn only from the server's
+  `EventLaunch` record. Verify: `vitest run approval launch`.
 - `[ ]` U1.5 `[after BUILD_ORDER 1F.3]` Demo-path steps 2, 3, 9, and 16
   (basic report) green against `make demo`. Verify: `playwright test demo-path` shows those steps passing.
 - `[ ]` U1.6 `[P]` The `SIMULATED` badge on every simulated view; a Vitest
   test renders each existing page and asserts it. Verify: `vitest run simulated-badge`.
-- `[ ]` U1.7 `[P]` The Living Grid ambient layer, version one: one persistent
-  renderer for the fleet route, instanced cells from the H3 fixture, DPR
-  capped at 1.5, paused when hidden, disposed on route exit, and the DOM
-  fallback identical in meaning (golden "Default implementation
-  constraints"). Verify: `playwright test living-grid` passes in normal, reduced-motion, and no-webgl projects and the route's critical JavaScript stays under the 250 KB gzip budget.
+- `[ ]` U1.7 `[after BUILD_ORDER 1F.4]` The Living Grid, version one: one
+  renderer owned by the console shell, instanced cells from the recorded
+  Austin `ListSites` fixture (a few hundred H3 cells with dispatchable
+  capacity and availability state), DPR capped at 1.5, paused when hidden or
+  while `/map` is active, disposed only when the shell exits, and an SVG or
+  structured-DOM H3 fallback identical in meaning. Static frame first, no
+  motion yet. Verify: `playwright test living-grid` passes in normal, reduced-motion, and no-webgl projects and the critical JavaScript stays under the 250 KB gzip budget.
 
 ### U2 — live execution (runs during backend Wave 2)
 
@@ -205,9 +227,11 @@ the Vitest test or the Playwright step is written before the view.
   Verify: `playwright test telemetry-latency` reports under 5 s.
 - `[ ]` U2.5 `[after BUILD_ORDER 2D.3]` Demo-path steps 10 to 15 green.
   Verify: `playwright test demo-path` shows 2, 3, 9 to 16 passing.
-- `[ ]` U2.6 `[P]` Dispatch motion: the flow animation begins only after the
-  approval response and shows "verified" only after telemetry, never before
-  (golden anti-pattern list, last item). Verify: `playwright test dispatch-motion` asserts ordering against the fixture timeline.
+- `[ ]` U2.6 `[after BUILD_ORDER 2F.5, 2F.6]` Dispatch motion: per-H3 flow
+  begins only when the `WatchEvent` stream reports `SENT`, shows
+  acknowledged and delivered from the stream's per-aggregate values, and
+  shows "verified" only after telemetry, never before (golden anti-pattern
+  list, last item). No invented browser state. Verify: `playwright test dispatch-motion` asserts ordering against the recorded stream fixture.
 
 ### U3 — planning explanation (runs during backend Wave 3)
 
@@ -221,8 +245,10 @@ the Vitest test or the Playwright step is written before the view.
   Verify: `vitest run fallback-banner`.
 - `[ ]` U3.4 `[after BUILD_ORDER 3D.4]` "Validate unsafe alternative" control
   showing returned violations. Verify: `vitest run unsafe-alternative`.
-- `[ ]` U3.5 `[after BUILD_ORDER 3F.4]` Replay button and replay result view.
-  Verify: `vitest run replay`.
+- `[ ]` U3.5 `[after BUILD_ORDER 3F.4]` Replay button and replay result view
+  driven by one replay clock from the seed, versions, and ordered updates
+  `ReplayEvent` returns; chart, timeline, and Living Grid project from the
+  same timestamp. Verify: `vitest run replay` and `playwright test replay-clock`.
 - `[ ]` U3.6 `[after U3.4]` Demo-path steps 4 to 6, 8, and 17 green.
   Verify: `playwright test demo-path` shows all steps except 1 and 7 passing.
 
@@ -232,7 +258,9 @@ the Vitest test or the Playwright step is written before the view.
   style and basemap, H3 layer, and toggles for density, capacity, SOC bands,
   connectivity failures, outages, severe weather, active dispatch, price
   volatility, modeled constraints, candidate deployment regions. Drill-down
-  market to feeder. Verify: `vitest run map && playwright test map`.
+  market to feeder. MapLibre is the only active canvas on `/map`; the Living
+  Grid is parked on entry and resumed on exit with event context intact.
+  Verify: `vitest run map && playwright test map` and a test that only one WebGL context is live on `/map`.
 - `[ ]` U4.2 `[P]` Map privacy: the site popup has no address field and exact
   location appears only with `site_location`. Verify: `vitest run map-privacy`.
 - `[ ]` U4.3 `[after BUILD_ORDER 4F.2]` Member status: operating state,

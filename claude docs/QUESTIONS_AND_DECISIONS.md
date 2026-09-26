@@ -158,4 +158,14 @@ assumptions reported by workers land here too.
   lane that consumes a contract may add to it, additively, with the breaking
   check as the gate, rather than routing through a contracts lane that no
   longer exists.
+- **UI track issues 1 to 10 (`claude docs/ISSUES.md`), all accepted:**
+  approval and launch are separate actions with a `LaunchEvent` RPC and an
+  `EventLaunch` record but no new lifecycle state; per-H3 capacity moves to
+  Wave 2 and `WatchEvent` reports per-aggregate values; the demo fleet is a
+  Greater Austin `austin-5000` in `LZ_AEN` (1F.7) replacing the Houston
+  choice from 0C.7, with `texas-5000` kept for the fleet-wide scenario; one
+  shell-owned renderer with one clock; MapLibre stays for `/map` with the
+  Living Grid parked; one replay clock fed by `ReplayEvent`; all 17 demo
+  steps must pass without WebGL. The lane that consumes a contract may add to
+  it additively (lane E owns `api.proto` this wave).
 
