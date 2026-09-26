@@ -72,13 +72,16 @@ for (const width of [390, 1440]) {
       page.getByRole("heading", { name: "Approved", exact: true }),
     ).toBeVisible();
     expect(commands).toEqual(["ApproveEvent"]);
-    await expect(page.getByText("Launch not requested")).toBeVisible();
+    await expect(page.getByText("No launch record returned")).toBeVisible();
     await page.getByRole("button", { name: "Review launch" }).click();
     await page.getByLabel("Type plan version 1").fill("1");
     await page.screenshot({ path: `test-results/launch-dialog-${width}.png` });
     await page.getByRole("button", { name: "Confirm launch" }).click();
     await expect(
-      page.getByRole("heading", { name: "Sent", exact: true }),
+      page.getByRole("heading", {
+        name: "Acknowledged or uncertain",
+        exact: true,
+      }),
     ).toBeVisible();
     expect(commands).toEqual(["ApproveEvent", "LaunchEvent"]);
     await page.getByRole("link", { name: "Execution", exact: true }).click();

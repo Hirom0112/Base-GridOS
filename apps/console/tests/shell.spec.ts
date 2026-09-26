@@ -1,5 +1,10 @@
 import { expect, test } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
+import { recordedApi } from "./recorded-api";
+
+test.beforeEach(async ({ page }) => {
+  await recordedApi(page);
+});
 
 test("shell keeps its static truth and keyboard path", async ({ page }) => {
   const errors: string[] = [];
@@ -8,12 +13,14 @@ test("shell keeps its static truth and keyboard path", async ({ page }) => {
   expect(response?.status()).toBe(200);
   await expect(page.getByRole("main")).toHaveAccessibleName("Austin fleet");
   await page.keyboard.press("Tab");
+  await page.keyboard.press("Tab");
+  await page.keyboard.press("Tab");
   await expect(
     page.getByRole("link", { name: "Skip to fleet overview" }),
   ).toBeFocused();
   await page.keyboard.press("Enter");
   await expect(page.getByRole("main")).toBeFocused();
-  await expect(page.locator("canvas")).toHaveCount(0);
+  await expect(page.locator("canvas")).toHaveCount(1);
   expect(errors).toEqual([]);
 });
 
@@ -22,6 +29,7 @@ for (const theme of ["dark", "light"] as const) {
     test(`shell ${theme} at ${width}px`, async ({ page }) => {
       await page.setViewportSize({ width, height: 900 });
       await page.goto("/");
+      await expect(page.locator("canvas")).toHaveCount(1);
       if (theme === "light")
         await page.getByRole("button", { name: "Use light theme" }).click();
       await expect(page.locator(".console")).toHaveAttribute(
@@ -56,7 +64,7 @@ for (const theme of ["dark", "light"] as const) {
 test("shell stays useful without JavaScript", async ({ browser }) => {
   const context = await browser.newContext({ javaScriptEnabled: false });
   const page = await context.newPage();
-  await page.goto("http://127.0.0.1:3000");
+  await page.goto("http://127.0.0.1:3100/fleet");
   await expect(
     page.getByRole("heading", { name: "Austin fleet" }),
   ).toBeVisible();
@@ -77,7 +85,8 @@ test("shell remains static under reduced motion without WebGL", async ({
     HTMLCanvasElement.prototype.getContext = () => null;
   });
   const page = await context.newPage();
-  await page.goto("http://127.0.0.1:3000");
+  await recordedApi(page);
+  await page.goto("http://127.0.0.1:3100/fleet");
   expect(
     await page.evaluate(() =>
       document.createElement("canvas").getContext("webgl"),
@@ -87,7 +96,7 @@ test("shell remains static under reduced motion without WebGL", async ({
     page.getByRole("heading", { name: "Austin fleet" }),
   ).toBeVisible();
   await expect(page.getByRole("contentinfo")).toContainText(
-    "Fleet state unavailable",
+    "Fleet observation recorded",
   );
   await page.getByRole("button", { name: "Use light theme" }).click();
   await expect(page.locator(".console")).toHaveAttribute("data-theme", "light");
