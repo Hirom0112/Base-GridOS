@@ -547,3 +547,11 @@ assumptions reported by workers land here too.
   `testdata/scenarios/` while lane D holds them; 3D.5 waits for lane D.
   The 3C.3 condition applies to 3D.1: the approval digest is computed over
   the frozen snapshot.
+- **3D.3 (lane 3D-api), verified:** `GetPlanExplanation` is an additive
+  RPC returning the stored plan's objective breakdown, constraint margins,
+  exclusions, shortfalls, and the summed effective reserve held back; it
+  is authorized for operator, approver, analyst, and service roles and
+  refuses a plan version that does not match the event. Director:
+  regenerated contracts, buf lint clean, control builds, test ok. One
+  refactor requested as its own commit: `LoadPlan` becomes part of the
+  store interface instead of a runtime type assertion.

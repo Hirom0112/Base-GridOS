@@ -1192,7 +1192,7 @@ Owns: `services/control/internal/dispatch/`, `services/control/internal/api/`,
 - `[~]` 3D.2 `[after 3A.6, 3B.8]` Forecast and optimize activities call the
   decision service with a budget; a timeout is recorded as a decision in the
   timeline and the fallback plan proceeds to validation. Verify: `-run PlanningActivities` passes.
-- `[~]` 3D.3 `[P]` Explanation API: `GetPlanExplanation` returning objective
+- `[x]` 3D.3 `[P]` Explanation API: `GetPlanExplanation` returning objective
   breakdown, reserve held back, constraint margins, exclusions with reasons,
   and per-interval shortfall. Verify: `go test ./services/control/internal/api/ -run Explanation` passes.
 - `[~]` 3D.4 `[P]` Reject-then-approve path: the API can validate an
