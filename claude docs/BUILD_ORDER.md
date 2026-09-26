@@ -1176,7 +1176,7 @@ Owns: `services/control/internal/safety/`, `services/control/tests/`,
 - `[x]` 3C.3 `[P]` RED then GREEN: any material input change after approval
   invalidates the plan version and requires re-approval (FULL_SPEC §5.6).
   Verify: `-run Reapproval` passes.
-- `[ ]` 3C.4 `[P]` Load-shaped benchmark: 5,000 devices, 288 intervals (24 h at
+- `[x]` 3C.4 `[P]` Load-shaped benchmark: 5,000 devices, 288 intervals (24 h at
   5 min) under 2 seconds. Verify: `-bench Validate5000x288 -benchtime 3x` under 2 s.
 
 ### Lane 3D — planning integration in the control plane

@@ -494,3 +494,11 @@ assumptions reported by workers land here too.
   sends commands. Lane D owns `services/gateway-simulator/internal/failures/`
   and `testdata/scenarios/SCHEMA.md` additively for this, lane A being
   complete.
+- **3C.4 verified, lane 3C complete:** the full-day gate over 5,000 devices
+  and 288 intervals runs in 0.28 s per validation on the director's
+  machine, well under the 2 s ceiling.
+- **Early start of 3F.1 (2026-09-26):** lane 3C's slot is free. 3F.1 (replay
+  manifest, new package `internal/replay/`) touches nothing open, so it
+  starts now. 3D waits: lane F is mid-edit in `internal/dispatch/` and
+  `internal/reconciliation/` for 2F.10, and lane D holds
+  `tests/integration/`. 3D.3 and 3D.4 may start once 2F.10 is verified.
