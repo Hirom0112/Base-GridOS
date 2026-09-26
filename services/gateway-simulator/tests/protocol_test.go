@@ -88,7 +88,7 @@ func newGRPCServer(t *testing.T, path string, handler http.Handler) *httptest.Se
 	server := httptest.NewUnstartedServer(mux)
 	server.EnableHTTP2 = true
 	server.StartTLS()
-	server.Client().Transport.(*http.Transport).TLSClientConfig = &tls.Config{MinVersion: tls.VersionTLS12}
+	server.Client().Transport.(*http.Transport).TLSClientConfig.MinVersion = tls.VersionTLS12
 	t.Cleanup(server.Close)
 	return server
 }
