@@ -1,4 +1,5 @@
 import json
+from collections import Counter
 
 import h3
 
@@ -30,6 +31,21 @@ def test_austin_cells_stay_in_bounds() -> None:
         latitude, longitude = h3.cell_to_latlng(cell)
         assert latitude_min <= latitude <= latitude_max
         assert longitude_min <= longitude <= longitude_max
+
+
+def test_austin_urban_density_thins_outward() -> None:
+    downtown = h3.latlng_to_cell(30.27, -97.74, 7)
+    counts = Counter(str(record["h3_cell"]) for record in records())
+    bands: list[list[int]] = [[], [], []]
+    for cell, site_count in counts.items():
+        distance = h3.grid_distance(downtown, cell)
+        bands[0 if distance <= 5 else 1 if distance <= 12 else 2].append(site_count)
+        latitude, longitude = h3.cell_to_latlng(cell)
+        assert 30.02 < latitude < 30.83
+        assert -98.22 < longitude < -97.08
+    assert all(bands)
+    mean = [sum(band) / len(band) for band in bands]
+    assert mean[0] > mean[1] > mean[2]
 
 
 def test_austin_capacity_matches_devices() -> None:
