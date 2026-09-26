@@ -624,7 +624,7 @@ Owns: `services/decision/`, `testdata/golden/`,
   `telemetry_observed_at`, and `load_zone`. `DispatchPlan` gains
   `fallback_reason`. Found at 1C.8: no RPC existed and the request could
   not carry physical state. Verify: `buf lint contracts && buf breaking contracts --against '.git#branch=main,subdir=contracts' && make generate` and `grep -c '^service OptimizationService' contracts/gridos/v1/optimization.proto` prints 1.
-- `[~]` 1C.8 `[after 1C.10]` gRPC server `gridos/server.py` exposing
+- `[x]` 1C.8 `[after 1C.10]` gRPC server `gridos/server.py` exposing
   `Optimize(OptimizationRequest) -> DispatchPlan` that runs the fallback (the
   solver arrives in Wave 3), with a hard timeout budget from the request and a
   `fallback=true` flag in the response. Verify: `uv run --project services/decision pytest services/decision -k server` passes using an in-process gRPC channel.
