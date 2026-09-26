@@ -606,3 +606,12 @@ assumptions reported by workers land here too.
   fleet loader keeps them so the frozen snapshot can hand identifiers to
   `Forecast`. County has no source yet, so outage risk is reported
   unavailable until lane 4C's Texas boundary data can assign counties.
+- **3D.2 API boundary (lane 3D-api), accepted:** `Forecast` on
+  `OptimizationService` takes the frozen `OptimizationRequest` (which now
+  carries `ForecastSite` identifiers) and returns typed site load, regional
+  price, outage risk, and device availability values, each with bounds,
+  feature and model versions, value_kind, and provenance, plus an explicit
+  `unavailable_sources` list. `Site` carries load profile type, reliability
+  trait, and optional county. Director: regenerated, buf lint clean, api
+  and fleet packages ok. 3D.2 marks when the dispatch activities and the
+  decision server side pass `-run PlanningActivities`.
