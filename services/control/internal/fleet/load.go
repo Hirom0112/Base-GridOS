@@ -17,6 +17,9 @@ type fleetRecord struct {
 	SiteID                   string  `json:"site_id"`
 	WeatherZone              string  `json:"weather_zone"`
 	LoadZone                 string  `json:"load_zone"`
+	LoadProfileType          string  `json:"load_profile_type"`
+	ReliabilityTrait         string  `json:"reliability_trait"`
+	County                   *string `json:"county"`
 	H3Cell                   string  `json:"h3_cell"`
 	HasSolar                 bool    `json:"has_solar"`
 	HasAutomaticBackup       bool    `json:"has_automatic_backup"`
@@ -58,7 +61,7 @@ func Load(path string, twin *Twin, now time.Time) ([]*gridosv1.AuthorizedSite, *
 			return nil, nil, errors.New("fleet record is incomplete")
 		}
 		provenance := &gridosv1.Provenance{Provenance: gridosv1.DataProvenance_DATA_PROVENANCE_SIMULATED, SourceId: "fleet-file", ObservedAt: timestamppb.New(now), IngestedAt: timestamppb.New(now), SchemaVersion: "1", SimulationSeed: &record.SimulationSeed}
-		site := &gridosv1.Site{SiteId: record.SiteID, WeatherZone: record.WeatherZone, LoadZone: record.LoadZone, H3Cell: record.H3Cell, HasSolar: record.HasSolar, HasAutomaticBackup: record.HasAutomaticBackup, Provenance: provenance}
+		site := &gridosv1.Site{SiteId: record.SiteID, WeatherZone: record.WeatherZone, LoadZone: record.LoadZone, H3Cell: record.H3Cell, HasSolar: record.HasSolar, HasAutomaticBackup: record.HasAutomaticBackup, Provenance: provenance, LoadProfileType: record.LoadProfileType, ReliabilityTrait: record.ReliabilityTrait, County: record.County}
 		device := &gridosv1.Device{DeviceId: record.DeviceID, SiteId: record.SiteID, BatteryParameters: &gridosv1.BatteryParameters{UsableEnergyKwh: record.UsableEnergyKWh, MaxChargeKw: record.MaxChargeKW, MaxDischargeKw: record.MaxDischargeKW, ChargeEfficiency: record.ChargeEfficiency, DischargeEfficiency: record.DischargeEfficiency}, LastSeenAt: timestamppb.New(now), Provenance: provenance}
 		sites = append(sites, &gridosv1.AuthorizedSite{Site: site, Devices: []*gridosv1.Device{device}})
 		devices[record.DeviceID] = DeviceAsset{SiteID: record.SiteID, UsableEnergyKWh: record.UsableEnergyKWh, MaxDischargeKW: record.MaxDischargeKW, ReservePercent: record.ReservePreferencePercent}
