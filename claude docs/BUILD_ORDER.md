@@ -1222,7 +1222,7 @@ Owns: `services/control/internal/analytics/`.
   (default) and a BigQuery sink enabled only by `GRIDOS_ANALYTICS=bigquery`
   (TECHSTACK "Local and deployed topology"). RED tests use the local sink.
   Verify: `go test ./services/control/internal/analytics/` passes.
-- `[ ]` 3E.2 `[P]` Raw telemetry, normalized telemetry, forecasts and actuals,
+- `[x]` 3E.2 `[P]` Raw telemetry, normalized telemetry, forecasts and actuals,
   dispatch and verification facts, and data-quality facts exported as
   append-only records with the provenance fields from FULL_SPEC §2.
   Verify: `-run Export` passes.

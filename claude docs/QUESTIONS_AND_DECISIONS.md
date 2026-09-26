@@ -514,3 +514,8 @@ assumptions reported by workers land here too.
   idempotent and different content is an error. Fleet and scenario bytes
   are SHA-256 hashed at creation. RED c58c988, GREEN 5c6b038, director
   re-run ok.
+- **3E.2 (lane 3E), verified:** seven append-only record kinds share one
+  envelope whose provenance carries class, source id and URI, observed and
+  ingested times, schema version, and an optional simulation seed; every
+  field is validated at the sink boundary and id collisions are rejected.
+  RED 29ac47c, GREEN 35eb238, director re-run ok.
