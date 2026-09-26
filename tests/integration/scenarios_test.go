@@ -307,7 +307,44 @@ func TestOutageReplay(t *testing.T) {
 }
 
 func TestMeasurementGapUnknown(t *testing.T) {
-	t.Skip("pending director: VERIFIED 2B.7: the report carries no uncertain intervals until the reconciliation wiring lands, so a measurement gap has no observable outcome")
+	stack := startStack(t, "measurement-gap-unknown")
+	ctx := context.Background()
+	now := time.Now().UTC()
+	stack.publishTelemetry(t, ctx, stack.cohort(t), now, constantStateOfEnergy)
+	eventID := fmt.Sprintf("measurement-gap-%d", now.UnixNano())
+	response := stack.runEvent(t, ctx, eventID, now)
+	injectedAt := stack.scenario.Injections[0].At
+	var live int
+	if err := stack.pool.QueryRow(ctx, `SELECT count(*) FROM audit_journal
+		WHERE action = 'TELEMETRY_RECEIVED' AND occurred_at = $1
+		AND actor_id IN (SELECT device_id FROM command_intents WHERE event_id = $2)`, injectedAt, eventID).Scan(&live); err != nil {
+		t.Fatal(err)
+	}
+	if live == 0 {
+		t.Fatal("no scheduled device published telemetry during the injected tick")
+	}
+	var affectedDevice string
+	err := stack.pool.QueryRow(ctx, `SELECT intent.device_id FROM command_intents AS intent
+		WHERE intent.event_id = $1 AND intent.generation = 1
+		AND EXISTS (SELECT 1 FROM audit_journal AS earlier WHERE earlier.action = 'TELEMETRY_RECEIVED'
+			AND earlier.actor_id = intent.device_id AND earlier.occurred_at BETWEEN $2 AND $3)
+		AND NOT EXISTS (SELECT 1 FROM audit_journal AS missing WHERE missing.action = 'TELEMETRY_RECEIVED'
+			AND missing.actor_id = intent.device_id AND missing.occurred_at = $3)
+		LIMIT 1`, eventID, stack.scenario.Event.StartAt, injectedAt).Scan(&affectedDevice)
+	if err != nil {
+		t.Fatal(err)
+	}
+	uncertain := false
+	for _, interval := range response.GetReport().GetUncertainIntervals() {
+		if interval.GetDeviceId() == affectedDevice && interval.GetEndTime().AsTime().Sub(interval.GetBeginTime().AsTime()) > 30*time.Second {
+			uncertain = true
+			break
+		}
+	}
+	if !uncertain {
+		t.Fatalf("dropped telemetry for %s did not produce an unknown interval over 30 seconds", affectedDevice)
+	}
+	stack.assertOutcome(t, ctx, eventID, response)
 }
 
 func (stack *stack) assertOutcome(t *testing.T, ctx context.Context, eventID string, response *gridosv1.GetEventResponse) {
