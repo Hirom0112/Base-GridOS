@@ -75,6 +75,31 @@ func TestVerifyDeliveryActivityWritesSummariesAndUncertainty(t *testing.T) {
 	}
 }
 
+func TestVerifyDeliveryTracksEventWindow(t *testing.T) {
+	harness := newActivityHarness(t)
+	harness.now = harness.begin
+	if err := harness.activities.VerifyDelivery(context.Background(), Input{EventID: "event-1"}); err != nil {
+		t.Fatal(err)
+	}
+	if state := harness.eventState(t); state != "EXECUTING" {
+		t.Fatalf("at begin state = %s, want EXECUTING", state)
+	}
+	harness.now = harness.begin.Add(5 * time.Minute)
+	if err := harness.activities.VerifyDelivery(context.Background(), Input{EventID: "event-1"}); err != nil {
+		t.Fatal(err)
+	}
+	if state := harness.eventState(t); state != "EXECUTING" {
+		t.Fatalf("during window state = %s, want EXECUTING", state)
+	}
+	harness.now = harness.end
+	if err := harness.activities.VerifyDelivery(context.Background(), Input{EventID: "event-1"}); err != nil {
+		t.Fatal(err)
+	}
+	if state := harness.eventState(t); state != "VERIFIED" {
+		t.Fatalf("at end state = %s, want VERIFIED", state)
+	}
+}
+
 func TestReconcileLateMessagesActivityAbsorbsLateTelemetry(t *testing.T) {
 	harness := newActivityHarness(t)
 	harness.observeExport(t, 0, 10, 20, 45, 50, 55, 60, 62)
