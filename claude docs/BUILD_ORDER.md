@@ -594,7 +594,7 @@ Owns: `services/decision/`, `testdata/golden/`.
 - `[x]` 1C.3 `[P]` GREEN: `gridos/physics/energy.py` with the energy update,
   reserve inequality, per-interval energy-limited power, and backup-duration
   estimate given a critical-load forecast. Verify: `uv run --project services/decision pytest services/decision -k energy` passes.
-- `[~]` 1C.4 `[P]` RED: `tests/test_fallback.py`: given the 50-device fleet
+- `[x]` 1C.4 `[P]` RED: `tests/test_fallback.py`: given the 50-device fleet
   and a target that only 30 devices can meet, the fallback filters
   ineligible devices, ranks survivors, allocates conservatively, and reports a
   per-interval shortfall whose sum equals target minus allocated; an
