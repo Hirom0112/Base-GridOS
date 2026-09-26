@@ -197,7 +197,7 @@ Owns: repo root files (`Makefile`, `AGENTS.md`, `.gitignore`),
   and every `buf generate` output directory to `.gitignore`.
   Verify: `make up` and `make down` succeed; `make -n test-all` lists the three test targets; `git check-ignore .local/x` prints the path.
 
-- `[ ]` 0A.5 `[after 0F.1, 0C.3]` Make `test-go` and `test-py` real now that
+- `[~]` 0A.5 `[after 0F.1, 0C.3]` Make `test-go` and `test-py` real now that
   modules exist: a root `go.work` listing every Go module as it appears
   (`tools/development/mockapi` first), `test-go` running `go test` across
   the workspace, and `test-py` running `uv run --project tools pytest` (and
@@ -304,7 +304,7 @@ Owns: `docs/domain/truth-model.md`, `tools/generation/`, `testdata/fleets/`,
   transition tables. Each open decision from FULL_SPEC §15 that this doc
   resolves is reported as an assumption for the director to log.
   Verify: every state named in TECHSTACK "Temporal workflows" appears in the transition table; at least six `worker: ASSUMPTION 0C.1` lines reach the mailbox.
-- `[~]` 0C.2 `[P]` RED: `tools/generation/tests/test_fleet_determinism.py`
+- `[x]` 0C.2 `[P]` RED: `tools/generation/tests/test_fleet_determinism.py`
   pins that `generate_fleet(seed=20260926, size=5000)` produces a SHA-256 the
   test hard-codes, that two runs are byte-identical, and that `size=50` is a
   prefix-stable subset. Verify: `uv run pytest tools/generation -k determinism` fails with "module not found".
