@@ -241,10 +241,17 @@ func intervalCount(plan Plan) int {
 
 func invalidPhysics(state DeviceState) bool {
 	values := []float64{state.UsableCapacityKWh, state.HardwareReserveKWh, state.PlanReserveKWh, state.DynamicReserveKWh, state.MaxChargeKW, state.MaxDischargeKW, state.ChargeEfficiency, state.DischargeEfficiency, state.MeterExportLimitKW, state.InterconnectionLimitKW}
-	if !finite(values...) || state.UsableCapacityKWh <= 0 || state.HardwareReserveKWh < 0 || state.PlanReserveKWh < 0 || state.DynamicReserveKWh < 0 || state.MaxChargeKW < 0 || state.MaxDischargeKW < 0 || state.MeterExportLimitKW < 0 || state.InterconnectionLimitKW < 0 {
+	if !finite(values...) || invalidNonnegativeBounds(state) {
+		return true
+	}
+	if state.EnergyKWh != nil && (!finite(*state.EnergyKWh) || *state.EnergyKWh < 0 || *state.EnergyKWh > state.UsableCapacityKWh) {
 		return true
 	}
 	return state.ChargeEfficiency <= 0 || state.ChargeEfficiency > 1 || state.DischargeEfficiency <= 0 || state.DischargeEfficiency > 1 || state.HardwareReserveKWh > state.UsableCapacityKWh || state.PlanReserveKWh > state.UsableCapacityKWh || state.DynamicReserveKWh > state.UsableCapacityKWh
+}
+
+func invalidNonnegativeBounds(state DeviceState) bool {
+	return state.UsableCapacityKWh <= 0 || state.HardwareReserveKWh < 0 || state.PlanReserveKWh < 0 || state.DynamicReserveKWh < 0 || state.MaxChargeKW < 0 || state.MaxDischargeKW < 0 || state.MeterExportLimitKW < 0 || state.InterconnectionLimitKW < 0
 }
 
 func EffectiveReserve(state DeviceState, now time.Time) float64 {
