@@ -645,7 +645,7 @@ Owns: `services/control/internal/storage/` (including
   leaves neither row); claiming a batch uses `SKIP LOCKED` so two claimers
   never receive the same row; a re-claimed row after a crash keeps the same
   `command_id` and payload (FULL_SPEC §4 invariant 5). Verify: fails.
-- `[~]` 1D.6 `[P]` GREEN: `internal/storage/outbox.go` and the
+- `[x]` 1D.6 `[P]` GREEN: `internal/storage/outbox.go` and the
   `OutboxPublisher` interface the control API and workflows will use.
   Verify: `-run Outbox` passes.
 - `[~]` 1D.7 `[P]` RED then GREEN: acknowledgements and uncertainty intervals.
