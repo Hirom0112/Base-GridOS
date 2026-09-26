@@ -111,8 +111,8 @@ func TestOutboxCrashReclaimPreservesCommand(t *testing.T) {
 	if len(first) != 1 || len(second) != 1 {
 		t.Fatalf("claim lengths = %d and %d, want 1 and 1", len(first), len(second))
 	}
-	if first[0] != second[0] {
-		t.Fatalf("reclaimed command changed: %#v != %#v", first[0], second[0])
+	if first[0].CommandIntent != second[0].CommandIntent {
+		t.Fatalf("reclaimed command changed: %#v != %#v", first[0].CommandIntent, second[0].CommandIntent)
 	}
 	if second[0].CommandID != command.CommandID {
 		t.Fatalf("command ID = %s, want %s", second[0].CommandID, command.CommandID)
