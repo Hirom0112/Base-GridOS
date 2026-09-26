@@ -313,26 +313,33 @@ func TestMeasurementGapUnknown(t *testing.T) {
 	stack.publishTelemetry(t, ctx, stack.cohort(t), now, constantStateOfEnergy)
 	eventID := fmt.Sprintf("measurement-gap-%d", now.UnixNano())
 	response := stack.runEvent(t, ctx, eventID, now)
-	injectedAt := stack.scenario.Injections[0].At
-	var live int
-	if err := stack.pool.QueryRow(ctx, `SELECT count(*) FROM audit_journal
-		WHERE action = 'TELEMETRY_RECEIVED' AND occurred_at = $1
-		AND actor_id IN (SELECT device_id FROM command_intents WHERE event_id = $2)`, injectedAt, eventID).Scan(&live); err != nil {
-		t.Fatal(err)
-	}
-	if live == 0 {
-		t.Fatal("no scheduled device published telemetry during the injected tick")
-	}
 	var affectedDevice string
-	err := stack.pool.QueryRow(ctx, `SELECT intent.device_id FROM command_intents AS intent
-		WHERE intent.event_id = $1 AND intent.generation = 1
-		AND EXISTS (SELECT 1 FROM audit_journal AS earlier WHERE earlier.action = 'TELEMETRY_RECEIVED'
-			AND earlier.actor_id = intent.device_id AND earlier.occurred_at BETWEEN $2 AND $3)
-		AND NOT EXISTS (SELECT 1 FROM audit_journal AS missing WHERE missing.action = 'TELEMETRY_RECEIVED'
-			AND missing.actor_id = intent.device_id AND missing.occurred_at = $3)
-		LIMIT 1`, eventID, stack.scenario.Event.StartAt, injectedAt).Scan(&affectedDevice)
-	if err != nil {
-		t.Fatal(err)
+	for _, injection := range stack.scenario.Injections {
+		var live int
+		if err := stack.pool.QueryRow(ctx, `SELECT count(*) FROM audit_journal
+			WHERE action = 'TELEMETRY_RECEIVED' AND occurred_at = $1
+			AND actor_id IN (SELECT device_id FROM command_intents WHERE event_id = $2)`, injection.At, eventID).Scan(&live); err != nil {
+			t.Fatal(err)
+		}
+		if live == 0 {
+			continue
+		}
+		err := stack.pool.QueryRow(ctx, `SELECT COALESCE((SELECT intent.device_id FROM command_intents AS intent
+			WHERE intent.event_id = $1 AND intent.generation = 1
+			AND EXISTS (SELECT 1 FROM audit_journal AS earlier WHERE earlier.action = 'TELEMETRY_RECEIVED'
+				AND earlier.actor_id = intent.device_id AND earlier.occurred_at BETWEEN $2 AND $3)
+			AND NOT EXISTS (SELECT 1 FROM audit_journal AS missing WHERE missing.action = 'TELEMETRY_RECEIVED'
+				AND missing.actor_id = intent.device_id AND missing.occurred_at = $3)
+			LIMIT 1), '')`, eventID, stack.scenario.Event.StartAt, injection.At).Scan(&affectedDevice)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if affectedDevice != "" {
+			break
+		}
+	}
+	if affectedDevice == "" {
+		t.Fatal("no scheduled device lost an observation during a live injected tick")
 	}
 	uncertain := false
 	for _, interval := range response.GetReport().GetUncertainIntervals() {
