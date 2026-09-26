@@ -517,7 +517,7 @@ Owns: `services/gateway-simulator/`.
   a lower `generation` than the stored one is rejected with reason
   `OBSOLETE_GENERATION`; a command whose `expires_at` has passed is rejected.
   Verify: fails with "undefined".
-- `[~]` 1A.4 `[P]` GREEN: `internal/gateway` SQLite store (`modernc.org/sqlite`
+- `[x]` 1A.4 `[P]` GREEN: `internal/gateway` SQLite store (`modernc.org/sqlite`
   so the build stays pure Go) with `commands` and `telemetry_buffer` tables,
   write-then-ack ordering, dedup, generation check, effective and expiry
   enforcement (TECHSTACK "Gateway simulator and SQLite" items 1 to 4).
