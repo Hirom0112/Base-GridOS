@@ -2,6 +2,7 @@ package dispatch
 
 import (
 	"context"
+	"crypto/sha256"
 	"errors"
 	"fmt"
 	"time"
@@ -13,6 +14,7 @@ import (
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/storage"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.temporal.io/sdk/temporal"
+	"google.golang.org/protobuf/proto"
 )
 
 type Activities struct {
@@ -27,6 +29,7 @@ type FrozenEvent struct {
 	Input                 Input
 	InputSnapshotID       string
 	EligibilitySnapshotID string
+	SnapshotDigest        [32]byte
 }
 
 func (activities *Activities) FreezeInputs(ctx context.Context, input Input) (FrozenEvent, error) {
@@ -38,12 +41,26 @@ func (activities *Activities) FreezeInputs(ctx context.Context, input Input) (Fr
 		return FrozenEvent{}, err
 	}
 	inputID, eligibilityID, err := storage.NewPostgresEventStore(activities.Pool).StoreFrozen(ctx, input.EventID, snapshot.Optimization, activities.Now())
-	return FrozenEvent{Input: input, InputSnapshotID: inputID, EligibilitySnapshotID: eligibilityID}, err
+	if err != nil {
+		return FrozenEvent{}, err
+	}
+	stored, err := storage.NewPostgresEventStore(activities.Pool).LoadFrozen(ctx, input.EventID, inputID, eligibilityID)
+	if err != nil {
+		return FrozenEvent{}, err
+	}
+	if !proto.Equal(stored, snapshot.Optimization) {
+		return FrozenEvent{}, errors.New("frozen snapshot changed on retry")
+	}
+	digest, err := snapshotDigest(stored)
+	return FrozenEvent{Input: input, InputSnapshotID: inputID, EligibilitySnapshotID: eligibilityID, SnapshotDigest: digest}, err
 }
 
 func (activities *Activities) RequestPlan(ctx context.Context, frozen FrozenEvent) (FrozenEvent, error) {
 	request, err := storage.NewPostgresEventStore(activities.Pool).LoadFrozen(ctx, frozen.Input.EventID, frozen.InputSnapshotID, frozen.EligibilitySnapshotID)
 	if err != nil {
+		return frozen, err
+	}
+	if err = frozen.verifySnapshot(request); err != nil {
 		return frozen, err
 	}
 	plan, err := activities.Dispatcher.RequestPlan(ctx, controlapi.FrozenSnapshot{Optimization: request})
@@ -59,11 +76,33 @@ func (activities *Activities) ValidatePlan(ctx context.Context, frozen FrozenEve
 	if err != nil {
 		return err
 	}
+	if err = frozen.verifySnapshot(request); err != nil {
+		return err
+	}
 	err = activities.Dispatcher.ValidatePlan(ctx, frozen.Input.EventID, frozen.Input.PlanVersion, canonicalFromFrozen(request))
 	if errors.Is(err, controlapi.ErrSafetyRejected) {
 		return temporal.NewNonRetryableApplicationError(err.Error(), ValidationError, err)
 	}
 	return err
+}
+
+func snapshotDigest(request *gridosv1.OptimizationRequest) ([32]byte, error) {
+	encoded, err := (proto.MarshalOptions{Deterministic: true}).Marshal(request)
+	if err != nil {
+		return [32]byte{}, err
+	}
+	return sha256.Sum256(encoded), nil
+}
+
+func (frozen FrozenEvent) verifySnapshot(request *gridosv1.OptimizationRequest) error {
+	digest, err := snapshotDigest(request)
+	if err != nil {
+		return err
+	}
+	if digest != frozen.SnapshotDigest {
+		return errors.New("frozen snapshot digest changed")
+	}
+	return nil
 }
 
 func canonicalFromFrozen(request *gridosv1.OptimizationRequest) safety.CanonicalState {
