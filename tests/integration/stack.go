@@ -59,14 +59,15 @@ type stack struct {
 }
 
 type process struct {
-	name    string
-	env     []string
-	program string
-	args    []string
-	address string
-	log     string
-	command *exec.Cmd
-	exited  chan struct{}
+	name      string
+	env       []string
+	program   string
+	args      []string
+	address   string
+	log       string
+	command   *exec.Cmd
+	exited    chan struct{}
+	startedAt time.Time
 }
 
 func startStack(t *testing.T, scenarioName string) *stack {
@@ -263,6 +264,7 @@ func (stack *stack) launch(t *testing.T, process *process) {
 	command.Dir = stack.root
 	command.Env = append(os.Environ(), process.env...)
 	command.Stdout, command.Stderr = logFile, logFile
+	process.startedAt = time.Now()
 	if err = command.Start(); err != nil {
 		t.Fatalf("start %s: %v", process.name, err)
 	}

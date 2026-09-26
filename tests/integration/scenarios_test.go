@@ -122,15 +122,123 @@ func TestGatewayRestart(t *testing.T) {
 }
 
 func TestHoustonTwentyPercentOffline(t *testing.T) {
-	t.Skip("pending director: VERIFIED 2B.7: the report carries no delivered or lost MW until the reconciliation wiring lands, so an outage over 20 percent of Houston schedules has no observable outcome")
+	stack := startStack(t, "houston-20pct-offline")
+	ctx := context.Background()
+	now := time.Now().UTC()
+	stack.publishTelemetry(t, ctx, stack.cohort(t), now, constantStateOfEnergy)
+	eventID := fmt.Sprintf("houston-offline-%d", now.UnixNano())
+	response := stack.runEvent(t, ctx, eventID, now)
+	var missing, present int
+	err := stack.pool.QueryRow(ctx, `SELECT
+		count(*) FILTER (WHERE observation.new_values->>'valueState' = 'VALUE_STATE_MISSING'),
+		count(*) FILTER (WHERE observation.new_values->>'valueState' = 'VALUE_STATE_PRESENT')
+		FROM audit_journal AS observation
+		WHERE observation.action = 'TELEMETRY_RECEIVED'
+		AND observation.actor_id IN (SELECT device_id FROM command_intents WHERE event_id = $1)
+		AND observation.occurred_at BETWEEN $2 AND $3`, eventID, stack.scenario.Event.StartAt, stack.scenario.Event.EndAt).Scan(&missing, &present)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if missing == 0 || present == 0 {
+		t.Fatalf("scheduled Houston telemetry: %d missing, %d present", missing, present)
+	}
+	var affectedDevice string
+	var missingAt time.Time
+	err = stack.pool.QueryRow(ctx, `SELECT observation.actor_id, observation.occurred_at
+		FROM audit_journal AS observation
+		WHERE observation.action = 'TELEMETRY_RECEIVED'
+		AND observation.new_values->>'valueState' = 'VALUE_STATE_MISSING'
+		AND observation.actor_id IN (SELECT device_id FROM command_intents WHERE event_id = $1)
+		AND observation.occurred_at BETWEEN $2 AND $3 LIMIT 1`, eventID, stack.scenario.Event.StartAt, stack.scenario.Event.EndAt).Scan(&affectedDevice, &missingAt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var adjacent int
+	err = stack.pool.QueryRow(ctx, `SELECT count(*) FROM audit_journal
+		WHERE action = 'TELEMETRY_RECEIVED' AND actor_id = $1
+		AND new_values->>'valueState' = 'VALUE_STATE_PRESENT'
+		AND occurred_at BETWEEN $2 AND $3`, affectedDevice, missingAt.Add(-10*time.Second), missingAt.Add(10*time.Second)).Scan(&adjacent)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if adjacent == 0 {
+		t.Fatalf("missing Houston observation for %s has no adjacent live tick", affectedDevice)
+	}
+	stack.assertOutcome(t, ctx, eventID, response)
 }
 
 func TestLostAckStillExecuting(t *testing.T) {
-	t.Skip("pending director: VERIFIED 2B.7: the publisher continue-on-uncertain fix and the UNCERTAIN to ACKNOWLEDGED transition are part of 2B.7")
+	stack := startStack(t, "lost-ack-still-executing")
+	ctx := context.Background()
+	now := time.Now().UTC()
+	stack.publishTelemetry(t, ctx, stack.cohort(t), now, constantStateOfEnergy)
+	eventID := fmt.Sprintf("lost-ack-%d", now.UnixNano())
+	stack.createEvent(t, ctx, eventID)
+	stack.waitEventState(t, ctx, eventID, "VALIDATED")
+	stack.approveEvent(t, ctx, eventID, now)
+	injectionOffset := stack.scenario.Injections[0].At.Sub(stack.scenario.Clock.StartAt)
+	time.Sleep(time.Until(stack.processes["gateway"].startedAt.Add(injectionOffset + 2*time.Second)))
+	stack.launchEvent(t, ctx, eventID, time.Now().UTC())
+	response := stack.waitEventState(t, ctx, eventID, "REPORTED")
+	var uncertain, acknowledged int
+	err := stack.pool.QueryRow(ctx, `SELECT
+		count(*) FILTER (WHERE state.state = 'UNCERTAIN'),
+		count(*) FILTER (WHERE state.state = 'ACKNOWLEDGED')
+		FROM command_states AS state JOIN command_intents AS intent USING (command_id)
+		WHERE intent.event_id = $1`, eventID).Scan(&uncertain, &acknowledged)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if uncertain == 0 || acknowledged == 0 {
+		t.Fatalf("command history has %d uncertain and %d acknowledged states", uncertain, acknowledged)
+	}
+	activeStart := stack.processes["gateway"].startedAt.Add(injectionOffset)
+	var sentDuringFault int
+	err = stack.pool.QueryRow(ctx, `SELECT count(*) FROM command_states AS state
+		JOIN command_intents AS intent USING (command_id)
+		WHERE intent.event_id = $1 AND state.state = 'SENT'
+		AND state.recorded_at BETWEEN $2 AND $3`, eventID, activeStart, activeStart.Add(5*time.Second)).Scan(&sentDuringFault)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if sentDuringFault == 0 {
+		t.Fatal("no command was sent during the injected gateway tick")
+	}
+	stack.assertOutcome(t, ctx, eventID, response)
 }
 
 func TestOldExpiryNewerPending(t *testing.T) {
-	t.Skip("pending director: VERIFIED 2B.7: needs the lost-acknowledgement path above to hold a newer command UNCERTAIN while the older one expires")
+	stack := startStack(t, "old-command-expiry-newer-pending")
+	ctx := context.Background()
+	now := time.Now().UTC()
+	stack.publishTelemetry(t, ctx, stack.cohort(t), now, constantStateOfEnergy)
+	eventID := fmt.Sprintf("old-expiry-%d", now.UnixNano())
+	stack.createEvent(t, ctx, eventID)
+	stack.waitEventState(t, ctx, eventID, "VALIDATED")
+	stack.approveEvent(t, ctx, eventID, now)
+	injectionOffset := stack.scenario.Injections[0].At.Sub(stack.scenario.Clock.StartAt)
+	time.Sleep(time.Until(stack.processes["gateway"].startedAt.Add(injectionOffset + 2*time.Second)))
+	stack.launchEvent(t, ctx, eventID, time.Now().UTC())
+	response := stack.waitEventState(t, ctx, eventID, "REPORTED")
+	var paired, uncertain int
+	err := stack.pool.QueryRow(ctx, `SELECT
+		count(DISTINCT old.device_id),
+		count(DISTINCT newer.command_id) FILTER (WHERE newer_state.state = 'UNCERTAIN')
+		FROM command_intents AS old
+		JOIN command_intents AS newer ON newer.event_id = old.event_id AND newer.device_id = old.device_id AND newer.generation = 2
+		JOIN command_states AS newer_state ON newer_state.command_id = newer.command_id
+		WHERE old.event_id = $1 AND old.generation = 1 AND old.expires_at <= newer.effective_at`, eventID).Scan(&paired, &uncertain)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if paired == 0 || uncertain == 0 {
+		t.Fatalf("expired old commands paired with newer commands = %d, uncertain newer commands = %d", paired, uncertain)
+	}
+	commands := stack.commandStates(t, ctx, eventID)
+	if retained := stack.gatewayCommands(t, ctx, eventID); retained != len(commands) {
+		t.Fatalf("gateway retained %d of %d command intents", retained, len(commands))
+	}
+	stack.assertOutcome(t, ctx, eventID, response)
 }
 
 func TestOutageReplay(t *testing.T) {

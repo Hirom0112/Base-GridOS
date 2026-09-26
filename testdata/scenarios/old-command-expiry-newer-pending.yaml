@@ -17,7 +17,7 @@ injections:
   - at: 2026-08-12T18:05:00-05:00
     kind: DELAYED_GATEWAY
     scope: scheduled
-  - at: 2026-08-12T18:30:00-05:00
+  - at: 2026-08-12T19:50:00-05:00
     kind: DROPPED_MESSAGES
     scope: scheduled
 expected:
