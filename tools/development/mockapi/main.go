@@ -35,6 +35,9 @@ func main() {
 }
 
 func run() error {
+	if len(os.Args) > 1 && os.Args[1] == "record" {
+		return runRecord(os.Args[2:])
+	}
 	authMode := os.Getenv("GRIDOS_AUTH_MODE")
 	if authMode != "" && authMode != "local" {
 		return fmt.Errorf("GRIDOS_AUTH_MODE must be local, got %q", authMode)

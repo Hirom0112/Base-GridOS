@@ -11,5 +11,30 @@
       "gridos.v1.DispatchService.GetEvent",
       "gridos.v1.DispatchService.ApproveEvent"
     ]
+  },
+  "requests": {
+    "gridos.v1.FleetService.GetFleetSummary": {},
+    "gridos.v1.FleetService.ListSites": {"pageSize": 50},
+    "gridos.v1.DispatchService.CreateEventRequest": {
+      "eventRequest": {
+        "requestId": "request_sim_0001",
+        "eventType": "ERCOT_DEMAND_RESPONSE",
+        "beginTime": "2026-08-12T23:00:00Z",
+        "endTime": "2026-08-13T01:00:00Z",
+        "targetKw": 20000,
+        "measurementBoundary": "MEASUREMENT_BOUNDARY_METER_NET_EXPORT",
+        "loadZones": ["LZ_HOUSTON"],
+        "correlationId": "corr_sim_0001"
+      },
+      "idempotencyKey": "idem_sim_create_0001"
+    },
+    "gridos.v1.DispatchService.GetEvent": {"eventId": "event_sim_0001"},
+    "gridos.v1.DispatchService.ApproveEvent": {
+      "eventId": "event_sim_0001",
+      "planVersion": "1",
+      "idempotencyKey": "idem_sim_approve_0001",
+      "approvedBy": "approver_sim_0001",
+      "approvedAt": "2026-08-12T22:59:00Z"
+    }
   }
 }
