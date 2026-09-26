@@ -497,7 +497,7 @@ Every lane starts with `[P]` items; the cross-lane waits are last.
 
 Owns: `services/gateway-simulator/`.
 
-- `[~]` 1A.1 `[P]` RED: `internal/battery/model_test.go` pins the worked
+- `[x]` 1A.1 `[P]` RED: `internal/battery/model_test.go` pins the worked
   example from `system-understanding.md`: 39.2 kWh usable, 74% SOC, 40%
   reserve, 10 kW inverter, 3.1 kW load, 0.95 discharge efficiency gives
   stored 29.008 kWh, reserve 15.680 kWh, above-reserve 13.328 kWh, AC
