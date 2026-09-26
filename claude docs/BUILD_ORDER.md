@@ -582,7 +582,7 @@ Owns: `services/control/internal/safety/`.
 
 Owns: `services/decision/`, `testdata/golden/`.
 
-- `[~]` 1C.1 `[P]` `uv` project at `services/decision` with Python 3.12,
+- `[x]` 1C.1 `[P]` `uv` project at `services/decision` with Python 3.12,
   `numpy`, `polars`, `highspy` (installed now, used in Wave 3), `hypothesis`,
   `pytest`, `ruff`, `mypy --strict`, plus the Python leg of the contract
   round-trip: `tests/contract/test_command_intent.py` reading
