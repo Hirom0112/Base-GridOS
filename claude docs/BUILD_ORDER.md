@@ -783,7 +783,7 @@ Owns: `services/control/internal/ingest/`, `tests/end-to-end/`, the
   (not `texas-50`, which stays a unit-test fleet) using `mockapi record`,
   replacing the hand-authored fixtures. `ListSites` must show a few hundred
   H3 cells with per-cell dispatchable capacity and availability state. Verify: `go test ./tools/development/mockapi/ -run Fixtures` passes on the recordings and every Wave 1 file in `testdata/fixtures/api/` changed.
-- `[~]` 1F.5 `[after 1F.3]` Duplicate-delivery end to end: publish the same
+- `[x]` 1F.5 `[after 1F.3]` Duplicate-delivery end to end: publish the same
   `command_id` twice through the outbox; the gateway shows one physical
   effect and storage shows one acknowledgement. Verify: `go test ./tests/end-to-end/ -run DuplicateDelivery` passes.
 
@@ -830,22 +830,22 @@ Implements FULL_SPEC §12 Phase 2 and TECHSTACK step 6.
 Owns: `services/gateway-simulator/internal/failures/`,
 `services/gateway-simulator/cmd/`.
 
-- `[ ]` 2A.1 `[P]` RED: `failures/inject_test.go` for each injection in
+- `[~]` 2A.1 `[P]` RED: `failures/inject_test.go` for each injection in
   FULL_SPEC §5.8: offline device, delayed telemetry, dropped message,
   duplicated message, gateway restart, partial region outage, bad forecast
   hook, hot battery, stale state, optimizer timeout (signalled to the decision
   service through the scenario). The remaining §5.8 injection, worker
   restart, is a control-plane fault and is exercised by 2B.6. Each injection
   is seeded and reproducible. Verify: fails.
-- `[ ]` 2A.2 `[P]` GREEN: injection engine driven by the scenario file from
+- `[~]` 2A.2 `[P]` GREEN: injection engine driven by the scenario file from
   0C.6, keyed off the scenario clock. Verify: `go test ./services/gateway-simulator/internal/failures/` passes.
-- `[ ]` 2A.3 `[P]` RED then GREEN: "twenty percent of Houston devices
+- `[~]` 2A.3 `[P]` RED then GREEN: "twenty percent of Houston devices
   disconnected" computes lost MW from the affected devices' schedules, not
   20% of fleet MW (`system-understanding.md` "Reliable execution"). Verify: `-run HoustonTwenty` passes.
-- `[ ]` 2A.4 `[P]` RED then GREEN: network outage followed by SQLite replay
+- `[~]` 2A.4 `[P]` RED then GREEN: network outage followed by SQLite replay
   delivers every buffered observation once, in sequence, with original
   `source_time`. Verify: `-run OutageReplay` passes.
-- `[ ]` 2A.5 `[P]` Scenario runner flag `--scenario <file>` on the simulator
+- `[~]` 2A.5 `[P]` Scenario runner flag `--scenario <file>` on the simulator
   binary; a run with the same seed twice produces identical telemetry hashes.
   Verify: `go test ./services/gateway-simulator/tests -run ScenarioDeterminism` passes.
 
@@ -855,29 +855,29 @@ Owns: `services/control/internal/dispatch/`, `services/control/cmd/worker`,
 `services/control/internal/api/` root package only (to retire the Wave 1 dispatcher; `internal/api/events/` is 2F's),
 `services/control/go.mod` (Wave 2 owner).
 
-- `[ ]` 2B.1 `[P]` `cmd/worker`, task queue, and a workflow test suite using
+- `[~]` 2B.1 `[P]` `cmd/worker`, task queue, and a workflow test suite using
   the Temporal SDK test environment with time skipping (the SDK dependency
   was pre-declared in 1D.1).
   Verify: `go test ./services/control/internal/dispatch/ -run Smoke` passes.
-- `[ ]` 2B.2 `[P]` RED: `workflow_test.go` walking the eleven states in order
+- `[~]` 2B.2 `[P]` RED: `workflow_test.go` walking the eleven states in order
   with activities mocked; the workflow never skips `VALIDATED` or `APPROVED`;
   an `ApproveEvent` signal is required before `COMMANDS_PERSISTED`; an
   `EmergencyStop` signal from any state after `SENT` issues superseding
   zero-setpoint commands with a higher generation. Verify: fails.
-- `[ ]` 2B.3 `[P]` GREEN: the workflow and activities (freeze inputs, request
+- `[~]` 2B.3 `[P]` GREEN: the workflow and activities (freeze inputs, request
   plan, validate, wait approval, persist intents, publish, track, verify,
   end, reconcile, report) as listed in FULL_SPEC §5.7. Verify: `-run Lifecycle` passes.
-- `[ ]` 2B.4 `[P]` RED then GREEN: retry classes. Transient gateway errors
+- `[~]` 2B.4 `[P]` RED then GREEN: retry classes. Transient gateway errors
   retry with the same command ID; validation failures do not retry; command
   expiry is a durable timer; a device replaced within the approved envelope
   gets a new generation, never a reused one. Verify: `-run Retry` passes.
-- `[ ]` 2B.5 `[P]` Replay test: recorded workflow history from 2B.3 replays
+- `[~]` 2B.5 `[P]` Replay test: recorded workflow history from 2B.3 replays
   without nondeterminism errors after the code change in 2B.4. Verify: `go test ./services/control/internal/dispatch/ -run Replay` passes.
-- `[ ]` 2B.6 `[after 1D.9]` Worker-kill integration test: start an
+- `[~]` 2B.6 `[after 1D.9]` Worker-kill integration test: start an
   event against the compose Temporal, kill the worker process after `SENT`,
   restart it, and assert the event reaches `VERIFIED` with no duplicated
   physical intent (FULL_SPEC §10 "Resume an in-flight event"). Verify: `go test ./services/control/tests -run WorkerRestart` passes.
-- `[ ]` 2B.7 `[after 2B.6]` Remove the Wave 1 straight-line dispatcher from
+- `[~]` 2B.7 `[after 2B.6]` Remove the Wave 1 straight-line dispatcher from
   `internal/api` and report the stub as retired. Verify: `grep -rn REPLACED-IN-WAVE-2 services` prints nothing.
 
 ### Lane 2C — reconciliation: acknowledgement versus delivery
@@ -885,29 +885,29 @@ Owns: `services/control/internal/dispatch/`, `services/control/cmd/worker`,
 Owns: `services/control/internal/reconciliation/`,
 `services/control/internal/report/`.
 
-- `[ ]` 2C.1 `[P]` RED: `uncertain_test.go`: a send whose acknowledgement is
+- `[~]` 2C.1 `[P]` RED: `uncertain_test.go`: a send whose acknowledgement is
   lost produces a signed feasible-power interval derived from the last
   confirmed command, the possibly accepted command, effective and expiry
   times, ramp behaviour, and fresh telemetry (TECHSTACK "Safety and delivery
   semantics"); the interval's upper bound is never below the possibly-executing
   setpoint. Verify: fails.
-- `[ ]` 2C.2 `[P]` GREEN: `internal/reconciliation/uncertain.go`. Verify: `-run Uncertain` passes.
-- `[ ]` 2C.3 `[P]` RED then GREEN: capacity is not reallocated over an
+- `[~]` 2C.2 `[P]` GREEN: `internal/reconciliation/uncertain.go`. Verify: `-run Uncertain` passes.
+- `[~]` 2C.3 `[P]` RED then GREEN: capacity is not reallocated over an
   uncertain device until its command expiry passes or fresh telemetry proves
   its state (TECHSTACK e2e scenario 4 and "Safety and delivery semantics":
   the system does not blindly replace capacity that may still be operating).
   Verify: `-run NoOvershoot` passes.
-- `[ ]` 2C.4 `[P]` RED then GREEN: delivery verification integrates power over
+- `[~]` 2C.4 `[P]` RED then GREEN: delivery verification integrates power over
   actual elapsed intervals; measurement gaps stay `UNKNOWN` and are reported
   as uncertain intervals, never as zero delivery (TECHSTACK e2e scenario 11).
   Verify: `-run Gaps` passes.
-- `[ ]` 2C.5 `[P]` RED then GREEN: late and duplicated observations update
+- `[~]` 2C.5 `[P]` RED then GREEN: late and duplicated observations update
   reconciliation history by event time without erasing earlier knowledge.
   Verify: `-run Late` passes.
-- `[ ]` 2C.6 `[P]` Property test: for random sequences of acks, telemetry,
+- `[~]` 2C.6 `[P]` Property test: for random sequences of acks, telemetry,
   and expiries, reported delivered energy is never greater than the integral
   of the telemetry actually received. Verify: `-run Property -rapid.checks=1000` passes.
-- `[ ]` 2C.7 `[after 2B.3]` Reconciliation activities registered with the
+- `[~]` 2C.7 `[after 2B.3]` Reconciliation activities registered with the
   workflow; `internal/report` from 1E.6 now includes delivered MW/MWh,
   tracking error, response latency, and uncertain intervals (FULL_SPEC §5.9).
   Verify: `go test ./services/control/internal/report/ -run Delivered` passes.
@@ -917,7 +917,7 @@ Owns: `services/control/internal/reconciliation/`,
 Owns: `testdata/scenarios/`, `tests/integration/`, `tests/end-to-end/`,
 `tools/development/scenario-run.sh`.
 
-- `[ ]` 2D.1 `[P]` Write every scenario file for the TECHSTACK "Required
+- `[~]` 2D.1 `[P]` Write every scenario file for the TECHSTACK "Required
   end-to-end scenarios" list that Waves 2 and 3 can exercise:
   `heat-event-canonical` (from 0C.7, run in 3D.5 once the solver exists),
   `under-reserved-excluded`,
@@ -926,19 +926,19 @@ Owns: `testdata/scenarios/`, `tests/integration/`, `tests/end-to-end/`,
   `gateway-restart`, `network-outage-sqlite-replay`,
   `measurement-gap-unknown`. Each validates against 0C.6.
   Verify: `for f in testdata/scenarios/*.yaml; do uv run python -m tools.generation.scenario validate "$f"; done` prints OK for each.
-- `[ ]` 2D.2 `[P]` `tests/integration/harness_test.go`: starts compose,
+- `[~]` 2D.2 `[P]` `tests/integration/harness_test.go`: starts compose,
   gateway simulator with `--scenario`, decision service, control service and
   worker, then drives an event through the API and asserts the scenario's
   expected outcomes. Written now with `t.Skip` per scenario until the lane
   that provides the behaviour lands. Verify: `go test ./tests/integration/ -run Harness` passes the harness self-test.
-- `[ ]` 2D.3 `[after 2A.2, 2B.3, 2C.2]` Unskip and pass: `houston-20pct-offline`,
+- `[~]` 2D.3 `[after 2A.2, 2B.3, 2C.2]` Unskip and pass: `houston-20pct-offline`,
   `lost-ack-still-executing`, `old-command-expiry-newer-pending`.
   Verify: `go test ./tests/integration/ -run "Houston|LostAck|OldExpiry"` passes.
-- `[ ]` 2D.4 `[after 2A.4, 2B.6]` Unskip and pass: `worker-termination`,
+- `[~]` 2D.4 `[after 2A.4, 2B.6]` Unskip and pass: `worker-termination`,
   `gateway-restart`, `network-outage-sqlite-replay`. Verify: `-run "Worker|GatewayRestart|OutageReplay"` passes.
-- `[ ]` 2D.5 `[after 2C.4]` Unskip and pass: `measurement-gap-unknown`,
+- `[~]` 2D.5 `[after 2C.4]` Unskip and pass: `measurement-gap-unknown`,
   `under-reserved-excluded`. Verify: `-run "Gap|UnderReserved"` passes.
-- `[ ]` 2D.6 `[P]` Audit-trail invariant: after every scenario, the
+- `[~]` 2D.6 `[P]` Audit-trail invariant: after every scenario, the
   `audit_journal` contains an unbroken chain of transitions for the event and
   every command (FULL_SPEC §10 "without losing the event audit trail").
   Verify: `go test ./tests/integration/ -run AuditChain` passes.
@@ -947,24 +947,24 @@ Owns: `testdata/scenarios/`, `tests/integration/`, `tests/end-to-end/`,
 
 Owns: `services/decision/`, `testdata/golden/`.
 
-- `[ ]` 2E.1 `[P]` RED then GREEN: timeout. A request whose budget is exceeded
+- `[~]` 2E.1 `[P]` RED then GREEN: timeout. A request whose budget is exceeded
   returns the fallback plan with `fallback=true` and the timeout reason; the
   solver work runs in a subprocess that is killed on timeout
   (`system-understanding.md` "Reliable execution"). Verify: `uv run --project services/decision pytest services/decision -k timeout` passes.
-- `[ ]` 2E.2 `[P]` RED then GREEN: no incumbent. A request with no prior plan
+- `[~]` 2E.2 `[P]` RED then GREEN: no incumbent. A request with no prior plan
   and an unhealthy solver still returns a fallback, never an error.
   Verify: `-k no_incumbent` passes.
-- `[ ]` 2E.3 `[P]` RED then GREEN: invalid vector. A solver result with NaN,
+- `[~]` 2E.3 `[P]` RED then GREEN: invalid vector. A solver result with NaN,
   wrong length, or bound violation is rejected by `validation/` and replaced
   by the fallback. Verify: `-k invalid_vector` passes.
-- `[ ]` 2E.4 `[P]` RED then GREEN: cohort replacement. Given a list of devices
+- `[~]` 2E.4 `[P]` RED then GREEN: cohort replacement. Given a list of devices
   that dropped out mid-event, the service proposes replacements only within
   the approved envelope and reports the shortfall if none exist.
   Verify: `-k replacement` passes.
-- `[ ]` 2E.5 `[P]` Uncertainty margins: availability probability reduces
+- `[~]` 2E.5 `[P]` Uncertainty margins: availability probability reduces
   counted capacity; `confidence × nameplate` is never presented as guaranteed
   (`system-understanding.md`). RED pins a numeric case. Verify: `-k margin` passes.
-- `[ ]` 2E.6 `[P]` Extend `testdata/golden/plans/` with timeout, no-incumbent,
+- `[~]` 2E.6 `[P]` Extend `testdata/golden/plans/` with timeout, no-incumbent,
   invalid-vector, and replacement cases for the Wave 3 Go differential run.
   Verify: `uv run --project services/decision pytest services/decision -k golden` passes.
 
@@ -973,33 +973,40 @@ Owns: `services/decision/`, `testdata/golden/`.
 Owns: `services/gateway-simulator/tests/`, `services/control/internal/api/events/`,
 `tests/end-to-end/`, `testdata/fixtures/api/`.
 
-- `[ ]` 2F.1 `[P]` RED then GREEN: simulator scale. 5,000 simulated devices
+- `[~]` 2F.1 `[P]` RED then GREEN: simulator scale. 5,000 simulated devices
   in one process produce telemetry every 5 seconds for 10 minutes with no
   sequence gaps (FULL_SPEC §8 "approximately 5,000 devices"; the cadence and
   resource budget are assumptions to report).
   Verify: `go test ./services/gateway-simulator/tests -run Scale5000 -timeout 20m` passes.
-- `[ ]` 2F.2 `[after 1F.2]` RED then GREEN: ingest scale. The control plane
+- `[~]` 2F.2 `[after 1F.2]` RED then GREEN: ingest scale. The control plane
   sustains the 5,000-device stream and twin freshness stays under 5 seconds
   (FULL_SPEC §10). Verify: `go test ./tests/end-to-end/ -run IngestScale -timeout 20m` passes.
-- `[ ]` 2F.3 `[after 2C.7]` Record live-event fixtures from a scenario run:
+- `[~]` 2F.3 `[after 2C.7]` Record live-event fixtures from a scenario run:
   `GetEvent` at several lifecycle states, the timeline, and an
   `EmergencyStop` response, into `testdata/fixtures/api/`.
   Verify: `go test ./tools/development/mockapi/ -run Fixtures` passes.
-- `[ ]` 2F.4 `[after 2D.4]` Run the UI track's `demo-path` spec against
+- `[~]` 2F.4 `[after 2D.4]` Run the UI track's `demo-path` spec against
   `make demo` and record the result in the gate report; route failures to the
   UI track or the owning backend lane. Verify: `pnpm --dir apps/console playwright test demo-path` executed and output saved.
-- `[ ]` 2F.5 `[after 2C.7]` `internal/api/events`: `WatchEvent`
+- `[~]` 2F.5 `[after 2C.7]` `internal/api/events`: `WatchEvent`
   server-streaming Connect method emitting the event state plus sent,
   acknowledged, delivered, and uncertain-interval values, both fleet-wide
   and per H3 aggregate, as reconciliation produces them, registered in
   `cmd/control`. The first update after `LaunchEvent` reports `SENT` only
   when commands have actually been sent. Verify: `go test ./services/control/internal/api/events/ -run Watch` passes and a client sees an update within 5 s of new telemetry.
 
-- `[ ]` 2F.6 `[after 1E.4]` Per-H3 dispatchable capacity and availability
+- `[~]` 2F.6 `[after 1E.4]` Per-H3 dispatchable capacity and availability
   state in `ListSites` (moved forward from Wave 4 at the UI track's request,
   `ISSUES.md` issue 2): each cell carries dispatchable MW now, reserved MWh,
   device counts by operating state, and aggregate metadata.
   Verify: `go test ./services/control/internal/fleet/ -run H3` passes.
+
+- `[~]` 2F.7 `[P]` End-to-end tests and the workspace test target: tests
+  under `tests/end-to-end` skip with a clear message when the demo stack is
+  not listening, `make test-go` excludes them, and a new `make test-e2e`
+  brings the stack up, runs them, and tears it down. Found at Gate 1:
+  `make test-go` failed on those two tests with no stack running while the
+  same tests passed against `make demo`. Verify: `make test-go` green with nothing running; `make test-e2e` green.
 
 ### Gate 2
 
@@ -1519,11 +1526,11 @@ Owns: `README.md`, `docs/operations/` (except `security/`), `AGENTS.md`.
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | 0 | 5 | 9 | 7 | 6 | 8 | 4 | 39 |
 | 1 | 8 | 7 | 11 | 9 | 8 | 7 | 50 |
-| 2 | 5 | 7 | 7 | 6 | 6 | 6 | 37 |
+| 2 | 5 | 7 | 7 | 6 | 6 | 7 | 38 |
 | 3 | 6 | 8 | 4 | 5 | 4 | 5 | 32 |
 | 4 | 7 | 6 | 4 | 3 | 5 | 5 | 30 |
 | 5 | 3 | 3 | 4 | 6 | 4 | 4 | 24 |
-| | | | | | | | **212** |
+| | | | | | | | **213** |
 
 154 items are fully parallel and 48 wait on one other lane. Plus the five
 standing items applied every wave. The UI track adds 40 items of its own in

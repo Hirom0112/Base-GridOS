@@ -206,4 +206,12 @@ assumptions reported by workers land here too.
   28080, gateway to 28081, and decision to 25061 so nothing collides with
   the mock API on 8080; each service gets up to 30 seconds to listen; the
   console starts only if `apps/console/package.json` exists.
+- **Gate 1 finding:** `make test-go` runs the end-to-end tests, which need
+  the demo stack, so it fails when nothing is running. Opened 2F.7: those
+  tests skip cleanly without the stack, `test-go` excludes them, and
+  `make test-e2e` runs them with the stack up.
+- **Wave gates run the real binaries.** From Gate 1 on, a wave gate is not
+  green until the director has run the demo stack and the end-to-end tests
+  against the real processes, not only the unit suites. Twice in Wave 1 the
+  integration gap only appeared when lane F tried to run the whole thing.
 
