@@ -17,8 +17,13 @@ import (
 )
 
 type recordingIndex struct {
-	Screens  map[string][]string        `json:"screens"`
-	Requests map[string]json.RawMessage `json:"requests"`
+	Screens  map[string][]string         `json:"screens"`
+	Requests map[string]recordingRequest `json:"requests"`
+}
+
+type recordingRequest struct {
+	Role string          `json:"role"`
+	Body json.RawMessage `json:"body"`
 }
 
 type recordedFixture struct {
@@ -81,8 +86,12 @@ func indexedMethods(index recordingIndex) ([]string, error) {
 	unique := make(map[string]bool)
 	for _, methods := range index.Screens {
 		for _, methodName := range methods {
-			if len(index.Requests[methodName]) == 0 {
+			request, found := index.Requests[methodName]
+			if !found || len(request.Body) == 0 {
 				return nil, fmt.Errorf("INDEX request missing for %s", methodName)
+			}
+			if request.Role == "" {
+				return nil, fmt.Errorf("INDEX role missing for %s", methodName)
 			}
 			unique[methodName] = true
 		}
@@ -91,11 +100,32 @@ func indexedMethods(index recordingIndex) ([]string, error) {
 	for methodName := range unique {
 		methods = append(methods, methodName)
 	}
-	sort.Strings(methods)
+	sort.Slice(methods, func(left, right int) bool {
+		leftRank := methodRank(methods[left])
+		rightRank := methodRank(methods[right])
+		if leftRank == rightRank {
+			return methods[left] < methods[right]
+		}
+		return leftRank < rightRank
+	})
 	return methods, nil
 }
 
-func callMethod(baseURL, fixtureRoot, methodName string, body []byte, client *http.Client) (recordedFixture, error) {
+func methodRank(methodName string) int {
+	lifecycle := map[string]int{
+		"gridos.v1.DispatchService.CreateEventRequest": 0,
+		"gridos.v1.DispatchService.GetEvent":           1,
+		"gridos.v1.DispatchService.ApproveEvent":       2,
+		"gridos.v1.DispatchService.LaunchEvent":        3,
+	}
+	rank, found := lifecycle[methodName]
+	if found {
+		return rank
+	}
+	return -1
+}
+
+func callMethod(baseURL, fixtureRoot, methodName string, indexedRequest recordingRequest, client *http.Client) (recordedFixture, error) {
 	serviceName, procedure, err := methodProcedure(methodName)
 	if err != nil {
 		return recordedFixture{}, err
@@ -104,12 +134,12 @@ func callMethod(baseURL, fixtureRoot, methodName string, body []byte, client *ht
 	if err != nil {
 		return recordedFixture{}, err
 	}
-	request, err := http.NewRequest(http.MethodPost, endpoint, bytes.NewReader(body))
+	request, err := http.NewRequest(http.MethodPost, endpoint, bytes.NewReader(indexedRequest.Body))
 	if err != nil {
 		return recordedFixture{}, err
 	}
 	request.Header.Set("Content-Type", "application/json")
-	request.Header.Set("X-GridOS-Role", "approver")
+	request.Header.Set("X-GridOS-Role", indexedRequest.Role)
 	response, err := client.Do(request)
 	if err != nil {
 		return recordedFixture{}, err
