@@ -9,32 +9,52 @@
     ],
     "plan_approval": [
       "gridos.v1.DispatchService.GetEvent",
-      "gridos.v1.DispatchService.ApproveEvent"
+      "gridos.v1.DispatchService.ApproveEvent",
+      "gridos.v1.DispatchService.LaunchEvent"
     ]
   },
   "requests": {
-    "gridos.v1.FleetService.GetFleetSummary": {},
-    "gridos.v1.FleetService.ListSites": {"pageSize": 50},
+    "gridos.v1.FleetService.GetFleetSummary": {"role": "operator", "body": {}},
+    "gridos.v1.FleetService.ListSites": {"role": "operator", "body": {"pageSize": 500}},
     "gridos.v1.DispatchService.CreateEventRequest": {
-      "eventRequest": {
-        "requestId": "request_sim_0001",
-        "eventType": "ERCOT_DEMAND_RESPONSE",
-        "beginTime": "2026-08-12T23:00:00Z",
-        "endTime": "2026-08-13T01:00:00Z",
-        "targetKw": 20000,
-        "measurementBoundary": "MEASUREMENT_BOUNDARY_METER_NET_EXPORT",
-        "loadZones": ["LZ_HOUSTON"],
-        "correlationId": "corr_sim_0001"
-      },
-      "idempotencyKey": "idem_sim_create_0001"
+      "role": "operator",
+      "body": {
+        "eventRequest": {
+          "requestId": "event_austin_wave1_0004",
+          "eventType": "ERCOT_DEMAND_RESPONSE",
+          "beginTime": "2026-09-27T00:00:00Z",
+          "endTime": "2026-09-27T01:00:00Z",
+          "targetKw": 1,
+          "measurementBoundary": "MEASUREMENT_BOUNDARY_METER_NET_EXPORT",
+          "loadZones": ["LZ_AEN"],
+          "correlationId": "corr_austin_wave1_0004"
+        },
+        "idempotencyKey": "idem_austin_create_0004"
+      }
     },
-    "gridos.v1.DispatchService.GetEvent": {"eventId": "event_sim_0001"},
+    "gridos.v1.DispatchService.GetEvent": {
+      "role": "operator",
+      "body": {"eventId": "event_austin_wave1_0004"}
+    },
     "gridos.v1.DispatchService.ApproveEvent": {
-      "eventId": "event_sim_0001",
-      "planVersion": "1",
-      "idempotencyKey": "idem_sim_approve_0001",
-      "approvedBy": "approver_sim_0001",
-      "approvedAt": "2026-08-12T22:59:00Z"
+      "role": "approver",
+      "body": {
+        "eventId": "event_austin_wave1_0004",
+        "planVersion": "1",
+        "idempotencyKey": "idem_austin_approve_0004",
+        "approvedBy": "approver_austin_0001",
+        "approvedAt": "2026-09-26T20:45:00Z"
+      }
+    },
+    "gridos.v1.DispatchService.LaunchEvent": {
+      "role": "approver",
+      "body": {
+        "eventId": "event_austin_wave1_0004",
+        "planVersion": "1",
+        "idempotencyKey": "idem_austin_launch_0004",
+        "requestedBy": "approver_austin_0001",
+        "requestedAt": "2026-09-26T20:46:00Z"
+      }
     }
   }
 }
