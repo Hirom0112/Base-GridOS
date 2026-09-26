@@ -739,7 +739,7 @@ After lane D completes: `services/control/internal/storage/` and
   over nil sites and mounted none of the other services.
   Verify: `GRIDOS_FLEET=testdata/fleets/austin-5000.jsonl go run ./services/control/cmd/control` starts, and `curl` to `ListSites` returns at least 200 cells while `PublishTelemetry` on the same port returns a durable receipt.
 
-- `[~]` 1E.8 `[P]` Provenance on every aggregate: `GetFleetSummary`
+- `[x]` 1E.8 `[P]` Provenance on every aggregate: `GetFleetSummary`
   currently emits `installed_mw`, `installed_mwh`, and every device-count
   aggregate with an empty provenance mix (`quantity(installedMW, now, 0,
   nil)` and the count helpers). FULL_SPEC §5.1 requires timestamp,
