@@ -976,6 +976,8 @@ Owns: `services/gateway-simulator/tests/`, `services/control/internal/api/events
 `services/control/internal/fleet/geo/` (for 2F.6).
 After lane A completes: `services/gateway-simulator/internal/telemetry/` and
 `services/gateway-simulator/cmd/` for the fleet telemetry loop (2F.1).
+For 2F.2: `services/control/internal/storage/telemetry.go` (bulk telemetry
+write, additive) and `services/control/internal/ingest/`.
 
 - `[x]` 2F.1 `[P]` RED then GREEN: simulator scale. 5,000 simulated devices
   in one process produce telemetry every 5 seconds for 10 minutes with no
