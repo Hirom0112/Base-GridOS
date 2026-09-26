@@ -59,8 +59,10 @@ func TestPlanningActivitiesFreezeForecastBeforePlanning(t *testing.T) {
 	stored, err := storage.NewPostgresEventStore(harness.pool).LoadFrozen(context.Background(), harness.input.EventID, frozen.InputSnapshotID, frozen.EligibilitySnapshotID)
 	require.NoError(t, err)
 	require.NotNil(t, stored.GetForecast())
-	_, err = harness.activities.RequestPlan(context.Background(), frozen)
+	planned, err := harness.activities.RequestPlan(context.Background(), frozen)
 	require.NoError(t, err)
+	require.NoError(t, harness.activities.ValidatePlan(context.Background(), planned))
+	require.Equal(t, "VALIDATED", harness.state(t))
 }
 
 func TestPlanningActivitiesRecordForecastTransportTimeout(t *testing.T) {
@@ -74,6 +76,8 @@ func TestPlanningActivitiesRecordForecastTransportTimeout(t *testing.T) {
 	err = harness.pool.QueryRow(context.Background(), `SELECT new_values->>'reason' FROM audit_journal WHERE resource_id = $1 AND action = 'FORECAST_TIMEOUT'`, harness.input.EventID).Scan(&reason)
 	require.NoError(t, err)
 	require.Equal(t, "TRANSPORT_TIMEOUT", reason)
-	_, err = harness.activities.RequestPlan(context.Background(), frozen)
+	planned, err := harness.activities.RequestPlan(context.Background(), frozen)
 	require.NoError(t, err)
+	require.NoError(t, harness.activities.ValidatePlan(context.Background(), planned))
+	require.Equal(t, "VALIDATED", harness.state(t))
 }
