@@ -634,3 +634,44 @@ assumptions reported by workers land here too.
   resolution 8 is reported unavailable rather than fabricated. Lane 4C owns
   `services/control/go.mod` and `go.sum` additively for `h3-go/v4`, added
   in the same commit as its first use, no `go mod tidy`.
+- **3D.2 (lane 3D-dispatch), verified:** FreezeInputs calls `Forecast`
+  with its budget and freezes the typed response inside the input
+  snapshot; a forecast transport timeout freezes an explicit unavailable
+  forecast, audits FORECAST_TIMEOUT, and forces the deterministic fallback;
+  an internal solver timeout returns the validated fallback with
+  PLAN_FALLBACK_SELECTED; an Optimize transport timeout after bounded
+  retries is a decision-service outage that fails the event visibly. The
+  decision server computes the baseline before the learned model. Five
+  RED commits precede the GREEN ones. Director: dispatch, fleet, api, and
+  decision suites all ok (63 Python tests, mypy clean); 5,000-site forecast
+  measured at 0.04 s and 618 KB.
+- **4C.1 and 4C.4 (lane 4C), verified:** privacy-safe aggregation at
+  resolutions 5 to 7 with a five-site merge threshold, SOC bands (low under
+  30 percent, high at or above 70, unknown without telemetry), connectivity
+  and active-dispatch counts; the address scan covers every served geo
+  asset and the cell response with escaped-key positive controls and
+  refuses unsafe assets at startup.
+- **Standing demo findings (2026-09-26, director):** three defects surfaced
+  while trying to record a VALIDATED event. 1) The simulator derives source
+  time from the tick count, so a 5,000-device tick slower than its cadence
+  drifts behind the clock without bound; the demo drifted 90 s in five
+  minutes and every device was excluded as stale. Item 2A.7. Mitigation
+  now: the demo gateway runs at a 15 s cadence (Makefile), which holds the
+  lag near 20 s against the 30 s freshness limit. 2) The telemetry stream
+  never uses the battery model: observations carry no state of energy and
+  no power flow, so the planner sees zero energy, produces no schedules,
+  and the gate rejects "device schedules required". Item 2A.8. The
+  end-to-end suite passes because it pushes its own telemetry. 3) A day of
+  five-second telemetry had grown `audit_journal` to 4.3 million rows and
+  3.4 GB, so the latest-per-device load took four seconds. Item 4A.9. The
+  director dropped and recreated the demo database and the gateway store;
+  resetting the gateway store alone had made every new observation collide
+  with old sequence numbers and be deduplicated away. Lesson recorded: the
+  gateway's sequence store and the control database are reset together or
+  not at all. 4) A non-retryable validation failure leaves the event in
+  PLANNED with no operator-visible reason; an empty plan with full declared
+  shortfall must validate as a quantified shortfall. Item 3C.5.
+- **3D.2 forecast metadata follow-up, granted:** `ForecastValue` gains
+  additive `training_window_begin`, `training_window_end`, `issued_at`,
+  and `horizon`; realized error is produced by the 3A.6 evaluation after the
+  event and recorded against the frozen forecast, not carried on the value.

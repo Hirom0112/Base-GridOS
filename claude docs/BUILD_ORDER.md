@@ -864,6 +864,24 @@ For 2A.6, after lane F's 2F.1: `services/gateway-simulator/internal/telemetry/`.
   runs stream faster than five minutes. Found by lane D at 2D.3 and 2D.4: the
   engine existed but nothing at runtime consulted it, and a control outage
   killed the simulator. Verify: `go test ./services/gateway-simulator/... -run 'Runtime|Network|Cadence'` passes and `tests/integration -run "LostAck|OutageReplay"` can drive both scenarios without signals.
+- `[ ]` 2A.7 `[P]` Source time anchored to the wall clock. The telemetry
+  stream derives source_time from the tick count, so when a 5,000-device
+  tick takes longer than the cadence the stream drifts behind real time
+  without bound (the standing demo drifted 90 s in five minutes and every
+  device went stale). RED then GREEN: each tick's source_time is the tick
+  start quantized to the cadence; a missed tick is skipped and recorded as
+  a data-quality gap, never backlogged. Found by the director on the
+  standing demo. Verify: `go test ./services/gateway-simulator/... -run Anchor` passes and the demo lag stays under the cadence.
+- `[ ]` 2A.8 `[P]` Physical telemetry. `telemetry.Fleet` publishes empty
+  samples (no state of energy, no power flow), so no plan can validate
+  against simulator telemetry. RED then GREEN: each producer owns a
+  `battery.Model` seeded from the fleet file (usable energy, power limits,
+  efficiencies, initial energy from the seed), home load from the site's
+  load profile at the source time, discharge or charge while a command
+  effect is active, and `StateOfEnergyPercent` plus every `PowerFlow` field
+  populated on every observation, deterministic from the seed. Owns
+  `services/gateway-simulator/internal/telemetry/` and `internal/battery/`
+  additively. Found by the director on the standing demo. Verify: `go test ./services/gateway-simulator/... -run Physical` passes and a fresh event on `make demo` reaches VALIDATED with schedules.
 
 ### Lane 2B — Temporal dispatch workflow
 
@@ -1178,6 +1196,13 @@ Owns: `services/control/internal/safety/`, `services/control/tests/`,
   Verify: `-run Reapproval` passes.
 - `[x]` 3C.4 `[P]` Load-shaped benchmark: 5,000 devices, 288 intervals (24 h at
   5 min) under 2 seconds. Verify: `-bench Validate5000x288 -benchtime 3x` under 2 s.
+- `[ ]` 3C.5 `[P]` An empty plan whose declared shortfall equals the
+  target is a valid quantified shortfall, not a gate error. Today the gate
+  rejects it with "device schedules required" and the event spins in
+  PLANNED with a non-retryable activity error and nothing visible to the
+  operator. RED then GREEN: the gate approves it with the shortfall
+  visible; the truth model says infeasible work ends in a quantified
+  shortfall and audit record. Verify: `go test ./services/control/internal/safety/ -run EmptyPlanShortfall` passes.
 
 ### Lane 3D — planning integration in the control plane
 
@@ -1189,7 +1214,7 @@ Owns: `services/control/internal/dispatch/`, `services/control/internal/api/`,
   stores the exact forecast inputs, eligibility snapshot, policy versions, and
   model versions used, and the plan version references them (FULL_SPEC §4
   invariant 9). Verify: `go test ./services/control/internal/dispatch/ -run Snapshot` passes.
-- `[~]` 3D.2 `[after 3A.6, 3B.8]` Forecast and optimize activities call the
+- `[x]` 3D.2 `[after 3A.6, 3B.8]` Forecast and optimize activities call the
   decision service with a budget; a timeout is recorded as a decision in the
   timeline and the fallback plan proceeds to validation. Verify: `-run PlanningActivities` passes.
 - `[x]` 3D.3 `[P]` Explanation API: `GetPlanExplanation` returning objective
@@ -1313,6 +1338,14 @@ Owns: `services/control/internal/fleet/policy/`,
   hours at current usage and at 750 W, the recent `GridEvent` list, current
   plan and reserve), the member role only seeing its own site, registered in
   `cmd/control`. Verify: `go test ./services/control/internal/api/member/` passes.
+- `[ ]` 4A.9 `[P]` Telemetry retention. Every observation is an
+  `audit_journal` row (TELEMETRY_RECEIVED); a day of five-second telemetry
+  for 5,000 devices reached 4.3 million rows and 3.4 GB and made the
+  latest-per-device query take four seconds. Move observations to a
+  partitioned telemetry table with a latest-per-device index and a
+  retention window, keep the audit journal for state transitions only, with
+  a migration and rollback. Owns `services/control/internal/storage/`
+  additively for this. Verify: `go test ./services/control/internal/storage/ -run Retention` passes and the IngestScale test stays green.
 
 ### Lane 4B — incremental margin evaluator
 
@@ -1343,7 +1376,7 @@ Owns: `services/decision/` (whole package this wave, including
 Owns: `services/control/internal/fleet/geo/`,
 `services/control/internal/api/geo/`, `testdata/fixtures/geo/`.
 
-- `[ ]` 4C.1 `[P]` RED then GREEN: server-side H3 aggregation of sites at
+- `[x]` 4C.1 `[P]` RED then GREEN: server-side H3 aggregation of sites at
   resolutions 5 through 7 (the fleet carries resolution-7 cells; 8 is unavailable, never derived) with counts, capacity, SOC bands, connectivity, and
   active dispatch per cell; cells with fewer than 5 sites are merged upward
   before leaving the server (FULL_SPEC §5.2 privacy; the resolutions and the
@@ -1358,7 +1391,7 @@ Owns: `services/control/internal/fleet/geo/`,
   boundary, weather-zone, and load-zone GeoJSON under `testdata/fixtures/geo/`
   served by the control service, so the map renders with no proprietary token
   and no network (TECHSTACK "Fleet map"). Verify: `curl localhost:8080/geo/style.json` returns the style and `du -sh testdata/fixtures/geo` under 5 MB.
-- `[ ]` 4C.4 `[P]` RED then GREEN: no geo response ever carries a street
+- `[x]` 4C.4 `[P]` RED then GREEN: no geo response ever carries a street
   address or a real member home; a test scans every geo response type for
   address-like fields. Verify: `go test ./services/control/internal/api/geo/ -run NoAddress` passes.
 
