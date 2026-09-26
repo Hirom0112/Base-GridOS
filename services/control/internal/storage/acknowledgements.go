@@ -58,6 +58,20 @@ func RecordAcknowledgement(ctx context.Context, pool *pgxpool.Pool, acknowledgem
 	if err = lockCommand(ctx, tx, acknowledgement.CommandID); err != nil {
 		return err
 	}
+	var currentState string
+	err = tx.QueryRow(ctx, `SELECT state FROM command_states
+		WHERE command_id = $1 ORDER BY recorded_at DESC LIMIT 1`, acknowledgement.CommandID).Scan(&currentState)
+	if err != nil {
+		return err
+	}
+	if acknowledgement.ReceiptStatus == "ACCEPTED" && currentState != "SENT" {
+		return ErrIllegalCommandTransition
+	}
+	if acknowledgement.ReceiptStatus == "REJECTED" {
+		if _, nonterminal := commandTransitions[currentState]; !nonterminal {
+			return ErrIllegalCommandTransition
+		}
+	}
 	queries := storagegen.New(tx)
 	_, err = queries.UpsertCommandAcknowledgement(ctx, storagegen.UpsertCommandAcknowledgementParams{
 		AcknowledgementID: acknowledgement.AcknowledgementID,
@@ -72,9 +86,12 @@ func RecordAcknowledgement(ctx context.Context, pool *pgxpool.Pool, acknowledgem
 	if err != nil {
 		return err
 	}
-	_, err = appendCommandTransition(ctx, tx, acknowledgement.CommandID, []string{"SENT"}, nextState, time.Now().UTC(), acknowledgement.CorrelationID)
+	changed, err := appendCommandTransition(ctx, tx, acknowledgement.CommandID, []string{currentState}, nextState, time.Now().UTC(), acknowledgement.CorrelationID)
 	if err != nil {
 		return err
+	}
+	if !changed {
+		return ErrIllegalCommandTransition
 	}
 	return tx.Commit(ctx)
 }
