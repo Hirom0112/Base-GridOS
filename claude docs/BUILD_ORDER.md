@@ -733,7 +733,7 @@ Owns: `services/control/internal/ingest/`, `tests/end-to-end/`, the
   sequences are accepted and ordered by `sequence`; duplicates by
   (`device_id`, `sequence`) are dropped; `MISSING` and `STALE` are stored as
   states, never coerced to zero. Verify: fails with "undefined".
-- `[~]` 1F.2 `[after 1D.6, 1E.2]` GREEN: `internal/ingest` writing
+- `[x]` 1F.2 `[after 1D.6, 1E.2]` GREEN: `internal/ingest` writing
   observations through storage and updating the fleet twin.
   Verify: `go test ./services/control/internal/ingest/` passes.
 - `[~]` 1F.3 `[after 1E.5, 1A.7, 1F.2]` `make demo` target (compose, migrate,
