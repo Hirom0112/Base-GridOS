@@ -898,7 +898,7 @@ Owns: `services/control/internal/reconciliation/`,
   its state (TECHSTACK e2e scenario 4 and "Safety and delivery semantics":
   the system does not blindly replace capacity that may still be operating).
   Verify: `-run NoOvershoot` passes.
-- `[~]` 2C.4 `[P]` RED then GREEN: delivery verification integrates power over
+- `[x]` 2C.4 `[P]` RED then GREEN: delivery verification integrates power over
   actual elapsed intervals; measurement gaps stay `UNKNOWN` and are reported
   as uncertain intervals, never as zero delivery (TECHSTACK e2e scenario 11).
   Verify: `-run Gaps` passes.

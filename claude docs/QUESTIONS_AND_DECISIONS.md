@@ -261,4 +261,13 @@ assumptions reported by workers land here too.
   0.05 kW of its setpoint; telemetry never proves rejection (only durable
   receiver state does); a possibly operating device counts at its interval
   upper bound and an expired one at zero.
+- **2C.4 (lane C), accepted:** delivered energy uses sample-and-hold
+  integration; a span longer than the caller's `MaxGap`, the span before the
+  first observation, and the span after the last are unknown gaps that add
+  nothing to delivered energy or measured time. The GREEN commit corrected
+  one expected value in the RED test (the last five-minute hold), disclosed.
+- **2F.1 (lane F), accepted:** the ten-minute scale window at a five-second
+  cadence emits 120 samples per device from start through start plus
+  9m55s; the 20-minute test timeout is the only resource ceiling because no
+  memory limit is specified.
 
