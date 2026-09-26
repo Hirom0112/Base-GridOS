@@ -164,6 +164,18 @@ message GetPlanExplanationResponse {
   repeated ShortfallReport shortfalls = 5;
 }
 
+message ValidateUnsafeAlternativeRequest {
+  string event_id = 1;
+  uint64 plan_version = 2;
+  DispatchPlan alternative_plan = 3;
+}
+
+message ValidateUnsafeAlternativeResponse {
+  bool approved = 1;
+  repeated SafetyViolation violations = 2;
+  string operator_explanation = 3;
+}
+
 message SafetyViolation {
   string code = 1;
 }
@@ -303,6 +315,7 @@ service DispatchService {
   rpc CreateEventRequest(CreateEventRequestRequest) returns (CreateEventRequestResponse);
   rpc GetEvent(GetEventRequest) returns (GetEventResponse);
   rpc GetPlanExplanation(GetPlanExplanationRequest) returns (GetPlanExplanationResponse);
+  rpc ValidateUnsafeAlternative(ValidateUnsafeAlternativeRequest) returns (ValidateUnsafeAlternativeResponse);
   rpc ApproveEvent(ApproveEventRequest) returns (ApproveEventResponse);
   rpc LaunchEvent(LaunchEventRequest) returns (LaunchEventResponse);
 }
