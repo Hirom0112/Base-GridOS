@@ -65,6 +65,10 @@ Install once: `git config core.hooksPath tools/development/hooks`
 
 Do not create documentation, planning notes, decision records, summaries, or hand-off files unless a plan item names one. Report progress in the mailbox line format from the build order.
 
+## Director mailbox
+
+Before starting every item, read the last 20 lines of `.local/mailbox.log`. Act first on every `director:` line addressed to your lane before beginning or continuing the item. Apply this rule to every subagent you spawn.
+
 ## Stack
 
 Go 1.23+ for `services/control` and `services/gateway-simulator`. Python 3.12 with `uv` for `services/decision` and `tools/`. TypeScript with `pnpm` for `apps/console`. Protobuf managed by `buf` in `contracts/`. PostgreSQL 16 and Temporal via `infrastructure/local/compose.yaml`. Product behavior is `FULL_SPEC.md`; architecture and layout are `TECHSTACK.md`; data provenance is `DATASETS.md`. Commands live in the root `Makefile` once it exists.
