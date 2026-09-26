@@ -958,7 +958,7 @@ Owns: `services/decision/`, `testdata/golden/`.
 - `[x]` 2E.3 `[P]` RED then GREEN: invalid vector. A solver result with NaN,
   wrong length, or bound violation is rejected by `validation/` and replaced
   by the fallback. Verify: `-k invalid_vector` passes.
-- `[~]` 2E.4 `[P]` RED then GREEN: cohort replacement. Given a list of devices
+- `[x]` 2E.4 `[P]` RED then GREEN: cohort replacement. Given a list of devices
   that dropped out mid-event, the service proposes replacements only within
   the approved envelope and reports the shortfall if none exist.
   Verify: `-k replacement` passes.
@@ -1110,7 +1110,8 @@ Owns: `services/control/internal/safety/`, `services/control/tests/`,
 ### Lane 3D — planning integration in the control plane
 
 Owns: `services/control/internal/dispatch/`, `services/control/internal/api/`,
-`tests/integration/`, `testdata/scenarios/`.
+`tests/integration/`, `testdata/scenarios/`,
+`contracts/gridos/v1/optimization.proto` (additive only).
 
 - `[ ]` 3D.1 `[P]` RED then GREEN: input snapshot freezing. The workflow
   stores the exact forecast inputs, eligibility snapshot, policy versions, and
@@ -1130,6 +1131,15 @@ Owns: `services/control/internal/dispatch/`, `services/control/internal/api/`,
   `heat-event-canonical` (TECHSTACK e2e scenario 1) unskipped now that the
   solver plans 5,000 sites inside its budget. All three passing.
   Verify: `go test ./tests/integration/ -run "Timeout|Infeasible|Canonical"` passes.
+
+- `[ ]` 3D.6 `[after 3D.2]` Expose cohort replacement through the contract:
+  add `Replace(ReplaceRequest) returns (ReplaceResponse)` to
+  `OptimizationService` (lane D owns `optimization.proto` additively this
+  wave) carrying the approved plan, the dropped device IDs, and the
+  envelope, served by `replace_dropped` from 2E.4; the workflow's
+  `IssueReplacement` activity calls it instead of computing replacements
+  locally. Found at 2E.4: the replacement logic exists with no RPC to reach
+  it. Verify: `go test ./services/control/internal/dispatch/ -run Replacement` passes against the real decision server and `buf breaking` is clean.
 
 ### Lane 3E — BigQuery optional sink and replay
 
@@ -1531,10 +1541,10 @@ Owns: `README.md`, `docs/operations/` (except `security/`), `AGENTS.md`.
 | 0 | 5 | 9 | 7 | 6 | 8 | 4 | 39 |
 | 1 | 8 | 7 | 11 | 9 | 8 | 7 | 50 |
 | 2 | 5 | 7 | 7 | 6 | 6 | 7 | 38 |
-| 3 | 6 | 8 | 4 | 5 | 4 | 5 | 32 |
+| 3 | 6 | 8 | 4 | 6 | 4 | 5 | 33 |
 | 4 | 7 | 6 | 4 | 3 | 5 | 5 | 30 |
 | 5 | 3 | 3 | 4 | 6 | 4 | 4 | 24 |
-| | | | | | | | **213** |
+| | | | | | | | **214** |
 
 154 items are fully parallel and 48 wait on one other lane. Plus the five
 standing items applied every wave. The UI track adds 40 items of its own in

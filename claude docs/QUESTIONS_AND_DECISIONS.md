@@ -295,4 +295,8 @@ assumptions reported by workers land here too.
   grid-service vector above max(0, discharge minus home load) or below zero
   (EXPORT_BOUND) and any schedule for a stale, unavailable, or
   maintenance-locked device, using the same family names as the Go gate.
+- **2E.4 (lane E), accepted, with a follow-up:** replacement logic lives in
+  `gridos/fallback/replacement.py` but the contract has no RPC or fields to
+  carry the dropped list and approved plan. Opened 3D.6 to add a `Replace`
+  RPC and route the workflow's `IssueReplacement` through it.
 
