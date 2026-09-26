@@ -146,6 +146,23 @@ func TestPublishCommandsActivity(t *testing.T) {
 	require.Equal(t, "ACKNOWLEDGED", harness.commandState(t))
 }
 
+func TestPublishCommandsDrains113Intents(t *testing.T) {
+	harness := newActivityHarness(t)
+	harness.persist(t)
+	for index := 1; index < 113; index++ {
+		command := storage.CommandIntent{
+			CommandID: fmt.Sprintf("event-1-extra-%03d", index), IdempotencyKey: fmt.Sprintf("event-1-extra-%03d", index),
+			DeviceID: "device-1", EventID: harness.input.EventID, PlanVersion: 1, Generation: 1,
+			SetpointKW: 1, IssuedAt: harness.activities.Now(), EffectiveAt: harness.input.Request.GetBeginTime().AsTime(),
+			ExpiresAt: harness.input.Request.GetEndTime().AsTime(), PolicyVersion: "policy-1", CorrelationID: "correlation-1",
+		}
+		require.NoError(t, storage.InsertCommand(context.Background(), harness.pool, command))
+	}
+	require.NoError(t, harness.activities.PublishCommands(context.Background(), harness.input))
+	require.NoError(t, harness.activities.TrackAcknowledgements(context.Background(), harness.input))
+	require.Equal(t, "ACKNOWLEDGED_OR_UNCERTAIN", harness.state(t))
+}
+
 func TestTrackAcknowledgementsActivity(t *testing.T) {
 	harness := newActivityHarness(t)
 	harness.publish(t)
