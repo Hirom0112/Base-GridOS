@@ -10,7 +10,10 @@ import (
 	gridosv1 "github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1"
 )
 
-const publisherBatch = 100
+const (
+	publisherBatch = 100
+	cohortSize     = 400
+)
 
 func TestMain(m *testing.M) {
 	code := m.Run()
@@ -25,20 +28,24 @@ func TestHarness(t *testing.T) {
 	stack := startStack(t, "gateway-restart")
 	databaseName = stack.databaseName
 	now := time.Now().UTC()
-	cohort := stack.cohort(t, 400)
-	stack.publishTelemetry(t, ctx, cohort, now, 74)
+	cohort := stack.cohort(t)
+	stack.publishTelemetry(t, ctx, cohort, now, constantStateOfEnergy)
 	stack.assertDispatchable(t, ctx)
 	eventID := fmt.Sprintf("harness-%d", now.UnixNano())
 	created := stack.createEvent(t, ctx, eventID, now)
-	if created.GetState() != gridosv1.DispatchEventState_DISPATCH_EVENT_STATE_VALIDATED || created.GetPlanVersion() != 1 {
-		t.Fatalf("created event state = %s plan %d", created.GetState(), created.GetPlanVersion())
+	if created.GetState() != gridosv1.DispatchEventState_DISPATCH_EVENT_STATE_REQUESTED {
+		t.Fatalf("created event state = %s", created.GetState())
+	}
+	validated := stack.waitEventState(t, ctx, eventID, "VALIDATED").GetEvent()
+	if validated.GetPlanVersion() != 1 {
+		t.Fatalf("validated event plan = %d", validated.GetPlanVersion())
 	}
 	stack.approveEvent(t, ctx, eventID, now)
 	launched := stack.launchEvent(t, ctx, eventID, now)
-	if launched.GetState() != gridosv1.DispatchEventState_DISPATCH_EVENT_STATE_ACKNOWLEDGED_OR_UNCERTAIN {
+	if launched.GetState() != gridosv1.DispatchEventState_DISPATCH_EVENT_STATE_APPROVED {
 		t.Fatalf("launched event state = %s", launched.GetState())
 	}
-	report := stack.getEvent(t, ctx, eventID).GetReport()
+	report := stack.waitEventState(t, ctx, eventID, "REPORTED").GetReport()
 	if report.GetRequestedMw() != stack.scenario.Event.TargetMW || report.GetAcknowledgedMw() <= 0 {
 		t.Fatalf("report power = %#v", report)
 	}
@@ -46,46 +53,32 @@ func TestHarness(t *testing.T) {
 	if len(commands) == 0 {
 		t.Fatal("launch persisted no commands")
 	}
-	counts := make(map[string]int)
-	for _, state := range commands {
-		counts[state]++
+	launchedCommands := 0
+	for commandID, command := range commands {
+		if command.state != "ACKNOWLEDGED" {
+			t.Fatalf("command %s ended %s", commandID, command.state)
+		}
+		if command.generation == 1 {
+			launchedCommands++
+		}
 	}
-	if counts["ACKNOWLEDGED"] != len(commands) || len(commands) > publisherBatch {
-		t.Fatalf("command states = %v of %d", counts, len(commands))
+	if launchedCommands == 0 || launchedCommands > publisherBatch {
+		t.Fatalf("launch persisted %d commands, publisher batch is %d", launchedCommands, publisherBatch)
 	}
 	if retained := stack.gatewayCommands(t, ctx, eventID); retained != len(commands) {
 		t.Fatalf("gateway retained %d of %d commands", retained, len(commands))
 	}
 }
 
-func TestHoustonTwentyPercentOffline(t *testing.T) {
-	t.Skip("pending director verification of 2A.2, 2B.3, and 2C.2")
+func constantStateOfEnergy(FleetDevice) float64 {
+	return 74
 }
 
-func TestLostAckStillExecuting(t *testing.T) {
-	t.Skip("pending director verification of 2A.2, 2B.3, and 2C.2")
-}
-
-func TestOldExpiryNewerPending(t *testing.T) {
-	t.Skip("pending director verification of 2A.2, 2B.3, and 2C.2")
-}
-
-func TestWorkerTermination(t *testing.T) {
-	t.Skip("pending director verification of 2A.4 and 2B.6")
-}
-
-func TestGatewayRestart(t *testing.T) {
-	t.Skip("pending director verification of 2A.4 and 2B.6")
-}
-
-func TestOutageReplay(t *testing.T) {
-	t.Skip("pending director verification of 2A.4 and 2B.6")
-}
-
-func TestMeasurementGapUnknown(t *testing.T) {
-	t.Skip("pending director verification of 2C.4")
-}
-
-func TestUnderReservedExcluded(t *testing.T) {
-	t.Skip("pending director verification of 2C.4")
+func (stack *stack) runEvent(t *testing.T, ctx context.Context, eventID string, now time.Time) *gridosv1.GetEventResponse {
+	t.Helper()
+	stack.createEvent(t, ctx, eventID, now)
+	stack.waitEventState(t, ctx, eventID, "VALIDATED")
+	stack.approveEvent(t, ctx, eventID, now)
+	stack.launchEvent(t, ctx, eventID, now)
+	return stack.waitEventState(t, ctx, eventID, stack.scenario.Expected.FinalEventState)
 }

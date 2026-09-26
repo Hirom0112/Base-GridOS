@@ -62,6 +62,7 @@ type process struct {
 	env     []string
 	program string
 	args    []string
+	address string
 	log     string
 	command *exec.Cmd
 	exited  chan struct{}
@@ -91,24 +92,27 @@ func startStack(t *testing.T, scenarioName string) *stack {
 	stack.pool = pool
 	decisionAddress, gatewayAddress, controlAddress := freeAddress(t), freeAddress(t), freeAddress(t)
 	stack.decisionURL, stack.gatewayURL, stack.controlURL = "http://"+decisionAddress, "http://"+gatewayAddress, "http://"+controlAddress
-	stack.start(t, "decision", nil, "uv", "run", "--project", "services/decision", "python", "-m", "gridos.server", "--port", port(t, decisionAddress))
-	stack.start(t, "gateway", []string{"GRIDOS_GATEWAY_TOKEN=" + gatewayToken}, built.gateway,
+	stack.start(t, "decision", decisionAddress, nil, "uv", "run", "--project", "services/decision", "python", "-m", "gridos.server", "--port", port(t, decisionAddress))
+	stack.start(t, "gateway", gatewayAddress, []string{"GRIDOS_GATEWAY_TOKEN=" + gatewayToken}, built.gateway,
 		"--scenario", filepath.Join("testdata/scenarios", scenarioName+".yaml"), "--address", gatewayAddress, "--database", stack.gatewayDB, "--gateway-id", gatewayID)
 	controlEnv := []string{
 		"GRIDOS_CONTROL_ADDRESS=" + controlAddress, "GRIDOS_DATABASE_URL=" + stack.databaseURL, "GRIDOS_GATEWAY_ADDR=" + stack.gatewayURL,
 		"GRIDOS_DECISION_ADDR=" + stack.decisionURL, "GRIDOS_FLEET=" + scenario.Fleet.Path, "GRIDOS_GATEWAY_TOKEN=" + gatewayToken, "TEMPORAL_ADDRESS=" + temporalAddress,
 	}
-	stack.start(t, "control", controlEnv, built.control)
-	stack.start(t, "worker", controlEnv, built.worker)
-	stack.waitListening(t, "decision", decisionAddress)
-	stack.waitListening(t, "gateway", gatewayAddress)
-	stack.waitListening(t, "control", controlAddress)
+	stack.start(t, "control", controlAddress, controlEnv, built.control)
+	stack.start(t, "worker", "", controlEnv, built.worker)
+	for _, name := range []string{"decision", "gateway", "control"} {
+		stack.waitListening(t, name, stack.processes[name].address)
+	}
 	stack.assertRunning(t, "worker")
 	return stack
 }
 
 func requireInfrastructure(t *testing.T, root string) {
 	t.Helper()
+	if testing.Short() {
+		t.Skip("integration stack is skipped under -short; run without -short to exercise the scenario")
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), composeTimeout)
 	defer cancel()
 	compose := exec.CommandContext(ctx, "docker", "compose", "-f", "infrastructure/local/compose.yaml", "up", "-d", "--wait")
@@ -230,9 +234,9 @@ func (stack *stack) migrate(t *testing.T, program string) {
 	}
 }
 
-func (stack *stack) start(t *testing.T, name string, env []string, program string, args ...string) {
+func (stack *stack) start(t *testing.T, name, address string, env []string, program string, args ...string) {
 	t.Helper()
-	process := &process{name: name, env: env, program: program, args: args, log: filepath.Join(stack.logDir, name+".log")}
+	process := &process{name: name, env: env, program: program, args: args, address: address, log: filepath.Join(stack.logDir, name+".log")}
 	stack.processes[name] = process
 	stack.launch(t, process)
 	t.Cleanup(process.stop)
@@ -258,6 +262,26 @@ func (stack *stack) launch(t *testing.T, process *process) {
 		_ = command.Wait()
 		close(exited)
 	}()
+}
+
+func (process *process) kill() {
+	if process.command == nil {
+		return
+	}
+	_ = process.command.Process.Kill()
+	<-process.exited
+}
+
+func (stack *stack) restart(t *testing.T, name string) {
+	t.Helper()
+	process := stack.processes[name]
+	process.stop()
+	stack.launch(t, process)
+	if name == "worker" {
+		stack.assertRunning(t, name)
+		return
+	}
+	stack.waitListening(t, name, process.address)
 }
 
 func (process *process) stop() {
