@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useHydrated } from "@tanstack/react-router";
+import { useState, type ReactNode } from "react";
+import { Link, useHydrated } from "@tanstack/react-router";
 
 const stages = [
   ["Observe", "Understand the fleet"],
@@ -13,8 +13,18 @@ const stages = [
 
 export function Shell({
   initialTheme = "dark",
+  children,
+  evidence,
+  observedAt,
+  identity,
+  eventId,
 }: {
   initialTheme?: "dark" | "light";
+  children?: ReactNode;
+  evidence?: ReactNode;
+  observedAt?: string;
+  identity?: string;
+  eventId?: string;
 }) {
   const [theme, setTheme] = useState(initialTheme);
   const hydrated = useHydrated();
@@ -33,7 +43,9 @@ export function Shell({
         <span className="scope">
           Greater Austin <span className="mono">/ LZ_AEN</span>
         </span>
-        <span className="scenario mono">Scenario time unavailable</span>
+        <span className="scenario mono">
+          {observedAt ?? "Scenario time unavailable"}
+        </span>
         <span className="mode-chip">SIMULATED</span>
         <button
           className="theme-toggle"
@@ -44,33 +56,47 @@ export function Shell({
           <span aria-hidden="true">◐</span>
           <span>{theme === "dark" ? "Light" : "Dark"}</span>
         </button>
-        <span className="identity">Session not connected</span>
+        <span className="identity">{identity ?? "Session not connected"}</span>
       </header>
-      <OperatingRail />
+      <OperatingRail eventId={eventId} connected={Boolean(children)} />
       <main
         id="fleet-overview"
         className="workspace"
         aria-labelledby="fleet-title"
         tabIndex={-1}
       >
-        <FleetOverview />
-        <EvidenceRail />
+        {children ?? <FleetOverview />}
+        {evidence ?? <EvidenceRail />}
       </main>
       <footer className="truth-strip">
         <strong>
           <span className="unavailable-dot" aria-hidden="true" />
-          Fleet state unavailable
+          {observedAt
+            ? "Fleet observation recorded"
+            : "Fleet state unavailable"}
         </strong>
-        <span>No event selected</span>
+        <span>{eventId ?? "No event selected"}</span>
         <span className="mono">SIMULATED</span>
-        <span>Freshness unknown</span>
-        <span className="truth-tail">Awaiting server evidence</span>
+        <span>
+          {observedAt ? "Freshness shown per aggregate" : "Freshness unknown"}
+        </span>
+        <span className="truth-tail">
+          {observedAt
+            ? "Acknowledgement is not delivery"
+            : "Awaiting server evidence"}
+        </span>
       </footer>
     </div>
   );
 }
 
-function OperatingRail() {
+function OperatingRail({
+  eventId,
+  connected,
+}: {
+  eventId?: string;
+  connected: boolean;
+}) {
   return (
     <nav className="operating-rail" aria-label="Operating loop">
       <p className="eyebrow">Operating loop</p>
@@ -78,7 +104,14 @@ function OperatingRail() {
       <ol>
         {stages.map(([name, description], index) => (
           <li key={name}>
-            {index === 0 ? (
+            {connected ? (
+              <StageLink
+                index={index}
+                eventId={eventId}
+                name={name}
+                description={description}
+              />
+            ) : index === 0 ? (
               <a
                 className="stage selected"
                 href="#fleet-overview"
@@ -105,7 +138,7 @@ function OperatingRail() {
       </ol>
       <div className="event-thread">
         <p className="eyebrow">Event thread</p>
-        <p>No event selected</p>
+        <p>{eventId ?? "No event selected"}</p>
         <small>A versioned event connects every stage of the loop.</small>
       </div>
       <div className="rail-footnote">
@@ -119,6 +152,87 @@ function OperatingRail() {
         </span>
       </div>
     </nav>
+  );
+}
+
+function StageLink({
+  index,
+  eventId,
+  name,
+  description,
+}: {
+  index: number;
+  eventId?: string;
+  name: string;
+  description: string;
+}) {
+  const content = (
+    <>
+      <span className="stage-number mono">0{index + 1}</span>
+      <span>
+        <strong>{name}</strong>
+        <small>{description}</small>
+      </span>
+    </>
+  );
+  if (index === 0)
+    return (
+      <Link
+        to="/fleet"
+        className="stage"
+        activeProps={{ className: "stage selected" }}
+      >
+        {content}
+      </Link>
+    );
+  if (index === 2)
+    return (
+      <Link
+        to="/dispatch/new"
+        className="stage"
+        activeProps={{ className: "stage selected" }}
+      >
+        {content}
+      </Link>
+    );
+  if (!eventId || index === 1)
+    return (
+      <span className="stage" aria-disabled="true">
+        {content}
+      </span>
+    );
+  if (index === 3)
+    return (
+      <Link
+        to="/dispatch/$eventId"
+        params={{ eventId }}
+        className="stage"
+        activeProps={{ className: "stage selected" }}
+      >
+        {content}
+      </Link>
+    );
+  if (index < 6)
+    return (
+      <Link
+        to="/events/$eventId"
+        params={{ eventId }}
+        className="stage"
+        activeOptions={{ exact: true }}
+        activeProps={index === 4 ? { className: "stage selected" } : {}}
+      >
+        {content}
+      </Link>
+    );
+  return (
+    <Link
+      to="/events/$eventId/report"
+      params={{ eventId }}
+      className="stage"
+      activeProps={{ className: "stage selected" }}
+    >
+      {content}
+    </Link>
   );
 }
 

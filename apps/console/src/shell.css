@@ -452,6 +452,7 @@ h1 {
   border-radius: 50%;
 }
 .skip-link {
+  clip-path: inset(50%);
   position: fixed;
   top: -80px;
   left: 16px;
@@ -462,5 +463,6 @@ h1 {
   border-radius: var(--radius-sm);
 }
 .skip-link:focus {
+  clip-path: none;
   top: 12px;
 }
