@@ -104,6 +104,31 @@ func TestReconcileLateMessagesActivityAbsorbsLateTelemetry(t *testing.T) {
 	}
 }
 
+func TestDeliveredByCellKeepsUnobservedCellsUnknown(t *testing.T) {
+	harness := newActivityHarness(t)
+	harness.observeExport(t, "device-1", 4, 0, 10, 20, 30, 40, 50, 60)
+
+	cells, err := DeliveredByCell(context.Background(), harness.pool, "event-1", map[string]string{
+		"device-1": "cell-a",
+		"device-2": "cell-b",
+	}, harness.now, 10*time.Minute)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(cells) != 2 || cells[0].H3Cell != "cell-a" || cells[1].H3Cell != "cell-b" {
+		t.Fatalf("cells = %#v", cells)
+	}
+	if !cells[0].Known || math.Abs(cells[0].DeliveredMW-0.004) > 1e-9 {
+		t.Fatalf("measured cell = %#v", cells[0])
+	}
+	if cells[1].Known {
+		t.Fatalf("unobserved cell = %#v, want unknown", cells[1])
+	}
+	if len(cells[1].UncertainIntervals) == 0 {
+		t.Fatalf("unobserved cell has no uncertainty interval: %#v", cells[1])
+	}
+}
+
 func TestVerifyDeliveryActivityRejectsUnsupportedBoundary(t *testing.T) {
 	harness := newActivityHarness(t)
 	if _, err := harness.pool.Exec(context.Background(), "UPDATE dispatch_requests SET measurement_boundary = 'IMPORT_REDUCTION_VS_BASELINE'"); err != nil {
