@@ -6,6 +6,7 @@ import yaml
 from pydantic import (
     AwareDatetime,
     BaseModel,
+    ConfigDict,
     Field,
     NonNegativeInt,
     PositiveFloat,
@@ -67,8 +68,11 @@ class EventDefinition(BaseModel):
 
 
 class TimedInjection(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     at: AwareDatetime
     kind: InjectionType
+    scope: Literal["fleet", "scheduled"] = "fleet"
 
 
 class ExpectedOutcomes(BaseModel):
