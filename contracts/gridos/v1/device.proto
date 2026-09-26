@@ -1,0 +1,69 @@
+syntax = "proto3";
+
+package gridos.v1;
+
+import "google/protobuf/timestamp.proto";
+
+enum DataProvenance {
+  DATA_PROVENANCE_UNSPECIFIED = 0;
+  DATA_PROVENANCE_CONFIRMED_PUBLIC = 1;
+  DATA_PROVENANCE_CONFIRMED_SANDBOX = 2;
+  DATA_PROVENANCE_AUTHORIZED_OPERATIONAL = 3;
+  DATA_PROVENANCE_DERIVED = 4;
+  DATA_PROVENANCE_SIMULATED = 5;
+}
+
+enum GatewayConnectionState {
+  GATEWAY_CONNECTION_STATE_UNSPECIFIED = 0;
+  GATEWAY_CONNECTION_STATE_CONNECTED = 1;
+  GATEWAY_CONNECTION_STATE_DISCONNECTED = 2;
+  GATEWAY_CONNECTION_STATE_DEGRADED = 3;
+}
+
+message Provenance {
+  DataProvenance provenance = 1;
+  string source_id = 2;
+  string source_uri = 3;
+  google.protobuf.Timestamp observed_at = 4;
+  google.protobuf.Timestamp ingested_at = 5;
+  string schema_version = 6;
+  optional int64 simulation_seed = 7;
+}
+
+message BatteryParameters {
+  double usable_energy_kwh = 1;
+  double max_charge_kw = 2;
+  double max_discharge_kw = 3;
+  double charge_efficiency = 4;
+  double discharge_efficiency = 5;
+}
+
+message Site {
+  string site_id = 1;
+  string weather_zone = 2;
+  string load_zone = 3;
+  string h3_cell = 4;
+  bool has_solar = 5;
+  bool has_automatic_backup = 6;
+  Provenance provenance = 7;
+}
+
+message Device {
+  string device_id = 1;
+  string site_id = 2;
+  BatteryParameters battery_parameters = 3;
+  double state_of_health_percent = 4;
+  double temperature_celsius = 5;
+  repeated string alarms = 6;
+  string firmware_version = 7;
+  google.protobuf.Timestamp last_seen_at = 8;
+  GatewayConnectionState gateway_connection_state = 9;
+  Provenance provenance = 10;
+}
+
+message Cohort {
+  string cohort_id = 1;
+  string name = 2;
+  string algorithm_name = 3;
+  string load_zone = 4;
+}
