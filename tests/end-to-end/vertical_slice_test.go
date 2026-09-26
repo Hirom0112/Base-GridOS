@@ -16,7 +16,6 @@ import (
 	"connectrpc.com/connect"
 	gridosv1 "github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1"
 	"github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1/gridosv1connect"
-	"github.com/Hirom0112/Base-GridOS/services/control/internal/storage"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	_ "modernc.org/sqlite"
@@ -30,6 +29,21 @@ const (
 
 type fleetDevice struct {
 	DeviceID string `json:"device_id"`
+}
+
+type commandIntent struct {
+	CommandID      string
+	IdempotencyKey string
+	DeviceID       string
+	EventID        string
+	PlanVersion    int64
+	Generation     int64
+	SetpointKW     float64
+	IssuedAt       time.Time
+	EffectiveAt    time.Time
+	ExpiresAt      time.Time
+	PolicyVersion  string
+	CorrelationID  string
 }
 
 func TestVerticalSlice(t *testing.T) {
@@ -65,42 +79,34 @@ func TestDuplicateDelivery(t *testing.T) {
 	now := time.Now().UTC()
 	identifier := fmt.Sprintf("duplicate-%d", now.UnixNano())
 	pool := database(t, ctx)
-	seedCommandEvent(t, ctx, pool, identifier, now)
-	command := storage.CommandIntent{
-		CommandID: identifier, IdempotencyKey: identifier, DeviceID: firstFleetDevice(t), EventID: identifier,
+	deviceID := firstFleetDevice(t)
+	publishTelemetry(t, ctx, deviceID, now)
+	dispatch := gridosv1connect.NewDispatchServiceClient(http.DefaultClient, controlURL)
+	createEvent(t, ctx, dispatch, identifier, now)
+	approveEvent(t, ctx, dispatch, identifier, now)
+	command := commandIntent{
+		CommandID: identifier, IdempotencyKey: identifier, DeviceID: deviceID, EventID: identifier,
 		PlanVersion: 1, Generation: 1, SetpointKW: 1, IssuedAt: now, EffectiveAt: now.Add(-time.Second),
 		ExpiresAt: now.Add(time.Hour), PolicyVersion: "fleet-file", CorrelationID: identifier,
 	}
-	if err := storage.InsertCommand(ctx, pool, command); err != nil {
-		t.Fatal(err)
-	}
-	claimed, err := storage.ClaimOutbox(ctx, pool, storage.OutboxClaim{AvailableAt: now, LeaseUntil: now.Add(time.Minute), BatchSize: 1})
-	if err != nil || len(claimed) != 1 {
-		t.Fatalf("claimed commands = %#v, %v", claimed, err)
-	}
-	if _, err = storage.TransitionCommand(ctx, pool, storage.CommandTransition{CommandID: identifier, ExpectedState: "PERSISTED", NextState: "SENT", OccurredAt: now, CorrelationID: identifier}); err != nil {
-		t.Fatal(err)
-	}
+	insertCommand(t, ctx, pool, command)
+	claimed := claimCommand(t, ctx, pool, identifier, now)
+	transitionCommand(t, ctx, pool, identifier, "PERSISTED", "SENT", now)
 	client := gridosv1connect.NewCommandServiceClient(h2Client(), gatewayURL, connect.WithGRPC())
-	request := connect.NewRequest(&gridosv1.SubmitCommandRequest{CommandIntent: commandMessage(claimed[0])})
+	request := connect.NewRequest(&gridosv1.SubmitCommandRequest{CommandIntent: commandMessage(claimed)})
 	request.Header().Set("Authorization", gatewayAuth)
 	first, err := client.SubmitCommand(ctx, request)
 	if err != nil {
 		t.Fatal(err)
 	}
-	retry := connect.NewRequest(&gridosv1.SubmitCommandRequest{CommandIntent: commandMessage(claimed[0])})
+	retry := connect.NewRequest(&gridosv1.SubmitCommandRequest{CommandIntent: commandMessage(claimed)})
 	retry.Header().Set("Authorization", gatewayAuth)
 	second, err := client.SubmitCommand(ctx, retry)
 	if err != nil || second.Msg.GetAcknowledgement().GetReceiptStatus() != gridosv1.CommandReceiptStatus_COMMAND_RECEIPT_STATUS_ACCEPTED {
 		t.Fatalf("duplicate response = %#v, %v", second, err)
 	}
 	ack := first.Msg.GetAcknowledgement()
-	if err = storage.RecordAcknowledgement(ctx, pool, storage.Acknowledgement{
-		AcknowledgementID: ack.GetAcknowledgementId(), CommandID: identifier, IdempotencyKey: identifier,
-		ReceiptStatus: "ACCEPTED", ReceivedAt: ack.GetReceivedAt().AsTime(), GatewayID: ack.GetGatewayId(), CorrelationID: identifier,
-	}); err != nil {
-		t.Fatal(err)
-	}
+	recordAcknowledgement(t, ctx, pool, ack, identifier)
 	assertDeliveryCounts(t, ctx, pool, identifier)
 }
 
@@ -209,17 +215,68 @@ func database(t *testing.T, ctx context.Context) *pgxpool.Pool {
 	return pool
 }
 
-func seedCommandEvent(t *testing.T, ctx context.Context, pool *pgxpool.Pool, identifier string, now time.Time) {
+func insertCommand(t *testing.T, ctx context.Context, pool *pgxpool.Pool, command commandIntent) {
 	t.Helper()
-	_, err := pool.Exec(ctx, `INSERT INTO dispatch_requests (request_id, event_type, begin_time, end_time, target_kw, measurement_boundary, load_zones, correlation_id)
-		VALUES ($1, 'GRID_SERVICE', $2, $3, 1, 'METER_NET_EXPORT', ARRAY['LZ_AEN'], $1);
-		INSERT INTO dispatch_events (event_id, request_id, state, plan_version, correlation_id) VALUES ($1, $1, 'APPROVED', 1, $1)`, identifier, now, now.Add(time.Hour))
+	tx, err := pool.Begin(ctx)
 	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	_, err = tx.Exec(ctx, `INSERT INTO command_intents
+		(command_id, idempotency_key, device_id, event_id, plan_version, generation, setpoint_kw, issued_at, effective_at, expires_at, policy_version, correlation_id)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`, command.CommandID, command.IdempotencyKey, command.DeviceID, command.EventID, command.PlanVersion, command.Generation, command.SetpointKW, command.IssuedAt, command.EffectiveAt, command.ExpiresAt, command.PolicyVersion, command.CorrelationID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = tx.Exec(ctx, "INSERT INTO command_outbox (command_id, state, correlation_id) VALUES ($1, 'PENDING', $2)", command.CommandID, command.CorrelationID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = tx.Exec(ctx, "INSERT INTO command_states (command_id, state, recorded_at, correlation_id) VALUES ($1, 'PERSISTED', $2, $3)", command.CommandID, command.IssuedAt, command.CorrelationID); err != nil {
+		t.Fatal(err)
+	}
+	if err = tx.Commit(ctx); err != nil {
 		t.Fatal(err)
 	}
 }
 
-func commandMessage(command storage.ClaimedCommand) *gridosv1.CommandIntent {
+func claimCommand(t *testing.T, ctx context.Context, pool *pgxpool.Pool, commandID string, now time.Time) commandIntent {
+	t.Helper()
+	var command commandIntent
+	err := pool.QueryRow(ctx, `UPDATE command_outbox SET state = 'PUBLISHING', attempts = attempts + 1, next_attempt_at = $2
+		WHERE command_id = $1 AND state = 'PENDING' RETURNING command_id`, commandID, now.Add(time.Minute)).Scan(&command.CommandID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = pool.QueryRow(ctx, `SELECT idempotency_key, device_id, event_id, plan_version, generation, setpoint_kw, issued_at, effective_at, expires_at, policy_version, correlation_id
+		FROM command_intents WHERE command_id = $1`, commandID).Scan(&command.IdempotencyKey, &command.DeviceID, &command.EventID, &command.PlanVersion, &command.Generation, &command.SetpointKW, &command.IssuedAt, &command.EffectiveAt, &command.ExpiresAt, &command.PolicyVersion, &command.CorrelationID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return command
+}
+
+func transitionCommand(t *testing.T, ctx context.Context, pool *pgxpool.Pool, commandID, expected, next string, at time.Time) {
+	t.Helper()
+	tag, err := pool.Exec(ctx, `INSERT INTO command_states (command_id, state, recorded_at, correlation_id)
+		SELECT $1, $3, GREATEST($4, recorded_at + interval '1 microsecond'), $1 FROM command_states
+		WHERE command_id = $1 AND state = $2 ORDER BY recorded_at DESC LIMIT 1`, commandID, expected, next, at)
+	if err != nil || tag.RowsAffected() != 1 {
+		t.Fatalf("transition %s to %s: %v", expected, next, err)
+	}
+}
+
+func recordAcknowledgement(t *testing.T, ctx context.Context, pool *pgxpool.Pool, acknowledgement *gridosv1.CommandAcknowledgement, commandID string) {
+	t.Helper()
+	_, err := pool.Exec(ctx, `INSERT INTO command_acknowledgements
+		(acknowledgement_id, command_id, idempotency_key, receipt_status, received_at, gateway_id, correlation_id)
+		VALUES ($1, $2, $2, 'ACCEPTED', $3, $4, $2)`, acknowledgement.GetAcknowledgementId(), commandID, acknowledgement.GetReceivedAt().AsTime(), acknowledgement.GetGatewayId())
+	if err != nil {
+		t.Fatal(err)
+	}
+	transitionCommand(t, ctx, pool, commandID, "SENT", "ACKNOWLEDGED", time.Now().UTC())
+}
+
+func commandMessage(command commandIntent) *gridosv1.CommandIntent {
 	return &gridosv1.CommandIntent{
 		CommandId: command.CommandID, IdempotencyKey: command.IdempotencyKey, DeviceId: command.DeviceID,
 		EventId: command.EventID, PlanVersion: uint64(command.PlanVersion), Generation: uint64(command.Generation),
