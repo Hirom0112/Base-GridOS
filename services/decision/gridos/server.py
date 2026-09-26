@@ -121,6 +121,22 @@ def _planning_intervals(
 
 def _device_states(request: optimization_pb2.OptimizationRequest) -> list[DeviceState]:
     eligible_ids = set(request.eligibility_snapshot.eligible_device_ids)
+    known_ids = {device.device_id for device in request.devices}
+    forecast_availability_by_id: dict[str, float] = {}
+    for prediction in request.forecast.device_availability:
+        probability = prediction.probability.value
+        if (
+            prediction.device_id not in known_ids
+            or not isfinite(probability)
+            or not 0 <= probability <= 1
+            or not prediction.probability.feature_version
+            or not prediction.probability.model_version
+            or prediction.probability.value_kind != "modeled_estimate"
+        ):
+            raise ValueError("invalid device availability forecast")
+        forecast_availability_by_id[prediction.device_id] = min(
+            forecast_availability_by_id.get(prediction.device_id, 1.0), probability
+        )
     return [
         DeviceState(
             device_id=device.device_id,
@@ -136,7 +152,9 @@ def _device_states(request: optimization_pb2.OptimizationRequest) -> list[Device
             max_discharge_kw=device.max_discharge_kw,
             discharge_efficiency=device.discharge_efficiency,
             home_load_kw=0.0,
-            availability_probability=device.availability_probability,
+            availability_probability=forecast_availability_by_id.get(
+                device.device_id, device.availability_probability
+            ),
             available=not eligible_ids or device.device_id in eligible_ids,
             stale=device.stale,
         )
