@@ -830,6 +830,7 @@ Implements FULL_SPEC §12 Phase 2 and TECHSTACK step 6.
 Owns: `services/gateway-simulator/internal/failures/`,
 `services/gateway-simulator/cmd/`, and `scenario_determinism_test.go` in
 `services/gateway-simulator/tests/` (lane F owns the other files there).
+For 2A.6, after lane F's 2F.1: `services/gateway-simulator/internal/telemetry/`.
 
 - `[x]` 2A.1 `[P]` RED: `failures/inject_test.go` for each injection in
   FULL_SPEC §5.8: offline device, delayed telemetry, dropped message,
@@ -849,6 +850,20 @@ Owns: `services/gateway-simulator/internal/failures/`,
 - `[x]` 2A.5 `[P]` Scenario runner flag `--scenario <file>` on the simulator
   binary; a run with the same seed twice produces identical telemetry hashes.
   Verify: `go test ./services/gateway-simulator/tests -run ScenarioDeterminism` passes.
+
+- `[~]` 2A.6 `[P]` Make injections real at runtime. `cmd/gateway-simulator
+  --scenario` wires `failures.Engine` into the command-receipt and
+  telemetry-publish paths so `DROPPED_MESSAGES`, `DUPLICATED_MESSAGES`,
+  `DELAYED_TELEMETRY`, `DELAYED_GATEWAY`, `OFFLINE_DEVICES`, and
+  `PARTIAL_REGION_OUTAGE` affect exactly the seeded devices (2A.1 semantics),
+  not the whole process; the fleet publisher is wrapped in
+  `failures.Network` so a failed publish buffers to SQLite instead of ending
+  `telemetry.Fleet.Run` and exiting the process, and the next tick replays
+  the buffer once, in sequence, with original `source_time` (2A.4
+  semantics); a `--cadence` flag (default the scenario tick) lets integration
+  runs stream faster than five minutes. Found by lane D at 2D.3 and 2D.4: the
+  engine existed but nothing at runtime consulted it, and a control outage
+  killed the simulator. Verify: `go test ./services/gateway-simulator/... -run 'Runtime|Network|Cadence'` passes and `tests/integration -run "LostAck|OutageReplay"` can drive both scenarios without signals.
 
 ### Lane 2B — Temporal dispatch workflow
 
@@ -1548,11 +1563,11 @@ Owns: `README.md`, `docs/operations/` (except `security/`), `AGENTS.md`.
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | 0 | 5 | 9 | 7 | 6 | 8 | 4 | 39 |
 | 1 | 8 | 7 | 11 | 9 | 8 | 7 | 50 |
-| 2 | 5 | 7 | 7 | 6 | 6 | 7 | 38 |
+| 2 | 6 | 7 | 7 | 6 | 6 | 7 | 39 |
 | 3 | 6 | 8 | 4 | 6 | 4 | 5 | 33 |
 | 4 | 7 | 6 | 4 | 3 | 5 | 5 | 30 |
 | 5 | 3 | 3 | 4 | 6 | 4 | 4 | 24 |
-| | | | | | | | **214** |
+| | | | | | | | **215** |
 
 154 items are fully parallel and 48 wait on one other lane. Plus the five
 standing items applied every wave. The UI track adds 40 items of its own in

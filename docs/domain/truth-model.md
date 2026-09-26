@@ -52,6 +52,7 @@ A command has an immutable command ID and idempotency key, event and device IDs,
 | `SENT` | Expiry | `EXPIRED` |
 | `ACKNOWLEDGED` | Effective time reached | `EXECUTING` |
 | `UNCERTAIN` | Fresh telemetry proves execution | `EXECUTING` |
+| `UNCERTAIN` | Durable receiver state proves acceptance (a late acknowledgement) | `ACKNOWLEDGED` |
 | `UNCERTAIN` | Durable receiver state proves rejection | `REJECTED` |
 | `ACKNOWLEDGED`, `UNCERTAIN`, or `EXECUTING` | Higher generation cancellation accepted | `CANCELLED` |
 | `ACKNOWLEDGED`, `UNCERTAIN`, or `EXECUTING` | Expiry | `EXPIRED` |

@@ -337,4 +337,15 @@ assumptions reported by workers land here too.
   audit row records the launch record but no state key, so the event chain
   breaks at APPROVED to COMMANDS_PERSISTED. Routed to lane B with 2B.7:
   every EVENT_STATE_TRANSITIONED row carries previous and new state.
+- **Integration defects found by lane D (2D.3, 2D.4, 2D.5):** (1) the
+  publisher stops a batch at the first `DeadlineExceeded` even though the
+  command was correctly marked UNCERTAIN, so the workflow retries and
+  republishes; it must treat a recorded UNCERTAIN outcome as handled and
+  continue (lane B, with 2B.7). (2) A late ACCEPTED acknowledgement for an
+  UNCERTAIN command was rejected because the per-command state machine had
+  no UNCERTAIN to ACKNOWLEDGED row; the truth model now has it (durable
+  receiver state proving acceptance) and storage follows (lane B). (3) The
+  simulator never applied scenario injections at runtime and exited on a
+  failed publish; opened 2A.6 for lane A. The measurement-gap and Houston
+  outcomes wait on 2C.7's wiring, already in 2B.7.
 
