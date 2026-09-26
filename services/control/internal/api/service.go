@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"crypto/subtle"
 	"errors"
 	"net/http"
 	"sort"
@@ -12,6 +13,7 @@ import (
 	gridosv1 "github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1"
 	"github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1/gridosv1connect"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/fleet"
+	reporting "github.com/Hirom0112/Base-GridOS/services/control/internal/report"
 	"google.golang.org/protobuf/types/known/durationpb"
 )
 
@@ -22,10 +24,24 @@ const (
 )
 
 type Service struct {
-	store EventStore
-	twin  *fleet.Twin
-	sites []*gridosv1.AuthorizedSite
-	now   func() time.Time
+	store      EventStore
+	twin       *fleet.Twin
+	sites      []*gridosv1.AuthorizedSite
+	now        func() time.Time
+	reports    reporting.Source
+	dispatcher *Dispatcher
+}
+
+func (service *Service) SetReportSource(source reporting.Source) {
+	service.reports = source
+}
+
+func (service *Service) SetDispatcher(dispatcher *Dispatcher) {
+	service.dispatcher = dispatcher
+}
+
+func (service *Service) RuntimeReady() bool {
+	return service.dispatcher != nil && service.reports != nil
 }
 
 func NewService(store EventStore, twin *fleet.Twin, sites []*gridosv1.AuthorizedSite, now func() time.Time) *Service {
@@ -33,12 +49,31 @@ func NewService(store EventStore, twin *fleet.Twin, sites []*gridosv1.Authorized
 }
 
 func NewHandler(service *Service) http.Handler {
+	return NewControlHandler(service, nil, "")
+}
+
+func NewControlHandler(service *Service, telemetry gridosv1connect.TelemetryServiceHandler, telemetryToken string) http.Handler {
 	mux := http.NewServeMux()
 	fleetPath, fleetHandler := gridosv1connect.NewFleetServiceHandler(service)
 	dispatchPath, dispatchHandler := gridosv1connect.NewDispatchServiceHandler(service)
 	mux.Handle(fleetPath, fleetHandler)
 	mux.Handle(dispatchPath, dispatchHandler)
+	if telemetry != nil {
+		telemetryPath, telemetryHandler := gridosv1connect.NewTelemetryServiceHandler(telemetry)
+		mux.Handle(telemetryPath, authorizeToken(telemetryHandler, telemetryToken))
+	}
 	return mux
+}
+
+func authorizeToken(next http.Handler, expected string) http.Handler {
+	return http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+		actual := request.Header.Get("Authorization")
+		if expected == "" || len(actual) != len(expected) || subtle.ConstantTimeCompare([]byte(actual), []byte(expected)) != 1 {
+			http.Error(response, "authorization required", http.StatusUnauthorized)
+			return
+		}
+		next.ServeHTTP(response, request)
+	})
 }
 
 func (service *Service) GetFleetSummary(_ context.Context, request *connect.Request[gridosv1.GetFleetSummaryRequest]) (*connect.Response[gridosv1.GetFleetSummaryResponse], error) {
@@ -112,7 +147,15 @@ func (service *Service) GetEvent(ctx context.Context, request *connect.Request[g
 		groups = append(groups, &gridosv1.ExclusionReasonGroup{Reason: reason, Count: count})
 	}
 	sort.Slice(groups, func(i, j int) bool { return groups[i].GetReason() < groups[j].GetReason() })
-	return connect.NewResponse(&gridosv1.GetEventResponse{Event: event, Exclusions: groups}), nil
+	response := &gridosv1.GetEventResponse{Event: event, Exclusions: groups}
+	if service.reports != nil {
+		report, reportErr := reporting.Build(ctx, service.reports, request.Msg.GetEventId())
+		if reportErr != nil {
+			return nil, connect.NewError(connect.CodeInternal, reportErr)
+		}
+		response.Report = eventReport(report)
+	}
+	return connect.NewResponse(response), nil
 }
 
 func (service *Service) ApproveEvent(ctx context.Context, request *connect.Request[gridosv1.ApproveEventRequest]) (*connect.Response[gridosv1.ApproveEventResponse], error) {
@@ -196,4 +239,17 @@ func provenanceValue(source string) gridosv1.DataProvenance {
 		"simulated":              gridosv1.DataProvenance_DATA_PROVENANCE_SIMULATED,
 	}
 	return values[source]
+}
+
+func eventReport(source reporting.EventReport) *gridosv1.BasicEventReport {
+	exclusions := make([]*gridosv1.ExclusionReasonGroup, 0, len(source.ExcludedByReason))
+	for name, count := range source.ExcludedByReason {
+		reason := gridosv1.ExclusionReason(gridosv1.ExclusionReason_value[name])
+		exclusions = append(exclusions, &gridosv1.ExclusionReasonGroup{Reason: reason, Count: count})
+	}
+	sort.Slice(exclusions, func(i, j int) bool { return exclusions[i].GetReason() < exclusions[j].GetReason() })
+	return &gridosv1.BasicEventReport{
+		RequestedMw: source.RequestedMW, ApprovedMw: source.ApprovedMW, CommandedMw: source.CommandedMW, AcknowledgedMw: source.AcknowledgedMW,
+		Exclusions: exclusions, Provenance: source.Provenance, PolicyVersion: source.Versions.Policy, SolverVersion: source.Versions.Solver, ModelVersion: source.Versions.Model,
+	}
 }

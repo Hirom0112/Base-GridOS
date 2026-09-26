@@ -140,11 +140,24 @@ message GetEventRequest {
 message GetEventResponse {
   DispatchEvent event = 1;
   repeated ExclusionReasonGroup exclusions = 2;
+  BasicEventReport report = 3;
 }
 
 message ExclusionReasonGroup {
   ExclusionReason reason = 1;
   uint64 count = 2;
+}
+
+message BasicEventReport {
+  double requested_mw = 1;
+  double approved_mw = 2;
+  double commanded_mw = 3;
+  double acknowledged_mw = 4;
+  repeated ExclusionReasonGroup exclusions = 5;
+  repeated string provenance = 6;
+  string policy_version = 7;
+  string solver_version = 8;
+  string model_version = 9;
 }
 
 message ApproveEventRequest {
