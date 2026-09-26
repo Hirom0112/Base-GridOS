@@ -634,7 +634,7 @@ Owns: `services/control/internal/storage/` (including
 - `[x]` 1D.2 `[P]` Test harness: each test gets a disposable database via
   `CREATE DATABASE` on the compose PostgreSQL (or `testcontainers-go`), with
   migrations applied. Verify: `go test ./services/control/internal/storage/ -run Harness` passes.
-- `[~]` 1D.3 `[P]` RED: `events_test.go`: state transitions follow the
+- `[x]` 1D.3 `[P]` RED: `events_test.go`: state transitions follow the
   transition table in `truth-model.md`; an illegal transition returns
   `ErrIllegalTransition`; a conditional update with a stale expected state
   affects zero rows; every transition appends an `audit_journal` row.
