@@ -26,15 +26,18 @@ export default function LivingGrid({
   }, [cells]);
   const host = useRef<HTMLDivElement>(null);
   const renderer = useRef<ReturnType<typeof mountGrid> | null>(null);
+  const select = useRef(onSelect);
+  useEffect(() => {
+    select.current = onSelect;
+  }, [onSelect]);
   const [mode, setMode] = useState("Geographic fallback");
   const [sort, setSort] = useState("location");
   useEffect(() => {
     let cancelled = false;
-    if (!projection.cells.length) return;
     void import("./renderer").then(({ mountGrid }) => {
       if (cancelled || !host.current) return;
       try {
-        renderer.current = mountGrid(host.current, projection.cells, onSelect);
+        renderer.current = mountGrid(host.current, (id) => select.current(id));
         setMode("3D geographic field");
       } catch {
         setMode("Geographic fallback · WebGL unavailable");
@@ -45,10 +48,10 @@ export default function LivingGrid({
       renderer.current?.dispose();
       renderer.current = null;
     };
-  }, [projection, onSelect]);
+  }, []);
   useEffect(() => {
-    renderer.current?.highlight(selected);
-  }, [selected, mode]);
+    renderer.current?.update(projection.cells, selected);
+  }, [projection, selected, mode]);
   const rows = (projection.error ? [] : [...cells]).sort((a, b) =>
     sort === "capacity"
       ? (b.installedMw?.value ?? 0) - (a.installedMw?.value ?? 0)

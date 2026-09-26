@@ -1,24 +1,15 @@
 import * as THREE from "three";
 import type { GridCell } from "./scene";
 
-export function mountGrid(
-  host: HTMLElement,
-  cells: GridCell[],
-  select: (id: string) => void,
-) {
+export function mountGrid(host: HTMLElement, select: (id: string) => void) {
   const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
   renderer.domElement.setAttribute("aria-hidden", "true");
   renderer.domElement.dataset.livingGrid = "true";
   host.append(renderer.domElement);
   const scene = new THREE.Scene();
-  const span =
-    Math.max(
-      10,
-      ...cells.flatMap((cell) =>
-        cell.position.map((value) => Math.abs(value) * 2),
-      ),
-    ) * 1.2;
+  let cells: GridCell[] = [];
+  let span = 12;
   const camera = new THREE.OrthographicCamera(
     -span,
     span,
@@ -39,22 +30,9 @@ export function mountGrid(
     metalness: 0.3,
     roughness: 0.55,
   });
-  const mesh = new THREE.InstancedMesh(geometry, material, cells.length);
-  const matrix = new THREE.Object3D();
-  for (const [index, cell] of cells.entries()) {
-    const corner = cell.boundary[0];
-    if (!corner) continue;
-    const dx = corner[0] - cell.position[0];
-    const dz = corner[1] - cell.position[1];
-    const radius = Math.hypot(dx, dz) * cell.footprint;
-    matrix.position.set(cell.position[0], cell.height / 2, cell.position[1]);
-    matrix.rotation.y = Math.atan2(dx, dz);
-    matrix.scale.set(radius, cell.height, radius);
-    matrix.updateMatrix();
-    mesh.setMatrixAt(index, matrix.matrix);
-  }
+  let mesh = new THREE.InstancedMesh(geometry, material, 0);
   scene.add(mesh);
-  const grid = new THREE.GridHelper(span * 1.2, 24, 0x405c4d, 0x263c30);
+  const grid = new THREE.GridHelper(1, 24, 0x405c4d, 0x263c30);
   grid.position.y = -0.04;
   grid.material.transparent = true;
   grid.material.opacity = 0.3;
@@ -63,7 +41,7 @@ export function mountGrid(
   function render() {
     if (visible && !document.hidden) renderer.render(scene, camera);
   }
-  const resize = new ResizeObserver(() => {
+  function resizeFrame() {
     const width = host.clientWidth;
     const height = host.clientHeight;
     if (!width || !height) return;
@@ -72,10 +50,14 @@ export function mountGrid(
     camera.right = span * 0.56 * aspect;
     camera.top = span * 0.56;
     camera.bottom = -span * 0.56;
+    camera.far = span * 10;
+    camera.position.set(span * 0.6, span * 0.85, span * 0.8);
+    camera.lookAt(0, 0, 0);
     camera.updateProjectionMatrix();
     renderer.setSize(width, height);
     render();
-  });
+  }
+  const resize = new ResizeObserver(resizeFrame);
   resize.observe(host);
   const visibility = new IntersectionObserver(([entry]) => {
     visible = entry?.isIntersecting ?? false;
@@ -100,15 +82,21 @@ export function mountGrid(
   }
   renderer.domElement.addEventListener("pointerup", pick);
   return {
-    highlight(id: string | null) {
-      cells.forEach((cell, index) =>
-        mesh.setColorAt(
-          index,
-          new THREE.Color(cell.id === id ? 0xffffff : 0xa6b9ae),
-        ),
-      );
-      if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
-      render();
+    update(next: GridCell[], selected: string | null) {
+      cells = next;
+      scene.remove(mesh);
+      mesh.dispose();
+      mesh = capacityMesh(cells, geometry, material, selected);
+      scene.add(mesh);
+      span =
+        Math.max(
+          10,
+          ...cells.flatMap((cell) =>
+            cell.position.map((value) => Math.abs(value) * 2),
+          ),
+        ) * 1.2;
+      grid.scale.setScalar(span * 1.2);
+      resizeFrame();
     },
     dispose() {
       resize.disconnect();
@@ -117,10 +105,38 @@ export function mountGrid(
       renderer.domElement.removeEventListener("pointerup", pick);
       geometry.dispose();
       material.dispose();
+      mesh.dispose();
       grid.geometry.dispose();
       grid.material.dispose();
       renderer.dispose();
       renderer.domElement.remove();
     },
   };
+}
+
+function capacityMesh(
+  cells: GridCell[],
+  geometry: THREE.BufferGeometry,
+  material: THREE.Material,
+  selected: string | null,
+) {
+  const mesh = new THREE.InstancedMesh(geometry, material, cells.length);
+  const matrix = new THREE.Object3D();
+  for (const [index, cell] of cells.entries()) {
+    const corner = cell.boundary[0];
+    if (!corner) continue;
+    const dx = corner[0] - cell.position[0];
+    const dz = corner[1] - cell.position[1];
+    const radius = Math.hypot(dx, dz) * cell.footprint;
+    matrix.position.set(cell.position[0], cell.height / 2, cell.position[1]);
+    matrix.rotation.y = Math.atan2(dx, dz);
+    matrix.scale.set(radius, cell.height, radius);
+    matrix.updateMatrix();
+    mesh.setMatrixAt(index, matrix.matrix);
+    mesh.setColorAt(
+      index,
+      new THREE.Color(cell.id === selected ? 0xffffff : 0xa6b9ae),
+    );
+  }
+  return mesh;
 }
