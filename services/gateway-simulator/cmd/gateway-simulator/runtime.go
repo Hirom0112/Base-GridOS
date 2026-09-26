@@ -39,7 +39,10 @@ func (handler *runtimeCommandHandler) SubmitCommand(ctx context.Context, request
 			return nil, err
 		}
 	}
-	if handler.affected(deviceID, failures.DroppedMessages, failures.DelayedGateway) {
+	if handler.affected(deviceID, failures.DroppedMessages) {
+		return nil, connect.NewError(connect.CodeDeadlineExceeded, errors.New("command receipt timed out"))
+	}
+	if handler.affected(deviceID, failures.DelayedGateway) {
 		return nil, connect.NewError(connect.CodeUnavailable, errors.New("command receipt unavailable"))
 	}
 	return response, nil
