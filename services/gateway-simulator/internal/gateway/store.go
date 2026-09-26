@@ -69,6 +69,10 @@ CREATE TABLE IF NOT EXISTS telemetry_buffer (
 CREATE TABLE IF NOT EXISTS telemetry_sequences (
   device_id TEXT PRIMARY KEY,
   sequence INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS command_effects (
+  command_id TEXT PRIMARY KEY REFERENCES commands(command_id),
+  executed_at TEXT NOT NULL
 );`)
 	return err
 }
@@ -143,15 +147,19 @@ func latestGeneration(ctx context.Context, query commandQuerier, deviceID string
 }
 
 func (store *Store) Commands(ctx context.Context) ([]Command, error) {
-	return store.queryCommands(ctx, `SELECT command_id, idempotency_key, device_id, generation, setpoint_kw, effective_at, expires_at FROM commands ORDER BY command_id`)
+	return queryCommands(ctx, store.db, `SELECT command_id, idempotency_key, device_id, generation, setpoint_kw, effective_at, expires_at FROM commands ORDER BY command_id`)
 }
 
 func (store *Store) ExecutableCommands(ctx context.Context, now time.Time) ([]Command, error) {
-	return store.queryCommands(ctx, `SELECT command_id, idempotency_key, device_id, generation, setpoint_kw, effective_at, expires_at FROM commands WHERE effective_at <= ? AND expires_at > ? ORDER BY command_id`, formatTime(now), formatTime(now))
+	return queryCommands(ctx, store.db, `SELECT command_id, idempotency_key, device_id, generation, setpoint_kw, effective_at, expires_at FROM commands WHERE effective_at <= ? AND expires_at > ? ORDER BY command_id`, formatTime(now), formatTime(now))
 }
 
-func (store *Store) queryCommands(ctx context.Context, query string, arguments ...any) (commands []Command, err error) {
-	rows, err := store.db.QueryContext(ctx, query, arguments...)
+type commandRowsQuerier interface {
+	QueryContext(context.Context, string, ...any) (*sql.Rows, error)
+}
+
+func queryCommands(ctx context.Context, querier commandRowsQuerier, query string, arguments ...any) (commands []Command, err error) {
+	rows, err := querier.QueryContext(ctx, query, arguments...)
 	if err != nil {
 		return nil, err
 	}
@@ -166,6 +174,29 @@ func (store *Store) queryCommands(ctx context.Context, query string, arguments .
 		commands = append(commands, command)
 	}
 	return commands, rows.Err()
+}
+
+func (store *Store) ClaimExecutableCommands(ctx context.Context, now time.Time) ([]Command, error) {
+	tx, err := store.db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+	commands, err := queryCommands(ctx, tx, `SELECT command_id, idempotency_key, device_id, generation, setpoint_kw, effective_at, expires_at
+FROM commands WHERE effective_at <= ? AND expires_at > ? AND NOT EXISTS (
+  SELECT 1 FROM command_effects WHERE command_effects.command_id = commands.command_id
+) ORDER BY command_id`, formatTime(now), formatTime(now))
+	if err != nil {
+		return nil, errors.Join(err, tx.Rollback())
+	}
+	for _, command := range commands {
+		if _, err := tx.ExecContext(ctx, `INSERT INTO command_effects (command_id, executed_at) VALUES (?, ?)`, command.CommandID, formatTime(now)); err != nil {
+			return nil, errors.Join(err, tx.Rollback())
+		}
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+	return commands, nil
 }
 
 type commandScanner interface {
