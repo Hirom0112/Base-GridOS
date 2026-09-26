@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -18,8 +19,47 @@ import (
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/fleet"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/storage"
 	storagepublisher "github.com/Hirom0112/Base-GridOS/services/control/internal/storage/publisher"
+	"go.temporal.io/api/enums/v1"
+	"go.temporal.io/sdk/client"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
+
+func TestTemporalLifecycleRequiresWorker(t *testing.T) {
+	pool := apiTestDatabase(t)
+	temporalClient, err := client.Dial(client.Options{HostPort: "127.0.0.1:7233"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer temporalClient.Close()
+	events := NewPostgresEventStore(pool)
+	service := NewService(events, fleet.NewTwin(time.Minute), nil, time.Now)
+	taskQueue := "api-without-worker-" + fmt.Sprint(time.Now().UnixNano())
+	service.SetWorkflowClient(temporalClient, taskQueue)
+	control := httptest.NewServer(NewHandler(service))
+	defer control.Close()
+	dispatchClient := gridosv1connect.NewDispatchServiceClient(http.DefaultClient, control.URL)
+	now := time.Now().UTC()
+	request := connect.NewRequest(&gridosv1.CreateEventRequestRequest{EventRequest: &gridosv1.EventRequest{
+		RequestId: taskQueue, EventType: "GRID_SERVICE", BeginTime: timestamppb.New(now.Add(time.Minute)), EndTime: timestamppb.New(now.Add(time.Hour)),
+		TargetKw: 1, MeasurementBoundary: gridosv1.MeasurementBoundary_MEASUREMENT_BOUNDARY_METER_NET_EXPORT, LoadZones: []string{}, CorrelationId: taskQueue,
+	}, IdempotencyKey: taskQueue})
+	request.Header().Set(roleHeader, "operator")
+	created, err := dispatchClient.CreateEventRequest(context.Background(), request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if created.Msg.GetEvent().GetState() != gridosv1.DispatchEventState_DISPATCH_EVENT_STATE_REQUESTED {
+		t.Fatalf("event state = %s, want REQUESTED", created.Msg.GetEvent().GetState())
+	}
+	description, err := temporalClient.DescribeWorkflowExecution(context.Background(), taskQueue, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if description.WorkflowExecutionInfo.Status != enums.WORKFLOW_EXECUTION_STATUS_RUNNING {
+		t.Fatalf("workflow status = %s, want RUNNING", description.WorkflowExecutionInfo.Status)
+	}
+	_ = temporalClient.TerminateWorkflow(context.Background(), taskQueue, "", "test cleanup")
+}
 
 func TestControlLifecycleWithRealDecisionAndGateway(t *testing.T) {
 	root := apiRepositoryRoot(t)
