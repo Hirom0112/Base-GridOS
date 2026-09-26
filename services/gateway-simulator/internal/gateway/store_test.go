@@ -38,7 +38,11 @@ func TestCommandPersistenceAndIdempotency(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer reopened.Close()
+	t.Cleanup(func() {
+		if err := reopened.Close(); err != nil {
+			t.Error(err)
+		}
+	})
 	commands, err := reopened.Commands(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -46,28 +50,38 @@ func TestCommandPersistenceAndIdempotency(t *testing.T) {
 	if len(commands) != 1 || commands[0] != command {
 		t.Fatalf("commands=%+v", commands)
 	}
-	duplicate, err := reopened.AcceptCommand(ctx, command, now)
+	assertCommandIdempotency(t, ctx, reopened, command, now)
+	assertCommandEffectiveWindow(t, ctx, reopened, command, now)
+}
+
+func assertCommandIdempotency(t *testing.T, ctx context.Context, store *Store, command Command, now time.Time) {
+	t.Helper()
+	duplicate, err := store.AcceptCommand(ctx, command, now)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !duplicate.Accepted || duplicate.NewPhysicalEffect {
 		t.Fatalf("duplicate=%+v", duplicate)
 	}
-	commands, err = reopened.Commands(ctx)
+	commands, err := store.Commands(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(commands) != 1 {
 		t.Fatalf("command count=%d", len(commands))
 	}
-	before, err := reopened.ExecutableCommands(ctx, now)
+}
+
+func assertCommandEffectiveWindow(t *testing.T, ctx context.Context, store *Store, command Command, now time.Time) {
+	t.Helper()
+	before, err := store.ExecutableCommands(ctx, now)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(before) != 0 {
 		t.Fatalf("command executed before effective time: %+v", before)
 	}
-	after, err := reopened.ExecutableCommands(ctx, now.Add(time.Minute))
+	after, err := store.ExecutableCommands(ctx, now.Add(time.Minute))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -82,7 +96,11 @@ func TestCommandRejections(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer store.Close()
+	t.Cleanup(func() {
+		if err := store.Close(); err != nil {
+			t.Error(err)
+		}
+	})
 	now := time.Date(2026, 8, 12, 18, 0, 0, 0, time.UTC)
 	accepted := Command{
 		CommandID:      "command-2",
