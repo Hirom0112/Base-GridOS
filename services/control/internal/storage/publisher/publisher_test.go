@@ -278,7 +278,13 @@ func availableAddress(t *testing.T) string {
 func startGateway(t *testing.T, address string, now time.Time) *exec.Cmd {
 	t.Helper()
 	root := repositoryRoot(t)
-	command := exec.Command("go", "run", "./services/gateway-simulator/cmd/gateway-simulator",
+	binary := filepath.Join(t.TempDir(), "gateway-simulator")
+	build := exec.Command("go", "build", "-o", binary, "./services/gateway-simulator/cmd/gateway-simulator")
+	build.Dir = root
+	if output, err := build.CombinedOutput(); err != nil {
+		t.Fatalf("build gateway: %v: %s", err, output)
+	}
+	command := exec.Command(binary,
 		"-address", address,
 		"-database", filepath.Join(t.TempDir(), "gateway.db"),
 		"-fleet", filepath.Join(root, "testdata/fleets/texas-50.jsonl"),
