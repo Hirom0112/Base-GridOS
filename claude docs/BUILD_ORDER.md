@@ -299,7 +299,7 @@ Owns: `contracts/`, `buf.yaml`, `buf.gen.yaml`.
   from 0B.4 stays. Found at 0F.1: no service existed for the mock server or
   the console to call. Verify: `buf lint contracts && buf generate contracts` and `grep -c '^service' contracts/gridos/v1/api.proto` prints 3.
 
-- `[~]` 0B.9 `[P]` Move generated Go out of `internal`: `buf.gen.yaml` Go
+- `[x]` 0B.9 `[P]` Move generated Go out of `internal`: `buf.gen.yaml` Go
   and Connect-Go plugins output to `contracts/gen/go`, which is its own Go
   module `github.com/Hirom0112/Base-GridOS/contracts/gen/go` with a
   committed `go.mod` (generated `.go` files stay ignored); every proto's
