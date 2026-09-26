@@ -32,6 +32,8 @@ LOAD_ZONES = {
     "WEST": "LZ_WEST",
 }
 RELIABILITY_TRAITS = ("HIGH", "MEDIUM", "LOW")
+AUSTIN_BOUNDS = (29.95, 30.90, -98.30, -97.00)
+AUSTIN_CELL_COUNT = 320
 
 
 def _identifier(kind: str, seed: int, index: int) -> str:
@@ -82,10 +84,54 @@ def generate_fleet(seed: int, size: int) -> bytes:
     return "".join(f"{record}\n" for record in records).encode()
 
 
+def _austin_cells(seed: int) -> tuple[str, ...]:
+    latitude_min, latitude_max, longitude_min, longitude_max = AUSTIN_BOUNDS
+    rng = random.Random(f"{seed}:austin-cells")
+    cells: list[str] = []
+    found: set[str] = set()
+    while len(cells) < AUSTIN_CELL_COUNT:
+        cell = h3.latlng_to_cell(
+            rng.uniform(latitude_min, latitude_max),
+            rng.uniform(longitude_min, longitude_max),
+            7,
+        )
+        latitude, longitude = h3.cell_to_latlng(cell)
+        if cell in found or not (
+            latitude_min <= latitude <= latitude_max and longitude_min <= longitude <= longitude_max
+        ):
+            continue
+        found.add(cell)
+        cells.append(cell)
+    return tuple(cells)
+
+
+def generate_austin_fleet(seed: int, size: int) -> bytes:
+    if size < 0:
+        raise ValueError("size must be nonnegative")
+    cells = _austin_cells(seed)
+    records = []
+    for index in range(size):
+        device = _device(seed, index)
+        device["weather_zone"] = "SCENT"
+        device["load_zone"] = "LZ_AEN"
+        device["load_profile_type"] = f"{str(device['load_profile_type']).split('_')[0]}_SCENT"
+        device["h3_cell"] = cells[index % len(cells)]
+        device["cohorts"] = ["SCENT", "LZ_AEN", device["resilience_plan"]]
+        records.append(json.dumps(device, sort_keys=True, separators=(",", ":")))
+    return "".join(f"{record}\n" for record in records).encode()
+
+
 def write_fleet(name: str, seed: int, size: int, directory: Path) -> Path:
     if not name or Path(name).name != name:
         raise ValueError("name must be a filename stem")
     output = directory / f"{name}.jsonl"
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_bytes(generate_fleet(seed, size))
+    return output
+
+
+def write_austin_fleet(seed: int, size: int, directory: Path) -> Path:
+    output = directory / "austin-5000.jsonl"
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_bytes(generate_austin_fleet(seed, size))
     return output
