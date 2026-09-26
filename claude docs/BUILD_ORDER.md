@@ -1344,7 +1344,7 @@ Owns: `services/control/internal/fleet/geo/`,
 `services/control/internal/api/geo/`, `testdata/fixtures/geo/`.
 
 - `[ ]` 4C.1 `[P]` RED then GREEN: server-side H3 aggregation of sites at
-  resolutions 5 through 8 with counts, capacity, SOC bands, connectivity, and
+  resolutions 5 through 7 (the fleet carries resolution-7 cells; 8 is unavailable, never derived) with counts, capacity, SOC bands, connectivity, and
   active dispatch per cell; cells with fewer than 5 sites are merged upward
   before leaving the server (FULL_SPEC §5.2 privacy; the resolutions and the
   merge threshold are assumptions to report). Verify: `go test ./services/control/internal/fleet/geo/` passes.

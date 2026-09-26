@@ -628,3 +628,9 @@ assumptions reported by workers land here too.
   explicit unavailable forecast, audits the decision, and the optimizer's
   deterministic fallback proceeds through validation. Go never fabricates a
   baseline it did not receive.
+- **4C.1 resolutions (2026-09-26):** sites carry resolution-7 H3 cells
+  only, and a finer cell cannot be derived from a coarser one, so
+  aggregation covers resolutions 5 through 7 by walking to parents;
+  resolution 8 is reported unavailable rather than fabricated. Lane 4C owns
+  `services/control/go.mod` and `go.sum` additively for `h3-go/v4`, added
+  in the same commit as its first use, no `go mod tidy`.
