@@ -48,3 +48,23 @@ def test_scheduled_injection_scope_is_validated() -> None:
     }
     with raises(ValidationError):
         Scenario.model_validate(misspelled)
+
+
+def test_region_outage_requires_an_outage_kind() -> None:
+    outage = {
+        **VALID_SCENARIO,
+        "injections": [
+            {
+                **VALID_SCENARIO["injections"][0],
+                "kind": "PARTIAL_REGION_OUTAGE",
+                "region": "LZ_HOUSTON",
+            }
+        ],
+    }
+    assert Scenario.model_validate(outage).injections[0].region == "LZ_HOUSTON"
+    other = {**outage, "injections": [{**outage["injections"][0], "kind": "DROPPED_MESSAGES"}]}
+    with raises(ValidationError):
+        Scenario.model_validate(other)
+    empty = {**outage, "injections": [{**outage["injections"][0], "region": ""}]}
+    with raises(ValidationError):
+        Scenario.model_validate(empty)

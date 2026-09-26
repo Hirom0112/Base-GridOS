@@ -34,3 +34,37 @@ func TestHoustonTwentyUsesAffectedSchedules(t *testing.T) {
 		t.Fatalf("lost MW used fleet percentage: %v", effects[0].LostMW)
 	}
 }
+
+func TestRegionOutageTargetsTheNamedRegion(t *testing.T) {
+	at := time.Date(2026, time.August, 12, 18, 15, 0, 0, time.UTC)
+	devices := []Device{
+		{ID: "a", Region: "LZ_AEN", ScheduledKW: 1},
+		{ID: "b", Region: "LZ_AEN", ScheduledKW: 1},
+		{ID: "c", Region: "LZ_HOUSTON", ScheduledKW: 2},
+		{ID: "d", Region: "LZ_HOUSTON", ScheduledKW: 2},
+		{ID: "e", Region: "LZ_HOUSTON", ScheduledKW: 2},
+		{ID: "f", Region: "LZ_HOUSTON", ScheduledKW: 2},
+		{ID: "g", Region: "LZ_HOUSTON", ScheduledKW: 2},
+	}
+	scenario := Scenario{Seed: 41, Start: at, Tick: time.Minute, Injections: []Injection{{At: at, Kind: PartialRegionOutage, Region: "LZ_HOUSTON"}}}
+	engine, err := NewEngine(scenario, devices)
+	if err != nil {
+		t.Fatal(err)
+	}
+	effects := engine.Advance(at)
+	if len(effects) != 1 || effects[0].Region != "LZ_HOUSTON" || len(effects[0].DeviceIDs) != 1 || effects[0].LostMW != 0.002 {
+		t.Fatalf("Houston outage = %+v", effects)
+	}
+	if effects[0].DeviceIDs[0] < "c" {
+		t.Fatalf("outage selected non-Houston device %s", effects[0].DeviceIDs[0])
+	}
+	scenario.Injections[0].Region = "LZ_UNKNOWN"
+	if _, err := NewEngine(scenario, devices); err == nil {
+		t.Fatal("unknown outage region was accepted")
+	}
+	scenario.Injections[0].Kind = DroppedMessages
+	scenario.Injections[0].Region = "LZ_HOUSTON"
+	if _, err := NewEngine(scenario, devices); err == nil {
+		t.Fatal("region on a non-outage injection was accepted")
+	}
+}
