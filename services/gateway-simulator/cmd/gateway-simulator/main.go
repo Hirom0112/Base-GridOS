@@ -15,6 +15,8 @@ import (
 	"time"
 
 	"github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1/gridosv1connect"
+	scenariorunner "github.com/Hirom0112/Base-GridOS/services/gateway-simulator/cmd/scenario"
+	"github.com/Hirom0112/Base-GridOS/services/gateway-simulator/internal/failures"
 	"github.com/Hirom0112/Base-GridOS/services/gateway-simulator/internal/gateway"
 	"github.com/Hirom0112/Base-GridOS/services/gateway-simulator/internal/protocol"
 )
@@ -24,6 +26,7 @@ type config struct {
 	databasePath  string
 	fleetPath     string
 	gatewayID     string
+	scenarioPath  string
 	scenarioStart time.Time
 }
 
@@ -44,6 +47,11 @@ func run() error {
 	}
 	if _, err := loadFleet(configuration.fleetPath); err != nil {
 		return err
+	}
+	if configuration.scenarioPath != "" {
+		if _, err := scenariorunner.TelemetryHashes(configuration.scenarioPath); err != nil {
+			return err
+		}
 	}
 	authorizationToken := os.Getenv("GRIDOS_GATEWAY_TOKEN")
 	if authorizationToken == "" {
@@ -103,12 +111,36 @@ func parseConfig(arguments []string) (config, error) {
 	flags.StringVar(&configuration.databasePath, "database", "gateway.db", "")
 	flags.StringVar(&configuration.fleetPath, "fleet", "", "")
 	flags.StringVar(&configuration.gatewayID, "gateway-id", "", "")
+	flags.StringVar(&configuration.scenarioPath, "scenario", "", "")
 	flags.StringVar(&scenarioStart, "scenario-start", "", "")
 	if err := flags.Parse(arguments); err != nil {
 		return config{}, err
 	}
-	if configuration.fleetPath == "" || configuration.gatewayID == "" || scenarioStart == "" {
-		return config{}, errors.New("fleet, gateway-id, and scenario-start are required")
+	if configuration.gatewayID == "" {
+		return config{}, errors.New("gateway-id is required")
+	}
+	return configureScenario(configuration, scenarioStart)
+}
+
+func configureScenario(configuration config, scenarioStart string) (config, error) {
+	if configuration.scenarioPath == "" {
+		return configureExplicitScenario(configuration, scenarioStart)
+	}
+	if configuration.fleetPath != "" || scenarioStart != "" {
+		return config{}, errors.New("scenario cannot be combined with fleet or scenario-start")
+	}
+	scenario, err := failures.LoadScenario(configuration.scenarioPath)
+	if err != nil {
+		return config{}, err
+	}
+	configuration.fleetPath = scenario.FleetPath
+	configuration.scenarioStart = scenario.Start
+	return configuration, nil
+}
+
+func configureExplicitScenario(configuration config, scenarioStart string) (config, error) {
+	if configuration.fleetPath == "" || scenarioStart == "" {
+		return config{}, errors.New("fleet and scenario-start are required")
 	}
 	parsedStart, err := time.Parse(time.RFC3339Nano, scenarioStart)
 	if err != nil {
