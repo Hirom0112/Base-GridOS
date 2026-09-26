@@ -1,16 +1,15 @@
 import argparse
 from concurrent.futures import ThreadPoolExecutor
 from math import isfinite
-from time import monotonic
 
 import grpc
 
 from gridos.fallback.planner import (
     DeviceState,
-    FallbackPlan,
     PlanningInterval,
     plan_fallback,
 )
+from gridos.solver.bounded import Decision, Planner, resolve, solve_within_budget
 from gridos.v1 import dispatch_pb2, optimization_pb2, telemetry_pb2
 from gridos.validation.plan import validate_plan
 
@@ -69,15 +68,16 @@ def _exclusion_reason(reason: str) -> dispatch_pb2.ExclusionReason:
 def _response(
     request: optimization_pb2.OptimizationRequest,
     devices: list[DeviceState],
-    plan: FallbackPlan,
+    decision: Decision,
 ) -> optimization_pb2.OptimizeResponse:
+    plan = decision.plan
     by_id = {device.device_id: device for device in devices}
     response = optimization_pb2.OptimizeResponse()
     response.plan.plan_id = f"{request.request_id}-fallback"
     response.plan.event_id = request.event_id
     response.plan.plan_version = request.plan_version
     response.plan.fallback_used = True
-    response.plan.fallback_reason = "DETERMINISTIC_FALLBACK"
+    response.plan.fallback_reason = decision.fallback_reason
     response.plan.solver_version = "fallback"
     response.plan.model_version = "1"
     response.plan.created_at.CopyFrom(request.requested_at)
@@ -114,6 +114,9 @@ def _response(
 
 
 class OptimizationServer:
+    def __init__(self, solver: Planner = plan_fallback) -> None:
+        self._solver = solver
+
     def Optimize(
         self,
         wrapper: optimization_pb2.OptimizeRequest,
@@ -128,16 +131,13 @@ class OptimizationServer:
                 raise ValueError("measurement boundary is required")
             intervals = _planning_intervals(request)
             devices = _device_states(request)
-            started = monotonic()
-            plan = plan_fallback(devices, intervals)
+            fallback = plan_fallback(devices, intervals)
         except ValueError as error:
             context.abort(grpc.StatusCode.INVALID_ARGUMENT, str(error))
-        if monotonic() - started > budget:
-            context.abort(grpc.StatusCode.DEADLINE_EXCEEDED, "optimization budget exceeded")
-        violations = validate_plan(plan, devices, intervals)
-        if violations:
+        if validate_plan(fallback, devices, intervals):
             context.abort(grpc.StatusCode.INTERNAL, "fallback validation failed")
-        return _response(request, devices, plan)
+        outcome = solve_within_budget(self._solver, devices, intervals, budget)
+        return _response(request, devices, resolve(outcome, fallback, devices, intervals))
 
 
 def _port(value: str) -> int:
