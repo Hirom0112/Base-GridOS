@@ -4,6 +4,8 @@ import (
 	"math"
 	"testing"
 	"time"
+
+	"pgregory.net/rapid"
 )
 
 func validInputs() (Plan, CanonicalState) {
@@ -241,6 +243,53 @@ func TestFailClosedOnMissingOrContradictoryState(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestPropertyApprovedPlanPreservesReserve(t *testing.T) {
+	rapid.Check(t, func(t *rapid.T) {
+		intervals := rapid.IntRange(1, 24).Draw(t, "intervals")
+		capacity := rapid.Float64Range(10, 100).Draw(t, "capacity")
+		reserve := rapid.Float64Range(0, capacity).Draw(t, "reserve")
+		energy := rapid.Float64Range(reserve, capacity).Draw(t, "energy")
+		efficiency := rapid.Float64Range(0.8, 1).Draw(t, "efficiency")
+		maxPower := rapid.Float64Range(1, 20).Draw(t, "max power")
+		discharge := rapid.SliceOfN(rapid.Float64Range(0, maxPower), intervals, intervals).Draw(t, "discharge")
+		charge := make([]float64, intervals)
+		export := append([]float64(nil), discharge...)
+		claimed := make([]float64, intervals+1)
+		claimed[0] = energy
+		for interval, power := range discharge {
+			claimed[interval+1] = claimed[interval] - power/efficiency/12
+		}
+		plan, state := validInputs()
+		plan.ExpiresAt = plan.EffectiveAt.Add(time.Duration(intervals) * plan.Interval)
+		plan.TargetKW = 0
+		plan.Devices[0].ChargeKW = charge
+		plan.Devices[0].DischargeKW = discharge
+		plan.Devices[0].MeterExportKW = export
+		plan.Devices[0].EnergyKWh = claimed
+		device := state.Devices["device-1"]
+		device = withEnergy(device, energy)
+		device.UsableCapacityKWh = capacity
+		device.HardwareReserveKWh = reserve
+		device.PlanReserveKWh = reserve
+		device.MaxDischargeKW = maxPower
+		device.MeterExportLimitKW = maxPower
+		device.InterconnectionLimitKW = maxPower
+		device.DischargeEfficiency = efficiency
+		state.Devices["device-1"] = device
+		approval, _ := Validate(plan, state)
+		if !approval.Approved {
+			return
+		}
+		actual := energy
+		for interval, power := range discharge {
+			actual -= power / efficiency / 12
+			if actual+comparisonTolerance < reserve {
+				t.Fatalf("approved interval %d at %v kWh below %v kWh reserve", interval, actual, reserve)
+			}
+		}
+	})
 }
 
 func withEnergy(device DeviceState, energy float64) DeviceState {
