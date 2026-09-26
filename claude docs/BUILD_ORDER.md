@@ -178,7 +178,7 @@ Owns: repo root files (`Makefile`, `AGENTS.md`, `.gitignore`),
 - `[x]` 0A.1 `[P]` Install the missing toolchain: Go 1.23+, `buf`, `bazelisk`
   (used in Wave 5), `temporal` CLI, `uv` with Python 3.12, `sqlc`. Record
   exact versions in `AGENTS.md`. Verify: `go version && buf --version && bazelisk version && temporal --version && uv python list | grep 3.12 && sqlc version` all print.
-- `[~]` 0A.2 `[after 0A.1]` Prove the hooks in `tools/development/hooks`
+- `[x]` 0A.2 `[after 0A.1]` Prove the hooks in `tools/development/hooks`
   run green on the installed toolchain: stage a Go, a Python, and a proto
   file that pass, then one of each that breaks a ceiling, and confirm the
   hook accepts the first set and rejects the second. Add the `make hooks`
@@ -235,7 +235,7 @@ Owns: `contracts/`, `buf.yaml`, `buf.gen.yaml`.
   `estimated_backup_hours_at_current_usage` and
   `estimated_backup_hours_at_750_watts` (the reference critical load, see
   0C.1). Verify: `buf lint contracts` passes.
-- `[~]` 0B.4 `[P]` `dispatch.proto`: `EventRequest`, `DispatchEvent` with the
+- `[x]` 0B.4 `[P]` `dispatch.proto`: `EventRequest`, `DispatchEvent` with the
   eleven-state lifecycle enum from TECHSTACK "Temporal workflows",
   `EligibilitySnapshot` with exclusion reason enum, `ReservePolicy`,
   `CommandIntent` (immutable `command_id`, `idempotency_key`, `device_id`,
