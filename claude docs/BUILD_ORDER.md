@@ -503,7 +503,7 @@ Owns: `services/gateway-simulator/`.
   stored 29.008 kWh, reserve 15.680 kWh, above-reserve 13.328 kWh, AC
   available 12.6616 kWh, two-hour discharge 6.3308 kW, net export 3.2308 kW,
   backup 4.805 h. Verify: `go test ./services/gateway-simulator/internal/battery/` fails with "undefined".
-- `[~]` 1A.2 `[P]` GREEN: `internal/battery` implementing the energy update
+- `[x]` 1A.2 `[P]` GREEN: `internal/battery` implementing the energy update
   with one-way efficiencies, mode exclusion (no simultaneous charge and
   discharge), power and energy bounds, ramp limit, temperature derate hook,
   the operating-state machine from `truth-model.md` (on grid, off-grid
@@ -589,7 +589,7 @@ Owns: `services/decision/`, `testdata/golden/`.
   `testdata/fixtures/contracts/command_intent.json` through the generated
   `gridos.gen` types to byte-identical canonical JSON.
   Verify: `uv run --project services/decision mypy gridos` passes and `uv run --project services/decision pytest services/decision/tests/contract` passes.
-- `[~]` 1C.2 `[P]` RED: `tests/test_energy.py` pins the same worked example as
+- `[x]` 1C.2 `[P]` RED: `tests/test_energy.py` pins the same worked example as
   1A.1 to four decimal places. Verify: fails with ImportError.
 - `[~]` 1C.3 `[P]` GREEN: `gridos/physics/energy.py` with the energy update,
   reserve inequality, per-interval energy-limited power, and backup-duration
