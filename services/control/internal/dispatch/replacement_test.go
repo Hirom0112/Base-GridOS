@@ -39,11 +39,15 @@ func TestReplacementStaysInsideApprovedEnvelope(t *testing.T) {
 	harness.activities.Dispatcher.Optimizer = activityOptimizer{replacementPlan: plan}
 	gate := &replacementSafety{}
 	harness.activities.Dispatcher.Safety = gate
-	require.NoError(t, harness.activities.IssueReplacement(context.Background(), ReplacementCommand{EventID: harness.input.EventID, Request: harness.input.Request, DroppedDeviceIDs: []string{"device-1"}, EnvelopeDeviceIDs: []string{"device-1", "device-2"}, Generation: 2}))
+	replacement := ReplacementCommand{EventID: harness.input.EventID, Request: harness.input.Request, DroppedDeviceIDs: []string{"device-1"}, EnvelopeDeviceIDs: []string{"device-1", "device-2"}, Generation: 2}
+	require.NoError(t, harness.activities.IssueReplacement(context.Background(), replacement))
 	require.Equal(t, 1, gate.calls)
 	var replacementDevice string
 	require.NoError(t, harness.pool.QueryRow(context.Background(), `SELECT device_id FROM command_intents WHERE generation = 2`).Scan(&replacementDevice))
 	require.Equal(t, "device-2", replacementDevice)
+	require.NoError(t, harness.activities.IssueReplacement(context.Background(), replacement))
+	require.Equal(t, 2, harness.count(t, "plan_versions"))
+	require.Equal(t, 2, harness.count(t, "command_intents"))
 	require.ErrorContains(t, harness.activities.IssueReplacement(context.Background(), ReplacementCommand{EventID: harness.input.EventID, Request: harness.input.Request, DroppedDeviceIDs: []string{"outside-envelope"}, EnvelopeDeviceIDs: []string{"device-1", "device-2"}, Generation: 3}), "dropped device lacks approved schedule")
 	var outsideCount int
 	require.NoError(t, harness.pool.QueryRow(context.Background(), `SELECT count(*) FROM command_intents WHERE generation = 3`).Scan(&outsideCount))
