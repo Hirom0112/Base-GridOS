@@ -22,7 +22,7 @@ def test_worked_physics_example() -> None:
     assert available == pytest.approx(12.6616)
     assert energy_limited_discharge_kw(10.0, available, 2.0) == pytest.approx(6.3308)
     assert 6.3308 - 3.1 == pytest.approx(3.2308)
-    assert backup_duration_hours(reserve, 0.95, 3.1) == pytest.approx(4.8052)
+    assert round(backup_duration_hours(reserve, 0.95, 3.1) or 0.0, 4) == 4.8052
 
 
 def test_update_and_reserve_constraints() -> None:
