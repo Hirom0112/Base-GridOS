@@ -971,7 +971,8 @@ Owns: `services/decision/`, `testdata/golden/`.
 ### Lane 2F — scale, live stream, fixtures
 
 Owns: `services/gateway-simulator/tests/`, `services/control/internal/api/events/`,
-`tests/end-to-end/`, `testdata/fixtures/api/`.
+`tests/end-to-end/`, `testdata/fixtures/api/`, the root `Makefile` (for 2F.7),
+`services/control/internal/fleet/geo/` (for 2F.6).
 
 - `[~]` 2F.1 `[P]` RED then GREEN: simulator scale. 5,000 simulated devices
   in one process produce telemetry every 5 seconds for 10 minutes with no
