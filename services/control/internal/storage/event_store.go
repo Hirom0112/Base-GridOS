@@ -38,6 +38,7 @@ type AuditRecord struct {
 }
 
 type launchValues struct {
+	State          string    `json:"state"`
 	RequestedBy    string    `json:"requested_by"`
 	RequestedAt    time.Time `json:"requested_at"`
 	PlanVersion    uint64    `json:"plan_version"`
@@ -299,7 +300,7 @@ func transitionAuditValues(request transitionRequest) ([]byte, []byte, error) {
 		return nil, nil, err
 	}
 	if request.Action == "EVENT_LAUNCHED" {
-		next, marshalErr := json.Marshal(launchValues{RequestedBy: request.Actor, RequestedAt: request.At, PlanVersion: request.PlanVersion, IdempotencyKey: request.IdempotencyKey})
+		next, marshalErr := json.Marshal(launchValues{State: request.Next, RequestedBy: request.Actor, RequestedAt: request.At, PlanVersion: request.PlanVersion, IdempotencyKey: request.IdempotencyKey})
 		return previous, next, marshalErr
 	}
 	next, err := json.Marshal(struct {

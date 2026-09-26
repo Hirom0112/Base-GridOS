@@ -75,7 +75,7 @@ func (publisher *Publisher) Publish(ctx context.Context, command storage.Claimed
 			if markErr != nil {
 				return errors.Join(context.DeadlineExceeded, markErr)
 			}
-			return context.DeadlineExceeded
+			return nil
 		}
 		return err
 	}

@@ -21,7 +21,7 @@ var commandTransitions = map[string]map[string]struct{}{
 		"EXECUTING": {}, "CANCELLED": {}, "EXPIRED": {}, "REJECTED": {},
 	},
 	"UNCERTAIN": {
-		"EXECUTING": {}, "REJECTED": {}, "CANCELLED": {}, "EXPIRED": {},
+		"ACKNOWLEDGED": {}, "EXECUTING": {}, "REJECTED": {}, "CANCELLED": {}, "EXPIRED": {},
 	},
 	"EXECUTING": {
 		"COMPLETED": {}, "CANCELLED": {}, "EXPIRED": {}, "REJECTED": {},

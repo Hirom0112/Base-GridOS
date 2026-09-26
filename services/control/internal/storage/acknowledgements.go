@@ -64,7 +64,7 @@ func RecordAcknowledgement(ctx context.Context, pool *pgxpool.Pool, acknowledgem
 	if err != nil {
 		return err
 	}
-	if acknowledgement.ReceiptStatus == "ACCEPTED" && currentState != "SENT" {
+	if acknowledgement.ReceiptStatus == "ACCEPTED" && currentState != "SENT" && currentState != "UNCERTAIN" {
 		return ErrIllegalCommandTransition
 	}
 	if acknowledgement.ReceiptStatus == "REJECTED" {
