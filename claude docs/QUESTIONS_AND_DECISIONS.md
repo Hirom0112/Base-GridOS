@@ -135,4 +135,10 @@ assumptions reported by workers land here too.
 - **Contract round-trip test split:** the Go leg stays in `tests/contract`
   (0F.3); the Python leg moves into the decision service's project (1C.1);
   the TypeScript leg moves to the UI track (U0.9). Each reads the same fixture.
+- **Implementation limits reported as assumptions (accepted, no spec
+  bearing):** outage normalization writes Parquet in 10,000-event batches
+  (0E.4); public-data downloads use three attempts, a 20-second timeout, and
+  exponential delay (0E.8); the local mock API caps requests at 1 MiB with
+  5-second header, 10-second read and write, and 30-second idle timeouts
+  (0F.1).
 

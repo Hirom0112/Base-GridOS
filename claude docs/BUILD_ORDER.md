@@ -436,7 +436,7 @@ additions.
   county outage rates, the eight Texas NWS files (forecast and alerts for four
   cities, DATASETS §5), and the ERCOT system load merged file. Each under 500 KB, each with a `PROVENANCE.md`
   sidecar. Verify: `du -sh testdata/fixtures` under 5 MB; `find testdata/fixtures -name PROVENANCE.md | wc -l` equals the number of fixture directories.
-- `[~]` 0E.8 `[P]` `tools/data/fetch.py` re-downloading every manifest entry
+- `[x]` 0E.8 `[P]` `tools/data/fetch.py` re-downloading every manifest entry
   from its source URL with checksum verification, so the cache is reproducible
   (FULL_SPEC §14). ADAPTED scope: recorded-response test plus one live smoke
   fetch of the smallest file. Verify: `uv run python -m tools.data.fetch --only ercot-system-load --verify` succeeds.
