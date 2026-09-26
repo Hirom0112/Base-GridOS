@@ -9,7 +9,7 @@ def test_disaggregate_reconstructs_cohort_plan() -> None:
         DeviceState(
             device_id=f"site-{index}",
             usable_energy_kwh=3.0,
-            energy_kwh=3.0 if index < 2 else 1.5,
+            energy_kwh=3.0 if index < 2 else 1.6,
             reserve_percent=50.0,
             hardware_floor_percent=10.0,
             dynamic_override_percent=0.0,
