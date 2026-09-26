@@ -1,5 +1,6 @@
 import json
 from collections import Counter
+from pathlib import Path
 
 import h3
 
@@ -46,6 +47,17 @@ def test_austin_urban_density_thins_outward() -> None:
     assert all(bands)
     mean = [sum(band) / len(band) for band in bands]
     assert mean[0] > mean[1] > mean[2]
+
+
+def test_austin_recorded_sites_match_fleet() -> None:
+    fixture_path = Path(__file__).parents[3] / "testdata/fixtures/api/FleetService/ListSites.json"
+    fixture = json.loads(fixture_path.read_text())
+    recorded = {
+        site["aggregate"]["h3Cell"]: int(site["aggregate"]["siteCount"])
+        for site in fixture["sites"]
+    }
+    expected = Counter(str(record["h3_cell"]) for record in records())
+    assert recorded == expected
 
 
 def test_austin_capacity_matches_devices() -> None:
