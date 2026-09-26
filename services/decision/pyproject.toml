@@ -1,0 +1,26 @@
+[project]
+name = "gridos-decision"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+  "grpcio>=1.75.0",
+  "highspy>=1.11.0",
+  "numpy>=2.3.0",
+  "polars>=1.33.0",
+  "protobuf>=6.32.0",
+]
+
+[dependency-groups]
+dev = [
+  "hypothesis>=6.138.0",
+  "mypy>=1.18.0",
+  "pytest>=8.4.0",
+  "ruff>=0.13.0",
+]
+
+[tool.mypy]
+strict = true
+exclude = ["gridos/gen"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
