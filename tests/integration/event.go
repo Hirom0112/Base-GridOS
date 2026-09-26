@@ -18,7 +18,7 @@ import (
 const (
 	telemetryBatch = 250
 	statePoll      = 100 * time.Millisecond
-	stateTimeout   = 90 * time.Second
+	stateTimeout   = 2 * time.Minute
 )
 
 type commandState struct {
