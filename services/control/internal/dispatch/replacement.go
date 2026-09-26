@@ -9,17 +9,29 @@ import (
 	gridosv1 "github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1"
 	controlapi "github.com/Hirom0112/Base-GridOS/services/control/internal/api"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/storage"
+	"github.com/jackc/pgx/v5"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 func (activities *Activities) IssueReplacement(ctx context.Context, replacement ReplacementCommand) error {
+	if err := replacement.validate(); err != nil {
+		return err
+	}
+	key := fmt.Sprintf("%s-replacement-%d", replacement.EventID, replacement.Generation)
+	storedCurrent, storedPlan, err := activities.loadStoredReplacement(ctx, replacement.EventID, key)
+	if err == nil {
+		return activities.publishReplacement(ctx, replacement, storedCurrent, storedPlan, key)
+	}
+	if !errors.Is(err, pgx.ErrNoRows) {
+		return err
+	}
 	event, approved, snapshot, err := activities.loadReplacementInputs(ctx, replacement)
 	if err != nil {
 		return err
 	}
 	current := snapshot.Optimization
 	now := activities.Now()
-	key := fmt.Sprintf("%s-replacement-%d", replacement.EventID, replacement.Generation)
 	response, err := activities.Dispatcher.Optimizer.Replace(ctx, &gridosv1.ReplaceRequest{
 		Current: current, ApprovedPlan: approved, DroppedDeviceIds: replacement.DroppedDeviceIDs,
 		EnvelopeDeviceIds: replacement.EnvelopeDeviceIDs, IdempotencyKey: key,
@@ -44,7 +56,52 @@ func (activities *Activities) IssueReplacement(ctx context.Context, replacement 
 	if err = storage.NewPostgresEventStore(activities.Pool).StoreReplacement(ctx, replacement.EventID, event.GetPlanVersion(), current, plan, key, now); err != nil {
 		return err
 	}
+	return activities.publishCommands(ctx, commands)
+}
+
+func (activities *Activities) loadStoredReplacement(ctx context.Context, eventID, key string) (*gridosv1.OptimizationRequest, *gridosv1.DispatchPlan, error) {
+	var currentJSON, planJSON []byte
+	err := activities.Pool.QueryRow(ctx, `SELECT snapshot.inputs, plan.plan FROM audit_journal AS audit
+		JOIN plan_versions AS plan ON plan.event_id = audit.resource_id AND plan.version = (audit.new_values->>'plan_version')::bigint
+		JOIN input_snapshots AS snapshot ON snapshot.snapshot_id = plan.replacement_snapshot_id
+		WHERE audit.resource_id = $1 AND audit.action = 'REPLACEMENT_PLANNED' AND audit.new_values->>'idempotency_key' = $2
+		ORDER BY audit.sequence DESC LIMIT 1`, eventID, key).Scan(&currentJSON, &planJSON)
+	if err != nil {
+		return nil, nil, err
+	}
+	current := new(gridosv1.OptimizationRequest)
+	plan := new(gridosv1.DispatchPlan)
+	if err = protojson.Unmarshal(currentJSON, current); err != nil {
+		return nil, nil, err
+	}
+	if err = protojson.Unmarshal(planJSON, plan); err != nil {
+		return nil, nil, err
+	}
+	return current, plan, nil
+}
+
+func (activities *Activities) publishReplacement(ctx context.Context, replacement ReplacementCommand, current *gridosv1.OptimizationRequest, plan *gridosv1.DispatchPlan, key string) error {
+	commands, err := replacementCommands(replacement, current, plan, key, activities.Now())
+	if err != nil {
+		return err
+	}
+	return activities.publishCommands(ctx, commands)
+}
+
+func (activities *Activities) publishCommands(ctx context.Context, commands []storage.CommandIntent) error {
 	for _, command := range commands {
+		var planVersion, generation int64
+		var setpoint float64
+		err := activities.Pool.QueryRow(ctx, `SELECT plan_version, generation, setpoint_kw FROM command_intents WHERE command_id = $1`, command.CommandID).Scan(&planVersion, &generation, &setpoint)
+		if err == nil {
+			if planVersion != command.PlanVersion || generation != command.Generation || setpoint != command.SetpointKW {
+				return errors.New("replacement command changed on retry")
+			}
+			continue
+		}
+		if !errors.Is(err, pgx.ErrNoRows) {
+			return err
+		}
 		if err = storage.InsertCommand(ctx, activities.Pool, command); err != nil {
 			return err
 		}
