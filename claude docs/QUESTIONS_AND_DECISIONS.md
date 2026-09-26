@@ -367,4 +367,9 @@ assumptions reported by workers land here too.
   identifiers; RequestPlan and later activities load by identifier. Lane F
   owns `internal/dispatch/activities.go` and `internal/api` runtime for this
   fix since lane B is complete. The 5,000-device demo fleet is not reduced.
+- **Early start of Wave 3 lanes A and B (2026-09-26):** forecasting (3A) and
+  the HiGHS optimizer (3B) live in the decision service, whose Wave 2 items
+  are verified, and touch nothing the open Wave 2 lanes edit. They start now
+  on Hirom's new orchestrator terminal so it is not idle; lanes 3C to 3F
+  wait for Gate 2. Gate 3 still requires Gate 2 to have closed first.
 

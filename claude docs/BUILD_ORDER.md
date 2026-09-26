@@ -1074,25 +1074,25 @@ Owns: `services/decision/gridos/forecasting/`,
 `services/decision/tests/forecasting/`. (3B owns `pyproject.toml` this wave
 and pre-declares any forecasting dependency in 3B.1.)
 
-- `[ ]` 3A.1 `[P]` RED: `test_load_baseline.py`: the similar-day baseline for
+- `[~]` 3A.1 `[P]` RED: `test_load_baseline.py`: the similar-day baseline for
   a site with the RESHIWR COAST profile reproduces a held-out day within a
   pinned mean absolute error, and the output carries `training_window`,
   `feature_version`, `model_version`, `issued_at`, `horizon`, and a calibrated
   interval (FULL_SPEC §5.4). Verify: fails.
-- `[ ]` 3A.2 `[P]` GREEN: `forecasting/load.py` similar-day baseline using the
+- `[~]` 3A.2 `[P]` GREEN: `forecasting/load.py` similar-day baseline using the
   normalized ERCOT profiles from 0E.3 assigned by 0C.3. Verify: `uv run --project services/decision pytest services/decision -k load_baseline` passes.
-- `[ ]` 3A.3 `[P]` RED then GREEN: regional load and price forecasts from
+- `[~]` 3A.3 `[P]` RED then GREEN: regional load and price forecasts from
   normalized ERCOT system load and DAM/RTM prices (persistence plus
   day-ahead where available), with realized-error evaluation.
   Verify: `-k regional` passes.
-- `[ ]` 3A.4 `[P]` RED then GREEN: outage risk per county-hour from the 0E.4
+- `[~]` 3A.4 `[P]` RED then GREEN: outage risk per county-hour from the 0E.4
   rate table combined with active NWS alerts from 0E.5; output is labelled
   `value_kind=modeled_estimate`. Verify: `-k outage_risk` passes.
-- `[ ]` 3A.5 `[P]` RED then GREEN: availability and failure probability per
+- `[~]` 3A.5 `[P]` RED then GREEN: availability and failure probability per
   device from reliability traits, connectivity history, and freshness; SOC
   trajectory forecast whose interval widens with telemetry age.
   Verify: `-k availability` passes.
-- `[ ]` 3A.6 `[P]` Evaluation harness `forecasting/evaluate.py` recording
+- `[~]` 3A.6 `[P]` Evaluation harness `forecasting/evaluate.py` recording
   realized error per forecast, and a deterministic baseline that is used when
   a learned model is missing or unhealthy. Verify: `-k evaluate` passes.
 
@@ -1102,31 +1102,31 @@ Owns: `services/decision/gridos/optimization/`,
 `services/decision/tests/optimization/`, `services/decision/gridos/server.py`,
 `services/decision/pyproject.toml` (Wave 3 owner), `testdata/golden/`.
 
-- `[ ]` 3B.1 `[P]` RED: `test_optimizer_small.py`: on the 50-device fleet with
+- `[~]` 3B.1 `[P]` RED: `test_optimizer_small.py`: on the 50-device fleet with
   a 2-hour window and a target only 30 devices can meet, the LP allocates the
   target at every interval, respects every reserve, produces zero shortfall,
   and solves under 1 second. Verify: fails.
-- `[ ]` 3B.2 `[P]` GREEN: `optimization/model.py` building the HiGHS model
+- `[~]` 3B.2 `[P]` GREEN: `optimization/model.py` building the HiGHS model
   with nonnegative `p_ch` and `p_dis`, one-way efficiencies, energy and power
   bounds, effective reserve at every interval, mode exclusion, soft shortfall
   variable, objective valuing delivered service and penalizing shortfall,
   cycling, and uncertainty (FULL_SPEC §5.5). Verify: `-k optimizer_small` passes.
-- `[ ]` 3B.3 `[P]` RED then GREEN: infeasible target yields a visible
+- `[~]` 3B.3 `[P]` RED then GREEN: infeasible target yields a visible
   per-interval shortfall and no reserve relaxation (TECHSTACK e2e scenario 10).
   Verify: `-k infeasible` passes.
-- `[ ]` 3B.4 `[P]` RED then GREEN: cohort construction and disaggregation from
+- `[~]` 3B.4 `[P]` RED then GREEN: cohort construction and disaggregation from
   cohort plan to per-device `DeviceSchedule`, with a reconstruction test that
   sums disaggregated schedules back to the cohort plan within tolerance.
   Verify: `-k disaggregate` passes.
-- `[ ]` 3B.5 `[P]` Output includes objective breakdown, constraint margins,
+- `[~]` 3B.5 `[P]` Output includes objective breakdown, constraint margins,
   excluded devices with reasons, and a feasible fallback alongside
   (FULL_SPEC §5.5). Verify: `-k explain` passes.
-- `[ ]` 3B.6 `[P]` Performance: canonical 5,000-device scenario plans under 10
+- `[~]` 3B.6 `[P]` Performance: canonical 5,000-device scenario plans under 10
   seconds, and a forced timeout returns the fallback (FULL_SPEC §10).
   Verify: `uv run --project services/decision pytest services/decision -k perf_5000 --durations=1` reports under 10 s.
-- `[ ]` 3B.7 `[P]` Hypothesis invariants over the solver output identical to
+- `[~]` 3B.7 `[P]` Hypothesis invariants over the solver output identical to
   1C.7. Verify: `-k hypothesis_solver` passes.
-- `[ ]` 3B.8 `[after 3B.5]` Server switches to solver-first, fallback on
+- `[~]` 3B.8 `[after 3B.5]` Server switches to solver-first, fallback on
   timeout or invalid result; golden fixtures regenerated and reviewed.
   Verify: `-k golden` passes and the diff is reviewed in the mailbox report.
 
