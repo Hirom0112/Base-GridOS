@@ -133,6 +133,82 @@ func TestValidateApprovesValidPlan(t *testing.T) {
 	}
 }
 
+func TestReserveHardwareFloorSurvivesZeroPlan(t *testing.T) {
+	plan, state := validInputs()
+	device := state.Devices["device-1"]
+	device.PlanReserveKWh = 0
+	if reserve := EffectiveReserve(device, state.Now); reserve != 5 {
+		t.Fatalf("expected hardware floor 5, got %v", reserve)
+	}
+	device = withEnergy(device, 5.1)
+	state.Devices["device-1"] = device
+	plan.Devices[0].EnergyKWh = []float64{5.1, 5.1 - 2.0/0.95/12}
+	_, violations := Validate(plan, state)
+	if !violationCodes(violations)[EnergyBelowReserve] {
+		t.Fatalf("expected hardware reserve rejection, got %#v", violations)
+	}
+}
+
+func TestReserveWeatherOverrideRaisesFloor(t *testing.T) {
+	plan, state := validInputs()
+	device := state.Devices["device-1"]
+	device.DynamicReserveKWh = 10
+	device = withEnergy(device, 10.1)
+	state.Devices["device-1"] = device
+	plan.Devices[0].EnergyKWh = []float64{10.1, 10.1 - 2.0/0.95/12}
+	_, violations := Validate(plan, state)
+	if !violationCodes(violations)[EnergyBelowReserve] {
+		t.Fatalf("expected dynamic reserve rejection, got %#v", violations)
+	}
+}
+
+func TestReserveInactiveTravelFlexCannotLowerFloor(t *testing.T) {
+	tests := []struct {
+		name   string
+		window func(time.Time) TravelFlexWindow
+	}{
+		{"before start", func(now time.Time) TravelFlexWindow {
+			return TravelFlexWindow{Start: now.Add(time.Hour), End: now.Add(2 * time.Hour)}
+		}},
+		{"after end", func(now time.Time) TravelFlexWindow {
+			return TravelFlexWindow{Start: now.Add(-2 * time.Hour), End: now.Add(-time.Hour)}
+		}},
+		{"after early return", func(now time.Time) TravelFlexWindow {
+			returned := now.Add(-time.Minute)
+			return TravelFlexWindow{Start: now.Add(-time.Hour), End: now.Add(time.Hour), ReturnedAt: &returned}
+		}},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			plan, state := validInputs()
+			device := state.Devices["device-1"]
+			window := test.window(state.Now)
+			device.TravelFlex = &window
+			device = withEnergy(device, 8.1)
+			state.Devices["device-1"] = device
+			plan.Devices[0].EnergyKWh = []float64{8.1, 8.1 - 2.0/0.95/12}
+			_, violations := Validate(plan, state)
+			if !violationCodes(violations)[EnergyBelowReserve] {
+				t.Fatalf("expected plan reserve rejection, got %#v", violations)
+			}
+		})
+	}
+}
+
+func TestReserveOverrideBlocksTravelFlex(t *testing.T) {
+	plan, state := validInputs()
+	device := state.Devices["device-1"]
+	device.DynamicReserveKWh = 10
+	device.TravelFlex = &TravelFlexWindow{Start: state.Now.Add(-time.Hour), End: state.Now.Add(time.Hour)}
+	device = withEnergy(device, 10.1)
+	state.Devices["device-1"] = device
+	plan.Devices[0].EnergyKWh = []float64{10.1, 10.1 - 2.0/0.95/12}
+	_, violations := Validate(plan, state)
+	if !violationCodes(violations)[EnergyBelowReserve] {
+		t.Fatalf("expected override reserve rejection, got %#v", violations)
+	}
+}
+
 func withEnergy(device DeviceState, energy float64) DeviceState {
 	device.EnergyKWh = &energy
 	return device
