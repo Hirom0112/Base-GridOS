@@ -86,7 +86,10 @@ function Confirmation({
     <dialog
       ref={dialog}
       className="confirmation"
-      onCancel={onCancel}
+      onCancel={(event) => {
+        if (pending) event.preventDefault();
+        else onCancel();
+      }}
       aria-labelledby="confirm-title"
     >
       <form onSubmit={submit}>

@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { z } from "zod";
+import { useHydrated } from "@tanstack/react-router";
 
 export const dispatchSchema = z
   .object({
@@ -27,6 +28,7 @@ export function DispatchForm({
 }) {
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
+  const hydrated = useHydrated();
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (pending) return;
@@ -113,7 +115,7 @@ export function DispatchForm({
           {error}
         </p>
       )}
-      <button className="action-button" disabled={pending}>
+      <button className="action-button" disabled={pending || !hydrated}>
         {pending ? "Planning and validating…" : "Create dispatch plan"}
         <span aria-hidden="true">↗</span>
       </button>
