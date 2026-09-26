@@ -149,9 +149,15 @@ def plan_fallback(devices: list[DeviceState], intervals: list[PlanningInterval])
                 device, energies[device.device_id], interval.duration_hours
             )
             grid_service_kw = min(remaining_kw, capacity_kw)
-            discharge_kw = grid_service_kw + device.home_load_kw if grid_service_kw > 0.0 else 0.0
-            next_energy = energies[device.device_id] - (
-                discharge_kw * interval.duration_hours / device.discharge_efficiency
+            discharge_kw = (
+                min(device.max_discharge_kw, grid_service_kw + device.home_load_kw)
+                if grid_service_kw > 0.0
+                else 0.0
+            )
+            next_energy = max(
+                effective_reserve_kwh(device),
+                energies[device.device_id]
+                - discharge_kw * interval.duration_hours / device.discharge_efficiency,
             )
             energies[device.device_id] = next_energy
             scheduled[device.device_id].append(
