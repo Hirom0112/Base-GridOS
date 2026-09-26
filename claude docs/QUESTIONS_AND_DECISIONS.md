@@ -372,4 +372,15 @@ assumptions reported by workers land here too.
   are verified, and touch nothing the open Wave 2 lanes edit. They start now
   on Hirom's new orchestrator terminal so it is not idle; lanes 3C to 3F
   wait for Gate 2. Gate 3 still requires Gate 2 to have closed first.
+- **2F.5 (lane F), accepted:** `WatchEvent` polls durable command and
+  reconciliation truth every 250 ms; sent MW excludes PERSISTED and appears
+  only once a command state advances; acknowledged MW requires a durable
+  ACCEPTED acknowledgement; fleet delivery uses the latest reconciliation
+  audit; per-cell delivery reruns the per-device integration at read time;
+  cells without measured telemetry carry a MISSING delivered state and
+  uncertainty gaps, never a claimed zero.
+- **Single orchestrator (2026-09-26, Hirom's order):** the session in
+  Hirom's labeled terminal, thread `01a0dfbe`, is the sole orchestrator.
+  The original headless session is stopped. The director no longer staffs
+  lanes itself; the orchestrator runs three subagents plus its own lane.
 

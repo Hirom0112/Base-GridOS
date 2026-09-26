@@ -1016,7 +1016,7 @@ return identifiers.
 - `[x]` 2F.4 `[after 2D.4]` Run the UI track's `demo-path` spec against
   `make demo` and record the result in the gate report; route failures to the
   UI track or the owning backend lane. Verify: `pnpm --dir apps/console playwright test demo-path` executed and output saved.
-- `[~]` 2F.5 `[after 2C.7, 2B.7]` `internal/api/events`: an `EventsService` in
+- `[x]` 2F.5 `[after 2C.7, 2B.7]` `internal/api/events`: an `EventsService` in
   `api.proto` (lane F owns it additively) with `GetEventTimeline` (every
   state transition, retry, and recovery decision from the audit journal with
   timestamps and reasons), `EmergencyStop` (audited, signals the dispatch
