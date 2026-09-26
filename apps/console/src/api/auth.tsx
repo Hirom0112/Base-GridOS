@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
+import { useHydrated } from "@tanstack/react-router";
 import {
   createConsoleClient,
   createQueryClient,
@@ -48,6 +49,7 @@ export function SessionProvider({
 }
 
 export function LocalSession({ children }: { children: ReactNode }) {
+  const hydrated = useHydrated();
   const [role, setRole] = useState<Role>("operator");
   const [permissions, setPermissions] = useState<"site_location"[]>([]);
   const identity = useMemo<Identity>(
@@ -62,6 +64,7 @@ export function LocalSession({ children }: { children: ReactNode }) {
           Demo role
           <select
             aria-label="Demo role"
+            disabled={!hydrated}
             value={role}
             onChange={(event) => setRole(roleSchema.parse(event.target.value))}
           >
@@ -73,6 +76,7 @@ export function LocalSession({ children }: { children: ReactNode }) {
         <label>
           <input
             type="checkbox"
+            disabled={!hydrated}
             checked={permissions.length > 0}
             onChange={(event) =>
               setPermissions(event.target.checked ? ["site_location"] : [])
