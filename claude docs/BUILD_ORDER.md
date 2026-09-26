@@ -197,11 +197,13 @@ Owns: repo root files (`Makefile`, `AGENTS.md`, `.gitignore`),
   and every `buf generate` output directory to `.gitignore`.
   Verify: `make up` and `make down` succeed; `make -n test-all` lists the three test targets; `git check-ignore .local/x` prints the path.
 
-- `[~]` 0A.5 `[after 0F.1, 0C.3]` Make `test-go` and `test-py` real now that
-  modules exist: a root `go.work` listing every Go module as it appears
-  (`tools/development/mockapi` first), `test-go` running `go test` across
-  the workspace, and `test-py` running `uv run --project tools pytest` (and
-  `--project services/decision` once 1C.1 lands). Found at 0A.4 verification:
+- `[~]` 0A.5 `[after 0B.9, 0C.3]` Make `test-go` and `test-py` real now that
+  modules exist: a root `go.work` using `contracts/gen/go`, `tests/contract`,
+  and `tools/development/mockapi` as they appear, `.gitignore` covering
+  `contracts/gen/go/**/*.go` instead of the old `internal/gen` path,
+  `test-go` running `go test` across the workspace, and `test-py` running
+  `uv run --project <dir> pytest` for every `pyproject.toml` under `tools/`
+  and `services/`. Found at 0A.4 verification:
   the root has no Go module or Python project, so the targets as written
   cannot run. Verify: `make test-go` and `make test-py` exit 0 on the tree at Gate 0.
 
@@ -296,6 +298,14 @@ Owns: `contracts/`, `buf.yaml`, `buf.gen.yaml`.
   durable receipt so the gateway may delete its buffer). `CommandService`
   from 0B.4 stays. Found at 0F.1: no service existed for the mock server or
   the console to call. Verify: `buf lint contracts && buf generate contracts` and `grep -c '^service' contracts/gridos/v1/api.proto` prints 3.
+
+- `[~]` 0B.9 `[P]` Move generated Go out of `internal`: `buf.gen.yaml` Go
+  and Connect-Go plugins output to `contracts/gen/go`, which is its own Go
+  module `github.com/Hirom0112/Base-GridOS/contracts/gen/go` with a
+  committed `go.mod` (generated `.go` files stay ignored); every proto's
+  `go_package` option points there. Found at 0F.3: Go `internal` packages
+  cannot be imported by the gateway simulator, the mock server, or
+  cross-service tests. Verify: `buf generate contracts && cd contracts/gen/go && go build ./...` succeeds and `grep -L 'contracts/gen/go' contracts/gridos/v1/*.proto` prints nothing.
 
 ### Lane 0C — truth model, fleet generator, scenario format
 
@@ -453,11 +463,13 @@ Owns: `tools/development/mockapi/`, `testdata/fixtures/api/`,
   RED: a test validates every fixture against its generated proto type and
   every method in `INDEX.json` against the proto descriptors.
   Verify: `go test ./tools/development/mockapi/ -run Fixtures` passes.
-- `[~]` 0F.3 `[after 0B.6]` `tests/contract/`: a Go test, a Python test, and
-  a Vitest test that each round-trip the same `CommandIntent` JSON fixture
-  (`testdata/fixtures/contracts/command_intent.json`) through their generated
-  types and produce byte-identical canonical JSON.
-  Verify: `go test ./tests/contract/... && uv run pytest tests/contract && pnpm --dir apps/console vitest run tests/contract`.
+- `[~]` 0F.3 `[after 0B.9]` `tests/contract/`: the shared
+  `CommandIntent` JSON fixture (`testdata/fixtures/contracts/command_intent.json`)
+  and a Go test (its own module `tests/contract/go.mod`) that round-trips it
+  through the generated types in `contracts/gen/go` to byte-identical
+  canonical JSON. The Python leg lives in 1C.1 and the TypeScript leg in the
+  UI track (U0.9), each against the same fixture.
+  Verify: `cd tests/contract && go test ./...`.
 - `[~]` 0F.4 `[after 0F.1]` Fixture recording harness `mockapi record`: given
   a running control service, calls every method in `INDEX.json` and writes
   the responses back into `testdata/fixtures/api/`, so later waves refresh
@@ -572,7 +584,11 @@ Owns: `services/decision/`, `testdata/golden/`.
 
 - `[ ]` 1C.1 `[P]` `uv` project at `services/decision` with Python 3.12,
   `numpy`, `polars`, `highspy` (installed now, used in Wave 3), `hypothesis`,
-  `pytest`, `ruff`, `mypy --strict`. Verify: `uv run --directory services/decision mypy gridos` passes on the empty package.
+  `pytest`, `ruff`, `mypy --strict`, plus the Python leg of the contract
+  round-trip: `tests/contract/test_command_intent.py` reading
+  `testdata/fixtures/contracts/command_intent.json` through the generated
+  `gridos.gen` types to byte-identical canonical JSON.
+  Verify: `uv run --project services/decision mypy gridos` passes and `uv run --project services/decision pytest services/decision/tests/contract` passes.
 - `[ ]` 1C.2 `[P]` RED: `tests/test_energy.py` pins the same worked example as
   1A.1 to four decimal places. Verify: fails with ImportError.
 - `[ ]` 1C.3 `[P]` GREEN: `gridos/physics/energy.py` with the energy update,
@@ -1407,13 +1423,13 @@ Owns: `README.md`, `docs/operations/` (except `security/`), `AGENTS.md`.
 
 | Wave | A | B | C | D | E | F | Total |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 0 | 5 | 8 | 7 | 6 | 8 | 4 | 38 |
+| 0 | 5 | 9 | 7 | 6 | 8 | 4 | 39 |
 | 1 | 8 | 7 | 9 | 9 | 6 | 5 | 44 |
 | 2 | 5 | 7 | 7 | 6 | 6 | 5 | 36 |
 | 3 | 6 | 8 | 4 | 5 | 4 | 5 | 32 |
 | 4 | 7 | 6 | 4 | 3 | 5 | 5 | 30 |
 | 5 | 3 | 3 | 4 | 6 | 4 | 4 | 24 |
-| | | | | | | | **204** |
+| | | | | | | | **205** |
 
 154 items are fully parallel and 48 wait on one other lane. Plus the five
 standing items applied every wave. The UI track adds 40 items of its own in

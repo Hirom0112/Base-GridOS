@@ -159,6 +159,11 @@ the Vitest test or the Playwright step is written before the view.
   (golden rules 14 and 15). Playwright runs the suite once with
   `prefers-reduced-motion` and once with WebGL blocked. Verify: `playwright test --project=reduced-motion --project=no-webgl` passes for the routes that exist.
 
+- `[ ]` U0.9 `[after U0.5]` TypeScript leg of the contract round-trip: a
+  Vitest test reading `testdata/fixtures/contracts/command_intent.json`
+  through the generated `CommandIntent` type and producing byte-identical
+  canonical JSON, matching the Go and Python legs. Verify: `vitest run contract`.
+
 ### U1 — fleet and dispatch (runs during backend Wave 1)
 
 - `[ ]` U1.1 `[after 0F.2]` Fleet command center: installed MW and MWh,

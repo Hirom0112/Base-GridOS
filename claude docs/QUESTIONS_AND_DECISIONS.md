@@ -125,4 +125,14 @@ assumptions reported by workers land here too.
   `TelemetryService` for Wave 1. Later waves add `EventsService`,
   `ReportService`, `GeoService`, `MemberService`, and `ContextService` in
   their own lanes, as additive changes the breaking check allows.
+- **Generated Go location (found by lane F at 0F.3):** Go `internal`
+  packages are only importable inside their parent tree, so
+  `services/control/internal/gen` could never serve the gateway simulator,
+  the mock server, or cross-service tests. Generated Go now lives in its own
+  module `contracts/gen/go` with a committed `go.mod`; generated files stay
+  ignored and `make generate` produces them. Opened 0B.9. The root `go.work`
+  from 0A.5 wires it in.
+- **Contract round-trip test split:** the Go leg stays in `tests/contract`
+  (0F.3); the Python leg moves into the decision service's project (1C.1);
+  the TypeScript leg moves to the UI track (U0.9). Each reads the same fixture.
 
