@@ -12,7 +12,7 @@ def fleet_devices() -> list[DeviceState]:
         DeviceState(
             device_id=record["device_id"],
             usable_energy_kwh=record["usable_energy_kwh"],
-            energy_kwh=record["usable_energy_kwh"] * 0.8,
+            energy_kwh=record["usable_energy_kwh"] * 0.95,
             reserve_percent=record["reserve_preference_percent"],
             hardware_floor_percent=5.0,
             dynamic_override_percent=0.0,
