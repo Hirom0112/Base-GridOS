@@ -522,7 +522,7 @@ Owns: `services/gateway-simulator/`.
   write-then-ack ordering, dedup, generation check, effective and expiry
   enforcement (TECHSTACK "Gateway simulator and SQLite" items 1 to 4).
   Verify: `go test ./services/gateway-simulator/internal/gateway/` passes.
-- `[~]` 1A.5 `[P]` RED: `internal/telemetry/producer_test.go`: observations
+- `[x]` 1A.5 `[P]` RED: `internal/telemetry/producer_test.go`: observations
   carry distinct `source_time`, `receive_time`, `observation_time`, a
   monotonic `sequence` per device, explicit units, the measurement
   boundary, the five-field `PowerFlow`, `state_of_energy_percent`, and the
@@ -640,7 +640,7 @@ Owns: `services/control/internal/storage/` (including
   affects zero rows; every transition appends an `audit_journal` row.
   Verify: fails.
 - `[x]` 1D.4 `[P]` GREEN: `internal/storage/events.go`. Verify: `go test ./services/control/internal/storage/ -run Event` passes.
-- `[~]` 1D.5 `[P]` RED: `outbox_test.go`: inserting a command intent and its
+- `[x]` 1D.5 `[P]` RED: `outbox_test.go`: inserting a command intent and its
   outbox row is one transaction (a forced failure after the intent insert
   leaves neither row); claiming a batch uses `SKIP LOCKED` so two claimers
   never receive the same row; a re-claimed row after a crash keeps the same
