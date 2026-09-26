@@ -18,7 +18,7 @@ export function mountGrid(host: HTMLElement, select: (id: string) => void) {
     0.1,
     span * 10,
   );
-  camera.position.set(span * 0.6, span * 0.85, span * 0.8);
+  camera.position.set(span * 0.12, span * 0.95, span * 1.2);
   camera.lookAt(0, 0, 0);
   scene.add(new THREE.HemisphereLight(0xffffff, 0x253b31, 3));
   const light = new THREE.DirectionalLight(0xffffff, 3);
@@ -26,7 +26,7 @@ export function mountGrid(host: HTMLElement, select: (id: string) => void) {
   scene.add(light);
   const geometry = new THREE.CylinderGeometry(1, 1, 1, 6);
   const material = new THREE.MeshStandardMaterial({
-    color: 0x80968c,
+    color: 0xa2afa8,
     metalness: 0.3,
     roughness: 0.55,
   });
@@ -37,6 +37,15 @@ export function mountGrid(host: HTMLElement, select: (id: string) => void) {
   grid.material.transparent = true;
   grid.material.opacity = 0.3;
   scene.add(grid);
+  const boundaries = new THREE.LineSegments(
+    new THREE.BufferGeometry(),
+    new THREE.LineBasicMaterial({
+      color: 0x66736c,
+      transparent: true,
+      opacity: 0.35,
+    }),
+  );
+  scene.add(boundaries);
   let visible = true;
   function render() {
     if (visible && !document.hidden) renderer.render(scene, camera);
@@ -51,7 +60,7 @@ export function mountGrid(host: HTMLElement, select: (id: string) => void) {
     camera.top = span * 0.56;
     camera.bottom = -span * 0.56;
     camera.far = span * 10;
-    camera.position.set(span * 0.6, span * 0.85, span * 0.8);
+    camera.position.set(span * 0.12, span * 0.95, span * 1.2);
     camera.lookAt(0, 0, 0);
     camera.updateProjectionMatrix();
     renderer.setSize(width, height);
@@ -88,13 +97,15 @@ export function mountGrid(host: HTMLElement, select: (id: string) => void) {
       mesh.dispose();
       mesh = capacityMesh(cells, geometry, material, selected);
       scene.add(mesh);
+      boundaries.geometry.dispose();
+      boundaries.geometry = cellBoundaries(cells);
       span =
         Math.max(
           10,
           ...cells.flatMap((cell) =>
             cell.position.map((value) => Math.abs(value) * 2),
           ),
-        ) * 1.2;
+        ) * 1.08;
       grid.scale.setScalar(span * 1.2);
       resizeFrame();
     },
@@ -106,12 +117,29 @@ export function mountGrid(host: HTMLElement, select: (id: string) => void) {
       geometry.dispose();
       material.dispose();
       mesh.dispose();
+      boundaries.geometry.dispose();
+      boundaries.material.dispose();
       grid.geometry.dispose();
       grid.material.dispose();
       renderer.dispose();
       renderer.domElement.remove();
     },
   };
+}
+
+function cellBoundaries(cells: GridCell[]) {
+  const vertices = cells.flatMap((cell) =>
+    cell.boundary.flatMap(([x, z], index) => {
+      const next = cell.boundary[(index + 1) % cell.boundary.length];
+      return next ? [x, 0, z, next[0], 0, next[1]] : [];
+    }),
+  );
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute(
+    "position",
+    new THREE.Float32BufferAttribute(vertices, 3),
+  );
+  return geometry;
 }
 
 function capacityMesh(
