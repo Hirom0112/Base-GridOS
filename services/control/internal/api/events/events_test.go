@@ -128,7 +128,7 @@ func TestGetEventTimelineReturnsOrderedAuditDecisions(t *testing.T) {
 
 func eventUpdate(state gridosv1.DispatchEventState, sentMW, acknowledgedMW, deliveredMW float64) *gridosv1.WatchEventResponse {
 	power := &gridosv1.EventPowerAggregate{
-		SentMw: sentMW, AcknowledgedMw: acknowledgedMW, DeliveredMw: deliveredMW,
+		SentMw: sentMW, AcknowledgedMw: acknowledgedMW, DeliveredMw: deliveredMW, DeliveredState: gridosv1.ValueState_VALUE_STATE_PRESENT,
 		UncertaintyIntervals: []*gridosv1.UncertaintyInterval{{DeviceId: "device-1"}},
 	}
 	return &gridosv1.WatchEventResponse{

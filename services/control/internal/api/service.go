@@ -83,7 +83,7 @@ func NewHandler(service *Service) http.Handler {
 	return NewControlHandler(service, nil, "")
 }
 
-func NewControlHandler(service *Service, telemetry gridosv1connect.TelemetryServiceHandler, telemetryToken string) http.Handler {
+func NewControlHandler(service *Service, telemetry gridosv1connect.TelemetryServiceHandler, telemetryToken string, eventServices ...gridosv1connect.EventsServiceHandler) http.Handler {
 	mux := http.NewServeMux()
 	fleetPath, fleetHandler := gridosv1connect.NewFleetServiceHandler(service)
 	dispatchPath, dispatchHandler := gridosv1connect.NewDispatchServiceHandler(service)
@@ -92,6 +92,10 @@ func NewControlHandler(service *Service, telemetry gridosv1connect.TelemetryServ
 	if telemetry != nil {
 		telemetryPath, telemetryHandler := gridosv1connect.NewTelemetryServiceHandler(telemetry)
 		mux.Handle(telemetryPath, authorizeToken(telemetryHandler, telemetryToken))
+	}
+	for _, events := range eventServices {
+		eventsPath, eventsHandler := gridosv1connect.NewEventsServiceHandler(events)
+		mux.Handle(eventsPath, eventsHandler)
 	}
 	return mux
 }

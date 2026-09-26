@@ -259,6 +259,8 @@ message EventPowerAggregate {
   double acknowledged_mw = 2;
   double delivered_mw = 3;
   repeated UncertaintyInterval uncertainty_intervals = 4;
+  AggregateMetadata metadata = 5;
+  ValueState delivered_state = 6;
 }
 
 message H3EventPowerAggregate {

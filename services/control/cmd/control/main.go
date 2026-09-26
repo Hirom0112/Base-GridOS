@@ -11,6 +11,7 @@ import (
 	"time"
 
 	controlapi "github.com/Hirom0112/Base-GridOS/services/control/internal/api"
+	apievents "github.com/Hirom0112/Base-GridOS/services/control/internal/api/events"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/dispatch"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/fleet"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/ingest"
@@ -70,7 +71,8 @@ func main() {
 		log.Fatal("control runtime is incomplete")
 	}
 	telemetry := ingest.NewService(storage.NewTelemetryStore(pool), telemetryTwin, time.Now)
-	server := &http.Server{Addr: address, Handler: controlapi.NewControlHandler(service, telemetry, telemetryToken), ReadHeaderTimeout: 5 * time.Second, WriteTimeout: 10 * time.Second, IdleTimeout: 30 * time.Second}
+	events := apievents.NewService(apievents.NewPostgresSource(pool, service, sites, time.Now, 30*time.Second), 250*time.Millisecond)
+	server := &http.Server{Addr: address, Handler: controlapi.NewControlHandler(service, telemetry, telemetryToken, events), ReadHeaderTimeout: 5 * time.Second, IdleTimeout: 30 * time.Second}
 	go func() {
 		<-ctx.Done()
 		shutdownContext, cancel := context.WithTimeout(context.Background(), 5*time.Second)
