@@ -1,0 +1,78 @@
+syntax = "proto3";
+
+package gridos.v1;
+
+import "google/protobuf/duration.proto";
+import "google/protobuf/timestamp.proto";
+import "gridos/v1/device.proto";
+import "gridos/v1/dispatch.proto";
+import "gridos/v1/telemetry.proto";
+
+message DeliveryVerification {
+  string verification_id = 1;
+  string event_id = 2;
+  google.protobuf.Timestamp interval_begin_time = 3;
+  google.protobuf.Timestamp interval_end_time = 4;
+  double requested_kw = 5;
+  double commanded_kw = 6;
+  double delivered_kw = 7;
+  double tracking_error_kw = 8;
+  double confidence = 9;
+  string baseline_method = 10;
+  MeasurementBoundary measurement_boundary = 11;
+}
+
+message UncertaintyInterval {
+  string device_id = 1;
+  google.protobuf.Timestamp interval_begin_time = 2;
+  google.protobuf.Timestamp interval_end_time = 3;
+  double signed_feasible_power_lower_kw = 4;
+  double signed_feasible_power_upper_kw = 5;
+  string last_confirmed_command_id = 6;
+  double last_confirmed_setpoint_kw = 7;
+  string possibly_accepted_command_id = 8;
+  double possibly_accepted_setpoint_kw = 9;
+  google.protobuf.Timestamp possibly_accepted_effective_at = 10;
+  google.protobuf.Timestamp possibly_accepted_expires_at = 11;
+  double max_ramp_kw_per_second = 12;
+  double fresh_telemetry_power_kw = 13;
+  google.protobuf.Timestamp fresh_telemetry_observed_at = 14;
+  google.protobuf.Timestamp derived_at = 15;
+}
+
+message ExclusionCount {
+  ExclusionReason reason = 1;
+  uint64 device_count = 2;
+}
+
+message EventReport {
+  string report_id = 1;
+  string event_id = 2;
+  double requested_mw = 3;
+  double requested_mwh = 4;
+  double approved_mw = 5;
+  double approved_mwh = 6;
+  double commanded_mw = 7;
+  double commanded_mwh = 8;
+  double acknowledged_mw = 9;
+  double acknowledged_mwh = 10;
+  double delivered_mw = 11;
+  double delivered_mwh = 12;
+  string baseline_method = 13;
+  MeasurementBoundary measurement_method = 14;
+  google.protobuf.Duration response_latency = 15;
+  double tracking_error_percent = 16;
+  double availability_percent = 17;
+  double confidence = 18;
+  uint64 reserve_violations_prevented = 19;
+  repeated ExclusionCount devices_excluded_by_reason = 20;
+  double modeled_gross_value_cents = 21;
+  double modeled_degradation_cost_cents = 22;
+  double modeled_penalty_exposure_cents = 23;
+  double modeled_net_value_cents = 24;
+  repeated string data_gaps = 25;
+  repeated string assumptions = 26;
+  repeated Provenance provenance = 27;
+  repeated string model_versions = 28;
+  google.protobuf.Timestamp generated_at = 29;
+}

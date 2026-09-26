@@ -1,0 +1,77 @@
+syntax = "proto3";
+
+package gridos.v1;
+
+import "google/protobuf/timestamp.proto";
+import "gridos/v1/dispatch.proto";
+
+message OptimizationInterval {
+  google.protobuf.Timestamp begin_time = 1;
+  google.protobuf.Timestamp end_time = 2;
+  double target_kw = 3;
+}
+
+message OptimizationRequest {
+  string request_id = 1;
+  string event_id = 2;
+  uint64 plan_version = 3;
+  EligibilitySnapshot eligibility_snapshot = 4;
+  ReservePolicy reserve_policy = 5;
+  repeated OptimizationInterval intervals = 6;
+  google.protobuf.Timestamp requested_at = 7;
+  string correlation_id = 8;
+}
+
+message ObjectiveBreakdown {
+  double grid_value = 1;
+  double commitment_tracking_value = 2;
+  double charging_energy_cost = 3;
+  double degradation_cost = 4;
+  double penalty_exposure = 5;
+  double reliability_risk_cost = 6;
+  double objective_value = 7;
+}
+
+message ConstraintMargin {
+  string constraint_name = 1;
+  double margin = 2;
+  string units = 3;
+  google.protobuf.Timestamp interval_begin_time = 4;
+}
+
+message DeviceScheduleInterval {
+  google.protobuf.Timestamp begin_time = 1;
+  google.protobuf.Timestamp end_time = 2;
+  double setpoint_kw = 3;
+  double expected_energy_kwh = 4;
+  double expected_state_of_energy_percent = 5;
+}
+
+message DeviceSchedule {
+  string device_id = 1;
+  repeated DeviceScheduleInterval intervals = 2;
+}
+
+message ShortfallReport {
+  google.protobuf.Timestamp interval_begin_time = 1;
+  google.protobuf.Timestamp interval_end_time = 2;
+  double requested_kw = 3;
+  double feasible_kw = 4;
+  double shortfall_kw = 5;
+  repeated string reasons = 6;
+}
+
+message DispatchPlan {
+  string plan_id = 1;
+  string event_id = 2;
+  uint64 plan_version = 3;
+  ObjectiveBreakdown objective_breakdown = 4;
+  repeated ConstraintMargin constraint_margins = 5;
+  repeated DeviceExclusion exclusions = 6;
+  repeated DeviceSchedule device_schedules = 7;
+  repeated ShortfallReport shortfalls = 8;
+  bool fallback_used = 9;
+  string solver_version = 10;
+  string model_version = 11;
+  google.protobuf.Timestamp created_at = 12;
+}
