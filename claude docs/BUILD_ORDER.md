@@ -698,7 +698,7 @@ After lane D completes: `services/control/internal/storage/` and
   (offline, stale, islanded or off-grid, overcurrent, maintenance lock,
   under reserve, alarm, outside region, outside participation window). Under-reserved devices are excluded and
   reported (TECHSTACK e2e scenario 2). Verify: `-run Eligibility` passes.
-- `[~]` 1E.4 `[after 1D.6]` ConnectRPC server `cmd/control` with handlers:
+- `[x]` 1E.4 `[after 1D.6]` ConnectRPC server `cmd/control` with handlers:
   `GetFleetSummary`, `ListSites` (H3 aggregate by default, exact location
   only with the separately granted `site_location` permission),
   `CreateEventRequest`, `GetEvent`, `ApproveEvent`, and `LaunchEvent`.

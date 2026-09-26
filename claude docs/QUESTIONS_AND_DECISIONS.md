@@ -146,7 +146,8 @@ assumptions reported by workers land here too.
   timeouts (1A.7); the control service defaults to a 30-second telemetry
   freshness threshold and the same header, write, idle, and shutdown
   timeouts (1E.4); the publisher integration harness allows 10 seconds for
-  the gateway to start and a 2-second acknowledgement deadline (1D.9).
+  the gateway to start and a 2-second acknowledgement deadline (1D.9); control
+  startup allows 5 seconds to reach PostgreSQL (1E.4).
 - **Remote Buf plugins rate-limited at Gate 0:** the Buf Schema Registry
   returned `resource_exhausted` after the day's regenerations. Gate 0 closes
   on a retried generate; Wave 1 item 1F.6 moves every plugin to a local
