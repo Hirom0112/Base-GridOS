@@ -837,7 +837,7 @@ Owns: `services/gateway-simulator/internal/failures/`,
   service through the scenario). The remaining §5.8 injection, worker
   restart, is a control-plane fault and is exercised by 2B.6. Each injection
   is seeded and reproducible. Verify: fails.
-- `[~]` 2A.2 `[P]` GREEN: injection engine driven by the scenario file from
+- `[x]` 2A.2 `[P]` GREEN: injection engine driven by the scenario file from
   0C.6, keyed off the scenario clock. Verify: `go test ./services/gateway-simulator/internal/failures/` passes.
 - `[~]` 2A.3 `[P]` RED then GREEN: "twenty percent of Houston devices
   disconnected" computes lost MW from the affected devices' schedules, not
