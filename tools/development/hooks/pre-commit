@@ -19,6 +19,15 @@ fail() {
 
 code_files=$(printf '%s\n' "$staged" | grep -E '\.(go|py|ts|tsx|js|mjs|sql|proto)$' | grep -vE '(^|/)gen/|_pb2\.py$|\.pb\.go$|connect\.go$' || true)
 
+tests_only=1
+for f in $code_files; do
+  case "$f" in
+    *_test.go|*/test_*.py|test_*.py|*/tests/*|*.test.ts|*.test.tsx|*.spec.ts) ;;
+    *) tests_only=0 ;;
+  esac
+done
+[ "$tests_only" -eq 1 ] && printf 'tests-only commit: RED allowed, execution skipped\n'
+
 if [ -n "$code_files" ]; then
   added=$(git diff --cached -U0 -- $code_files | grep -E '^\+[^+]' | sed 's/^+//' || true)
 
@@ -56,6 +65,7 @@ if [ -n "$go_files" ]; then
     printf '%s %s\n' "$mod" "$root/$dir" >> "$pairs"
   done
   for mod in $(cut -d' ' -f1 "$pairs" | sort -u); do
+    [ "$tests_only" -eq 0 ] || continue
     pkgs=$(grep "^$mod " "$pairs" | cut -d' ' -f2 | sort -u | sed "s#^$mod#.#" | tr '\n' ' ')
     (cd "$mod" && go vet $pkgs) || fail "go vet"
     (cd "$mod" && golangci-lint run --config "$root/.golangci.yml" $pkgs) || fail "golangci-lint"
@@ -77,9 +87,13 @@ if [ -n "$py_files" ]; then
     tests="$tests $candidates"
   done
   tests=$(printf '%s\n' $tests | sort -u | tr '\n' ' ')
-  if [ -n "$(printf '%s' "$tests" | tr -d ' ')" ]; then
-    PYTEST="pytest"; command -v pytest >/dev/null || PYTEST="uv run --quiet pytest"
-    $PYTEST -q -x $tests || fail "pytest (staged tests)"
+  if [ "$tests_only" -eq 0 ] && [ -n "$(printf '%s' "$tests" | tr -d ' ')" ]; then
+    for t in $tests; do
+      project=$(dirname "$t")
+      while [ "$project" != "." ] && [ ! -f "$project/pyproject.toml" ]; do project=$(dirname "$project"); done
+      [ -f "$project/pyproject.toml" ] || fail "no pyproject.toml above $t"
+      uv run --quiet --project "$project" pytest -q -x "$t" || fail "pytest $t"
+    done
   fi
 fi
 
@@ -89,7 +103,7 @@ if [ -n "$ts_files" ] && [ -f apps/console/package.json ]; then
   rel=$(printf '%s\n' $ts_files | sed 's#^apps/console/##')
   (cd apps/console && pnpm exec prettier --check $rel) || fail "prettier"
   (cd apps/console && pnpm exec eslint --max-warnings 0 $rel) || fail "eslint"
-  (cd apps/console && pnpm exec vitest related --run $rel) || fail "vitest related"
+  [ "$tests_only" -eq 1 ] || (cd apps/console && pnpm exec vitest related --run $rel) || fail "vitest related"
 fi
 
 proto_files=$(printf '%s\n' "$staged" | grep -E '\.proto$' || true)

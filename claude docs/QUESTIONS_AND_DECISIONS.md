@@ -69,4 +69,17 @@ assumptions reported by workers land here too.
   directory to PATH so `golangci-lint` installed with `go install` is found.
   Accepted: it adds tool discovery and removes no check. Any hook edit that
   removes or loosens a check would be rejected.
+- **RED commits versus the green hook (raised by lane C on 0C.2):** a commit
+  that stages only test files is a RED commit; the hook still formats, lints,
+  and checks comments and size but skips test execution, vet, and typed lint.
+  Any commit that stages implementation runs the tests for its packages and
+  must be green. Implementation can never land with a failing test, and RED
+  commits stay honest because they contain nothing but the test.
+- **Python projects under `tools/`:** one `tools/pyproject.toml` with a
+  `uv.lock`, owned by lane C in Wave 0, holding the dependencies of both
+  `tools/generation` and `tools/data` (polars, pydantic, hypothesis, pytest,
+  pyyaml, pyarrow, h3). Lane E asks lane C for additions. The hook runs
+  pytest through the nearest `pyproject.toml` above each test file.
+- **AGENTS.md wording:** "RED and GREEN are separate commits" now also says
+  a RED commit contains only test files.
 
