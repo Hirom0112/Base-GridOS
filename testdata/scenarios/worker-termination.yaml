@@ -1,0 +1,24 @@
+name: worker-termination
+provenance: SIMULATED
+clock:
+  seed: 20260926
+  start_at: 2026-08-12T16:00:00-05:00
+  interval_seconds: 300
+fleet:
+  path: testdata/fleets/austin-5000.jsonl
+  size: 5000
+event:
+  region: LZ_AEN
+  start_at: 2026-08-12T18:00:00-05:00
+  end_at: 2026-08-12T20:00:00-05:00
+  target_mw: 20
+  boundary: METER_NET_EXPORT
+injections:
+  - at: 2026-08-12T18:10:00-05:00
+    kind: WORKER_RESTART
+expected:
+  final_event_state: REPORTED
+  reserve_violations: 0
+  allows_shortfall: false
+  required_recovery_actions:
+    - RETRY
