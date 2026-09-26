@@ -1,0 +1,55 @@
+{
+  "canonical_state": {
+    "devices": [
+      {
+        "available": true,
+        "device_id": "device-a",
+        "discharge_efficiency": 0.95,
+        "dynamic_override_percent": 60.0,
+        "energy_kwh": 6.0,
+        "hardware_floor_percent": 10.0,
+        "home_load_kw": 1.0,
+        "maintenance": false,
+        "max_discharge_kw": 5.0,
+        "operating_state": "ON_GRID",
+        "reserve_percent": 20.0,
+        "stale": false,
+        "usable_energy_kwh": 10.0
+      }
+    ]
+  },
+  "expected_dispatch_plan": {
+    "exclusions": [
+      {
+        "device_id": "device-a",
+        "reason": "RESERVE"
+      }
+    ],
+    "fallback": true,
+    "schedules": [],
+    "shortfalls": [
+      {
+        "allocated_kw": 0.0,
+        "requested_kw": 3.0,
+        "shortfall_kw": 3.0
+      }
+    ]
+  },
+  "expected_validation": {
+    "approved": true,
+    "violation_families": []
+  },
+  "name": "weather-override",
+  "optimization_request": {
+    "event_id": "event-weather-override",
+    "intervals": [
+      {
+        "duration_hours": 0.25,
+        "target_kw": 3.0
+      }
+    ],
+    "plan_version": 1,
+    "policy_context": "WEATHER_OVERRIDE",
+    "request_id": "request-weather-override"
+  }
+}
