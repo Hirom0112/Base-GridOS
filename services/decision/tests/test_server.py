@@ -38,7 +38,7 @@ def test_server_forecast_uses_public_profile_and_marks_missing_source(
     serve: Callable[[OptimizationServer], optimization_pb2_grpc.OptimizationServiceStub],
     optimize_request: optimization_pb2.OptimizeRequest,
 ) -> None:
-    begin = datetime(2025, 1, 6, tzinfo=UTC)
+    begin = datetime(2025, 1, 6, 6, tzinfo=UTC)
     end = begin + timedelta(minutes=15)
     request = optimize_request.request
     request.requested_at.CopyFrom(Timestamp(seconds=int(begin.timestamp())))
