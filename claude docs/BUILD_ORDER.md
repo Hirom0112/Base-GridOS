@@ -283,7 +283,7 @@ Owns: `contracts/`, `buf.yaml`, `buf.gen.yaml`.
   `buf breaking contracts --against '.git#branch=main'`, documented in
   `contracts/README.md`; lane A adds it to the `Makefile` `generate` target
   on request. Verify: the command exits 0 on a clean tree and exits 1 when a field number is changed in the working tree.
-- `[~]` 0B.8 `[P]` `contracts/gridos/v1/api.proto`: the Connect services
+- `[x]` 0B.8 `[P]` `contracts/gridos/v1/api.proto`: the Connect services
   Wave 1 needs, with their request and response messages, reusing the
   messages from 0B.2 to 0B.6. `FleetService`: `GetFleetSummary` (installed
   MW and MWh, dispatchable now and forecast, reserved for backup, device
