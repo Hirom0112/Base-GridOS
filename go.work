@@ -2,6 +2,8 @@ go 1.24.0
 
 use (
 	./contracts/gen/go
+	./services/control
+	./services/gateway-simulator
 	./tests/contract
 	./tools/development/mockapi
 )
