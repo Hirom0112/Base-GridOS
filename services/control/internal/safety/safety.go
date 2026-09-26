@@ -165,7 +165,7 @@ func validateDevice(plan Plan, proposed DevicePlan, state DeviceState, now time.
 	if math.Abs(proposed.EnergyKWh[0]-energy) > comparisonTolerance {
 		violations = append(violations, Violation{Code: EnergyBalanceDrift, DeviceID: proposed.DeviceID})
 	}
-	reserve := effectiveReserve(state, now)
+	reserve := EffectiveReserve(state, now)
 	for interval := 0; interval < intervals; interval++ {
 		stepViolations, next := validateInterval(plan.Interval, proposed, state, energy, reserve, interval)
 		violations = append(violations, stepViolations...)
@@ -247,7 +247,7 @@ func invalidPhysics(state DeviceState) bool {
 	return state.ChargeEfficiency <= 0 || state.ChargeEfficiency > 1 || state.DischargeEfficiency <= 0 || state.DischargeEfficiency > 1 || state.HardwareReserveKWh > state.UsableCapacityKWh || state.PlanReserveKWh > state.UsableCapacityKWh || state.DynamicReserveKWh > state.UsableCapacityKWh
 }
 
-func effectiveReserve(state DeviceState, now time.Time) float64 {
+func EffectiveReserve(state DeviceState, now time.Time) float64 {
 	planReserve := state.PlanReserveKWh
 	travel := state.TravelFlex
 	if travel != nil && state.DynamicReserveKWh == 0 && !now.Before(travel.Start) && now.Before(travel.End) && (travel.ReturnedAt == nil || now.Before(*travel.ReturnedAt)) {
