@@ -30,6 +30,15 @@ the wave runs (global rule: one agent per package per slice).
 Each lane is a sequence of numbered items. Item IDs are `<wave><lane>.<n>`,
 for example `1C.4` is wave 1, lane C, fourth item.
 
+### The UI track
+
+The operator console (`apps/console/`) is not built by these six lanes. It is
+built by a separate UI agent following `UI_TRACK.md`, which owns that
+directory completely. Lane F of each wave instead supplies what the UI agent
+builds against: recorded API fixtures, a mock Connect server, the real demo
+stack, streaming endpoints, and the integration tests. The director runs the
+UI track's Playwright acceptance spec at every gate.
+
 ### Parallelism marks
 
 - `[P]` fully parallel. The item depends on nothing outside its own lane. Start
@@ -118,17 +127,19 @@ feature.
 ## 1. Dependency map
 
 ```text
-Wave 0  toolchain | contracts | truth model + fleet gen | database | data ingestion | console shell
+Wave 0  toolchain | contracts | truth model + fleet gen | database | data ingestion | UI contract + mock API
             \          |            |                       |            |               |
-Wave 1  gateway sim | safety gate | decision fallback | storage+outbox | fleet+API | console fleet+dispatch
+Wave 1  gateway sim | safety gate | decision fallback | storage+outbox | fleet+API | ingest + end to end
             \          |            |                       |            |               |
-Wave 2  failure lab | Temporal wf | reconciliation | scenarios+integration | decision hardening | console events
+Wave 2  failure lab | Temporal wf | reconciliation | scenarios+integration | decision hardening | scale + live stream
             \          |            |                       |            |               |
-Wave 3  forecasting | HiGHS optimizer | Go differential+perf | planning integration | BigQuery sink+replay | console explain
+Wave 3  forecasting | HiGHS optimizer | Go differential+perf | planning integration | BigQuery sink | replay + fixtures
             \          |            |                       |            |               |
-Wave 4  member policy+DB | margin evaluator | map (Go H3 + TS) | public context API | report+economics | console member+report
+Wave 4  member policy+DB | margin evaluator | map data (Go) | public context API | report+economics | flex scenarios + fixtures
             \          |            |                       |            |               |
 Wave 5  connectors+contract tests | load tests | observability | Terraform/ECS | security+privacy | docs+runbooks
+
+UI track (separate agent, UI_TRACK.md): apps/console across every wave, fed by lane F.
 ```
 
 Hard cross-lane dependencies (everything else is `[P]`):
@@ -169,8 +180,9 @@ Owns: repo root files (`Makefile`, `AGENTS.md`, `.gitignore`),
   Verify: `docker compose -f infrastructure/local/compose.yaml up -d --wait && docker compose -f infrastructure/local/compose.yaml ps` shows both healthy.
 - `[ ]` 0A.4 `[P]` Root `Makefile` with targets `up`, `down`, `generate`
   (runs `buf generate contracts`), `test-go`, `test-py`, `test-web`,
-  `test-all`, `hooks`. No `demo` target yet; it arrives with the first
-  runnable slice in 1E.7 (TECHSTACK: no placeholders). Add the ignored local
+  `test-all`, `hooks`, `ui-mock` (runs 0F.1's mock server). No `demo`
+  target yet; it arrives with the first runnable slice in 1F.3 (TECHSTACK:
+  no placeholders). Add the ignored local
   working directory `.gridos/` (normalized data, quarantine, analytics sink)
   and every `buf generate` output directory to `.gitignore`.
   Verify: `make up` and `make down` succeed; `make -n test-all` lists the three test targets; `git check-ignore .gridos/x` prints the path.
@@ -182,7 +194,7 @@ Owns: repo root files (`Makefile`, `AGENTS.md`, `.gitignore`),
 
 ### Lane 0B — contracts
 
-Owns: `contracts/`, `buf.yaml`, `buf.gen.yaml`, `tests/contract/`.
+Owns: `contracts/`, `buf.yaml`, `buf.gen.yaml`.
 
 - `[ ]` 0B.1 `[P]` `contracts/buf.yaml` with the `gridos.v1` module, `STANDARD`
   lint, and `FILE` breaking rules. `buf.gen.yaml` generating `connect-go` into
@@ -235,12 +247,6 @@ Owns: `contracts/`, `buf.yaml`, `buf.gen.yaml`, `tests/contract/`.
   `buf breaking contracts --against '.git#branch=main'`, documented in
   `contracts/README.md` and added to the `Makefile` `generate` target by the
   director at merge. Verify: the command exits 0 on the lane branch and exits 1 when a field number is changed in a scratch copy.
-- `[ ]` 0B.8 `[after 0B.6]` `tests/contract/`: a Go test, a Python test, and a
-  Vitest test that each round-trip the same `CommandIntent` JSON fixture
-  (`testdata/fixtures/contracts/command_intent.json`) through their generated
-  types and produce byte-identical canonical JSON.
-  Verify: `go test ./tests/contract/... && uv run pytest tests/contract && pnpm --dir apps/console vitest run tests/contract`.
-
 ### Lane 0C — truth model, fleet generator, scenario format
 
 Owns: `docs/domain/truth-model.md`, `tools/generation/`, `testdata/fleets/`,
@@ -367,45 +373,45 @@ additions.
   (FULL_SPEC §14). ADAPTED scope: recorded-response test plus one live smoke
   fetch of the smallest file. Verify: `uv run python -m tools.data.fetch --only ercot-system-load --verify` succeeds.
 
-### Lane 0F — console shell and acceptance harness
+### Lane 0F — UI contract, mock API, contract tests
 
-Owns: `apps/console/`.
+The console itself is built by the UI track (`UI_TRACK.md`), not by a backend
+lane. This lane gives the UI track something to build against from day one.
 
-- `[ ]` 0F.1 `[P]` TanStack Start app with strict TypeScript
-  (`"strict": true`, `noUncheckedIndexedAccess`), Tailwind, ESLint with
-  `@typescript-eslint/no-explicit-any` as error, Vitest, Testing Library,
-  Playwright. Only the root route exists; feature routes are created by the
-  lane that ships each view (TECHSTACK: no placeholders).
-  Verify: `pnpm --dir apps/console build && pnpm --dir apps/console lint && pnpm --dir apps/console test`.
-- `[ ]` 0F.2 `[P]` Provenance badge component `src/api/Provenance.tsx` that
-  renders one of the five FULL_SPEC §2 classes and refuses to render an
-  aggregate without a timestamp and freshness (FULL_SPEC §5.1). RED Vitest
-  test first. Verify: `pnpm --dir apps/console vitest run Provenance`.
-- `[ ]` 0F.3 `[P]` Auth boundary: Clerk provider with keys from env; when
-  `GRIDOS_AUTH_MODE=local` the app uses a local dev identity marked STUBBED
-  and reported for `STUBS.md`, because the judged path must run with no live
-  external API (TECHSTACK "Local and deployed topology"). The six roles from
-  FULL_SPEC §11 typed as a union, plus a separate `site_location` permission
-  (§11 "exact site location a separately authorized capability"). Verify: `GRIDOS_AUTH_MODE=local pnpm --dir apps/console dev` serves `/fleet` without network access to Clerk.
-- `[ ]` 0F.4 `[after 0B.6]` Generated Connect-ES client wired into a
-  `src/api/client.ts` with TanStack Query; a Vitest test constructs a
-  `CommandIntent` from the generated type. Verify: `pnpm --dir apps/console vitest run client`.
-- `[ ]` 0F.5 `[P]` Playwright acceptance spec `tests/demo-path.spec.ts` written
-  now for FULL_SPEC §9 steps 1 through 17, one `test.step` per story step,
-  all failing. This is the red test for the whole console.
-  Verify: `pnpm --dir apps/console playwright test demo-path` reports 17 failing steps, none skipped.
-- `[ ]` 0F.6 `[P]` Design tokens and layout shell (top bar, left nav, content,
-  status strip) as the "small owned component system" TECHSTACK names,
-  using the GridOS visual system that `README.md` points to in
-  `3d web logs.md`. Snapshot test with Vitest. Verify: `pnpm --dir apps/console vitest run shell`.
+Owns: `tools/development/mockapi/`, `testdata/fixtures/api/`, `tests/contract/`.
+
+- `[ ]` 0F.1 `[after 0B.6]` `tools/development/mockapi`: a Go Connect server
+  that serves every operator and member method in `gridos.v1` from JSON
+  fixture files at `testdata/fixtures/api/<Service>/<Method>.json`, with
+  `GRIDOS_AUTH_MODE=local` identities, the six roles, and the
+  `site_location` permission, so the console runs with no backend.
+  Verify: `go run ./tools/development/mockapi & curl -s -X POST -H 'content-type: application/json' localhost:8080/gridos.v1.FleetService/GetFleetSummary -d '{}'` returns the fixture.
+- `[ ]` 0F.2 `[after 0C.5]` Hand-authored fixtures for the Wave 1 methods
+  (`GetFleetSummary`, `ListSites`, `CreateEventRequest`, `GetEvent`,
+  `ApproveEvent`) derived from the `texas-50` fleet, every aggregate carrying
+  timestamp, provenance mix, and freshness, every record `SIMULATED`, plus
+  `testdata/fixtures/api/INDEX.json` mapping each UI screen to its methods.
+  RED: a test validates every fixture against its generated proto type and
+  every method in `INDEX.json` against the proto descriptors.
+  Verify: `go test ./tools/development/mockapi/ -run Fixtures` passes.
+- `[ ]` 0F.3 `[after 0B.6]` `tests/contract/`: a Go test, a Python test, and
+  a Vitest test that each round-trip the same `CommandIntent` JSON fixture
+  (`testdata/fixtures/contracts/command_intent.json`) through their generated
+  types and produce byte-identical canonical JSON.
+  Verify: `go test ./tests/contract/... && uv run pytest tests/contract && pnpm --dir apps/console vitest run tests/contract`.
+- `[ ]` 0F.4 `[after 0F.1]` Fixture recording harness `mockapi record`: given
+  a running control service, calls every method in `INDEX.json` and writes
+  the responses back into `testdata/fixtures/api/`, so later waves refresh
+  fixtures with one command. Verify: `go test ./tools/development/mockapi/ -run Record` passes against a stub server.
 
 ### Gate 0
 
 - `make up` brings PostgreSQL and Temporal healthy.
-- `buf lint contracts && buf generate contracts` succeed; `tests/contract` round-trip passes in all three languages.
+- `buf lint contracts && buf generate contracts` succeed; `tests/contract` round-trip (0F.3) passes in all three languages.
 - `uv run pytest tools` passes (generation and data).
 - All migrations apply twice; `sqlc generate` succeeds.
-- `pnpm --dir apps/console build && lint && test` pass; `demo-path` spec shows 17 red steps.
+- `make ui-mock` serves every Wave 1 fixture (0F.1, 0F.2).
+- UI track: `pnpm --dir apps/console build && lint && test` pass; `demo-path` spec shows 17 red steps (U0.6).
 - `make hooks` installed and a deliberate `: any` commit is rejected.
 - `claude docs/gate-reports/wave-0.md` written with the output of each command.
 
@@ -577,8 +583,7 @@ Owns: `services/control/internal/storage/` (including
 ### Lane 1E — fleet twin, eligibility, control API
 
 Owns: `services/control/internal/fleet/`, `services/control/internal/api/`,
-`services/control/internal/report/`, `services/control/cmd/control`,
-`tests/end-to-end/`, the `Makefile` `demo` target.
+`services/control/internal/report/`, `services/control/cmd/control`.
 
 - `[ ]` 1E.1 `[P]` RED: `fleet/twin_test.go`: the twin holds the latest
   accepted state per site; a command being issued does not change the twin
@@ -606,47 +611,43 @@ Owns: `services/control/internal/fleet/`, `services/control/internal/api/`,
   (requested, approved, commanded, acknowledged MW; devices excluded by
   reason; provenance and versions) assembled from storage.
   Verify: `go test ./services/control/internal/report/` passes.
-- `[ ]` 1E.7 `[after 1E.5, 1A.7, 1F.4]` `make demo` target (compose, migrate,
+### Lane 1F — telemetry ingest and vertical-slice end to end
+
+Owns: `services/control/internal/ingest/`, `tests/end-to-end/`, the
+`Makefile` `demo` target, `testdata/fixtures/api/` (recording).
+
+- `[ ]` 1F.1 `[P]` RED: `ingest_test.go`: the control-side gRPC telemetry
+  receive service acknowledges receipt only after a durable write, so the
+  gateway may delete its buffer (TECHSTACK gateway item 7); out-of-order
+  sequences are accepted and ordered by `sequence`; duplicates by
+  (`device_id`, `sequence`) are dropped; `MISSING` and `STALE` are stored as
+  states, never coerced to zero. Verify: fails with "undefined".
+- `[ ]` 1F.2 `[after 1D.6, 1E.2]` GREEN: `internal/ingest` writing
+  observations through storage and updating the fleet twin.
+  Verify: `go test ./services/control/internal/ingest/` passes.
+- `[ ]` 1F.3 `[after 1E.5, 1A.7, 1F.2]` `make demo` target (compose, migrate,
   seed `texas-50`, start gateway simulator, decision service, control
   service, console) and `tests/end-to-end/vertical_slice_test.go` driving
-  the whole Phase 1 path through the API. Verify: `make demo` comes up and `go test ./tests/end-to-end/ -run VerticalSlice` passes.
-
-### Lane 1F — console fleet command center and dispatch creation
-
-Owns: `apps/console/src/fleet/`, `apps/console/src/dispatch/`,
-`apps/console/tests/`.
-
-- `[ ]` 1F.1 `[P]` Vitest tests for the fleet summary view against a recorded
-  `GetFleetSummary` fixture: installed MW and MWh, dispatchable now and
-  forecast, reserved for backup, device counts by online, offline, degraded,
-  stale, maintenance, communications health, and each metric shows timestamp,
-  provenance mix, and freshness (FULL_SPEC §5.1). Then the view.
-  Verify: `pnpm --dir apps/console vitest run fleet`.
-- `[ ]` 1F.2 `[P]` Dispatch request form: region, window, target MW,
-  measurement boundary shown explicitly; Vitest validates the form schema
-  with Zod before submit. Verify: `vitest run dispatch-form`.
-- `[ ]` 1F.3 `[after 1E.4]` Wire both views to the real API through the
-  generated client; loading and error states visible; browser state never
-  authoritative (TECHSTACK "Operator console"). Verify: `vitest run fleet dispatch` with MSW-recorded responses from the running control service.
-- `[ ]` 1F.4 `[after 1E.5]` Approval screen with step-up confirmation and the
-  reason for every excluded device. Verify: `vitest run approval`.
-- `[ ]` 1F.5 `[after 1E.7]` Turn Playwright `demo-path` steps 2, 3, 9, and 16
-  (basic report) green against `make demo`. Step 1 needs the regional context
-  that arrives in Wave 4. Verify: `pnpm --dir apps/console playwright test demo-path` shows those steps passing and the rest still red.
-- `[ ]` 1F.6 `[P]` Every simulated view shows the `SIMULATED` badge from 0F.2;
-  a Vitest test renders each page and asserts the badge. Verify: `vitest run simulated-badge`.
+  the whole Phase 1 path through the API: create event, fallback plan,
+  safety approved, operator approval recorded, intents persisted before any
+  network send, gateway acknowledges, telemetry ingested, basic report
+  contains provenance and versions. Verify: `make demo` comes up and `go test ./tests/end-to-end/ -run VerticalSlice` passes.
+- `[ ]` 1F.4 `[after 1F.3]` Record real responses for every Wave 1 method
+  from the running demo stack with `mockapi record`, replacing the
+  hand-authored fixtures. Verify: `go test ./tools/development/mockapi/ -run Fixtures` passes on the recordings and every Wave 1 file in `testdata/fixtures/api/` changed.
+- `[ ]` 1F.5 `[after 1F.3]` Duplicate-delivery end to end: publish the same
+  `command_id` twice through the outbox; the gateway shows one physical
+  effect and storage shows one acknowledgement. Verify: `go test ./tests/end-to-end/ -run DuplicateDelivery` passes.
 
 ### Gate 1
 
-- `make demo` (1E.7) starts compose, migrates, seeds `texas-50`, starts
+- `make demo` (1F.3) starts compose, migrates, seeds `texas-50`, starts
   gateway simulator, decision service, control service, and console.
-- `tests/end-to-end/vertical_slice_test.go` (1E.7): create event through the
-  API, fallback plan produced, safety approved, operator approval recorded,
-  intents persisted before any network send, gateway acknowledges, telemetry
-  arrives, basic report contains provenance and versions.
-- Duplicate delivery of the same command is a no-op at the gateway.
+- `tests/end-to-end/vertical_slice_test.go` (1F.3) and
+  `DuplicateDelivery` (1F.5) pass.
+- Recorded fixtures (1F.4) replace every hand-authored Wave 1 fixture.
 - `go test ./...`, `uv run pytest`, `pnpm test` all green; 1B.7 under 2 s.
-- Playwright demo-path steps 2, 3, 9, 16 green.
+- UI track: Playwright demo-path steps 2, 3, 9, 16 green against `make demo`.
 - `claude docs/gate-reports/wave-1.md` written.
 
 ---
@@ -682,7 +683,7 @@ Owns: `services/gateway-simulator/internal/failures/`,
 ### Lane 2B — Temporal dispatch workflow
 
 Owns: `services/control/internal/dispatch/`, `services/control/cmd/worker`,
-`services/control/internal/api/` (to retire the Wave 1 dispatcher),
+`services/control/internal/api/` root package only (to retire the Wave 1 dispatcher; `internal/api/events/` is 2F's),
 `services/control/go.mod` (Wave 2 owner).
 
 - `[ ]` 2B.1 `[P]` `cmd/worker`, task queue, and a workflow test suite using
@@ -798,25 +799,30 @@ Owns: `services/decision/`, `testdata/golden/`.
   invalid-vector, and replacement cases for the Wave 3 Go differential run.
   Verify: `uv run pytest services/decision -k golden` passes.
 
-### Lane 2F — console live events and recovery timeline
+### Lane 2F — scale, live stream, fixtures
 
-Owns: `apps/console/src/events/`.
+Owns: `services/gateway-simulator/tests/`, `services/control/internal/api/events/`,
+`tests/end-to-end/`, `testdata/fixtures/api/`.
 
-- `[ ]` 2F.1 `[P]` Vitest tests then view: live event page separating sent,
-  acknowledged, and physically delivered MW as three distinct series with an
-  uncertain band (FULL_SPEC §9 step 13). Verify: `vitest run events-live`.
-- `[ ]` 2F.2 `[P]` Event timeline listing every state transition, retry, and
-  recovery decision with timestamps and reasons (FULL_SPEC §12 Phase 2).
-  Verify: `vitest run events-timeline`.
-- `[ ]` 2F.3 `[P]` Emergency stop button with step-up confirmation; the UI
-  shows "stop requested" and never claims the device heard it until an
-  acknowledgement or telemetry confirms (`system-understanding.md`).
-  Verify: `vitest run emergency-stop`.
-- `[ ]` 2F.4 `[after 2C.7]` Polling or server-sent updates through TanStack
-  Query so new telemetry appears within 5 seconds in the local demo
-  (FULL_SPEC §10). Playwright measures it. Verify: `playwright test telemetry-latency` reports under 5 s.
-- `[ ]` 2F.5 `[after 2D.3]` Playwright `demo-path` steps 10 to 15 green.
-  Verify: `playwright test demo-path` shows steps 1 to 3, 9 to 16 passing.
+- `[ ]` 2F.1 `[P]` RED then GREEN: simulator scale. 5,000 simulated devices
+  in one process produce telemetry every 5 seconds for 10 minutes with no
+  sequence gaps (FULL_SPEC §8 "approximately 5,000 devices"; the cadence and
+  resource budget are assumptions to report).
+  Verify: `go test ./services/gateway-simulator/tests -run Scale5000 -timeout 20m` passes.
+- `[ ]` 2F.2 `[after 1F.2]` RED then GREEN: ingest scale. The control plane
+  sustains the 5,000-device stream and twin freshness stays under 5 seconds
+  (FULL_SPEC §10). Verify: `go test ./tests/end-to-end/ -run IngestScale -timeout 20m` passes.
+- `[ ]` 2F.3 `[after 2C.7]` Record live-event fixtures from a scenario run:
+  `GetEvent` at several lifecycle states, the timeline, and an
+  `EmergencyStop` response, into `testdata/fixtures/api/`.
+  Verify: `go test ./tools/development/mockapi/ -run Fixtures` passes.
+- `[ ]` 2F.4 `[after 2D.4]` Run the UI track's `demo-path` spec against
+  `make demo` and record the result in the gate report; route failures to the
+  UI track or the owning backend lane. Verify: `pnpm --dir apps/console playwright test demo-path` executed and output saved.
+- `[ ]` 2F.5 `[after 2C.7]` `internal/api/events`: `WatchEvent`
+  server-streaming Connect method emitting sent, acknowledged, delivered, and
+  uncertain-interval updates as reconciliation produces them, registered in
+  `cmd/control`. Verify: `go test ./services/control/internal/api/events/ -run Watch` passes and a client sees an update within 5 s of new telemetry.
 
 ### Gate 2
 
@@ -826,7 +832,8 @@ Owns: `apps/console/src/events/`.
   outage replays telemetry once.
 - Idempotent redelivery proven at gateway and outbox.
 - Audit chain unbroken in every scenario.
-- Console shows sent, acknowledged, delivered separately; telemetry within 5 s.
+- Simulator and ingest sustain 5,000 devices; `WatchEvent` delivers within 5 s.
+- UI track: demo-path steps 2, 3, 9 to 16 green (2F.4).
 - `claude docs/gate-reports/wave-2.md` written.
 
 ---
@@ -938,7 +945,7 @@ Owns: `services/control/internal/dispatch/`, `services/control/internal/api/`,
 
 ### Lane 3E — BigQuery optional sink and replay
 
-Owns: `services/control/internal/analytics/`, `services/control/cmd/replay`.
+Owns: `services/control/internal/analytics/`.
 
 - `[ ]` 3E.1 `[P]` `analytics.Sink` interface with two implementations: a
   fixture-backed local sink writing newline JSON under `.gridos/analytics/`
@@ -952,45 +959,40 @@ Owns: `services/control/internal/analytics/`, `services/control/cmd/replay`.
 - `[ ]` 3E.3 `[P]` BigQuery sink integration test guarded by a build tag and a
   recorded-request fixture; one live smoke test documented but skipped without
   credentials. Verify: `go test -tags bigquery ./services/control/internal/analytics/` passes with the fixture.
-- `[ ]` 3E.4 `[P]` Replay manifest written per event: seed, fleet file hash,
-  scenario hash, input snapshot IDs, solver and fallback versions, code
-  version. Verify: `-run Manifest` passes.
-- `[ ]` 3E.5 `[after 3D.2]` `cmd/replay` (a product capability, FULL_SPEC §3
-  and §10, so it lives with the control plane, not in `tools/`) re-running an
-  event from its manifest and diffing the outcome; identical apart from
-  explicitly recorded nondeterminism. Verify: `go run ./services/control/cmd/replay --event <id>` prints `IDENTICAL`.
-- `[ ]` 3E.6 `[P]` Assert the safety gate and command path never import the
+- `[ ]` 3E.4 `[P]` Assert the safety gate and command path never import the
   analytics package (TECHSTACK "BigQuery is not queried by the safety gate").
   Verify: `go list -deps ./services/control/internal/safety ./services/control/internal/storage/publisher | grep analytics` prints nothing.
 
-### Lane 3F — console planning explanation
+### Lane 3F — replay and explanation fixtures
 
-Owns: `apps/console/src/dispatch/`, `apps/console/src/events/`.
+Owns: `services/control/internal/replay/`, `services/control/cmd/replay`,
+`services/control/internal/api/replay/`, `tests/end-to-end/`,
+`testdata/fixtures/api/`.
 
-- `[ ]` 3F.1 `[P]` Vitest then view: plan explanation panel showing expected
-  value, reserve held back, constraints, excluded devices with reasons, and
-  per-interval shortfall bars (FULL_SPEC §9 step 6). Verify: `vitest run explanation`.
-- `[ ]` 3F.2 `[P]` Forecast charts with calibrated intervals for load, price,
-  outage risk, and availability, each labelled `forecast` or
-  `modeled_estimate` with issue time (FULL_SPEC §5.4).
-  Verify: `vitest run forecast-charts`.
-- `[ ]` 3F.3 `[P]` Fallback banner when `fallback=true`, naming the reason.
-  Verify: `vitest run fallback-banner`.
-- `[ ]` 3F.4 `[after 3D.4]` "Validate unsafe alternative" control on the
-  approval screen showing the violations returned. Verify: `vitest run unsafe-alternative`.
-- `[ ]` 3F.5 `[after 3E.5]` Replay button and replay result view.
-  Verify: `vitest run replay`.
-- `[ ]` 3F.6 `[after 3F.4]` Playwright `demo-path` steps 4 to 6, 8, and 17
-  green. Verify: `playwright test demo-path` shows all steps except 7 passing.
+- `[ ]` 3F.1 `[P]` RED then GREEN: replay manifest written per event: seed,
+  fleet file hash, scenario hash, input snapshot IDs, solver and fallback
+  versions, code version (FULL_SPEC §4 invariant 9).
+  Verify: `go test ./services/control/internal/replay/ -run Manifest` passes.
+- `[ ]` 3F.2 `[after 3D.2]` `cmd/replay` (a product capability, FULL_SPEC §3
+  and §10, so it lives with the control plane) re-running an event from its
+  manifest and diffing the outcome; identical apart from explicitly recorded
+  nondeterminism. Verify: `go run ./services/control/cmd/replay --event <id>` prints `IDENTICAL`.
+- `[ ]` 3F.3 `[after 3D.3, 3A.6]` Record `GetPlanExplanation`, forecast
+  responses with intervals, a `fallback=true` case, and `ValidateAlternative`
+  violations into `testdata/fixtures/api/`. Verify: `go test ./tools/development/mockapi/ -run Fixtures` passes.
+- `[ ]` 3F.4 `[after 3F.2]` `internal/api/replay`: `ReplayEvent` Connect
+  method returning the diff for the console. Verify: `go test ./services/control/internal/api/replay/` passes.
+- `[ ]` 3F.5 `[after 3D.5]` Run the UI track's `demo-path` spec at the gate
+  and record the result. Verify: output saved in the gate report.
 
 ### Gate 3
 
 - Canonical 5,000-device scenario: plan under 10 s, validation under 2 s.
 - Optimizer timeout → fallback; infeasible target → visible shortfall.
 - Golden differential Go versus Python green.
-- Replay of the canonical event prints `IDENTICAL`.
+- Replay of the canonical event prints `IDENTICAL` (3F.2).
 - Safety and command path have no analytics dependency.
-- Playwright demo-path green except step 7.
+- UI track: demo-path green except steps 1 and 7 (3F.5).
 - `claude docs/gate-reports/wave-3.md` written.
 
 ---
@@ -1062,30 +1064,29 @@ Owns: `services/decision/` (whole package this wave, including
 - `[ ]` 4B.6 `[after 4A.2]` Optimizer consumes Travel Flex capacity only when
   the policy engine reports it active and 4B.3 clears. Verify: `-k travel_flex_capacity` passes.
 
-### Lane 4C — geographic and electrical map
+### Lane 4C — geographic and electrical map data
 
 Owns: `services/control/internal/fleet/geo/`,
-`services/control/internal/api/geo/`, `apps/console/src/map/`.
+`services/control/internal/api/geo/`, `testdata/fixtures/geo/`.
 
 - `[ ]` 4C.1 `[P]` RED then GREEN: server-side H3 aggregation of sites at
   resolutions 5 through 8 with counts, capacity, SOC bands, connectivity, and
   active dispatch per cell; cells with fewer than 5 sites are merged upward
   before leaving the server (FULL_SPEC §5.2 privacy; the resolutions and the
   merge threshold are assumptions to report). Verify: `go test ./services/control/internal/fleet/geo/` passes.
-- `[ ]` 4C.2 `[after 4D.3]` Connect service `internal/api/geo` with drill-down
-  levels market → load zone → utility territory → substation → feeder →
-  authorized site, substation and feeder from a clearly labelled synthetic or
-  licensed public model (FULL_SPEC §5.2), exact site only with the
-  `site_location` permission; registered in `cmd/control` after 4D.3's
-  registration lands. Verify: `go test ./services/control/internal/api/geo/` passes including a 403 test.
-- `[ ]` 4C.3 `[after 4C.1]` MapLibre view with a free style, H3 layer, and
-  layer toggles for density, capacity, SOC bands, connectivity failures,
-  outages, severe weather, active dispatch, price volatility, modeled
-  constraints, candidate deployment regions. Vitest for layer state;
-  Playwright screenshot test. Verify: `vitest run map && playwright test map`.
-- `[ ]` 4C.4 `[P]` Map never renders a street address or a real member home;
-  a Vitest test asserts the site popup has no address field.
-  Verify: `vitest run map-privacy`.
+- `[ ]` 4C.2 `[after 4D.3]` Connect service `internal/api/geo` with
+  `ListCells` and `Drilldown` through market → load zone → utility territory
+  → substation → feeder → authorized site, substation and feeder from a
+  clearly labelled synthetic or licensed public model (FULL_SPEC §5.2), exact
+  site only with the `site_location` permission; registered in `cmd/control`
+  after 4D.3's registration lands. Verify: `go test ./services/control/internal/api/geo/` passes including a 403 test.
+- `[ ]` 4C.3 `[P]` Offline map assets: a MapLibre style JSON and small Texas
+  boundary, weather-zone, and load-zone GeoJSON under `testdata/fixtures/geo/`
+  served by the control service, so the map renders with no proprietary token
+  and no network (TECHSTACK "Fleet map"). Verify: `curl localhost:8080/geo/style.json` returns the style and `du -sh testdata/fixtures/geo` under 5 MB.
+- `[ ]` 4C.4 `[P]` RED then GREEN: no geo response ever carries a street
+  address or a real member home; a test scans every geo response type for
+  address-like fields. Verify: `go test ./services/control/internal/api/geo/ -run NoAddress` passes.
 
 ### Lane 4D — public context services
 
@@ -1106,8 +1107,7 @@ Owns: `services/control/internal/context/`, `services/control/internal/api/conte
 
 ### Lane 4E — event report, comparison, modeled economics
 
-Owns: `services/control/internal/report/`, `tests/integration/`,
-`testdata/scenarios/`.
+Owns: `services/control/internal/report/`.
 
 - `[ ]` 4E.1 `[P]` RED then GREEN: full event report per FULL_SPEC §5.9:
   requested, approved, commanded, acknowledged, delivered MW and MWh;
@@ -1124,51 +1124,38 @@ Owns: `services/control/internal/report/`, `tests/integration/`,
   margin included in the report (FULL_SPEC §9 step 16). Verify: `-run Rewards` passes.
 - `[ ]` 4E.5 `[P]` Partner view of the report: aggregates only, no site rows,
   no travel or away state (FULL_SPEC §11). Verify: `-run PartnerView` passes including a test that the JSON has no `site_id`.
-- `[ ]` 4E.6 `[after 4A.7, 4B.6]` Scenario files and `tests/integration`
+### Lane 4F — flexibility scenarios and fixtures
+
+Owns: `tests/integration/`, `testdata/scenarios/`, `tests/end-to-end/`,
+`testdata/fixtures/api/`.
+
+- `[ ]` 4F.1 `[after 4A.7, 4B.6]` Scenario files and `tests/integration`
   cases for TECHSTACK e2e scenarios 12 to 17: `travel-flex-lifecycle`
   (activation, automatic expiry, early-return cancellation),
   `weather-stale-alarm-raise-floor`, `zero-percent-reserve-hardware-floor`,
   `negative-margin-no-dispatch`, `no-fee-market-reward`,
   `anomaly-signal-label`. Each asserts its outcome through the API and the
   stored report. Verify: `go test ./tests/integration/ -run "TravelFlex|RaiseFloor|ZeroPercent|NegativeMargin|NoFee|Anomaly"` passes.
-
-### Lane 4F — console member views, report, comparison
-
-Owns: `apps/console/src/member/`, `apps/console/src/events/report/`,
-`apps/console/src/fleet/`, `apps/console/package.json`.
-
-- `[ ]` 4F.1 `[P]` Vitest then view: member status page with backup readiness
-  and expected duration, why the battery did or did not participate, current
-  plan and reserve, savings and participation outcomes (FULL_SPEC §3
-  "Member"). Verify: `vitest run member-status`.
-- `[ ]` 4F.2 `[P]` Plan selection showing reserve, price, risk tradeoff and
-  the exact consent text and catalog version; a `0%` plan is explained as
-  "no customer-designated reserve above protected limits"
-  (FULL_SPEC §5.10). Verify: `vitest run plan-select`.
-- `[ ]` 4F.3 `[P]` Travel Flex scheduling with start, end, timezone, credit
-  display, and an early-return button. Verify: `vitest run travel-flex`.
-- `[ ]` 4F.4 `[P]` Anomaly alert card with the fixed "energy anomaly" wording
-  and no intrusion language; Vitest asserts the strings. Verify: `vitest run anomaly-alert`.
-- `[ ]` 4F.5 `[after 4E.1]` Event report view and two-event comparison view
-  with provenance badges and `modeled` labels on every financial figure.
-  Verify: `vitest run report`.
-- `[ ]` 4F.6 `[after 4A.7, 4C.3]` Playwright: Travel Flex activation, expiry,
-  and early return; demo-path step 7 green.
-  Verify: `playwright test travel-flex` green and demo-path step 7 passing.
-- `[ ]` 4F.7 `[after 4D.3]` Command center context strip in `src/fleet`:
-  weather alerts, outage risk, regional load, market prices, forecast grid
-  value and verified event value, each with timestamp, provenance, and
-  freshness (FULL_SPEC §5.1). Demo-path step 1 green; full demo-path green.
-  Verify: `vitest run context-strip` and `playwright test demo-path` all 17 steps passing.
+- `[ ]` 4F.2 `[after 4A.7]` Record member fixtures: `GetMemberStatus`,
+  `SelectResiliencePlan`, `ScheduleTravelFlex`, `EndTravelFlexEarly`, and a
+  `HomeActivityAlert`. Verify: `go test ./tools/development/mockapi/ -run Fixtures` passes.
+- `[ ]` 4F.3 `[after 4D.3, 4C.2]` Record context and geo fixtures: market,
+  weather, outage risk, dispatch windows, H3 cells at each resolution, one
+  drill-down path. Verify: fixtures test passes.
+- `[ ]` 4F.4 `[after 4E.4]` Record report, comparison, and partner-view
+  fixtures. Verify: fixtures test passes and the partner fixture has no `site_id`.
+- `[ ]` 4F.5 `[after 4F.1]` Run the full 17-step `demo-path` spec from the UI
+  track at the gate and assemble the FULL_SPEC §10 acceptance table with the
+  command that proves each bullet. Verify: `playwright test demo-path` all 17 steps green; table saved in the gate report.
 
 ### Gate 4
 
 - Every scenario in TECHSTACK "Required end-to-end scenarios" (all 17) passes
   in `tests/integration`, including Travel Flex, weather override, zero-percent
   reserve, negative margin, no-fee market, and anomaly labelling.
-- Playwright demo-path steps 1 to 17 green.
+- UI track: demo-path steps 1 to 17 green (4F.5).
 - FULL_SPEC §10 acceptance list walked item by item in the gate report with the
-  command that proves each.
+  command that proves each (4F.5).
 - `claude docs/gate-reports/wave-4.md` written.
 
 ---
@@ -1215,8 +1202,7 @@ Owns: `infrastructure/observability/`, `infrastructure/local/`,
 `services/control/internal/observability/`,
 `services/decision/gridos/observability/`,
 `services/gateway-simulator/internal/observability/`, every `cmd/` main for
-the init call, `services/control/go.mod` (Wave 5 owner), Sentry and PostHog
-in `apps/console/src/api/`.
+the init call, `services/control/go.mod` (Wave 5 owner).
 
 - `[ ]` 5C.1 `[after 5E.2]` OpenTelemetry traces in Go and Python with
   correlation and workflow IDs on every span, initialised from each `cmd/`
@@ -1229,9 +1215,9 @@ in `apps/console/src/api/`.
 - `[ ]` 5C.3 `[P]` RED then GREEN: log, trace, and analytics scrubbers; a test
   emits a record containing a site ID, command credential, and travel window
   and asserts none reach the exporter (FULL_SPEC §11). Verify: `go test ./services/control/... -run Scrub` passes.
-- `[ ]` 5C.4 `[P]` Sentry and PostHog in the console gated by env, with a
-  Vitest test that analytics events contain no household identifiers.
-  Verify: `vitest run analytics-privacy`.
+- `[ ]` 5C.4 `[P]` Grafana alert rules for safety rejections, fallback rate,
+  uncertain commands, and stale-telemetry share, provisioned with the
+  dashboards. Verify: `curl localhost:3000/api/v1/provisioning/alert-rules` lists the four rules.
 
 ### Lane 5D — deployment
 
@@ -1336,6 +1322,9 @@ Owns: `README.md`, `docs/operations/` (except `security/`), `AGENTS.md`.
    raw cache), root `Makefile` and `sqlc.yaml`, and `claude docs/` for
    director reports. The director records this list in `ASSUMPTIONS.md` at
    Gate 0.
+8. **The console is a separate track.** The user runs their own UI agent on
+   `apps/console/` from `UI_TRACK.md`. Six backend lanes stay full because
+   lane F became the fixture, mock, ingest, scale, and integration lane.
 7. **Site location is a permission, not a role.** FULL_SPEC §11 lists six
    roles and makes exact location "a separately authorized capability", so
    the plan models it as a `site_location` permission that any role may be
@@ -1347,13 +1336,14 @@ Owns: `README.md`, `docs/operations/` (except `security/`), `AGENTS.md`.
 
 | Wave | A | B | C | D | E | F | Total |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 0 | 5 | 8 | 7 | 6 | 8 | 6 | 40 |
-| 1 | 8 | 7 | 9 | 9 | 7 | 6 | 46 |
+| 0 | 5 | 7 | 7 | 6 | 8 | 4 | 37 |
+| 1 | 8 | 7 | 9 | 9 | 6 | 5 | 44 |
 | 2 | 5 | 7 | 7 | 6 | 6 | 5 | 36 |
-| 3 | 6 | 8 | 4 | 5 | 6 | 6 | 35 |
-| 4 | 7 | 6 | 4 | 3 | 6 | 7 | 33 |
+| 3 | 6 | 8 | 4 | 5 | 4 | 5 | 32 |
+| 4 | 7 | 6 | 4 | 3 | 5 | 5 | 30 |
 | 5 | 3 | 3 | 4 | 6 | 4 | 4 | 24 |
-| | | | | | | | **214** |
+| | | | | | | | **203** |
 
-171 items are fully parallel and 43 wait on one other lane. Plus the five
-standing items applied every wave.
+156 items are fully parallel and 47 wait on one other lane. Plus the five
+standing items applied every wave. The UI track adds 40 items of its own in
+`UI_TRACK.md`.
