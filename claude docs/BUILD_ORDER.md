@@ -855,7 +855,7 @@ Owns: `services/control/internal/dispatch/`, `services/control/cmd/worker`,
 `services/control/internal/api/` root package only (to retire the Wave 1 dispatcher; `internal/api/events/` is 2F's),
 `services/control/go.mod` (Wave 2 owner).
 
-- `[~]` 2B.1 `[P]` `cmd/worker`, task queue, and a workflow test suite using
+- `[x]` 2B.1 `[P]` `cmd/worker`, task queue, and a workflow test suite using
   the Temporal SDK test environment with time skipping (the SDK dependency
   was pre-declared in 1D.1).
   Verify: `go test ./services/control/internal/dispatch/ -run Smoke` passes.
