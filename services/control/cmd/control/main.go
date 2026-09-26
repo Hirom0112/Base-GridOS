@@ -12,16 +12,31 @@ import (
 
 	controlapi "github.com/Hirom0112/Base-GridOS/services/control/internal/api"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/fleet"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
+	databaseURL := os.Getenv("GRIDOS_DATABASE_URL")
+	if databaseURL == "" {
+		databaseURL = "postgres://gridos:gridos@localhost:5432/gridos?sslmode=disable"
+	}
+	pool, err := pgxpool.New(ctx, databaseURL)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer pool.Close()
+	startupContext, cancelStartup := context.WithTimeout(ctx, 5*time.Second)
+	defer cancelStartup()
+	if err = pool.Ping(startupContext); err != nil {
+		log.Fatal(err)
+	}
 	address := os.Getenv("GRIDOS_CONTROL_ADDRESS")
 	if address == "" {
 		address = ":8080"
 	}
-	service := controlapi.NewService(controlapi.NewMemoryEventStore(), fleet.NewTwin(30*time.Second), nil, time.Now)
+	service := controlapi.NewService(controlapi.NewPostgresEventStore(pool), fleet.NewTwin(30*time.Second), nil, time.Now)
 	server := &http.Server{Addr: address, Handler: controlapi.NewHandler(service), ReadHeaderTimeout: 5 * time.Second, WriteTimeout: 10 * time.Second, IdleTimeout: 30 * time.Second}
 	go func() {
 		<-ctx.Done()
