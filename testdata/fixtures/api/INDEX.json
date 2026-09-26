@@ -1,0 +1,15 @@
+{
+  "screens": {
+    "fleet_command_center": [
+      "gridos.v1.FleetService.GetFleetSummary",
+      "gridos.v1.FleetService.ListSites"
+    ],
+    "dispatch_request": [
+      "gridos.v1.DispatchService.CreateEventRequest"
+    ],
+    "plan_approval": [
+      "gridos.v1.DispatchService.GetEvent",
+      "gridos.v1.DispatchService.ApproveEvent"
+    ]
+  }
+}
