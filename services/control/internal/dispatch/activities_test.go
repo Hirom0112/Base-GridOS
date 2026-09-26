@@ -161,6 +161,17 @@ func TestProduceReportActivity(t *testing.T) {
 	require.Equal(t, "REPORTED", harness.state(t))
 }
 
+func TestIssueReplacementActivity(t *testing.T) {
+	harness := newActivityHarness(t)
+	harness.persist(t)
+	require.NoError(t, harness.activities.IssueReplacement(context.Background(), ReplacementCommand{EventID: "event-1", DeviceID: "device-2", Generation: 2}))
+	var deviceID string
+	var generation int64
+	require.NoError(t, harness.pool.QueryRow(context.Background(), "SELECT device_id, generation FROM command_intents ORDER BY generation DESC LIMIT 1").Scan(&deviceID, &generation))
+	require.Equal(t, "device-2", deviceID)
+	require.Equal(t, int64(2), generation)
+}
+
 func newActivityHarness(t *testing.T) *activityHarness {
 	pool := activityDatabase(t)
 	now := time.Date(2026, 9, 26, 12, 0, 0, 0, time.UTC)
