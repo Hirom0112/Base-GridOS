@@ -1,0 +1,133 @@
+syntax = "proto3";
+
+package gridos.v1;
+
+import "google/protobuf/timestamp.proto";
+import "gridos/v1/telemetry.proto";
+
+enum DispatchEventState {
+  DISPATCH_EVENT_STATE_UNSPECIFIED = 0;
+  DISPATCH_EVENT_STATE_REQUESTED = 1;
+  DISPATCH_EVENT_STATE_PLANNED = 2;
+  DISPATCH_EVENT_STATE_VALIDATED = 3;
+  DISPATCH_EVENT_STATE_APPROVED = 4;
+  DISPATCH_EVENT_STATE_COMMANDS_PERSISTED = 5;
+  DISPATCH_EVENT_STATE_SENT = 6;
+  DISPATCH_EVENT_STATE_ACKNOWLEDGED_OR_UNCERTAIN = 7;
+  DISPATCH_EVENT_STATE_EXECUTING = 8;
+  DISPATCH_EVENT_STATE_VERIFIED = 9;
+  DISPATCH_EVENT_STATE_RECONCILED = 10;
+  DISPATCH_EVENT_STATE_REPORTED = 11;
+}
+
+enum ExclusionReason {
+  EXCLUSION_REASON_UNSPECIFIED = 0;
+  EXCLUSION_REASON_NONE = 1;
+  EXCLUSION_REASON_RESERVE = 2;
+  EXCLUSION_REASON_STALE_TELEMETRY = 3;
+  EXCLUSION_REASON_UNAVAILABLE = 4;
+  EXCLUSION_REASON_MAINTENANCE_LOCK = 5;
+  EXCLUSION_REASON_TEMPERATURE = 6;
+  EXCLUSION_REASON_ALARM = 7;
+  EXCLUSION_REASON_OUTSIDE_REGION = 8;
+  EXCLUSION_REASON_POLICY = 9;
+  EXCLUSION_REASON_UNCERTAIN_COMMAND = 10;
+  EXCLUSION_REASON_NON_POSITIVE_MARGIN = 11;
+}
+
+enum CommandReceiptStatus {
+  COMMAND_RECEIPT_STATUS_UNSPECIFIED = 0;
+  COMMAND_RECEIPT_STATUS_ACCEPTED = 1;
+  COMMAND_RECEIPT_STATUS_REJECTED = 2;
+}
+
+message EventRequest {
+  string request_id = 1;
+  string event_type = 2;
+  google.protobuf.Timestamp begin_time = 3;
+  google.protobuf.Timestamp end_time = 4;
+  double target_kw = 5;
+  MeasurementBoundary measurement_boundary = 6;
+  repeated string load_zones = 7;
+  string correlation_id = 8;
+}
+
+message DispatchEvent {
+  string event_id = 1;
+  string request_id = 2;
+  DispatchEventState state = 3;
+  uint64 plan_version = 4;
+  google.protobuf.Timestamp created_at = 5;
+  google.protobuf.Timestamp updated_at = 6;
+  string correlation_id = 7;
+}
+
+message DeviceExclusion {
+  string device_id = 1;
+  ExclusionReason reason = 2;
+  string detail = 3;
+}
+
+message EligibilitySnapshot {
+  string snapshot_id = 1;
+  string event_id = 2;
+  google.protobuf.Timestamp captured_at = 3;
+  repeated string eligible_device_ids = 4;
+  repeated DeviceExclusion exclusions = 5;
+  string policy_version = 6;
+}
+
+message ReservePolicy {
+  string policy_version = 1;
+  double protected_hardware_floor_percent = 2;
+  double member_plan_floor_percent = 3;
+  double dynamic_override_percent = 4;
+  double effective_reserve_percent = 5;
+  google.protobuf.Timestamp effective_at = 6;
+  google.protobuf.Timestamp expires_at = 7;
+}
+
+message CommandIntent {
+  string command_id = 1;
+  string idempotency_key = 2;
+  string device_id = 3;
+  string event_id = 4;
+  uint64 plan_version = 5;
+  uint64 generation = 6;
+  double setpoint_kw = 7;
+  google.protobuf.Timestamp issued_at = 8;
+  google.protobuf.Timestamp effective_at = 9;
+  google.protobuf.Timestamp expires_at = 10;
+  string policy_version = 11;
+  string correlation_id = 12;
+}
+
+message CommandAcknowledgement {
+  string acknowledgement_id = 1;
+  string command_id = 2;
+  string idempotency_key = 3;
+  CommandReceiptStatus receipt_status = 4;
+  google.protobuf.Timestamp received_at = 5;
+  string gateway_id = 6;
+  string rejection_reason = 7;
+}
+
+message EmergencyStop {
+  string emergency_stop_id = 1;
+  string idempotency_key = 2;
+  string event_id = 3;
+  string requested_by = 4;
+  string reason = 5;
+  google.protobuf.Timestamp requested_at = 6;
+  string correlation_id = 7;
+}
+
+message GridEvent {
+  string event_id = 1;
+  google.protobuf.Timestamp begin_time = 2;
+  google.protobuf.Timestamp end_time = 3;
+  string event_type = 4;
+  bool participated = 5;
+  ExclusionReason exclusion_reason = 6;
+  string participation_explanation = 7;
+}
