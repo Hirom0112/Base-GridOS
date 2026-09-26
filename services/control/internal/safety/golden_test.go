@@ -68,9 +68,46 @@ func TestGoldenPythonAndGoSafetyAgree(t *testing.T) {
 			}
 			if !approval.Approved {
 				assertGoldenFamilies(t, fixture.ExpectedValidation.ViolationFamilies, violations)
+				return
 			}
+			t.Run("reserve", func(t *testing.T) {
+				mutatedPlan, mutatedState := goldenInputs(fixture)
+				device := goldenControlDevice(&mutatedPlan, mutatedState)
+				state := mutatedState.Devices[device.DeviceID]
+				state.DynamicReserveKWh = *state.EnergyKWh + 1
+				mutatedState.Devices[device.DeviceID] = state
+				_, rejected := Validate(mutatedPlan, mutatedState)
+				if !violationCodes(rejected)[EnergyBelowReserve] {
+					t.Fatalf("reserve perturbation was not rejected: %#v", rejected)
+				}
+			})
+			t.Run("max discharge", func(t *testing.T) {
+				mutatedPlan, mutatedState := goldenInputs(fixture)
+				device := goldenControlDevice(&mutatedPlan, mutatedState)
+				device.DischargeKW[0] = mutatedState.Devices[device.DeviceID].MaxDischargeKW + 1
+				_, rejected := Validate(mutatedPlan, mutatedState)
+				if !violationCodes(rejected)[DischargeBound] {
+					t.Fatalf("power perturbation was not rejected: %#v", rejected)
+				}
+			})
 		})
 	}
+}
+
+func goldenControlDevice(plan *Plan, state CanonicalState) *DevicePlan {
+	if len(plan.Devices) == 0 {
+		deviceID := firstGoldenDevice(state)
+		device := state.Devices[deviceID]
+		plan.Devices = append(plan.Devices, DevicePlan{DeviceID: deviceID, ChargeKW: []float64{0}, DischargeKW: []float64{0}, MeterExportKW: []float64{0}, EnergyKWh: []float64{*device.EnergyKWh, *device.EnergyKWh}})
+	}
+	return &plan.Devices[0]
+}
+
+func firstGoldenDevice(state CanonicalState) string {
+	for deviceID := range state.Devices {
+		return deviceID
+	}
+	return ""
 }
 
 func readGolden(t *testing.T, path string) goldenFixture {
