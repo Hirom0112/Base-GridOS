@@ -1,7 +1,9 @@
 from collections.abc import Callable
+from datetime import UTC, datetime, timedelta
 
 import grpc
 import pytest
+from google.protobuf.timestamp_pb2 import Timestamp
 from gridos.fallback.planner import plan_fallback
 from gridos.server import OptimizationServer
 from gridos.v1 import optimization_pb2, optimization_pb2_grpc
@@ -30,3 +32,32 @@ def test_server_rejects_missing_budget(
         serve(OptimizationServer()).Optimize(optimize_request)
 
     assert error.value.code() == grpc.StatusCode.INVALID_ARGUMENT
+
+
+def test_server_forecast_uses_public_profile_and_marks_missing_source(
+    serve: Callable[[OptimizationServer], optimization_pb2_grpc.OptimizationServiceStub],
+    optimize_request: optimization_pb2.OptimizeRequest,
+) -> None:
+    begin = datetime(2025, 1, 6, tzinfo=UTC)
+    end = begin + timedelta(minutes=15)
+    request = optimize_request.request
+    request.requested_at.CopyFrom(Timestamp(seconds=int(begin.timestamp())))
+    request.intervals[0].begin_time.CopyFrom(Timestamp(seconds=int(begin.timestamp())))
+    request.intervals[0].end_time.CopyFrom(Timestamp(seconds=int(end.timestamp())))
+    request.sites.add(site_id="known", load_profile_type="RESHIDG_COAST", load_zone="LZ_AEN")
+    request.sites.add(site_id="missing", load_profile_type="UNKNOWN", load_zone="LZ_AEN")
+    request.devices[0].site_id = "known"
+    request.devices[0].reliability_trait = "HIGH"
+    request.devices[0].telemetry_observed_at.CopyFrom(Timestamp(seconds=int(begin.timestamp())))
+
+    response = serve(OptimizationServer()).Forecast(
+        optimization_pb2.ForecastRequest(request=request)
+    )
+
+    assert len(response.site_loads) == 1
+    assert response.site_loads[0].site_id == "known"
+    assert response.site_loads[0].load_kwh.value > 0
+    assert response.site_loads[0].load_kwh.model_version == "load-baseline-v1"
+    assert len(response.device_availability) == 1
+    assert response.device_availability[0].probability.value > 0
+    assert "site_load:missing" in response.unavailable_sources
