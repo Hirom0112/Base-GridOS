@@ -470,7 +470,7 @@ Owns: `tools/development/mockapi/`, `testdata/fixtures/api/`,
   canonical JSON. The Python leg lives in 1C.1 and the TypeScript leg in the
   UI track (U0.9), each against the same fixture.
   Verify: `cd tests/contract && go test ./...`.
-- `[~]` 0F.4 `[after 0F.1]` Fixture recording harness `mockapi record`: given
+- `[x]` 0F.4 `[after 0F.1]` Fixture recording harness `mockapi record`: given
   a running control service, calls every method in `INDEX.json` and writes
   the responses back into `testdata/fixtures/api/`, so later waves refresh
   fixtures with one command. Verify: `go test ./tools/development/mockapi/ -run Record` passes against a stub server.

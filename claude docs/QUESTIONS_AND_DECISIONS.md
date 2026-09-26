@@ -140,5 +140,6 @@ assumptions reported by workers land here too.
   (0E.4); public-data downloads use three attempts, a 20-second timeout, and
   exponential delay (0E.8); the local mock API caps requests at 1 MiB with
   5-second header, 10-second read and write, and 30-second idle timeouts
-  (0F.1).
+  (0F.1); fixture recording uses a 10-second timeout and rejects responses
+  over 1 MiB (0F.4).
 
