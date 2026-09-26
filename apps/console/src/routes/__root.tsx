@@ -1,4 +1,9 @@
-import { createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
+import {
+  createRootRoute,
+  HeadContent,
+  Outlet,
+  Scripts,
+} from "@tanstack/react-router";
 import stylesheet from "../styles.css?url";
 
 export const Route = createRootRoute({
@@ -20,10 +25,7 @@ export function RootDocument() {
         <HeadContent />
       </head>
       <body>
-        <main>
-          <h1>GridOS</h1>
-          <p>Operator console</p>
-        </main>
+        <Outlet />
         <Scripts />
       </body>
     </html>

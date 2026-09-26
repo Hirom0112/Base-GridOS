@@ -1,0 +1,251 @@
+@media (min-width: 1600px) {
+  .situational-field {
+    padding: 40px;
+  }
+  .evidence-rail {
+    padding: 40px 28px;
+  }
+  .grid-field {
+    min-height: 470px;
+  }
+}
+
+@media (max-width: 1199px) {
+  .console {
+    grid-template-columns: 180px minmax(0, 1fr);
+  }
+  .workspace {
+    grid-template-columns: minmax(0, 1fr) 250px;
+  }
+  .topbar {
+    gap: 16px;
+  }
+  .identity {
+    display: none;
+  }
+  .scope .mono {
+    display: none;
+  }
+  .situational-field {
+    padding: 28px 20px 24px;
+  }
+  .view-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .primary-action {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-align: left;
+  }
+  .primary-action small {
+    margin: 0;
+  }
+  .response-boundary {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .evidence-rail {
+    padding: 28px 16px;
+  }
+  .evidence-card {
+    padding: 16px;
+  }
+}
+
+@media (max-width: 950px) {
+  .workspace {
+    display: flex;
+    flex-direction: column;
+  }
+  .console {
+    grid-template-columns: 160px minmax(0, 1fr);
+  }
+  .evidence-rail {
+    grid-column: 2;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    border-left: 0;
+    padding: 0 20px 24px;
+  }
+  .evidence-heading {
+    grid-column: 1 / -1;
+    margin-bottom: 0;
+  }
+  .evidence-card {
+    margin-bottom: 0;
+  }
+  .evidence-note {
+    margin: 0;
+    align-self: center;
+  }
+  .operating-rail {
+    grid-row: 2 / 4;
+    padding: 28px 8px;
+  }
+  .stage {
+    gap: 10px;
+    padding: 14px 10px;
+  }
+  .stage small {
+    font-size: 10px;
+  }
+  .stage-dot {
+    display: none;
+  }
+  .scenario {
+    font-size: 10px;
+  }
+  .scope {
+    font-size: 12px;
+    padding-left: 16px;
+  }
+  .truth-strip {
+    gap: 14px;
+  }
+  .truth-strip > span {
+    padding-left: 14px;
+  }
+  .truth-tail {
+    display: none;
+  }
+}
+
+@media (max-width: 600px) {
+  .workspace {
+    display: flex;
+    flex-direction: column;
+    padding: 28px 20px;
+    gap: 24px;
+  }
+  .console {
+    display: flex;
+    flex-direction: column;
+  }
+  .topbar {
+    padding: 16px 20px;
+    order: -2;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+  .brand {
+    font-size: 23px;
+  }
+  .scope {
+    margin-left: auto;
+  }
+  .scenario {
+    order: 4;
+    margin: 0;
+    flex-basis: 100%;
+  }
+  .topbar .mode-chip {
+    display: none;
+  }
+  .theme-toggle span:last-child {
+    display: none;
+  }
+  .situational-field {
+    display: contents;
+  }
+  .view-heading {
+    gap: 20px;
+  }
+  h1 {
+    font-size: 40px;
+  }
+  .capacity {
+    padding: 0 12px;
+  }
+  .capacity > span {
+    font-size: 10px;
+    min-height: 30px;
+    display: block;
+  }
+  .capacity > small {
+    font-size: 9px;
+  }
+  .capacity p small {
+    margin-left: 7px;
+    font-size: 10px;
+  }
+  .field-header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .field-empty {
+    padding: 25px 18px;
+  }
+  .field-empty h2 {
+    font-size: 21px;
+  }
+  .field-empty p {
+    font-size: 14px;
+  }
+  .field-footer {
+    gap: 20px;
+    font-size: 9px;
+  }
+  .desktop-break {
+    display: none;
+  }
+  .response-boundary ol {
+    width: 100%;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .evidence-rail {
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    order: 2;
+  }
+  .capacity-strip {
+    margin: 0;
+  }
+  .grid-field {
+    order: 3;
+  }
+  .response-boundary {
+    order: 4;
+    margin-top: 0;
+  }
+  .truth-strip {
+    order: -1;
+  }
+  .evidence-note {
+    align-self: flex-start;
+  }
+  .operating-rail {
+    order: 4;
+    border-right: 0;
+    border-top: 1px solid var(--ink-3);
+    padding: 24px 20px;
+  }
+  .operating-rail ol {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+    margin: 20px 0;
+  }
+  .event-thread {
+    margin: 0;
+  }
+  .rail-footnote {
+    display: none;
+  }
+  .truth-strip {
+    order: -1;
+    padding: 20px;
+  }
+  .truth-strip strong {
+    flex-basis: 100%;
+  }
+  .truth-strip > span:first-of-type {
+    border: 0;
+    padding: 0;
+  }
+}

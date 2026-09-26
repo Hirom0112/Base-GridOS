@@ -5,7 +5,12 @@ import { getRouter } from "./router";
 
 test("serves the root route through the application router", async () => {
   const router = getRouter();
-  router.update({ history: createMemoryHistory({ initialEntries: ["/"] }) });
+  router.update({
+    history: createMemoryHistory({ initialEntries: ["/"] }),
+    scrollRestoration: false,
+  });
   render(<RouterProvider router={router} />);
-  expect(await screen.findByRole("heading", { name: "GridOS" })).toBeVisible();
+  expect(
+    await screen.findByRole("heading", { name: "Austin fleet" }),
+  ).toBeVisible();
 });

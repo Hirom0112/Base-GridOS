@@ -5,3 +5,4 @@ dist/
 .tanstack/
 test-results/
 playwright-report/
+src/__snapshots__/

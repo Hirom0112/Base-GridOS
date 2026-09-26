@@ -1,9 +1,11 @@
 import { expect, test } from "@playwright/test";
+import AxeBuilder from "@axe-core/playwright";
 
 test("shell keeps its static truth and keyboard path", async ({ page }) => {
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
-  await page.goto("/");
+  const response = await page.goto("/");
+  expect(response?.status()).toBe(200);
   await expect(page.getByRole("main")).toHaveAccessibleName("Austin fleet");
   await page.keyboard.press("Tab");
   await expect(
@@ -22,6 +24,10 @@ for (const theme of ["dark", "light"] as const) {
       await page.goto("/");
       if (theme === "light")
         await page.getByRole("button", { name: "Use light theme" }).click();
+      await expect(page.locator(".console")).toHaveAttribute(
+        "data-theme",
+        theme,
+      );
       await expect(
         page.getByRole("heading", { name: "Austin fleet" }),
       ).toBeVisible();
@@ -33,9 +39,58 @@ for (const theme of ["dark", "light"] as const) {
           () => document.documentElement.scrollWidth <= innerWidth,
         ),
       ).toBe(true);
+      expect(
+        (
+          await new AxeBuilder({ page })
+            .withTags(["wcag2a", "wcag2aa"])
+            .analyze()
+        ).violations,
+      ).toEqual([]);
       await expect(page).toHaveScreenshot(`shell-${theme}-${width}.png`, {
         fullPage: true,
       });
     });
   }
 }
+
+test("shell stays useful without JavaScript", async ({ browser }) => {
+  const context = await browser.newContext({ javaScriptEnabled: false });
+  const page = await context.newPage();
+  await page.goto("http://127.0.0.1:3000");
+  await expect(
+    page.getByRole("heading", { name: "Austin fleet" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("complementary", { name: "Fleet evidence" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Use light theme" }),
+  ).toBeDisabled();
+  await context.close();
+});
+
+test("shell remains static under reduced motion without WebGL", async ({
+  browser,
+}) => {
+  const context = await browser.newContext({ reducedMotion: "reduce" });
+  await context.addInitScript(() => {
+    HTMLCanvasElement.prototype.getContext = () => null;
+  });
+  const page = await context.newPage();
+  await page.goto("http://127.0.0.1:3000");
+  expect(
+    await page.evaluate(() =>
+      document.createElement("canvas").getContext("webgl"),
+    ),
+  ).toBeNull();
+  await expect(
+    page.getByRole("heading", { name: "Austin fleet" }),
+  ).toBeVisible();
+  await expect(page.getByRole("contentinfo")).toContainText(
+    "Fleet state unavailable",
+  );
+  await page.getByRole("button", { name: "Use light theme" }).click();
+  await expect(page.locator(".console")).toHaveAttribute("data-theme", "light");
+  expect(await page.evaluate(() => document.getAnimations().length)).toBe(0);
+  await context.close();
+});
