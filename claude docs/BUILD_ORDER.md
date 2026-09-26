@@ -43,8 +43,8 @@ UI track's Playwright acceptance spec at every gate.
 
 - `[P]` fully parallel. The item depends on nothing outside its own lane. Start
   it the moment the lane is free.
-- `[after X]` the item needs item `X` from another lane to be **merged to
-  main** first. Until then the lane works on its other `[P]` items or writes
+- `[after X]` the item needs item `X` from another lane to be **committed
+  on main and marked `[x]`** first. Until then the lane works on its other `[P]` items or writes
   the RED tests for this item (tests can always be written early).
 - Every wave opens with all six lanes on `[P]` items so no agent is idle at
   wave start. Cross-lane waits are placed late in each lane on purpose.
@@ -115,17 +115,18 @@ feature.
    only by the director. A worker reports an assumption, a stub marker, or a
    blocker in its mailbox line (`worker: ASSUMPTION <item> | <text>`,
    `worker: STUB <item> | <marker> | <path>`, `worker: BLOCKED ...`) and the
-   director records it at merge. Each assumption names the spec section it
-   interprets.
+   director records it when marking the item `[x]`. Each assumption names
+   the spec section it interprets.
 
 ### Standing items (every wave)
 
-- `[ ]` Director updates `ASSUMPTIONS.md` at every merge that reported one.
+- `[ ]` Director updates `ASSUMPTIONS.md` whenever a verified item reported one.
 - `[ ]` Director keeps `STUBS.md` equal to every `STUBBED` or `PENDING-LIVE` marker in the tree.
   Verify: `grep -rn "STUBBED\|PENDING-LIVE" --include=*.go --include=*.py --include=*.ts --include=*.tsx . | wc -l` equals the count of entries in `STUBS.md`.
-- `[ ]` No `any` in TypeScript, no `Any` in Python, no `interface{}` used as an
-  escape hatch in Go outside generated code.
-  Verify: `grep -rn ": any\b\|as any\b" apps --include=*.ts --include=*.tsx | grep -v generated` prints nothing; `grep -rn "typing.Any\|: Any\b" services/decision | grep -v _pb2` prints nothing.
+- `[ ]` No `any`, no `Any`, no bare `interface{}`, no comments, no
+  suppressions, no file over 500 lines. The pre-commit hook enforces this on
+  every commit; the director re-runs the hook's checks over the whole tree
+  once at each gate. Verify: `git stash list` is empty and `git log --format=%s -n 50 | grep -cE '^[a-z]+(\(.*\))?:'` prints 0.
 - `[ ]` No real PII in fixtures. Verify: `grep -rEn "[0-9]{3}-[0-9]{2}-[0-9]{4}|@gmail\.com|@yahoo\.com" testdata` prints nothing, and no fixture record carries a street address field.
 - `[ ]` Every simulated fixture and UI view carries `provenance: SIMULATED`
   (FULL_SPEC §2).
@@ -1303,8 +1304,8 @@ Owns: `docs/operations/security/` (threat model and retention),
   `docs/operations/security/retention.md` with retention and deletion rules
   for household data and travel state (FULL_SPEC §11 and §12 Phase 5).
   Verify: both docs exist and each FULL_SPEC §11 bullet maps to a section.
-- `[ ]` 5E.4 `[P]` Secrets scan in the pre-push hook as the enforcement of
-  FULL_SPEC §11 "never commit operational credentials".
+- `[ ]` 5E.4 `[P]` Secrets scan added to the pre-commit hook as the
+  enforcement of FULL_SPEC §11 "never commit operational credentials".
   Verify: `gitleaks detect` passes and a scratch commit containing a fake AWS key is rejected.
 
 ### Lane 5F — docs, runbooks, demo
