@@ -859,7 +859,7 @@ Owns: `services/control/internal/dispatch/`, `services/control/cmd/worker`,
   the Temporal SDK test environment with time skipping (the SDK dependency
   was pre-declared in 1D.1).
   Verify: `go test ./services/control/internal/dispatch/ -run Smoke` passes.
-- `[~]` 2B.2 `[P]` RED: `workflow_test.go` walking the eleven states in order
+- `[x]` 2B.2 `[P]` RED: `workflow_test.go` walking the eleven states in order
   with activities mocked; the workflow never skips `VALIDATED` or `APPROVED`;
   an `ApproveEvent` signal is required before `COMMANDS_PERSISTED`; an
   `EmergencyStop` signal from any state after `SENT` issues superseding
