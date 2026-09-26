@@ -32,3 +32,18 @@ func TestScenarioFileDrivesClockedInjections(t *testing.T) {
 		t.Fatalf("effects=%+v", effects)
 	}
 }
+
+func TestScenarioFileReadsScheduledScope(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "scenario.yaml")
+	payload := []byte("name: scheduled\nclock:\n  seed: 41\n  start_at: 2026-08-12T16:00:00-05:00\n  interval_seconds: 300\nfleet:\n  path: fleet.jsonl\n  size: 2\ninjections:\n  - at: 2026-08-12T16:05:00-05:00\n    kind: DROPPED_MESSAGES\n    scope: scheduled\n")
+	if err := os.WriteFile(path, payload, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	scenario, err := LoadScenario(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if scenario.Injections[0].Scope != Scheduled {
+		t.Fatalf("scope = %q", scenario.Injections[0].Scope)
+	}
+}
