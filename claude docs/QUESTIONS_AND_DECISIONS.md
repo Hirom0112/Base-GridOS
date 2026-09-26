@@ -110,4 +110,8 @@ assumptions reported by workers land here too.
 - **0C.4 (lane C):** simulated batteries are limited to a one-hour C-rate,
   so charge and discharge power in kW never exceed usable energy in kWh.
   Accepted as a plausibility bound for fixtures.
+- **Rollback files (lane D, unrequested by any item):** `database/rollbacks/`
+  with one file per migration. Accepted, not scope invention: `AGENTS.md`
+  lists migrations with a rollback path under what simplicity never cuts.
+  Verified: forward, rollback to zero tables, forward again, all clean.
 

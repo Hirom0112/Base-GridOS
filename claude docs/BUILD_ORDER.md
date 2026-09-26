@@ -279,7 +279,7 @@ Owns: `contracts/`, `buf.yaml`, `buf.gen.yaml`.
   `HomeActivityAlert` whose description field is fixed text "energy anomaly
   signal, not a verified intrusion". Then run generation.
   Verify: `buf generate contracts` writes Go, Python, and TS output and `buf lint contracts` passes.
-- `[~]` 0B.7 `[P]` Breaking-change check against `main` using
+- `[x]` 0B.7 `[P]` Breaking-change check against `main` using
   `buf breaking contracts --against '.git#branch=main'`, documented in
   `contracts/README.md`; lane A adds it to the `Makefile` `generate` target
   on request. Verify: the command exits 0 on a clean tree and exits 1 when a field number is changed in the working tree.
@@ -366,7 +366,7 @@ Owns: `database/`, `sqlc.yaml`.
   plus outbox in one statement set, claim outbox batch with `FOR UPDATE SKIP
   LOCKED`, upsert acknowledgement, append audit. `sqlc.yaml` targeting
   `services/control/internal/storage/gen`. Verify: `sqlc generate && sqlc vet` succeed.
-- `[~]` 0D.6 `[P]` `database/seeds/dev.sql` loading `testdata/fleets/texas-50.jsonl`
+- `[x]` 0D.6 `[P]` `database/seeds/dev.sql` loading `testdata/fleets/texas-50.jsonl`
   into a `sites` reference table (structure from 0B.2) for local
   development only. Verify: after seeding, `psql -c "select count(*) from sites"` returns 50.
 
