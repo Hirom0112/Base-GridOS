@@ -19,8 +19,11 @@ const (
 type Availability string
 
 const (
-	Online Availability = "ONLINE"
-	Stale  Availability = "STALE"
+	Online      Availability = "ONLINE"
+	Offline     Availability = "OFFLINE"
+	Degraded    Availability = "DEGRADED"
+	Stale       Availability = "STALE"
+	Maintenance Availability = "MAINTENANCE"
 )
 
 type SiteState struct {
@@ -81,6 +84,21 @@ func (t *Twin) Site(siteID string, now time.Time) (SiteState, bool) {
 		state.Availability = Stale
 	}
 	return state, found
+}
+
+func (t *Twin) Sites(now time.Time) []SiteState {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+	states := make([]SiteState, 0, len(t.sites))
+	for _, state := range t.sites {
+		if now.Sub(state.ObservedAt) > t.freshnessThreshold {
+			state.Availability = Stale
+		} else if state.Availability == "" {
+			state.Availability = Online
+		}
+		states = append(states, state)
+	}
+	return states
 }
 
 func (t *Twin) Aggregate(now time.Time) Aggregate {
