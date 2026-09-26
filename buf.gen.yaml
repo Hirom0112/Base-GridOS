@@ -10,6 +10,9 @@ plugins:
     out: services/decision/gridos/gen
   - remote: buf.build/grpc/python
     out: services/decision/gridos/gen
+  - remote: buf.build/bufbuild/es
+    out: apps/console/src/api/gen
+    opt: target=ts
   - remote: buf.build/connectrpc/es
     out: apps/console/src/api/gen
     opt: target=ts
