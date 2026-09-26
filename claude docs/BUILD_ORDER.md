@@ -752,7 +752,7 @@ Owns: `services/control/internal/ingest/`, `tests/end-to-end/`, the
   `command_id` twice through the outbox; the gateway shows one physical
   effect and storage shows one acknowledgement. Verify: `go test ./tests/end-to-end/ -run DuplicateDelivery` passes.
 
-- `[~]` 1F.6 `[P]` Local Buf plugins: `buf.gen.yaml` switches every
+- `[x]` 1F.6 `[P]` Local Buf plugins: `buf.gen.yaml` switches every
   `remote:` plugin to a `local:` binary (`protoc-gen-go`,
   `protoc-gen-connect-go` via `go install`; `protoc-gen-es` via
   `pnpm dlx`/a pinned devDependency in `tools/development/`; Python via
