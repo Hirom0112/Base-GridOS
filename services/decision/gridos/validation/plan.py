@@ -6,6 +6,7 @@ from gridos.fallback.planner import (
     DeviceState,
     FallbackPlan,
     PlanningInterval,
+    exclusion_reason,
 )
 
 
@@ -23,6 +24,9 @@ def _schedule_violations(
     tolerance: float,
 ) -> list[Violation]:
     violations: list[Violation] = []
+    ineligible = exclusion_reason(device)
+    if ineligible is not None:
+        violations.append(Violation(ineligible, device.device_id))
     if len(schedule.intervals) != len(intervals):
         violations.append(Violation("VECTOR_LENGTH", device.device_id))
     previous_energy = device.energy_kwh
@@ -43,6 +47,9 @@ def _schedule_violations(
             continue
         if planned.discharge_kw < 0.0 or planned.discharge_kw > device.max_discharge_kw + tolerance:
             violations.append(Violation("POWER_BOUND", device.device_id, index))
+        export_limit = max(0.0, planned.discharge_kw - device.home_load_kw)
+        if planned.grid_service_kw < 0.0 or planned.grid_service_kw > export_limit + tolerance:
+            violations.append(Violation("EXPORT_BOUND", device.device_id, index))
         reconstructed = previous_energy - (
             planned.discharge_kw * interval.duration_hours / device.discharge_efficiency
         )

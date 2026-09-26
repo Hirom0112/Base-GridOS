@@ -91,7 +91,7 @@ def _validate_device(device: DeviceState) -> None:
         raise ValueError("discharge efficiency must be in (0, 1]")
 
 
-def _exclusion_reason(device: DeviceState) -> str | None:
+def exclusion_reason(device: DeviceState) -> str | None:
     if device.stale:
         return "STALE_TELEMETRY"
     if device.maintenance:
@@ -127,7 +127,7 @@ def plan_fallback(devices: list[DeviceState], intervals: list[PlanningInterval])
             exclusions.append(Exclusion(device.device_id, "DUPLICATE_DEVICE"))
             continue
         seen.add(device.device_id)
-        reason = _exclusion_reason(device)
+        reason = exclusion_reason(device)
         if reason is None:
             eligible.append(device)
         else:
