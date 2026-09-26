@@ -10,7 +10,24 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.temporal.io/sdk/activity"
 	"go.temporal.io/sdk/testsuite"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
+
+func TestWindowReportWaitsForEndAndLateMessages(t *testing.T) {
+	var suite testsuite.WorkflowTestSuite
+	environment := suite.NewTestWorkflowEnvironment()
+	begin := environment.Now().Add(10 * time.Minute)
+	end := begin.Add(20 * time.Minute)
+	input := Input{EventID: "window-event", Request: &gridosv1.EventRequest{BeginTime: timestamppb.New(begin), EndTime: timestamppb.New(end)}}
+	mockWorkflowActivities(environment, input)
+	environment.RegisterDelayedCallback(func() {
+		environment.SignalWorkflow(ApproveEventSignal, Approval{ApprovedBy: "operator-1"})
+		environment.SignalWorkflow(LaunchEventSignal, persistArgument(input).Launch)
+	}, time.Millisecond)
+	environment.ExecuteWorkflow(Workflow, input)
+	require.NoError(t, environment.GetWorkflowError())
+	require.False(t, environment.Now().Before(end.Add(30*time.Second)))
+}
 
 func TestSmoke(t *testing.T) {
 	var suite testsuite.WorkflowTestSuite
