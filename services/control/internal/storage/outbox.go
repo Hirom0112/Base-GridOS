@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	storagegen "github.com/Hirom0112/Base-GridOS/services/control/internal/storage/gen"
@@ -122,6 +123,19 @@ func ClaimOutbox(ctx context.Context, pool *pgxpool.Pool, claim OutboxClaim) ([]
 		commands = append(commands, command)
 	}
 	return commands, rows.Err()
+}
+
+func MarkOutboxPublished(ctx context.Context, pool *pgxpool.Pool, commandID string, publishedAt time.Time) error {
+	tag, err := pool.Exec(ctx, `UPDATE command_outbox
+		SET state = 'PUBLISHED', published_at = $2
+		WHERE command_id = $1 AND state = 'PUBLISHING'`, commandID, publishedAt)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() != 1 {
+		return errors.New("outbox row is not publishing")
+	}
+	return nil
 }
 
 func timestamp(value time.Time) pgtype.Timestamptz {
