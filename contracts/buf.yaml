@@ -1,0 +1,8 @@
+version: v1
+name: buf.build/gridos/gridos
+lint:
+  use:
+    - STANDARD
+breaking:
+  use:
+    - FILE
