@@ -1,4 +1,4 @@
-.PHONY: up down generate test-go test-py test-web test-all hooks ui-mock plugins decision demo
+.PHONY: up down generate test-go test-e2e test-py test-web test-all hooks ui-mock plugins decision demo
 
 up:
 	docker compose -f infrastructure/local/compose.yaml up -d --wait
@@ -11,7 +11,16 @@ generate:
 	buf breaking contracts --against '.git#branch=main,subdir=contracts'
 
 test-go:
-	go test $$(go list -m -f '{{if .Main}}{{.Path}}/...{{end}}' all)
+	go test $$(go list -m -f '{{if and .Main (ne .Path "github.com/Hirom0112/Base-GridOS/tests/end-to-end")}}{{.Path}}/...{{end}}' all)
+
+test-e2e:
+	@set -e; \
+		mkdir -p .local/demo; \
+		$(MAKE) demo > .local/demo/test-e2e.log 2>&1 & demo_pid=$$!; \
+		cleanup() { kill $$demo_pid 2>/dev/null || true; wait $$demo_pid 2>/dev/null || true; $(MAKE) down; }; \
+		trap cleanup EXIT INT TERM; \
+		attempts=0; until grep -q '^demo ready:' .local/demo/test-e2e.log; do kill -0 $$demo_pid; attempts=$$((attempts + 1)); test $$attempts -lt 120 || { tail -n 20 .local/demo/test-e2e.log; exit 1; }; sleep 0.25; done; \
+		go test ./tests/end-to-end/
 
 test-py:
 	@find tools services -name pyproject.toml -type f -print | sort | while read -r project; do \

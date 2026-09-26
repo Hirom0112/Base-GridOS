@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -47,6 +48,7 @@ type commandIntent struct {
 }
 
 func TestVerticalSlice(t *testing.T) {
+	requireDemo(t)
 	ctx := context.Background()
 	now := time.Now().UTC()
 	deviceID := firstFleetDevice(t)
@@ -75,6 +77,7 @@ func TestVerticalSlice(t *testing.T) {
 }
 
 func TestDuplicateDelivery(t *testing.T) {
+	requireDemo(t)
 	ctx := context.Background()
 	now := time.Now().UTC()
 	identifier := fmt.Sprintf("duplicate-%d", now.UnixNano())
@@ -108,6 +111,19 @@ func TestDuplicateDelivery(t *testing.T) {
 	ack := first.Msg.GetAcknowledgement()
 	recordAcknowledgement(t, ctx, pool, ack, identifier)
 	assertDeliveryCounts(t, ctx, pool, identifier)
+}
+
+func requireDemo(t *testing.T) {
+	t.Helper()
+	for _, address := range []string{"127.0.0.1:28080", "127.0.0.1:28081"} {
+		connection, err := net.DialTimeout("tcp", address, 250*time.Millisecond)
+		if err != nil {
+			t.Skip("demo stack is not listening; run make test-e2e")
+		}
+		if err = connection.Close(); err != nil {
+			t.Fatal(err)
+		}
+	}
 }
 
 func publishTelemetry(t *testing.T, ctx context.Context, deviceID string, now time.Time) {
