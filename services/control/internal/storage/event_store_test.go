@@ -97,18 +97,28 @@ func TestPostgresEventStoreRejectsWrongPlanVersion(t *testing.T) {
 
 func seedStoredPlan(t *testing.T, pool *pgxpool.Pool, eventID string, now time.Time) {
 	t.Helper()
-	_, err := pool.Exec(context.Background(), `INSERT INTO input_snapshots
+	ctx := context.Background()
+	_, err := pool.Exec(ctx, `INSERT INTO input_snapshots
         (snapshot_id, event_id, captured_at, inputs, provenance, correlation_id)
-        VALUES ('stored-input', $1, $2, '{}', '{}', 'correlation-store');
-        INSERT INTO eligibility_snapshots
+        VALUES ('stored-input', $1, $2, '{}', '{}', 'correlation-store')`, eventID, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = pool.Exec(ctx, `INSERT INTO eligibility_snapshots
         (snapshot_id, event_id, captured_at, eligible_device_ids, exclusions, policy_version, correlation_id)
         VALUES ('stored-eligibility', $1, $2, ARRAY['device-1'],
         '[{"device_id":"device-2","reason":"EXCLUSION_REASON_RESERVE"},{"device_id":"device-3","reason":"EXCLUSION_REASON_RESERVE"},{"device_id":"device-4","reason":"EXCLUSION_REASON_STALE_TELEMETRY"}]',
-        'policy-1', 'correlation-store');
-        INSERT INTO plan_versions
+        'policy-1', 'correlation-store')`, eventID, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = pool.Exec(ctx, `INSERT INTO plan_versions
         (event_id, version, input_snapshot_id, eligibility_snapshot_id, plan, solver_version, model_version, correlation_id)
-        VALUES ($1, 3, 'stored-input', 'stored-eligibility', '{}', 'solver-1', 'model-1', 'correlation-store');
-        UPDATE dispatch_events SET state = 'VALIDATED', plan_version = 3 WHERE event_id = $1`, eventID, now)
+		VALUES ($1, 3, 'stored-input', 'stored-eligibility', '{}', 'solver-1', 'model-1', 'correlation-store')`, eventID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = pool.Exec(ctx, "UPDATE dispatch_events SET state = 'VALIDATED', plan_version = 3 WHERE event_id = $1", eventID)
 	if err != nil {
 		t.Fatal(err)
 	}
