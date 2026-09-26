@@ -348,4 +348,15 @@ assumptions reported by workers land here too.
   simulator never applied scenario injections at runtime and exited on a
   failed publish; opened 2A.6 for lane A. The measurement-gap and Houston
   outcomes wait on 2C.7's wiring, already in 2B.7.
+- **Terminal kill during Wave 2 (2026-09-26):** Hirom's terminals were
+  closed, taking the Codex TUI, the director's lane agents, and the mailbox
+  watcher. The Codex app-server daemon kept the worker thread alive (it
+  accepts queued messages), the compose stack and standing demo survived,
+  and every commit is intact; lanes B and F had uncommitted edits on disk,
+  which stay theirs. The director restaffed lane D from its surviving
+  uncommitted work. Recovery rule: sessions live in the daemon; reattach with
+  `codex resume <thread id>` rather than starting new sessions.
+- **2A.6 (lane A):** scenario injections now act at runtime on exactly the
+  seeded devices, failed publishes buffer to SQLite and replay once, and
+  `--cadence` speeds integration runs; lane A complete again.
 

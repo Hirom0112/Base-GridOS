@@ -851,7 +851,7 @@ For 2A.6, after lane F's 2F.1: `services/gateway-simulator/internal/telemetry/`.
   binary; a run with the same seed twice produces identical telemetry hashes.
   Verify: `go test ./services/gateway-simulator/tests -run ScenarioDeterminism` passes.
 
-- `[~]` 2A.6 `[P]` Make injections real at runtime. `cmd/gateway-simulator
+- `[x]` 2A.6 `[P]` Make injections real at runtime. `cmd/gateway-simulator
   --scenario` wires `failures.Engine` into the command-receipt and
   telemetry-publish paths so `DROPPED_MESSAGES`, `DUPLICATED_MESSAGES`,
   `DELAYED_TELEMETRY`, `DELAYED_GATEWAY`, `OFFLINE_DEVICES`, and
