@@ -1217,7 +1217,7 @@ Owns: `services/control/internal/dispatch/`, `services/control/internal/api/`,
 
 Owns: `services/control/internal/analytics/`.
 
-- `[ ]` 3E.1 `[P]` `analytics.Sink` interface with two implementations: a
+- `[x]` 3E.1 `[P]` `analytics.Sink` interface with two implementations: a
   fixture-backed local sink writing newline JSON under `.local/analytics/`
   (default) and a BigQuery sink enabled only by `GRIDOS_ANALYTICS=bigquery`
   (TECHSTACK "Local and deployed topology"). RED tests use the local sink.

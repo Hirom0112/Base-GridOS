@@ -502,3 +502,9 @@ assumptions reported by workers land here too.
   starts now. 3D waits: lane F is mid-edit in `internal/dispatch/` and
   `internal/reconciliation/` for 2F.10, and lane D holds
   `tests/integration/`. 3D.3 and 3D.4 may start once 2F.10 is verified.
+- **3E.1 (lane 3E), verified:** local newline-JSON sink under
+  `.local/analytics/` by default; the BigQuery sink is a plain HTTPS POST to
+  the insertAll endpoint with the record id as insertId, Application
+  Default Credentials through `golang.org/x/oauth2/google` (one go.mod
+  line), a 10 s client timeout, and three bounded retries on 429 and 5xx.
+  Row-level insert errors fail the write. Director re-run ok.
