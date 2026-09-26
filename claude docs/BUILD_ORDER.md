@@ -727,7 +727,7 @@ After lane D completes: `services/control/internal/storage/` and
   (requested, approved, commanded, acknowledged MW; devices excluded by
   reason; provenance and versions) assembled from storage.
   Verify: `go test ./services/control/internal/report/` passes.
-- `[~]` 1E.7 `[P]` Make `cmd/control` the real control plane: mount the
+- `[x]` 1E.7 `[P]` Make `cmd/control` the real control plane: mount the
   `TelemetryService` from `internal/ingest`, the dispatcher from 1E.5 with a
   gRPC client to the decision service (`GRIDOS_DECISION_ADDR`) and the safety
   gate, the publisher from 1D.9 with the gateway address

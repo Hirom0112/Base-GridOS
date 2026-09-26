@@ -147,7 +147,9 @@ assumptions reported by workers land here too.
   freshness threshold and the same header, write, idle, and shutdown
   timeouts (1E.4); the publisher integration harness allows 10 seconds for
   the gateway to start and a 2-second acknowledgement deadline (1D.9); control
-  startup allows 5 seconds to reach PostgreSQL (1E.4).
+  startup allows 5 seconds to reach PostgreSQL (1E.4); the real-process
+  lifecycle test allows 10 seconds per process to listen, probing every
+  25 ms with a 100 ms dial timeout (1E.7).
 - **Remote Buf plugins rate-limited at Gate 0:** the Buf Schema Registry
   returned `resource_exhausted` after the day's regenerations. Gate 0 closes
   on a retried generate; Wave 1 item 1F.6 moves every plugin to a local
