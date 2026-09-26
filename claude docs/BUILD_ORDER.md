@@ -534,7 +534,7 @@ Owns: `services/gateway-simulator/`.
   battery model on the scenario clock, buffering to SQLite before publish,
   deleting only after confirmed cloud receipt, and replaying the buffer on
   reconnect (TECHSTACK items 6 to 8). Verify: `go test ./services/gateway-simulator/internal/telemetry/` passes.
-- `[~]` 1A.7 `[after 0B.6]` gRPC server in `cmd/gateway-simulator` implementing
+- `[x]` 1A.7 `[after 0B.6]` gRPC server in `cmd/gateway-simulator` implementing
   the command receipt and telemetry publish services from `gridos.v1`, loading
   a fleet file and scenario clock from flags. Real gRPC test in
   `services/gateway-simulator/tests/protocol_test.go` sending a `CommandIntent`
@@ -559,13 +559,13 @@ Owns: `services/control/internal/safety/`.
 - `[x]` 1B.2 `[P]` GREEN: `Validate(plan, canonicalState) (Approval, []Violation)`
   reconstructing energy trajectories from canonical state, not from the
   plan's own claims. Verify: table tests pass.
-- `[~]` 1B.3 `[P]` RED then GREEN: effective reserve = max(hardware floor,
+- `[x]` 1B.3 `[P]` RED then GREEN: effective reserve = max(hardware floor,
   plan floor, dynamic override). Cases: a `0%` Grid Flex plan still protects
   the hardware floor; a weather override raises the floor above the plan; a
   Travel Flex window before its start or after its end or after early return
   cannot lower the floor; an active override blocks Travel Flex.
   Verify: `go test ./services/control/internal/safety/ -run Reserve` passes.
-- `[~]` 1B.4 `[P]` RED then GREEN: fail closed. Missing state of charge,
+- `[x]` 1B.4 `[P]` RED then GREEN: fail closed. Missing state of charge,
   missing freshness, or contradictory inputs produce a rejection, never an
   approval (FULL_SPEC §4 invariant 8). Verify: `-run FailClosed` passes.
 - `[~]` 1B.5 `[P]` Property test with `pgregory.net/rapid`: for random plans
