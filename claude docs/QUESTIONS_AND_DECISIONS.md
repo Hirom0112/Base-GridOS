@@ -282,4 +282,7 @@ assumptions reported by workers land here too.
   computed in-process before the isolated solver runs, so a slow or unhealthy
   solver can never become an error; the solver slot defaults to the
   deterministic planner until 3B supplies HiGHS.
+- **2E.2 (lane E), accepted:** the service holds no incumbent plan (stateless
+  per request); a solver that raises, exits, or cannot be shipped to the
+  child yields `fallback_reason` SOLVER_FAILED with the failure logged.
 

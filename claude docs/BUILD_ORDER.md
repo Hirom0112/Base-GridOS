@@ -952,7 +952,7 @@ Owns: `services/decision/`, `testdata/golden/`.
   returns the fallback plan with `fallback=true` and the timeout reason; the
   solver work runs in a subprocess that is killed on timeout
   (`system-understanding.md` "Reliable execution"). Verify: `uv run --project services/decision pytest services/decision -k timeout` passes.
-- `[~]` 2E.2 `[P]` RED then GREEN: no incumbent. A request with no prior plan
+- `[x]` 2E.2 `[P]` RED then GREEN: no incumbent. A request with no prior plan
   and an unhealthy solver still returns a fallback, never an error.
   Verify: `-k no_incumbent` passes.
 - `[~]` 2E.3 `[P]` RED then GREEN: invalid vector. A solver result with NaN,
