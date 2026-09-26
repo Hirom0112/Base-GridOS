@@ -712,7 +712,7 @@ Owns: `services/control/internal/fleet/`, `services/control/internal/api/`,
   roles; the approver role is required for `ApproveEvent` and `LaunchEvent`.
   Tests use the generated Connect client.
   Verify: `go test ./services/control/internal/api/` passes including a 403 for the wrong role and a rejection of `LaunchEvent` on a non-approved event.
-- `[~]` 1E.5 `[after 1B.2, 1C.8, 1D.9]` Phase 1 straight-line dispatcher (no
+- `[x]` 1E.5 `[after 1B.2, 1C.8, 1D.9]` Phase 1 straight-line dispatcher (no
   Temporal yet, replaced in Wave 2): create event, freeze snapshot, call the
   decision service, run the safety gate, require approval, persist intents,
   hand to the publisher. Marked `REPLACED-IN-WAVE-2` in code and reported as
