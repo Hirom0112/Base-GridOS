@@ -188,7 +188,7 @@ Owns: repo root files (`Makefile`, `AGENTS.md`, `.gitignore`),
   `temporal server start-dev` image), and healthchecks for both. No BigQuery,
   no cloud credentials (TECHSTACK "Local and deployed topology").
   Verify: `docker compose -f infrastructure/local/compose.yaml up -d --wait && docker compose -f infrastructure/local/compose.yaml ps` shows both healthy.
-- `[~]` 0A.4 `[P]` Root `Makefile` with targets `up`, `down`, `generate`
+- `[x]` 0A.4 `[P]` Root `Makefile` with targets `up`, `down`, `generate`
   (runs `buf generate contracts`), `test-go`, `test-py`, `test-web`,
   `test-all` (the once-per-wave full suite, director only), `hooks`,
   `ui-mock` (runs 0F.1's mock server). No `demo` target yet; it arrives
@@ -196,6 +196,14 @@ Owns: repo root files (`Makefile`, `AGENTS.md`, `.gitignore`),
   working directory `.local/` (normalized data, quarantine, analytics sink)
   and every `buf generate` output directory to `.gitignore`.
   Verify: `make up` and `make down` succeed; `make -n test-all` lists the three test targets; `git check-ignore .local/x` prints the path.
+
+- `[ ]` 0A.5 `[after 0F.1, 0C.3]` Make `test-go` and `test-py` real now that
+  modules exist: a root `go.work` listing every Go module as it appears
+  (`tools/development/mockapi` first), `test-go` running `go test` across
+  the workspace, and `test-py` running `uv run --project tools pytest` (and
+  `--project services/decision` once 1C.1 lands). Found at 0A.4 verification:
+  the root has no Go module or Python project, so the targets as written
+  cannot run. Verify: `make test-go` and `make test-py` exit 0 on the tree at Gate 0.
 
 ### Lane 0B — contracts
 
@@ -1384,13 +1392,13 @@ Owns: `README.md`, `docs/operations/` (except `security/`), `AGENTS.md`.
 
 | Wave | A | B | C | D | E | F | Total |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 0 | 4 | 7 | 7 | 6 | 8 | 4 | 36 |
+| 0 | 5 | 7 | 7 | 6 | 8 | 4 | 37 |
 | 1 | 8 | 7 | 9 | 9 | 6 | 5 | 44 |
 | 2 | 5 | 7 | 7 | 6 | 6 | 5 | 36 |
 | 3 | 6 | 8 | 4 | 5 | 4 | 5 | 32 |
 | 4 | 7 | 6 | 4 | 3 | 5 | 5 | 30 |
 | 5 | 3 | 3 | 4 | 6 | 4 | 4 | 24 |
-| | | | | | | | **202** |
+| | | | | | | | **203** |
 
 154 items are fully parallel and 48 wait on one other lane. Plus the five
 standing items applied every wave. The UI track adds 40 items of its own in
