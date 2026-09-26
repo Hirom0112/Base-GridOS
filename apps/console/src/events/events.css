@@ -3,6 +3,15 @@
   padding-block: 24px;
   margin-bottom: 24px;
 }
+.pending-event {
+  border-left: 2px solid var(--forecast);
+  background: var(--ink-1);
+  color: var(--paper-1);
+  font-size: 14px;
+  line-height: 1.7;
+  padding: 14px 18px;
+  margin-top: 22px;
+}
 .event-history h3 {
   margin-top: 6px;
 }

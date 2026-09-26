@@ -40,7 +40,9 @@ test("queued planning has no invented plan version or premature approval", async
   await expect(page.locator(".event-identifiers")).toContainText(
     "Plan pending",
   );
-  await expect(page.getByRole("status")).toContainText("Planning is queued");
+  await expect(page.locator(".event-panel").getByRole("status")).toContainText(
+    "Planning is queued",
+  );
   await expect(
     page.getByRole("button", { name: "Review approval" }),
   ).toHaveCount(0);

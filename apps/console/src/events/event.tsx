@@ -7,10 +7,20 @@ import { provenanceNames } from "../api/Provenance";
 import {
   DispatchEventState,
   ExclusionReason,
+  type DispatchEvent,
 } from "../api/gen/gridos/v1/dispatch_pb";
 import type { BasicEventReport } from "../api/gen/gridos/v1/api_pb";
 import { ApprovalActions } from "../dispatch/approval";
 import { EventHistory, eventStateLabels } from "./events-timeline";
+
+const pendingStates: Partial<Record<DispatchEventState, string>> = {
+  [DispatchEventState.REQUESTED]:
+    "Planning is queued. Approval remains unavailable until the server validates a plan.",
+  [DispatchEventState.PLANNED]:
+    "A plan is recorded. Awaiting the server safety result before approval.",
+  [DispatchEventState.COMMANDS_PERSISTED]:
+    "Commands are persisted. Awaiting confirmation that they have been sent.",
+};
 
 function useEvent(eventId: string) {
   const { client, identity } = useSession();
@@ -93,15 +103,7 @@ export function EventView({
         </div>
         <span className="mode-chip">{source}</span>
       </div>
-      <div className="event-identifiers">
-        <span className="mono">{event.eventId}</span>
-        <strong>Plan v{event.planVersion.toString()}</strong>
-        <span>
-          {event.updatedAt
-            ? timestampDate(event.updatedAt).toISOString()
-            : "Timestamp unavailable"}
-        </span>
-      </div>
+      <EventIdentifiers event={event} />
       <div className="event-links">
         <Link to="/dispatch/$eventId" params={{ eventId }}>
           Plan & approval
@@ -117,6 +119,7 @@ export function EventView({
           Report
         </Link>
       </div>
+      <PendingEvent state={event.state} violations={safetyViolations} />
       {safetyViolations.length > 0 && (
         <div className="error-notice">
           <h3>Safety gate rejected the plan</h3>
@@ -184,6 +187,38 @@ export function EventView({
         </div>
       )}
     </section>
+  );
+}
+
+function EventIdentifiers({ event }: { event: DispatchEvent }) {
+  return (
+    <div className="event-identifiers">
+      <span className="mono">{event.eventId}</span>
+      <strong>
+        {event.planVersion > 0n ? `Plan v${event.planVersion}` : "Plan pending"}
+      </strong>
+      <span>
+        {event.updatedAt
+          ? timestampDate(event.updatedAt).toISOString()
+          : "Timestamp unavailable"}
+      </span>
+    </div>
+  );
+}
+
+function PendingEvent({
+  state,
+  violations,
+}: {
+  state: DispatchEventState;
+  violations: { code: string }[];
+}) {
+  const message = pendingStates[state];
+  if (!message || violations.length) return null;
+  return (
+    <p className="pending-event" role="status">
+      {message}
+    </p>
   );
 }
 

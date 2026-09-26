@@ -34,7 +34,10 @@ export function EventHistory({ event }: { event: DispatchEvent }) {
     {
       label: `Latest recorded state · ${eventStateLabels[event.state] ?? "Unknown"}`,
       timestamp: event.updatedAt,
-      detail: `Current server snapshot · plan v${event.planVersion}`,
+      detail:
+        event.planVersion > 0n
+          ? `Current server snapshot · plan v${event.planVersion}`
+          : "Current server snapshot · plan pending",
     },
   ];
   const known = records
