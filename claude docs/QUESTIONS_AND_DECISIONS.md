@@ -175,4 +175,10 @@ assumptions reported by workers land here too.
   -98.30 to -97.00 as a conservative Travis, Williamson, and Hays box until a
   licensed polygon source is chosen. Accepted for simulated fixtures. The
   generated fleet lands in 320 cells at resolution 7 with 42.6 MW nameplate.
+- **1C.8 (lane C):** the Wave 1 fallback plans battery setpoints with a 0 kW
+  site load because `DeviceState` carries no load forecast yet; the requested
+  measurement boundary is retained. Accepted for Wave 1; Wave 3 forecasting
+  supplies the load. Also: generated Python gets `.pyi` stubs from the
+  protoc `pyi` builtin so strict mypy can see the contract types without
+  suppressions.
 
