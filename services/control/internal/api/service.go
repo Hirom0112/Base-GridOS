@@ -28,14 +28,15 @@ const (
 )
 
 type Service struct {
-	store           EventStore
-	twin            *fleet.Twin
-	sites           []*gridosv1.AuthorizedSite
-	now             func() time.Time
-	reports         reporting.Source
-	startWorkflow   func(context.Context, string, dispatchWorkflowInput) error
-	approveWorkflow func(context.Context, string, dispatchWorkflowApproval) error
-	launchWorkflow  func(context.Context, string, *gridosv1.LaunchEventRequest) error
+	store             EventStore
+	twin              *fleet.Twin
+	sites             []*gridosv1.AuthorizedSite
+	now               func() time.Time
+	reports           reporting.Source
+	startWorkflow     func(context.Context, string, dispatchWorkflowInput) error
+	approveWorkflow   func(context.Context, string, dispatchWorkflowApproval) error
+	launchWorkflow    func(context.Context, string, *gridosv1.LaunchEventRequest) error
+	emergencyWorkflow func(context.Context, string, dispatchWorkflowEmergencyStop) error
 }
 
 func (service *Service) SetReportSource(source reporting.Source) {
@@ -55,10 +56,23 @@ func (service *Service) SetWorkflowClient(workflows client.Client, taskQueue str
 	service.launchWorkflow = func(ctx context.Context, eventID string, launch *gridosv1.LaunchEventRequest) error {
 		return workflows.SignalWorkflow(ctx, eventID, "", launchEventSignal, launch)
 	}
+	service.emergencyWorkflow = func(ctx context.Context, eventID string, stop dispatchWorkflowEmergencyStop) error {
+		return workflows.SignalWorkflow(ctx, eventID, "", emergencyStopSignal, stop)
+	}
 }
 
 func (service *Service) RuntimeReady() bool {
-	return service.startWorkflow != nil && service.approveWorkflow != nil && service.launchWorkflow != nil && service.reports != nil
+	return service.startWorkflow != nil && service.approveWorkflow != nil && service.launchWorkflow != nil && service.emergencyWorkflow != nil && service.reports != nil
+}
+
+func (service *Service) RequestEmergencyStop(ctx context.Context, eventID, requestedBy string) error {
+	if eventID == "" || requestedBy == "" {
+		return errors.New("event ID and requester required")
+	}
+	if service.emergencyWorkflow == nil {
+		return errors.New("workflow client required")
+	}
+	return service.emergencyWorkflow(ctx, eventID, dispatchWorkflowEmergencyStop{RequestedBy: requestedBy})
 }
 
 func NewService(store EventStore, twin *fleet.Twin, sites []*gridosv1.AuthorizedSite, now func() time.Time) *Service {
@@ -242,8 +256,9 @@ func (service *Service) LaunchEvent(ctx context.Context, request *connect.Reques
 }
 
 const (
-	approveEventSignal = "approve-event"
-	launchEventSignal  = "launch-event"
+	approveEventSignal  = "approve-event"
+	launchEventSignal   = "launch-event"
+	emergencyStopSignal = "emergency-stop"
 )
 
 type dispatchWorkflowInput struct {
@@ -253,6 +268,10 @@ type dispatchWorkflowInput struct {
 
 type dispatchWorkflowApproval struct {
 	ApprovedBy string
+}
+
+type dispatchWorkflowEmergencyStop struct {
+	RequestedBy string
 }
 
 func authorize(header http.Header, roles ...string) error {
