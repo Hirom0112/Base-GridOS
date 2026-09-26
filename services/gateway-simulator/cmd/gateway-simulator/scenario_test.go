@@ -1,11 +1,19 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
+
+	"connectrpc.com/connect"
+	gridosv1 "github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1"
+	"github.com/Hirom0112/Base-GridOS/services/gateway-simulator/internal/failures"
+	"github.com/Hirom0112/Base-GridOS/services/gateway-simulator/internal/gateway"
+	"github.com/Hirom0112/Base-GridOS/services/gateway-simulator/internal/protocol"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 func TestScenarioFlagConfiguresFleetAndClock(t *testing.T) {
@@ -53,4 +61,51 @@ func TestCadenceOverridesScenarioTickWithoutChangingLogicalClock(t *testing.T) {
 	if configuration.scenarioTick != 5*time.Minute {
 		t.Fatalf("scenario tick=%s", configuration.scenarioTick)
 	}
+}
+
+func TestRuntimeDropsSelectedReceiptAfterDurableCommand(t *testing.T) {
+	ctx := context.Background()
+	store, err := gateway.Open(ctx, filepath.Join(t.TempDir(), "gateway.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if err := store.Close(); err != nil {
+			t.Error(err)
+		}
+	})
+	now := time.Now().UTC()
+	engine, err := failures.NewEngine(
+		failures.Scenario{Seed: 2, Start: now, Tick: time.Second, Injections: []failures.Injection{{At: now, Kind: failures.DroppedMessages}}},
+		[]failures.Device{{ID: "selected", Region: "LZ_AEN"}, {ID: "healthy", Region: "LZ_AEN"}},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	runtime := failures.NewRuntime(engine)
+	handler := newRuntimeCommandHandler(protocol.NewCommandHandler(store, "gateway", "token", func() time.Time { return now }), runtime, func() time.Time { return now })
+	selected := connect.NewRequest(commandRequest("selected", now))
+	selected.Header().Set("Authorization", "token")
+	if _, err := handler.SubmitCommand(ctx, selected); connect.CodeOf(err) != connect.CodeUnavailable {
+		t.Fatalf("selected response error=%v", err)
+	}
+	commands, err := store.Commands(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(commands) != 1 || commands[0].DeviceID != "selected" {
+		t.Fatalf("stored commands=%+v", commands)
+	}
+	healthy := connect.NewRequest(commandRequest("healthy", now))
+	healthy.Header().Set("Authorization", "token")
+	if _, err := handler.SubmitCommand(ctx, healthy); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func commandRequest(deviceID string, now time.Time) *gridosv1.SubmitCommandRequest {
+	return &gridosv1.SubmitCommandRequest{CommandIntent: &gridosv1.CommandIntent{
+		CommandId: "command-" + deviceID, IdempotencyKey: "key-" + deviceID, DeviceId: deviceID, Generation: 1,
+		EffectiveAt: timestamppb.New(now), ExpiresAt: timestamppb.New(now.Add(time.Minute)),
+	}}
 }

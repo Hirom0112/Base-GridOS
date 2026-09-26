@@ -42,6 +42,24 @@ func TestNetworkFailureBuffersAndReplaysOnNextCadence(t *testing.T) {
 	}
 }
 
+func TestRuntimeEffectsApplyOnlyToSelectedDevice(t *testing.T) {
+	ctx := context.Background()
+	store := openStore(t, ctx)
+	now := time.Date(2026, 8, 12, 18, 0, 0, 0, time.UTC)
+	publisher := &recoveringBatchPublisher{}
+	fleet, err := NewFleet(store, []string{"selected", "healthy"}, time.Second, publisher)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fleet.SetEffects(fixedEffects{kind: "DROPPED_MESSAGES", deviceID: "selected"})
+	if err := fleet.Emit(ctx, now); err != nil {
+		t.Fatal(err)
+	}
+	if len(publisher.batches) != 1 || len(publisher.batches[0]) != 1 || publisher.batches[0][0].GetDeviceId() != "healthy" {
+		t.Fatalf("published=%v", publisher.batches)
+	}
+}
+
 type recoveringBatchPublisher struct {
 	batches [][]*gridosv1.TelemetryObservation
 	cancel  context.CancelFunc
@@ -56,6 +74,20 @@ func (publisher *recoveringBatchPublisher) PublishBatch(_ context.Context, obser
 	if len(publisher.batches) == 1 {
 		return ErrPublishUnavailable
 	}
-	publisher.cancel()
+	if publisher.cancel != nil {
+		publisher.cancel()
+	}
 	return nil
+}
+
+type fixedEffects struct {
+	kind     string
+	deviceID string
+}
+
+func (fixedEffects) Advance(time.Time) {
+}
+
+func (effects fixedEffects) Affects(kind, deviceID string) bool {
+	return effects.kind == kind && effects.deviceID == deviceID
 }
