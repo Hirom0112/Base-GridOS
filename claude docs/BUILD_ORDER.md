@@ -357,7 +357,7 @@ Owns: `database/`, `sqlc.yaml`.
   (energy plan and battery plan as separate JSONB documents matching 0B.6,
   each with its own term and monthly charge), `plan_add_ons`,
   `flexibility_offers`, `reward_ledger` (append-only). Verify: same as 0D.1.
-- `[~]` 0D.4 `[P]` `0004_audit.sql`: `operator_approvals`, `emergency_stops`,
+- `[x]` 0D.4 `[P]` `0004_audit.sql`: `operator_approvals`, `emergency_stops`,
   `verification_summaries`, `audit_journal` (append-only, trigger blocks
   UPDATE and DELETE), correlation ID columns on every table above.
   Verify: an `UPDATE audit_journal` in psql is rejected by the trigger.

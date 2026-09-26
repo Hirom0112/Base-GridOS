@@ -91,4 +91,8 @@ assumptions reported by workers land here too.
   transition an audit row for free. Wave 1 lane D implements the conditional
   transition as an insert guarded by the latest row, not an UPDATE.
   `dispatch_events` stays a mutable row with conditional updates.
+- **sqlc annotations versus zero comments (lane D, 0D.5):** the hook now
+  exempts lines of the exact form `-- name: Identifier :verb` because sqlc
+  reads them as directives; any other SQL comment is still rejected. Same
+  category as `//go:` and `#!`.
 
