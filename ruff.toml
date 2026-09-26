@@ -1,0 +1,14 @@
+target-version = "py312"
+line-length = 100
+extend-exclude = ["**/gen/**", "*_pb2.py", "*_pb2_grpc.py", "data", "presentations"]
+
+[lint]
+select = ["E", "F", "I", "B", "UP", "C90", "PLR0913", "PLR0915", "ANN401", "ERA"]
+ignore = ["E501"]
+
+[lint.mccabe]
+max-complexity = 18
+
+[lint.pylint]
+max-args = 6
+max-statements = 80

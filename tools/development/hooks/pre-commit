@@ -1,0 +1,96 @@
+#!/bin/sh
+set -eu
+
+root=$(git rev-parse --show-toplevel)
+cd "$root"
+
+staged=$(git diff --cached --name-only --diff-filter=ACMR)
+[ -n "$staged" ] || exit 0
+
+fail() {
+  printf '\nGATE RED: %s\n' "$1" >&2
+  exit 1
+}
+
+code_files=$(printf '%s\n' "$staged" | grep -E '\.(go|py|ts|tsx|js|mjs|sql|proto)$' | grep -vE '(^|/)gen/|_pb2\.py$|\.pb\.go$|connect\.go$' || true)
+
+if [ -n "$code_files" ]; then
+  added=$(git diff --cached -U0 -- $code_files | grep -E '^\+[^+]' | sed 's/^+//' || true)
+
+  comments=$(printf '%s\n' "$added" \
+    | grep -E '^[[:space:]]*(//|#|/\*|\*[[:space:]]|--[[:space:]]|--$|\{/\*)' \
+    | grep -vE '^[[:space:]]*(//go:|#!|// Code generated|#[[:space:]]*-\*-|/// <reference)' || true)
+  [ -z "$comments" ] || fail "added comment lines (rename or restructure instead):
+$comments"
+
+  suppressions=$(printf '%s\n' "$added" \
+    | grep -nE 'nolint|noqa|eslint-disable|@ts-ignore|@ts-expect-error|type:[[:space:]]*ignore|pragma:[[:space:]]*no cover|#nosec' || true)
+  [ -z "$suppressions" ] || fail "suppression markers are forbidden:
+$suppressions"
+
+  anys=$(printf '%s\n' "$added" | grep -nE '(:[[:space:]]*any\b|as any\b|typing\.Any|:[[:space:]]*Any\b|\binterface\{\}\s*$)' || true)
+  [ -z "$anys" ] || fail "no any / Any / bare interface{}:
+$anys"
+
+  for f in $code_files; do
+    lines=$(wc -l < "$f" | tr -d ' ')
+    [ "$lines" -le 500 ] || fail "$f has $lines lines (ceiling 500). Extract along a real seam."
+  done
+fi
+
+go_files=$(printf '%s\n' "$staged" | grep -E '\.go$' | grep -vE '\.pb\.go$|connect\.go$' || true)
+if [ -n "$go_files" ]; then
+  command -v go >/dev/null || fail "go is not installed"
+  unformatted=$(gofmt -l $go_files || true)
+  [ -z "$unformatted" ] || fail "gofmt: $unformatted"
+  command -v golangci-lint >/dev/null || fail "golangci-lint is not installed"
+  pairs=$(mktemp)
+  for f in $go_files; do
+    dir=$(dirname "$f")
+    mod=$(cd "$dir" && go list -m -f '{{.Dir}}' 2>/dev/null) || fail "$dir is not inside a Go module"
+    printf '%s %s\n' "$mod" "$root/$dir" >> "$pairs"
+  done
+  for mod in $(cut -d' ' -f1 "$pairs" | sort -u); do
+    pkgs=$(grep "^$mod " "$pairs" | cut -d' ' -f2 | sort -u | sed "s#^$mod#.#" | tr '\n' ' ')
+    (cd "$mod" && go vet $pkgs) || fail "go vet"
+    (cd "$mod" && golangci-lint run --config "$root/.golangci.yml" $pkgs) || fail "golangci-lint"
+    (cd "$mod" && go test -count=1 -short -timeout 90s $pkgs) || fail "go test (staged packages)"
+  done
+  rm -f "$pairs"
+fi
+
+py_files=$(printf '%s\n' "$staged" | grep -E '\.py$' | grep -vE '_pb2(_grpc)?\.py$' || true)
+if [ -n "$py_files" ]; then
+  command -v ruff >/dev/null || command -v uv >/dev/null || fail "ruff (or uv) is not installed"
+  RUFF="ruff"; command -v ruff >/dev/null || RUFF="uv run --quiet ruff"
+  $RUFF format --check $py_files || fail "ruff format"
+  $RUFF check $py_files || fail "ruff check"
+  tests=$(printf '%s\n' $py_files | grep -E '(^|/)test_[^/]+\.py$' || true)
+  for f in $(printf '%s\n' $py_files | grep -vE '(^|/)test_[^/]+\.py$' || true); do
+    name=$(basename "$f" .py)
+    candidates=$(find "$(dirname "$f")" "$(dirname "$f")/tests" "$(dirname "$(dirname "$f")")/tests" -maxdepth 1 -name "test_${name}.py" 2>/dev/null || true)
+    tests="$tests $candidates"
+  done
+  tests=$(printf '%s\n' $tests | sort -u | tr '\n' ' ')
+  if [ -n "$(printf '%s' "$tests" | tr -d ' ')" ]; then
+    PYTEST="pytest"; command -v pytest >/dev/null || PYTEST="uv run --quiet pytest"
+    $PYTEST -q -x $tests || fail "pytest (staged tests)"
+  fi
+fi
+
+ts_files=$(printf '%s\n' "$staged" | grep -E '^apps/console/.*\.(ts|tsx|js|mjs)$' | grep -vE '/gen/' || true)
+if [ -n "$ts_files" ] && [ -f apps/console/package.json ]; then
+  command -v pnpm >/dev/null || fail "pnpm is not installed"
+  rel=$(printf '%s\n' $ts_files | sed 's#^apps/console/##')
+  (cd apps/console && pnpm exec prettier --check $rel) || fail "prettier"
+  (cd apps/console && pnpm exec eslint --max-warnings 0 $rel) || fail "eslint"
+  (cd apps/console && pnpm exec vitest related --run $rel) || fail "vitest related"
+fi
+
+proto_files=$(printf '%s\n' "$staged" | grep -E '\.proto$' || true)
+if [ -n "$proto_files" ]; then
+  command -v buf >/dev/null || fail "buf is not installed"
+  buf lint contracts || fail "buf lint"
+fi
+
+exit 0

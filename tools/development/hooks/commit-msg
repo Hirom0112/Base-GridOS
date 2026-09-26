@@ -1,0 +1,18 @@
+#!/bin/sh
+set -eu
+
+subject=$(sed -n '1p' "$1")
+
+fail() {
+  printf '\nGATE RED: commit subject %s\n  got: %s\n' "$1" "$subject" >&2
+  exit 1
+}
+
+[ -n "$subject" ] || fail "is empty"
+[ "${#subject}" -le 72 ] || fail "is over 72 characters"
+printf '%s' "$subject" | grep -qE '^[A-Z]' || fail "must start with a capital letter"
+printf '%s' "$subject" | grep -qvE '\.$' || fail "must not end with a period"
+printf '%s' "$subject" | grep -qvE '^[a-zA-Z]+(\([^)]*\))?!?:' || fail "must not use a type(scope): prefix"
+printf '%s' "$subject" | grep -qviE '^(wip|fix|update|changes|misc|stuff)$' || fail "must say what the change does"
+
+exit 0
