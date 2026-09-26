@@ -1,7 +1,10 @@
 import { create } from "@bufbuild/protobuf";
 import { render, screen, waitFor } from "@testing-library/react";
 import { expect, test, vi } from "vitest";
-import { H3SiteAggregateSchema } from "../api/gen/gridos/v1/api_pb";
+import {
+  H3SiteAggregateSchema,
+  FleetQuantityAggregateSchema,
+} from "../api/gen/gridos/v1/api_pb";
 import LivingGrid from "./living-grid";
 
 const engine = vi.hoisted(() => ({
@@ -34,7 +37,10 @@ test("refreshes geography without replacing the renderer or losing selection", a
   expect(mount).toHaveBeenCalledTimes(1);
   const updated = create(H3SiteAggregateSchema, {
     ...cell,
-    installedMw: { ...cell.installedMw, value: 0.2 },
+    installedMw: create(FleetQuantityAggregateSchema, {
+      metadata: cell.installedMw?.metadata,
+      value: 0.2,
+    }),
   });
   rerender(
     <LivingGrid cells={[updated]} selected={cell.h3Cell} onSelect={select} />,

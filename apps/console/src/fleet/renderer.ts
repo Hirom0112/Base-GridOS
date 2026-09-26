@@ -116,8 +116,8 @@ export function mountGrid(host: HTMLElement, select: (id: string) => void) {
 
 function capacityMesh(
   cells: GridCell[],
-  geometry: THREE.BufferGeometry,
-  material: THREE.Material,
+  geometry: THREE.CylinderGeometry,
+  material: THREE.MeshStandardMaterial,
   selected: string | null,
 ) {
   const mesh = new THREE.InstancedMesh(geometry, material, cells.length);
