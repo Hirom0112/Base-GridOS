@@ -15,6 +15,7 @@ import (
 	controlapi "github.com/Hirom0112/Base-GridOS/services/control/internal/api"
 	reporting "github.com/Hirom0112/Base-GridOS/services/control/internal/report"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/storage"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.temporal.io/sdk/temporal"
 	"google.golang.org/protobuf/proto"
@@ -98,13 +99,15 @@ func (activities *Activities) RequestPlan(ctx context.Context, frozen FrozenEven
 	if budget <= 0 {
 		return frozen, errors.New("positive optimization budget required")
 	}
-	planCtx, cancel := context.WithTimeout(ctx, budget+time.Second)
-	defer cancel()
-	plan, err := activities.Dispatcher.RequestPlan(planCtx, controlapi.FrozenSnapshot{Optimization: request})
-	if errors.Is(err, context.DeadlineExceeded) || connect.CodeOf(err) == connect.CodeDeadlineExceeded {
-		if auditErr := activities.recordPlanningDecision(ctx, request, "OPTIMIZATION_TIMEOUT", "TRANSPORT_TIMEOUT"); auditErr != nil {
-			return frozen, errors.Join(err, auditErr)
-		}
+	storedRequest, plan, err := activities.Events.LoadPlan(ctx, frozen.Input.EventID, request.GetPlanVersion())
+	if err == nil && !proto.Equal(storedRequest, request) {
+		return frozen, errors.New("stored plan uses a different frozen snapshot")
+	}
+	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		return frozen, err
+	}
+	if errors.Is(err, pgx.ErrNoRows) {
+		plan, err = activities.requestFreshPlan(ctx, request, budget)
 	}
 	if err != nil {
 		return frozen, err
@@ -117,6 +120,18 @@ func (activities *Activities) RequestPlan(ctx context.Context, frozen FrozenEven
 	frozen.Input.PlanVersion = plan.GetPlanVersion()
 	frozen.Input.ApprovalDigest, err = approvalDigest(request, plan)
 	return frozen, err
+}
+
+func (activities *Activities) requestFreshPlan(ctx context.Context, request *gridosv1.OptimizationRequest, budget time.Duration) (*gridosv1.DispatchPlan, error) {
+	planCtx, cancel := context.WithTimeout(ctx, budget+time.Second)
+	plan, err := activities.Dispatcher.RequestPlan(planCtx, controlapi.FrozenSnapshot{Optimization: request})
+	cancel()
+	if errors.Is(err, context.DeadlineExceeded) || connect.CodeOf(err) == connect.CodeDeadlineExceeded {
+		if auditErr := activities.recordPlanningDecision(ctx, request, "OPTIMIZATION_TIMEOUT", "TRANSPORT_TIMEOUT"); auditErr != nil {
+			return nil, errors.Join(err, auditErr)
+		}
+	}
+	return plan, err
 }
 
 func (activities *Activities) ValidatePlan(ctx context.Context, frozen FrozenEvent) error {
