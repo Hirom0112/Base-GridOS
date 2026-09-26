@@ -67,7 +67,7 @@ Do not create documentation, planning notes, decision records, summaries, or han
 
 ## Director mailbox
 
-Before starting every item, read the last 20 lines of `.local/mailbox.log`. Act first on every `director:` line addressed to your lane before beginning or continuing the item. Apply this rule to every subagent you spawn.
+Before starting every item, read the last 40 `director:` lines in `.local/mailbox.log`. Act first on every line addressed to your lane before beginning or continuing the item. Apply this rule to every subagent you spawn.
 
 ## Stack
 
