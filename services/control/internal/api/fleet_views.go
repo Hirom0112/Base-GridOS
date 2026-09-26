@@ -2,11 +2,11 @@ package api
 
 import (
 	"slices"
-	"sort"
 	"time"
 
 	gridosv1 "github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/fleet"
+	"github.com/Hirom0112/Base-GridOS/services/control/internal/fleet/geo"
 )
 
 func installedCapacity(sites []*gridosv1.AuthorizedSite) (float64, float64) {
@@ -125,24 +125,46 @@ func filterSites(sites []*gridosv1.AuthorizedSite, zones []string) []*gridosv1.A
 	return result
 }
 
-func aggregateSites(sites []*gridosv1.AuthorizedSite, now time.Time) []*gridosv1.SiteLocation {
+func aggregateSites(sites []*gridosv1.AuthorizedSite, states []fleet.SiteState, now time.Time) []*gridosv1.SiteLocation {
 	groups := make(map[string][]*gridosv1.AuthorizedSite)
 	for _, site := range sites {
 		groups[site.GetSite().GetH3Cell()] = append(groups[site.GetSite().GetH3Cell()], site)
 	}
-	cells := make([]string, 0, len(groups))
-	for cell := range groups {
-		cells = append(cells, cell)
-	}
-	sort.Strings(cells)
+	cells := geo.Aggregate(sites, states, now)
 	result := make([]*gridosv1.SiteLocation, 0, len(cells))
 	for _, cell := range cells {
-		powerMW, energyMWh := installedCapacity(groups[cell])
-		provenance := siteProvenanceMix(groups[cell])
-		aggregate := &gridosv1.H3SiteAggregate{H3Cell: cell, SiteCount: uint64(len(groups[cell])), InstalledMw: quantity(powerMW, now, 0, provenance), InstalledMwh: quantity(energyMWh, now, 0, provenance)}
+		provenance := siteProvenanceMix(groups[cell.Cell])
+		aggregate := &gridosv1.H3SiteAggregate{
+			H3Cell: cell.Cell, SiteCount: cell.SiteCount,
+			InstalledMw: quantity(cell.InstalledMW, now, 0, provenance), InstalledMwh: quantity(cell.InstalledMWh, now, 0, provenance),
+			DispatchableMw: quantity(cell.DispatchableMW, now, cell.Freshness, provenance), ReservedMwh: quantity(cell.ReservedMWh, now, cell.Freshness, provenance),
+			OperatingStateCounts:    cellOperatingCounts(cell.OperatingCounts, now, provenance),
+			AvailabilityStateCounts: cellAvailabilityCounts(cell.AvailabilityCounts, now, provenance),
+			Metadata:                quantity(0, now, cell.Freshness, provenance).GetMetadata(),
+		}
 		result = append(result, &gridosv1.SiteLocation{Location: &gridosv1.SiteLocation_Aggregate{Aggregate: aggregate}})
 	}
 	return result
+}
+
+func cellOperatingCounts(counts map[fleet.OperatingState]uint64, now time.Time, provenance map[string]int) []*gridosv1.OperatingStateDeviceCount {
+	states := make([]fleet.SiteState, 0)
+	for state, count := range counts {
+		for range count {
+			states = append(states, fleet.SiteState{OperatingState: state})
+		}
+	}
+	return operatingCounts(states, now, provenance)
+}
+
+func cellAvailabilityCounts(counts map[fleet.Availability]uint64, now time.Time, provenance map[string]int) []*gridosv1.AvailabilityStateDeviceCount {
+	states := make([]fleet.SiteState, 0)
+	for state, count := range counts {
+		for range count {
+			states = append(states, fleet.SiteState{Availability: state})
+		}
+	}
+	return availabilityCounts(states, now, provenance)
 }
 
 func siteProvenanceMix(sites []*gridosv1.AuthorizedSite) map[string]int {
