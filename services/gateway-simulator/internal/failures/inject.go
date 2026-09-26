@@ -19,6 +19,7 @@ type Effect struct {
 	Kind      Kind
 	DeviceIDs []string
 	Region    string
+	LostMW    float64
 }
 
 type Engine struct {
@@ -80,10 +81,18 @@ func (engine *Engine) effect(injection Injection) Effect {
 		return effect
 	}
 	effect.Region = device.Region
+	var regional []Device
 	for _, candidate := range engine.devices {
 		if candidate.Region == effect.Region {
-			effect.DeviceIDs = append(effect.DeviceIDs, candidate.ID)
+			regional = append(regional, candidate)
 		}
+	}
+	start := engine.seededIndex(injection, len(regional))
+	count := (len(regional) + 4) / 5
+	for offset := range count {
+		affected := regional[(start+offset)%len(regional)]
+		effect.DeviceIDs = append(effect.DeviceIDs, affected.ID)
+		effect.LostMW += affected.ScheduledKW / 1000
 	}
 	return effect
 }
