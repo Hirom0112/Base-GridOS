@@ -2,7 +2,7 @@ import hashlib
 
 from tools.generation.fleet.generate import generate_fleet
 
-EXPECTED_SHA256 = "0000000000000000000000000000000000000000000000000000000000000000"
+EXPECTED_SHA256 = "6bc3eead28e9791a8bc77a8d91a67153e27f1359e66453f542a781217c0f748c"
 
 
 def test_canonical_fleet_hash_is_stable() -> None:

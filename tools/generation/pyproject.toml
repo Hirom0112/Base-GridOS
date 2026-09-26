@@ -1,0 +1,17 @@
+[project]
+name = "gridos-generation"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "h3>=4.3,<5",
+    "hypothesis>=6.140,<7",
+    "pydantic>=2.11,<3",
+    "pyyaml>=6.0,<7",
+]
+
+[dependency-groups]
+dev = ["pytest>=9,<10"]
+
+[tool.pytest.ini_options]
+pythonpath = [".venv/lib/python3.12/site-packages", "../.."]
+testpaths = ["tests"]
