@@ -1000,6 +1000,8 @@ For 2F.5 per-cell delivery: an additive `DeliveredByCell` in
 For 2F.8 after lane B completes: `services/control/internal/dispatch/` and
 `services/control/internal/api/` runtime, to persist frozen snapshots and
 return identifiers.
+Also `services/control/internal/storage/` (additive) and `services/control/go.mod`
+for the same item.
 
 - `[x]` 2F.1 `[P]` RED then GREEN: simulator scale. 5,000 simulated devices
   in one process produce telemetry every 5 seconds for 10 minutes with no
