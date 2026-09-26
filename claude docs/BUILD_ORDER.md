@@ -717,7 +717,7 @@ Owns: `services/control/internal/fleet/`, `services/control/internal/api/`,
   decision service, run the safety gate, require approval, persist intents,
   hand to the publisher. Marked `REPLACED-IN-WAVE-2` in code and reported as
   a stub. Verify: `go test ./services/control/internal/api/ -run Dispatch` passes.
-- `[~]` 1E.6 `[P]` RED then GREEN: `internal/report` basic event report
+- `[x]` 1E.6 `[P]` RED then GREEN: `internal/report` basic event report
   (requested, approved, commanded, acknowledged MW; devices excluded by
   reason; provenance and versions) assembled from storage.
   Verify: `go test ./services/control/internal/report/` passes.
