@@ -48,9 +48,15 @@ Three ways to run the console, in the order they become available:
 
 ## 3. Rules that are not negotiable
 
+From `AGENTS.md` at the repo root, which is binding for the UI agent too:
+least code, zero comments, gates are one-way, many small commits by exact
+path in the shared tree. The pre-commit hook enforces it.
+
 From the specs:
 
-- Strict TypeScript, no `any`, ESLint `no-explicit-any` as an error.
+- Strict TypeScript, no `any`, ESLint `no-explicit-any` as an error, and the
+  ESLint ceilings `complexity` 18, `max-depth` 4, `max-lines` 500,
+  `max-lines-per-function` 150 as errors.
 - Browser state is never authoritative. Every consequential action goes to
   the server, and the server enforces authorization (TECHSTACK "Operator
   console", FULL_SPEC §11).
@@ -126,8 +132,8 @@ the Vitest test or the Playwright step is written before the view.
 
 - `[ ]` U0.1 `[P]` TanStack Start app with strict TypeScript
   (`noUncheckedIndexedAccess` on), Tailwind, ESLint with
-  `no-explicit-any` as error, Vitest, Testing Library, Playwright. Only the
-  root route exists. Verify: `pnpm --dir apps/console build && pnpm --dir apps/console lint && pnpm --dir apps/console test`.
+  `no-explicit-any` and the four ceilings from §3 as errors, Vitest, Testing
+  Library, Playwright. Only the root route exists. Verify: `pnpm --dir apps/console build && pnpm --dir apps/console lint && pnpm --dir apps/console test`.
 - `[ ]` U0.2 `[P]` Design tokens from the golden color, typography, surface,
   and timing tokens; the layout shell (top bar, left nav, content, status
   strip). Static frame first (golden rule 12). Snapshot tests, light and dark.

@@ -63,14 +63,20 @@ fails, the director opens follow-up items in the same wave and reassigns.
 - `[x]` verified complete. Only the director writes `[x]`, only after running
   the item's verify command and seeing it pass.
 
+### Rules of the road
+
+`AGENTS.md` at the repo root (and `CLAUDE.md`, a symlink to it) is binding for
+every agent: least code, zero comments, gates are one-way, many small
+commits. The hooks in `tools/development/hooks` enforce it on every commit.
+Read it before the first item.
+
 ### TDD scope
 
 Items in STRICT scope (engines, validators, math, state machines, dedup,
 storage transitions, generators) are written as `RED:` / `GREEN:` pairs. The
-RED test is committed first on the lane branch, with its failure output pasted
-into the mailbox report, then the GREEN implementation is its own commit. Main
-only ever receives green merges, but the lane branch history must show red
-then green or the director rejects the merge.
+RED test is committed first, with its failure output pasted into the mailbox
+report, then the GREEN implementation is its own commit, then any refactor is
+a third. The director checks that history before marking `[x]`.
 
 Items in ADAPTED scope (UI, external clients, infrastructure, docs) are
 test-first in spirit: the Playwright spec, the recorded fixture, or the
@@ -81,28 +87,30 @@ feature.
 
 1. The director (Claude) sends one wave's lane assignment to the orchestrator
    (the Codex session named worker). The orchestrator spawns six subagents, one
-   per lane, each in its own git worktree on branch `lane/<wave><lane>` cut
-   from main.
+   per lane. All of them work in the one shared tree, directly on `main`. No
+   branches, no worktrees, no merge step: lane ownership already keeps their
+   paths disjoint.
 2. A subagent works its lane top to bottom. It never edits files outside its
-   lane's `Owns:` list. Ownership is per wave: a directory one lane owned in
-   Wave 1 may belong to a different lane in Wave 2. Dependency manifests
-   (`services/control/go.mod`, `services/decision/pyproject.toml`,
+   lane's `Owns:` list, and it commits by exact path
+   (`git commit -- <paths>`), never `git add -A`. It never runs reset, stash,
+   or checkout in the shared tree. Ownership is per wave: a directory one
+   lane owned in Wave 1 may belong to a different lane in Wave 2. Dependency
+   manifests (`services/control/go.mod`, `services/decision/pyproject.toml`,
    `apps/console/package.json`) have one owning lane per wave, named in that
    lane's `Owns:`; the owning lane's first item pre-declares every dependency
-   the wave's other lanes will need so nobody waits. `go.sum`, `uv.lock`, and
-   `pnpm-lock.yaml` conflicts are resolved by the director at merge with
-   `go mod tidy`, `uv lock`, or `pnpm install`. Generated code
+   the wave's other lanes will need so nobody waits. Generated code
    (`buf generate` output) is never committed; every lane runs
    `make generate` locally.
 3. When an item passes its verify command, the subagent appends one line to
    the mailbox in this form:
-   `worker: DONE <item id> | <branch> <short sha> | <verify command> | <last line of output>`
+   `worker: DONE <item id> | <short sha> | <verify command> | <last line of output>`
    When blocked: `worker: BLOCKED <item id> | <reason> | <what it needs>`
-4. The director independently runs the verify command on the branch, reads the
-   diff, checks the red-then-green history, then marks `[x]` here.
-5. At wave end the director merges lanes A through F into main in lane order,
-   runs the gate, and posts the gate result to
-   `claude docs/gate-reports/wave-<n>.md`.
+4. The director independently runs the verify command, reads the diff,
+   checks the red-then-green commit history, then marks `[x]` here.
+5. At wave end the director runs the gate once, on `main`, and posts the
+   result to `claude docs/gate-reports/wave-<n>.md`. That is the only time
+   the full suite runs. Workers run only the fast pre-commit gate and the
+   single verify command of the item they are on.
 6. `ASSUMPTIONS.md`, `STUBS.md`, and `BLOCKED.md` at repo root are written
    only by the director. A worker reports an assumption, a stub marker, or a
    blocker in its mailbox line (`worker: ASSUMPTION <item> | <text>`,
@@ -169,10 +177,11 @@ Owns: repo root files (`Makefile`, `AGENTS.md`, `.gitignore`),
 - `[ ]` 0A.1 `[P]` Install the missing toolchain: Go 1.23+, `buf`, `bazelisk`
   (used in Wave 5), `temporal` CLI, `uv` with Python 3.12, `sqlc`. Record
   exact versions in `AGENTS.md`. Verify: `go version && buf --version && bazelisk version && temporal --version && uv python list | grep 3.12 && sqlc version` all print.
-- `[ ]` 0A.2 `[P]` Write `AGENTS.md` at repo root: the short implementation
-  rules from TECHSTACK "Navigation and ownership rules" and FULL_SPEC §14 data
-  rules, the one-command local start, and the per-language test commands.
-  Under 80 lines. Verify: `wc -l AGENTS.md` under 80 and every command it lists runs.
+- `[ ]` 0A.2 `[after 0A.1]` Prove the hooks in `tools/development/hooks`
+  run green on the installed toolchain: stage a Go, a Python, and a proto
+  file that pass, then one of each that breaks a ceiling, and confirm the
+  hook accepts the first set and rejects the second. Add the `make hooks`
+  target that sets `core.hooksPath`. Verify: both runs behave as stated and `git config core.hooksPath` prints `tools/development/hooks`.
 - `[ ]` 0A.3 `[P]` `infrastructure/local/compose.yaml`: PostgreSQL 16 with a
   disposable volume, Temporal dev server (`temporalio/auto-setup` or the
   `temporal server start-dev` image), and healthchecks for both. No BigQuery,
@@ -180,17 +189,12 @@ Owns: repo root files (`Makefile`, `AGENTS.md`, `.gitignore`),
   Verify: `docker compose -f infrastructure/local/compose.yaml up -d --wait && docker compose -f infrastructure/local/compose.yaml ps` shows both healthy.
 - `[ ]` 0A.4 `[P]` Root `Makefile` with targets `up`, `down`, `generate`
   (runs `buf generate contracts`), `test-go`, `test-py`, `test-web`,
-  `test-all`, `hooks`, `ui-mock` (runs 0F.1's mock server). No `demo`
-  target yet; it arrives with the first runnable slice in 1F.3 (TECHSTACK:
-  no placeholders). Add the ignored local
+  `test-all` (the once-per-wave full suite, director only), `hooks`,
+  `ui-mock` (runs 0F.1's mock server). No `demo` target yet; it arrives
+  with the first runnable slice in 1F.3 (TECHSTACK: no placeholders). Add the ignored local
   working directory `.gridos/` (normalized data, quarantine, analytics sink)
   and every `buf generate` output directory to `.gitignore`.
   Verify: `make up` and `make down` succeed; `make -n test-all` lists the three test targets; `git check-ignore .gridos/x` prints the path.
-- `[ ]` 0A.5 `[P]` Pre-commit and pre-push hooks (`tools/development/hooks/`)
-  running `buf lint`, `gofmt`, `ruff`, `eslint`, and the standing `any`/PII
-  greps from §0. Installed by `make hooks`. Never bypassed (this is the
-  gate the global rules treat as the reviewer).
-  Verify: a commit containing `: any` in a `.ts` file is rejected by the hook.
 
 ### Lane 0B — contracts
 
@@ -268,8 +272,8 @@ Owns: `contracts/`, `buf.yaml`, `buf.gen.yaml`.
   Verify: `buf generate contracts` writes Go, Python, and TS output and `buf lint contracts` passes.
 - `[ ]` 0B.7 `[P]` Breaking-change check against `main` using
   `buf breaking contracts --against '.git#branch=main'`, documented in
-  `contracts/README.md` and added to the `Makefile` `generate` target by the
-  director at merge. Verify: the command exits 0 on the lane branch and exits 1 when a field number is changed in a scratch copy.
+  `contracts/README.md`; lane A adds it to the `Makefile` `generate` target
+  on request. Verify: the command exits 0 on a clean tree and exits 1 when a field number is changed in the working tree.
 ### Lane 0C — truth model, fleet generator, scenario format
 
 Owns: `docs/domain/truth-model.md`, `tools/generation/`, `testdata/fleets/`,
@@ -443,7 +447,7 @@ Owns: `tools/development/mockapi/`, `testdata/fixtures/api/`, `tests/contract/`.
 - All migrations apply twice; `sqlc generate` succeeds.
 - `make ui-mock` serves every Wave 1 fixture (0F.1, 0F.2).
 - UI track: `pnpm --dir apps/console build && lint && test` pass; `demo-path` spec shows 17 red steps (U0.6).
-- `make hooks` installed and a deliberate `: any` commit is rejected.
+- Hooks installed (0A.2) and a deliberate over-ceiling commit is rejected.
 - `claude docs/gate-reports/wave-0.md` written with the output of each command.
 
 ---
@@ -1379,14 +1383,14 @@ Owns: `README.md`, `docs/operations/` (except `security/`), `AGENTS.md`.
 
 | Wave | A | B | C | D | E | F | Total |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 0 | 5 | 7 | 7 | 6 | 8 | 4 | 37 |
+| 0 | 4 | 7 | 7 | 6 | 8 | 4 | 36 |
 | 1 | 8 | 7 | 9 | 9 | 6 | 5 | 44 |
 | 2 | 5 | 7 | 7 | 6 | 6 | 5 | 36 |
 | 3 | 6 | 8 | 4 | 5 | 4 | 5 | 32 |
 | 4 | 7 | 6 | 4 | 3 | 5 | 5 | 30 |
 | 5 | 3 | 3 | 4 | 6 | 4 | 4 | 24 |
-| | | | | | | | **203** |
+| | | | | | | | **202** |
 
-156 items are fully parallel and 47 wait on one other lane. Plus the five
+154 items are fully parallel and 48 wait on one other lane. Plus the five
 standing items applied every wave. The UI track adds 40 items of its own in
 `UI_TRACK.md`.
