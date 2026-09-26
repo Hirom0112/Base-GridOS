@@ -1185,7 +1185,7 @@ Owns: `services/control/internal/dispatch/`, `services/control/internal/api/`,
 `tests/integration/`, `testdata/scenarios/`,
 `contracts/gridos/v1/optimization.proto` (additive only).
 
-- `[~]` 3D.1 `[P]` RED then GREEN: input snapshot freezing. The workflow
+- `[x]` 3D.1 `[P]` RED then GREEN: input snapshot freezing. The workflow
   stores the exact forecast inputs, eligibility snapshot, policy versions, and
   model versions used, and the plan version references them (FULL_SPEC §4
   invariant 9). Verify: `go test ./services/control/internal/dispatch/ -run Snapshot` passes.

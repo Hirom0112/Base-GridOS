@@ -555,3 +555,21 @@ assumptions reported by workers land here too.
   regenerated contracts, buf lint clean, control builds, test ok. One
   refactor requested as its own commit: `LoadPlan` becomes part of the
   store interface instead of a runtime type assertion.
+- **3D.1 (lane 3D-dispatch), verified:** FreezeInputs reloads the persisted
+  snapshot by id and carries its SHA-256; a retry whose snapshot differs
+  fails; approval binds a digest of the frozen request and stored plan, and
+  PersistIntents refuses a mismatched digest. Both digests are over
+  persisted data, never live state (3C.3 condition met). Two RED and two
+  GREEN commits; director re-run ok.
+- **Forecast boundary for 3D.2 (2026-09-26):** the decision service gains
+  one additive RPC, `Forecast`, on `OptimizationService` in
+  `optimization.proto`: request carries the event window, sites, and the
+  frozen telemetry window; response carries per-interval site load, regional
+  price, outage risk, and per-device availability with feature and model
+  versions and value_kind. Dispatch calls it with a budget, freezes the
+  response bytes next to the input snapshot, and passes the forecast into
+  `OptimizationRequest` through additive fields. Lane 3D-dispatch owns
+  `optimization.proto` additively (already granted) and
+  `services/decision/gridos/server.py` plus its tests additively, lane 3B
+  being complete. A forecast timeout is a timeline decision and the
+  deterministic baseline from 3A.6 is used.
