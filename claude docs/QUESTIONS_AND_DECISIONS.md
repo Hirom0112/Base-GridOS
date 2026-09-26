@@ -476,3 +476,21 @@ assumptions reported by workers land here too.
   and gains a test; the ramp check is new with a device
   `MaxRampKWPerMinute` where zero means no ramp limit beyond the power
   bounds, since FULL_SPEC §5.6 carries no ramp metadata.
+- **3C.3 (lane 3C), accepted with a binding condition:** approval carries a
+  SHA-256 digest of the proposed plan and the canonical state with the
+  clock zeroed; revalidation with a different digest yields
+  REAPPROVAL_REQUIRED. Because device telemetry times sit inside the
+  canonical state, the digest is only stable over the frozen snapshot from
+  FreezeInputs, never over live state. 3D.1 must compute and compare the
+  digest against the frozen snapshot; any caller passing live state would
+  demand re-approval on every telemetry tick.
+- **2D.3 finding, scoped injections (2026-09-26):** the failure engine picks
+  its target by hashing the seed, injection time, and kind across all 5,000
+  devices, so a lost-ack or old-expiry fault usually misses the roughly 113
+  scheduled devices. Decision: scenario injections gain an optional
+  `scope: scheduled` field; with it the engine chooses deterministically
+  among devices that have received a command for the active event (hash of
+  seed and the sorted commanded device ids). No harness back door that
+  sends commands. Lane D owns `services/gateway-simulator/internal/failures/`
+  and `testdata/scenarios/SCHEMA.md` additively for this, lane A being
+  complete.

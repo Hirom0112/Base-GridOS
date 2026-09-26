@@ -1173,7 +1173,7 @@ Owns: `services/control/internal/safety/`, `services/control/tests/`,
   fixtures. Verify: `go test ./services/control/internal/safety/ -run Golden` passes.
 - `[x]` 3C.2 `[P]` RED then GREEN: aggregate commitment check and ramp-rate
   check added to the gate (FULL_SPEC §5.6). Verify: `-run "Aggregate|Ramp"` passes.
-- `[ ]` 3C.3 `[P]` RED then GREEN: any material input change after approval
+- `[x]` 3C.3 `[P]` RED then GREEN: any material input change after approval
   invalidates the plan version and requires re-approval (FULL_SPEC §5.6).
   Verify: `-run Reapproval` passes.
 - `[ ]` 3C.4 `[P]` Load-shaped benchmark: 5,000 devices, 288 intervals (24 h at
