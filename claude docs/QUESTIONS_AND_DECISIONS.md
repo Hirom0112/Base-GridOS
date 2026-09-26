@@ -291,4 +291,8 @@ assumptions reported by workers land here too.
   recently issued command whose effective time has passed and whose expiry
   has not; response latency is the longest time any command took to be seen
   within 0.05 kW of its setpoint.
+- **2E.3 (lane E), accepted:** the validator additionally rejects a
+  grid-service vector above max(0, discharge minus home load) or below zero
+  (EXPORT_BOUND) and any schedule for a stale, unavailable, or
+  maintenance-locked device, using the same family names as the Go gate.
 

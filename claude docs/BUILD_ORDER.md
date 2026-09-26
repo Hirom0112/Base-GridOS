@@ -955,7 +955,7 @@ Owns: `services/decision/`, `testdata/golden/`.
 - `[x]` 2E.2 `[P]` RED then GREEN: no incumbent. A request with no prior plan
   and an unhealthy solver still returns a fallback, never an error.
   Verify: `-k no_incumbent` passes.
-- `[~]` 2E.3 `[P]` RED then GREEN: invalid vector. A solver result with NaN,
+- `[x]` 2E.3 `[P]` RED then GREEN: invalid vector. A solver result with NaN,
   wrong length, or bound violation is rejected by `validation/` and replaced
   by the fallback. Verify: `-k invalid_vector` passes.
 - `[~]` 2E.4 `[P]` RED then GREEN: cohort replacement. Given a list of devices
