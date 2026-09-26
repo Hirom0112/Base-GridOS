@@ -1195,7 +1195,7 @@ Owns: `services/control/internal/dispatch/`, `services/control/internal/api/`,
 - `[x]` 3D.3 `[P]` Explanation API: `GetPlanExplanation` returning objective
   breakdown, reserve held back, constraint margins, exclusions with reasons,
   and per-interval shortfall. Verify: `go test ./services/control/internal/api/ -run Explanation` passes.
-- `[~]` 3D.4 `[P]` Reject-then-approve path: the API can validate an
+- `[x]` 3D.4 `[P]` Reject-then-approve path: the API can validate an
   intentionally unsafe alternative and return machine-readable violations
   without creating commands (FULL_SPEC §9 step 8). Verify: `-run UnsafeAlternative` passes.
 - `[ ]` 3D.5 `[after 3D.2]` Scenarios `optimizer-timeout-fallback` and

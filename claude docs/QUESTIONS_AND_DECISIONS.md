@@ -587,3 +587,17 @@ assumptions reported by workers land here too.
   forecast lands inside that snapshot; a timeout records a timeline decision
   and freezes the 3A.6 deterministic baseline instead. `lifecycle.go` is
   untouched.
+- **3D.4 (lane 3D-api), verified; lane 3D-api complete:**
+  `ValidateUnsafeAlternative` runs the independent safety gate over an
+  operator-supplied alternative against the frozen input for a VALIDATED
+  event and returns machine-readable violations with no event transition
+  and no commands; the positive control is a safe alternative that
+  approves. The store interface now requires `LoadPlan` (dfc42fa).
+  Director: regenerated, buf lint clean, api package ok.
+- **Early start of Wave 4 lane C (2026-09-26):** the slot freed by 3D-api
+  takes lane 4C (geo aggregation, offline map assets, address scan), whose
+  paths `internal/fleet/geo/`, `internal/api/geo/`, and
+  `testdata/fixtures/geo/` touch nothing open and unblock the console's map
+  work (U4.1). 4C.2 waits for 4D.3. Gate 3 still requires Gate 2 first.
+  Lane 3F may record the `GetPlanExplanation` half of 3F.3 now and hold the
+  forecast half for 3D.2.
