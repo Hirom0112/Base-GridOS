@@ -114,4 +114,9 @@ assumptions reported by workers land here too.
   with one file per migration. Accepted, not scope invention: `AGENTS.md`
   lists migrations with a rollback path under what simplicity never cuts.
   Verified: forward, rollback to zero tables, forward again, all clean.
+- **0C.7 canonical scenario (lane C), accepted:** the 20 MW event runs two
+  hours, 18:00 to 20:00 Central, in `LZ_HOUSTON` as the one selected region;
+  devices go offline 15 minutes after start and the gateway delay begins 5
+  minutes after that; the synthetic evening is 2026-08-12 and claims no
+  historical event.
 

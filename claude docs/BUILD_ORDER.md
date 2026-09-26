@@ -375,7 +375,7 @@ Owns: `database/`, `sqlc.yaml`.
 Owns: `tools/data/`, `testdata/fixtures/` (except `contracts/`), `docs/data/`
 additions.
 
-- `[~]` 0E.1 `[P]` `tools/data/manifest.py` and `tools/data/MANIFEST.json`:
+- `[x]` 0E.1 `[P]` `tools/data/manifest.py` and `tools/data/MANIFEST.json`:
   every file in DATASETS §1 to §9 with source URL, provenance, SHA-256, size,
   date range. Provenance values are mapped onto the FULL_SPEC §2 enum
   (`CONFIRMED_ORGANIZER_SANDBOX` becomes `CONFIRMED_SANDBOX`; anything
