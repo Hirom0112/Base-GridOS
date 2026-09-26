@@ -84,7 +84,8 @@ func TestFreezeInputsActivity(t *testing.T) {
 	harness := newActivityHarness(t)
 	frozen, err := harness.activities.FreezeInputs(context.Background(), harness.input)
 	require.NoError(t, err)
-	require.Equal(t, harness.input.EventID, frozen.Snapshot.Optimization.GetEventId())
+	require.Equal(t, harness.input.EventID+"-input-1", frozen.InputSnapshotID)
+	require.Equal(t, harness.input.EventID+"-eligibility-1", frozen.EligibilitySnapshotID)
 }
 
 func TestFreezeInputsAustinResultStaysBelowTemporalLimit(t *testing.T) {

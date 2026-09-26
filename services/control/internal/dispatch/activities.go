@@ -6,8 +6,10 @@ import (
 	"fmt"
 	"time"
 
+	gridosv1 "github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1"
 	controlapi "github.com/Hirom0112/Base-GridOS/services/control/internal/api"
 	reporting "github.com/Hirom0112/Base-GridOS/services/control/internal/report"
+	"github.com/Hirom0112/Base-GridOS/services/control/internal/safety"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/storage"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.temporal.io/sdk/temporal"
@@ -22,8 +24,9 @@ type Activities struct {
 }
 
 type FrozenEvent struct {
-	Input    Input
-	Snapshot controlapi.FrozenSnapshot
+	Input                 Input
+	InputSnapshotID       string
+	EligibilitySnapshotID string
 }
 
 func (activities *Activities) FreezeInputs(ctx context.Context, input Input) (FrozenEvent, error) {
@@ -31,11 +34,19 @@ func (activities *Activities) FreezeInputs(ctx context.Context, input Input) (Fr
 		return FrozenEvent{}, errors.New("event request required")
 	}
 	snapshot, err := activities.Dispatcher.Freeze(ctx, input.EventID, input.Request)
-	return FrozenEvent{Input: input, Snapshot: snapshot}, err
+	if err != nil {
+		return FrozenEvent{}, err
+	}
+	inputID, eligibilityID, err := storage.NewPostgresEventStore(activities.Pool).StoreFrozen(ctx, input.EventID, snapshot.Optimization, activities.Now())
+	return FrozenEvent{Input: input, InputSnapshotID: inputID, EligibilitySnapshotID: eligibilityID}, err
 }
 
 func (activities *Activities) RequestPlan(ctx context.Context, frozen FrozenEvent) (FrozenEvent, error) {
-	plan, err := activities.Dispatcher.RequestPlan(ctx, frozen.Snapshot)
+	request, err := storage.NewPostgresEventStore(activities.Pool).LoadFrozen(ctx, frozen.Input.EventID, frozen.InputSnapshotID, frozen.EligibilitySnapshotID)
+	if err != nil {
+		return frozen, err
+	}
+	plan, err := activities.Dispatcher.RequestPlan(ctx, controlapi.FrozenSnapshot{Optimization: request})
 	if err != nil {
 		return frozen, err
 	}
@@ -44,11 +55,29 @@ func (activities *Activities) RequestPlan(ctx context.Context, frozen FrozenEven
 }
 
 func (activities *Activities) ValidatePlan(ctx context.Context, frozen FrozenEvent) error {
-	err := activities.Dispatcher.ValidatePlan(ctx, frozen.Input.EventID, frozen.Input.PlanVersion, frozen.Snapshot.Canonical)
+	request, err := storage.NewPostgresEventStore(activities.Pool).LoadFrozen(ctx, frozen.Input.EventID, frozen.InputSnapshotID, frozen.EligibilitySnapshotID)
+	if err != nil {
+		return err
+	}
+	err = activities.Dispatcher.ValidatePlan(ctx, frozen.Input.EventID, frozen.Input.PlanVersion, canonicalFromFrozen(request))
 	if errors.Is(err, controlapi.ErrSafetyRejected) {
 		return temporal.NewNonRetryableApplicationError(err.Error(), ValidationError, err)
 	}
 	return err
+}
+
+func canonicalFromFrozen(request *gridosv1.OptimizationRequest) safety.CanonicalState {
+	canonical := safety.CanonicalState{Now: request.GetRequestedAt().AsTime(), Boundary: safety.MeterNetExport, PolicyVersion: request.GetReservePolicy().GetPolicyVersion(), ExpectedGeneration: int64(request.GetPlanVersion()), Devices: make(map[string]safety.DeviceState, len(request.GetDevices()))}
+	for _, device := range request.GetDevices() {
+		energy := device.GetEnergyKwh()
+		observedAt := device.GetTelemetryObservedAt().AsTime()
+		canonical.Devices[device.GetDeviceId()] = safety.DeviceState{
+			EnergyKWh: &energy, UsableCapacityKWh: device.GetUsableEnergyKwh(), HardwareReserveKWh: device.GetHardwareFloorKwh(), PlanReserveKWh: device.GetEffectiveReserveKwh(),
+			MaxChargeKW: device.GetMaxChargeKw(), MaxDischargeKW: device.GetMaxDischargeKw(), ChargeEfficiency: device.GetChargeEfficiency(), DischargeEfficiency: device.GetDischargeEfficiency(),
+			Available: device.GetAvailabilityProbability() == 1, TelemetryAt: &observedAt, FreshnessLimit: 30 * time.Second, MeterExportLimitKW: device.GetMaxDischargeKw(), InterconnectionLimitKW: device.GetMaxDischargeKw(),
+		}
+	}
+	return canonical
 }
 
 func (activities *Activities) PersistIntents(ctx context.Context, request PersistInput) error {
