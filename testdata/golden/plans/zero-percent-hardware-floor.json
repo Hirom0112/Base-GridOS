@@ -26,13 +26,13 @@
         "reason": "RESERVE"
       }
     ],
-    "fallback": true,
-    "fallback_reason": "DETERMINISTIC_FALLBACK",
+    "fallback": false,
+    "fallback_reason": "",
     "schedules": [],
     "shortfalls": [
       {
-        "allocated_kw": 0.0,
-        "expected_kw": 0.0,
+        "allocated_kw": 0,
+        "expected_kw": 0,
         "requested_kw": 3.0,
         "shortfall_kw": 3.0
       }

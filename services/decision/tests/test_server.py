@@ -2,6 +2,7 @@ from collections.abc import Callable
 
 import grpc
 import pytest
+from gridos.fallback.planner import plan_fallback
 from gridos.server import OptimizationServer
 from gridos.v1 import optimization_pb2, optimization_pb2_grpc
 
@@ -10,7 +11,7 @@ def test_server_returns_validated_fallback(
     serve: Callable[[OptimizationServer], optimization_pb2_grpc.OptimizationServiceStub],
     optimize_request: optimization_pb2.OptimizeRequest,
 ) -> None:
-    response = serve(OptimizationServer()).Optimize(optimize_request)
+    response = serve(OptimizationServer(solver=plan_fallback)).Optimize(optimize_request)
 
     assert response.plan.fallback_used
     assert response.plan.fallback_reason == "DETERMINISTIC_FALLBACK"

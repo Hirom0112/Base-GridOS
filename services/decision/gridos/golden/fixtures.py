@@ -4,6 +4,7 @@ from pathlib import Path
 
 from gridos.fallback.planner import DeviceState, FallbackPlan, PlanningInterval, plan_fallback
 from gridos.fallback.replacement import replace_dropped
+from gridos.optimization.model import optimize
 from gridos.solver.bounded import Decision, SolverFault, SolverOutcome, resolve
 from gridos.validation.plan import validate_plan
 
@@ -59,7 +60,7 @@ def _pair(
     *,
     policy_context: str,
 ) -> dict[str, object]:
-    decision = Decision(plan_fallback(devices, intervals), "DETERMINISTIC_FALLBACK")
+    decision = Decision(optimize(devices, intervals), "")
     return _fixture(name, devices, intervals, decision, policy_context=policy_context)
 
 

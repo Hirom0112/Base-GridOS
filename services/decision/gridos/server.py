@@ -9,6 +9,7 @@ from gridos.fallback.planner import (
     PlanningInterval,
     plan_fallback,
 )
+from gridos.optimization.model import OptimizedPlan, optimize
 from gridos.solver.bounded import Decision, Planner, resolve, solve_within_budget
 from gridos.v1 import dispatch_pb2, optimization_pb2, telemetry_pb2
 from gridos.validation.plan import validate_plan
@@ -74,14 +75,28 @@ def _response(
     plan = decision.plan
     by_id = {device.device_id: device for device in devices}
     response = optimization_pb2.OptimizeResponse()
-    response.plan.plan_id = f"{request.request_id}-fallback"
+    optimized = isinstance(plan, OptimizedPlan)
+    response.plan.plan_id = f"{request.request_id}-{'highs' if optimized else 'fallback'}"
     response.plan.event_id = request.event_id
     response.plan.plan_version = request.plan_version
-    response.plan.fallback_used = True
-    response.plan.fallback_reason = decision.fallback_reason
-    response.plan.solver_version = "fallback"
+    response.plan.fallback_used = not optimized
+    response.plan.fallback_reason = "" if optimized else decision.fallback_reason
+    response.plan.solver_version = "highs" if optimized else "fallback"
     response.plan.model_version = "1"
     response.plan.created_at.CopyFrom(request.requested_at)
+    if isinstance(plan, OptimizedPlan):
+        response.plan.objective_breakdown.degradation_cost = plan.objective.cycling_cost
+        response.plan.objective_breakdown.penalty_exposure = plan.objective.shortfall_penalty
+        response.plan.objective_breakdown.reliability_risk_cost = plan.objective.uncertainty_cost
+        response.plan.objective_breakdown.objective_value = -plan.objective.total_cost
+        for name, value, units in (
+            ("RESERVE", plan.margins.reserve_kwh, "kWh"),
+            ("DISCHARGE_POWER", plan.margins.power_kw, "kW"),
+        ):
+            margin = response.plan.constraint_margins.add()
+            margin.constraint_name = name
+            margin.margin = value
+            margin.units = units
     for exclusion in plan.exclusions:
         item = response.plan.exclusions.add()
         item.device_id = exclusion.device_id
@@ -115,7 +130,7 @@ def _response(
 
 
 class OptimizationServer:
-    def __init__(self, solver: Planner = plan_fallback) -> None:
+    def __init__(self, solver: Planner = optimize) -> None:
         self._solver = solver
 
     def Optimize(

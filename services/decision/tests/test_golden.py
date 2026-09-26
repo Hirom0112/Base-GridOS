@@ -39,7 +39,7 @@ def test_golden_hardening_cases_carry_their_fallback_reason() -> None:
     }
 
     assert reasons == {
-        "feasible": "DETERMINISTIC_FALLBACK",
+        "feasible": "",
         "timeout": "TIMEOUT",
         "no-incumbent": "SOLVER_FAILED",
         "invalid-vector": "INVALID_VECTOR",

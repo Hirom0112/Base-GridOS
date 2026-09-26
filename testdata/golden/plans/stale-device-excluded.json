@@ -42,8 +42,8 @@
         "reason": "STALE_TELEMETRY"
       }
     ],
-    "fallback": true,
-    "fallback_reason": "DETERMINISTIC_FALLBACK",
+    "fallback": false,
+    "fallback_reason": "",
     "schedules": [
       {
         "device_id": "device-b",

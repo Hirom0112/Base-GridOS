@@ -21,8 +21,8 @@
   },
   "expected_dispatch_plan": {
     "exclusions": [],
-    "fallback": true,
-    "fallback_reason": "DETERMINISTIC_FALLBACK",
+    "fallback": false,
+    "fallback_reason": "",
     "schedules": [],
     "shortfalls": [
       {

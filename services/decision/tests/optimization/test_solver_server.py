@@ -12,4 +12,10 @@ def test_solver_server_prefers_validated_highs_plan(
     assert not response.plan.fallback_used
     assert response.plan.fallback_reason == ""
     assert response.plan.solver_version == "highs"
+    objective = response.plan.objective_breakdown
+    assert objective.grid_value == 0.0
+    assert objective.commitment_tracking_value == 0.0
+    assert objective.objective_value == -(
+        objective.degradation_cost + objective.penalty_exposure + objective.reliability_risk_cost
+    )
     assert response.plan.shortfalls[0].shortfall_kw == 0.0
