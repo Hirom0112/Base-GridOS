@@ -13,10 +13,12 @@ export function useFleet() {
     queryKey: ["fleet", identity.role],
     queryFn: ({ signal }) =>
       client.fleet.getFleetSummary({ loadZones: ["LZ_AEN"] }, { signal }),
+    refetchInterval: 5000,
     enabled,
   });
   const sites = useQuery({
     queryKey: ["sites", identity.role],
+    refetchInterval: 5000,
     queryFn: async ({ signal }) => {
       const response = await client.fleet.listSites(
         { loadZones: ["LZ_AEN"], pageSize: 1000 },
