@@ -429,7 +429,7 @@ additions.
   sequence, or freshness validation is written to `.local/quarantine/` with
   the reason (FULL_SPEC §14). RED: a deliberately corrupt row lands in quarantine
   with reason `RANGE`. Verify: `uv run pytest tools/data -k quarantine` passes.
-- `[~]` 0E.7 `[P]` Cut small fixtures for tests and the offline demo into
+- `[x]` 0E.7 `[P]` Cut small fixtures for tests and the offline demo into
   `testdata/fixtures/public/`: one week of DAM and RTM for `LZ_HOUSTON` and
   `HB_HOUSTON`, one week of all 32 residential profile types (four classes
   across eight weather zones, DATASETS §3), one month of Travis and Harris
