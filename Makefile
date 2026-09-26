@@ -8,6 +8,7 @@ down:
 
 generate:
 	buf generate contracts
+	buf breaking contracts --against '.git#branch=main'
 
 test-go:
 	go test ./...
