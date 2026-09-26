@@ -214,4 +214,9 @@ assumptions reported by workers land here too.
   green until the director has run the demo stack and the end-to-end tests
   against the real processes, not only the unit suites. Twice in Wave 1 the
   integration gap only appeared when lane F tried to run the whole thing.
+- **AGENTS.md edit by the worker (7b3a8c6):** adds the "Director mailbox"
+  section requiring every subagent to read the last 20 `director:` lines
+  before each item. It codifies an instruction I had already given and
+  loosens nothing. Accepted. Any AGENTS.md edit that weakens a rule would be
+  reverted by the director.
 
