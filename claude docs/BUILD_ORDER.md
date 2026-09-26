@@ -893,7 +893,7 @@ Owns: `services/control/internal/dispatch/`, `services/control/cmd/worker`,
   event against the compose Temporal, kill the worker process after `SENT`,
   restart it, and assert the event reaches `VERIFIED` with no duplicated
   physical intent (FULL_SPEC §10 "Resume an in-flight event"). Verify: `go test ./services/control/tests -run WorkerRestart` passes.
-- `[~]` 2B.7 `[after 2B.6]` Remove the Wave 1 straight-line dispatcher from
+- `[x]` 2B.7 `[after 2B.6]` Remove the Wave 1 straight-line dispatcher from
   `internal/api` and report the stub as retired. Verify: `grep -rn REPLACED-IN-WAVE-2 services` prints nothing.
 
 ### Lane 2C — reconciliation: acknowledgement versus delivery
@@ -947,6 +947,11 @@ Owns: `testdata/scenarios/`, `tests/integration/`, `tests/end-to-end/`,
   worker, then drives an event through the API and asserts the scenario's
   expected outcomes. Written now with `t.Skip` per scenario until the lane
   that provides the behaviour lands. Verify: `go test ./tests/integration/ -run Harness` passes the harness self-test.
+  (2D.3 to 2D.5 wait for 2F.9 and 2F.10. Harness events use short real
+  windows, begin now+10 s and end 60 s later, with injections mapped
+  proportionally into the window and the simulator cadence raised; the
+  harness states in an ASSUMPTION line how telemetry source_time aligns
+  with the wall-clock window. Control never fakes time.)
 - `[~]` 2D.3 `[after 2A.2, 2B.3, 2C.2]` Unskip and pass: `houston-20pct-offline`,
   `lost-ack-still-executing`, `old-command-expiry-newer-pending`.
   Verify: `go test ./tests/integration/ -run "Houston|LostAck|OldExpiry"` passes.
@@ -954,7 +959,7 @@ Owns: `testdata/scenarios/`, `tests/integration/`, `tests/end-to-end/`,
   `gateway-restart`, `network-outage-sqlite-replay`. Verify: `-run "Worker|GatewayRestart|OutageReplay"` passes.
 - `[~]` 2D.5 `[after 2C.4]` Unskip and pass: `measurement-gap-unknown`,
   `under-reserved-excluded`. Verify: `-run "Gap|UnderReserved"` passes.
-- `[ ]` 2D.7 `[P]` Austin fleet footprint: `_austin_cells` in
+- `[x]` 2D.7 `[P]` Austin fleet footprint: `_austin_cells` in
   `tools/generation/fleet/generate.py` samples a density-weighted urban
   silhouette (dense core, thinning suburbs, no cells on the bounding-box
   edges) instead of a uniform box; regenerate `testdata/fleets/austin-5000.jsonl`
@@ -1019,7 +1024,7 @@ for the same item.
 - `[x]` 2F.2 `[after 1F.2]` RED then GREEN: ingest scale. The control plane
   sustains the 5,000-device stream and twin freshness stays under 5 seconds
   (FULL_SPEC §10). Verify: `go test ./tests/end-to-end/ -run IngestScale -timeout 20m` passes.
-- `[~]` 2F.3 `[after 2B.7, 2F.5]` Record live-event fixtures from a scenario run:
+- `[x]` 2F.3 `[after 2B.7, 2F.5]` Record live-event fixtures from a scenario run:
   `GetEvent` at several lifecycle states, the timeline, and an
   `EmergencyStop` response, into `testdata/fixtures/api/`.
   Verify: `go test ./tools/development/mockapi/ -run Fixtures` passes.
@@ -1050,7 +1055,7 @@ for the same item.
   `make test-go` failed on those two tests with no stack running while the
   same tests passed against `make demo`. Verify: `make test-go` green with nothing running; `make test-e2e` green.
 
-- `[~]` 2F.8 `[P]` The demo and the end-to-end stack run the Temporal worker.
+- `[x]` 2F.8 `[P]` The demo and the end-to-end stack run the Temporal worker.
   `make demo` (and therefore `make test-e2e` and the e2e log dir) builds and
   starts `cmd/worker` against the compose Temporal alongside control, with
   its pid in the pid file and a listen or readiness probe; the vertical-slice
@@ -1059,6 +1064,23 @@ for the same item.
   expecting a synchronous state. Found at 2B.7 verification: with the API
   handing the lifecycle to Temporal, `make test-e2e` fails at REQUESTED and
   the standing demo's approve and launch flows dead-end. Verify: `make test-e2e` green with `-count=1`, and after a standing-demo rebuild a curl of `GetEvent` on a freshly created event reaches VALIDATED within the deadline.
+- `[ ]` 2F.9 `[P]` Publisher drain. `PublishCommands` calls
+  `Dispatcher.Publish` once, so with `BatchSize` 100 an event with more than
+  100 intents advances to SENT with the remainder PERSISTED and
+  `TrackAcknowledgements` fails. RED: an activities test with 113 persisted
+  intents fails with "13 commands lack acknowledgement outcomes". GREEN:
+  drain batches until no PERSISTED intent remains for the event, bounded by
+  the intent count, before advancing. Found by lane D at 2D.4.
+  Verify: `go test ./services/control/internal/dispatch/ -run Publish -count=1` passes and `go test ./tests/integration/ -run WorkerTermination -count=1` reaches REPORTED.
+- `[ ]` 2F.10 `[after 2F.9]` Event-window lifecycle. The workflow runs
+  VerifyDelivery, EndEvent, ReconcileLateMessages, and ProduceReport
+  immediately after acknowledgements, so REPORTED can precede `begin_time`.
+  RED (SDK time-skipping test): REPORTED appears before `end_time` plus the
+  late-message grace. GREEN: a durable timer to `begin_time` (EXECUTING),
+  VerifyDelivery once per interval until `end_time`, EndEvent, a grace of
+  `MaxGap`, ReconcileLateMessages, ProduceReport; emergency stop and
+  replacement signals stay live throughout. Found by lane D at 2D.3 and 2D.5.
+  Verify: `go test ./services/control/internal/dispatch/ -run Window -count=1` passes and the harness event with a 60 s window reaches REPORTED only after its end.
 
 ### Gate 2
 
@@ -1091,18 +1113,18 @@ and pre-declares any forecasting dependency in 3B.1.)
   interval (FULL_SPEC §5.4). Verify: fails.
 - `[x]` 3A.2 `[P]` GREEN: `forecasting/load.py` similar-day baseline using the
   normalized ERCOT profiles from 0E.3 assigned by 0C.3. Verify: `uv run --project services/decision pytest services/decision -k load_baseline` passes.
-- `[~]` 3A.3 `[P]` RED then GREEN: regional load and price forecasts from
+- `[x]` 3A.3 `[P]` RED then GREEN: regional load and price forecasts from
   normalized ERCOT system load and DAM/RTM prices (persistence plus
   day-ahead where available), with realized-error evaluation.
   Verify: `-k regional` passes.
-- `[~]` 3A.4 `[P]` RED then GREEN: outage risk per county-hour from the 0E.4
+- `[x]` 3A.4 `[P]` RED then GREEN: outage risk per county-hour from the 0E.4
   rate table combined with active NWS alerts from 0E.5; output is labelled
   `value_kind=modeled_estimate`. Verify: `-k outage_risk` passes.
-- `[~]` 3A.5 `[P]` RED then GREEN: availability and failure probability per
+- `[x]` 3A.5 `[P]` RED then GREEN: availability and failure probability per
   device from reliability traits, connectivity history, and freshness; SOC
   trajectory forecast whose interval widens with telemetry age.
   Verify: `-k availability` passes.
-- `[~]` 3A.6 `[P]` Evaluation harness `forecasting/evaluate.py` recording
+- `[x]` 3A.6 `[P]` Evaluation harness `forecasting/evaluate.py` recording
   realized error per forecast, and a deterministic baseline that is used when
   a learned model is missing or unhealthy. Verify: `-k evaluate` passes.
 
@@ -1130,15 +1152,15 @@ Owns: `services/decision/gridos/optimization/`,
   cohort plan to per-device `DeviceSchedule`, with a reconstruction test that
   sums disaggregated schedules back to the cohort plan within tolerance.
   Verify: `-k disaggregate` passes.
-- `[~]` 3B.5 `[P]` Output includes objective breakdown, constraint margins,
+- `[x]` 3B.5 `[P]` Output includes objective breakdown, constraint margins,
   excluded devices with reasons, and a feasible fallback alongside
   (FULL_SPEC §5.5). Verify: `-k explain` passes.
-- `[~]` 3B.6 `[P]` Performance: canonical 5,000-device scenario plans under 10
+- `[x]` 3B.6 `[P]` Performance: canonical 5,000-device scenario plans under 10
   seconds, and a forced timeout returns the fallback (FULL_SPEC §10).
   Verify: `uv run --project services/decision pytest services/decision -k perf_5000 --durations=1` reports under 10 s.
-- `[~]` 3B.7 `[P]` Hypothesis invariants over the solver output identical to
+- `[x]` 3B.7 `[P]` Hypothesis invariants over the solver output identical to
   1C.7. Verify: `-k hypothesis_solver` passes.
-- `[~]` 3B.8 `[after 3B.5]` Server switches to solver-first, fallback on
+- `[x]` 3B.8 `[after 3B.5]` Server switches to solver-first, fallback on
   timeout or invalid result; golden fixtures regenerated and reviewed.
   Verify: `-k golden` passes and the diff is reviewed in the mailbox report.
 

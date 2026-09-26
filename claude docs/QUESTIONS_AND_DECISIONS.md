@@ -417,3 +417,42 @@ assumptions reported by workers land here too.
   Texas boundary, weather-zone, and load-zone GeoJSON. U1.7 renders cells
   and boundary lines only; U4.1 waits for 4C.3. The UI agent is right not to
   fabricate locations or density to match a generated concept image.
+- **2F.8 and 2B.7 closed (2026-09-26):** director re-ran `make test-e2e`
+  (ok, 6.8 s) and rebuilt the standing demo with the worker; a fresh event
+  moved REQUESTED to PLANNED through Temporal in four seconds. The Wave 1
+  straight-line lifecycle and both retired STUBS rows are gone from the
+  tree; `internal/api/dispatcher.go` now holds only the domain steps the
+  activities call.
+- **3A.3 to 3A.6, 3B.5 to 3B.8, 2D.7, 2F.3 verified** by re-running every
+  reported selector on the director's machine (22 decision tests, mypy
+  clean, 6 Austin generator tests, mockapi fixtures). Accepted
+  assumptions: outage hazard is the county monthly rate over calendar-month
+  hours times one plus the active alert count, labelled modeled_estimate;
+  device reliability priors 99:1, 19:1, 9:1 with freshness decay over 300 s;
+  objective weights are dimensionless planning weights (shortfall 1000,
+  cycling and uncertainty unit) until intervals carry prices; the 3A.5
+  GREEN commit loosened a binary-float equality in its own RED test to
+  approx without changing any physical value; density for 2D.7 means sites
+  per occupied cell falling across outward H3 bands (42.6, 16.1, 4.8).
+- **3B.8 golden diff, reviewed:** eight baseline plans switch from
+  fallback to the HiGHS result with empty fallback reason; four fixtures
+  only normalize numeric zeros; timeout, invalid-vector, no-incumbent, and
+  replacement fixtures are unchanged, so the fallback path stays live.
+- **c30de15 accepted:** the worker-termination scenario drops its
+  `WORKER_RESTART` injection because the integration harness itself
+  restarts the worker process; the simulator has no such failure kind.
+  The scenario's intent is unchanged.
+- **Two control defects found by lane D, assigned to lane F as 2F.9 and
+  2F.10:** the publisher sends only the first batch of 100 commands, and
+  the workflow reports before the event window opens. The director's own
+  integration runs (Harness and AuditChain stuck at SENT after 90 s)
+  confirm the first. 2D.2 and 2D.6 stay open until they pass on the
+  director's machine after 2F.9. Lifecycle timing is fixed with durable
+  Temporal timers on the real event window; integration tests shorten the
+  window to about a minute and raise the simulator cadence. No accelerated
+  clock exists in the control service.
+- **Early start of Wave 3 lanes C and E (2026-09-26):** lanes 3A and 3B are
+  complete, freeing two orchestrator slots. 3C (safety differential and
+  benchmark) and 3E (analytics sink) own paths disjoint from the open Wave 2
+  work, so they start now. 3D and 3F wait for Gate 2 because they own
+  `internal/dispatch/`, `tests/integration/`, and `tests/end-to-end/`.
