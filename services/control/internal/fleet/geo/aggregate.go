@@ -9,15 +9,21 @@ import (
 )
 
 type Cell struct {
-	Cell               string
-	SiteCount          uint64
-	InstalledMW        float64
-	InstalledMWh       float64
-	DispatchableMW     float64
-	ReservedMWh        float64
-	OperatingCounts    map[fleet.OperatingState]uint64
-	AvailabilityCounts map[fleet.Availability]uint64
-	Freshness          time.Duration
+	Cell                string
+	SiteCount           uint64
+	InstalledMW         float64
+	InstalledMWh        float64
+	DispatchableMW      float64
+	ReservedMWh         float64
+	OperatingCounts     map[fleet.OperatingState]uint64
+	AvailabilityCounts  map[fleet.Availability]uint64
+	Freshness           time.Duration
+	SOCLowCount         uint64
+	SOCMediumCount      uint64
+	SOCHighCount        uint64
+	SOCUnknownCount     uint64
+	ConnectedCount      uint64
+	ActiveDispatchCount uint64
 }
 
 func Aggregate(sites []*gridosv1.AuthorizedSite, states []fleet.SiteState, now time.Time) []Cell {

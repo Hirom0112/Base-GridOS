@@ -2,6 +2,7 @@ package geo
 
 import (
 	"fmt"
+	"math"
 	"testing"
 	"time"
 
@@ -9,7 +10,7 @@ import (
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/fleet"
 )
 
-func TestAggregatePrivacy(t *testing.T) {
+func privacyFixture() ([]*gridosv1.AuthorizedSite, []fleet.SiteState, map[string]bool, time.Time) {
 	now := time.Unix(100, 0)
 	sites := make([]*gridosv1.AuthorizedSite, 0, 14)
 	states := make([]fleet.SiteState, 0, 14)
@@ -26,6 +27,11 @@ func TestAggregatePrivacy(t *testing.T) {
 		states = append(states, fleet.SiteState{SiteID: id, EnergyKWh: energy, Availability: availability, OperatingState: fleet.OnGrid, ObservedAt: now})
 		active[id] = index >= 3 && index < 9
 	}
+	return sites, states, active, now
+}
+
+func TestAggregatePrivacy(t *testing.T) {
+	sites, states, active, now := privacyFixture()
 	cells, err := AggregatePrivate(sites, states, active, now, 7)
 	if err != nil {
 		t.Fatal(err)
@@ -41,14 +47,34 @@ func TestAggregatePrivacy(t *testing.T) {
 		byID[cell.Cell] = cell
 	}
 	merged := byID["86489e347ffffff"]
-	if merged.SiteCount != 9 || merged.InstalledMW != 0.057 || merged.SOCLowCount != 3 || merged.SOCMediumCount != 6 || merged.ConnectedCount != 3 || merged.ActiveDispatchCount != 6 {
+	if merged.SiteCount != 9 || math.Abs(merged.InstalledMW-0.057) > 1e-12 || merged.SOCLowCount != 3 || merged.SOCMediumCount != 6 || merged.ConnectedCount != 3 || merged.ActiveDispatchCount != 6 {
 		t.Fatalf("incorrect merged metrics: %+v", merged)
 	}
 	separate := byID["8726cb9a5ffffff"]
-	if separate.SiteCount != 5 || separate.SOCHighCount != 5 || separate.InstalledMW != 0.045 {
+	if separate.SiteCount != 5 || separate.SOCHighCount != 5 || math.Abs(separate.InstalledMW-0.045) > 1e-12 {
 		t.Fatalf("full sibling must remain visible: %+v", separate)
 	}
+}
+
+func TestAggregateResolutions(t *testing.T) {
+	sites, states, active, now := privacyFixture()
 	if _, err := AggregatePrivate(sites, states, active, now, 8); err == nil {
 		t.Fatal("resolution 8 must be unavailable without exact site cells")
+	}
+	for resolution := 5; resolution <= 7; resolution++ {
+		cells, err := AggregatePrivate(sites, states, active, now, resolution)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var total uint64
+		for _, cell := range cells {
+			if cell.SiteCount < 5 {
+				t.Fatalf("resolution %d disclosed a small cell: %+v", resolution, cell)
+			}
+			total += cell.SiteCount
+		}
+		if total != uint64(len(sites)) {
+			t.Fatalf("resolution %d counted %d sites, want %d", resolution, total, len(sites))
+		}
 	}
 }
