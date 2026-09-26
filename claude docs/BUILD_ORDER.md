@@ -539,7 +539,7 @@ Owns: `services/gateway-simulator/`.
   a fleet file and scenario clock from flags. Real gRPC test in
   `services/gateway-simulator/tests/protocol_test.go` sending a `CommandIntent`
   and reading back an acknowledgement and telemetry. Verify: `go test ./services/gateway-simulator/...` passes.
-- `[~]` 1A.8 `[P]` RED then GREEN: restart test. Kill the process mid-event,
+- `[x]` 1A.8 `[P]` RED then GREEN: restart test. Kill the process mid-event,
   restart, and assert retained commands still execute and buffered telemetry
   is delivered exactly once. Verify: `go test ./services/gateway-simulator/tests -run Restart` passes.
 
@@ -568,7 +568,7 @@ Owns: `services/control/internal/safety/`.
 - `[x]` 1B.4 `[P]` RED then GREEN: fail closed. Missing state of charge,
   missing freshness, or contradictory inputs produce a rejection, never an
   approval (FULL_SPEC §4 invariant 8). Verify: `-run FailClosed` passes.
-- `[~]` 1B.5 `[P]` Property test with `pgregory.net/rapid`: for random plans
+- `[x]` 1B.5 `[P]` Property test with `pgregory.net/rapid`: for random plans
   and states, an approved plan never has energy below effective reserve at
   any interval. Verify: `go test ./services/control/internal/safety/ -run Property -rapid.checks=2000` passes.
 - `[~]` 1B.6 `[after 1C.6]` Differential test reading the golden fixtures in
