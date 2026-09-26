@@ -1,3 +1,5 @@
+import argparse
+from concurrent.futures import ThreadPoolExecutor
 from math import isfinite
 from time import monotonic
 
@@ -136,3 +138,44 @@ class OptimizationServer:
         if violations:
             context.abort(grpc.StatusCode.INTERNAL, "fallback validation failed")
         return _response(request, devices, plan)
+
+
+def _port(value: str) -> int:
+    port = int(value)
+    if not 1 <= port <= 65_535:
+        raise argparse.ArgumentTypeError("port must be in [1, 65535]")
+    return port
+
+
+def serve(port: int) -> None:
+    server = grpc.server(ThreadPoolExecutor())
+    handler = grpc.unary_unary_rpc_method_handler(
+        OptimizationServer().Optimize,
+        request_deserializer=optimization_pb2.OptimizeRequest.FromString,
+        response_serializer=optimization_pb2.OptimizeResponse.SerializeToString,
+    )
+    server.add_generic_rpc_handlers(
+        (
+            grpc.method_handlers_generic_handler(
+                "gridos.v1.OptimizationService", {"Optimize": handler}
+            ),
+        )
+    )
+    if server.add_insecure_port(f"[::]:{port}") == 0:
+        raise RuntimeError(f"could not bind port {port}")
+    server.start()
+    try:
+        server.wait_for_termination()
+    except KeyboardInterrupt:
+        server.stop(0).wait()
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--port", type=_port, required=True)
+    arguments = parser.parse_args()
+    serve(arguments.port)
+
+
+if __name__ == "__main__":
+    main()

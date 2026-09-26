@@ -1,4 +1,4 @@
-.PHONY: up down generate test-go test-py test-web test-all hooks ui-mock plugins
+.PHONY: up down generate test-go test-py test-web test-all hooks ui-mock plugins decision
 
 up:
 	docker compose -f infrastructure/local/compose.yaml up -d --wait
@@ -38,3 +38,6 @@ plugins:
 	uv sync --project services/decision
 	printf '%s\n' '#!/bin/sh' 'exec uv run --offline --project services/decision python -m grpc_tools.protoc "$$@"' > .local/bin/protoc
 	chmod +x .local/bin/protoc
+
+decision:
+	uv run --project services/decision python -m gridos.server --port "$${GRIDOS_DECISION_PORT:-50061}"

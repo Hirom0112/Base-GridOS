@@ -11,6 +11,15 @@ dependencies = [
   "protobuf>=6.32.0",
 ]
 
+[build-system]
+requires = ["setuptools>=80"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["gridos*"]
+exclude = ["gridos.gen*"]
+
 [dependency-groups]
 dev = [
   "hypothesis>=6.138.0",
