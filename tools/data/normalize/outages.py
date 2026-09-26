@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pyarrow as pa
 import pyarrow.parquet as parquet
+from quarantine import write_quarantine
 
 ROOT = Path(__file__).parents[3]
 EVENT_SCHEMA = pa.schema(
@@ -37,8 +38,30 @@ def event(row: dict[str, str]) -> dict[str, object]:
     }
 
 
-def normalize_outages(source: Path, output_dir: Path | None = None) -> tuple[Path, Path]:
+def validation_reason(row: dict[str, str]) -> str | None:
+    try:
+        tracked = int(row["customers_tracked"])
+        customers_out = int(row["customers_out"])
+        duration = float(row["outage_duration_mins"])
+        started_at = datetime.fromisoformat(row["min_updated_time"])
+        ended_at = datetime.fromisoformat(row["max_updated_time"])
+    except (KeyError, TypeError, ValueError):
+        return "SCHEMA"
+    if min(tracked, customers_out, duration) < 0 or customers_out > tracked:
+        return "RANGE"
+    if ended_at < started_at:
+        return "SEQUENCE"
+    return None
+
+
+def normalize_outages(
+    source: Path,
+    output_dir: Path | None = None,
+    *,
+    quarantine_dir: Path | None = None,
+) -> tuple[Path, Path]:
     destination = output_dir or ROOT / ".local/normalized"
+    rejected = quarantine_dir or ROOT / ".local/quarantine"
     destination.mkdir(parents=True, exist_ok=True)
     events_path = destination / "outages.parquet"
     rate_parts: dict[tuple[str, str], list[float]] = defaultdict(lambda: [0.0, 0.0])
@@ -48,6 +71,10 @@ def normalize_outages(source: Path, output_dir: Path | None = None) -> tuple[Pat
     ):
         batch = []
         for raw in csv.DictReader(stream):
+            reason = validation_reason(raw)
+            if reason:
+                write_quarantine(rejected, source.name, raw, reason)
+                continue
             normalized = event(raw)
             batch.append(normalized)
             month = normalized["started_at"].strftime("%Y-%m")
