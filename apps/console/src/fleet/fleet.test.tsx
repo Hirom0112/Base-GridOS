@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { fromJsonString } from "@bufbuild/protobuf";
 import { render, screen } from "@testing-library/react";
 import { expect, test } from "vitest";
@@ -9,9 +10,9 @@ test("fleet presents recorded quantities with evidence and distinct operating st
   const response = fromJsonString(
     GetFleetSummaryResponseSchema,
     readFileSync(
-      new URL(
-        "../../../../testdata/fixtures/api/FleetService/GetFleetSummary.json",
-        import.meta.url,
+      resolve(
+        process.cwd(),
+        "../../testdata/fixtures/api/FleetService/GetFleetSummary.json",
       ),
       "utf8",
     ),

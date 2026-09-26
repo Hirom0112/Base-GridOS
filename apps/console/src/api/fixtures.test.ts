@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { fromJsonString, toJsonString } from "@bufbuild/protobuf";
 import { expect, test } from "vitest";
 import {
@@ -14,10 +15,7 @@ test.each([
   "fixtures decode %s through their generated contract",
   (path, schema) => {
     const json = readFileSync(
-      new URL(
-        `../../../../testdata/fixtures/api/${path}.json`,
-        import.meta.url,
-      ),
+      resolve(process.cwd(), `../../testdata/fixtures/api/${path}.json`),
       "utf8",
     );
     expect(() => fromJsonString(schema, json)).not.toThrow();
@@ -26,9 +24,9 @@ test.each([
 
 test("contract CommandIntent round-trips canonical JSON", () => {
   const json = readFileSync(
-    new URL(
-      "../../../../testdata/fixtures/contracts/command_intent.json",
-      import.meta.url,
+    resolve(
+      process.cwd(),
+      "../../testdata/fixtures/contracts/command_intent.json",
     ),
     "utf8",
   );
