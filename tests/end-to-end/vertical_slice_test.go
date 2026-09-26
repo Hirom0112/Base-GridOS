@@ -22,10 +22,11 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-const (
-	controlURL  = "http://localhost:28080"
-	gatewayURL  = "http://localhost:28081"
-	gatewayAuth = "Bearer local-gateway"
+const gatewayAuth = "Bearer local-gateway"
+
+var (
+	controlURL = serviceURL("GRIDOS_CONTROL_URL", "http://localhost:28080")
+	gatewayURL = serviceURL("GRIDOS_GATEWAY_URL", "http://localhost:28081")
 )
 
 type fleetDevice struct {
@@ -115,7 +116,8 @@ func TestDuplicateDelivery(t *testing.T) {
 
 func requireDemo(t *testing.T) {
 	t.Helper()
-	for _, address := range []string{"127.0.0.1:28080", "127.0.0.1:28081"} {
+	for _, address := range []string{controlURL, gatewayURL} {
+		address = address[len("http://"):]
 		connection, err := net.DialTimeout("tcp", address, 250*time.Millisecond)
 		if err != nil {
 			t.Skip("demo stack is not listening; run make test-e2e")
@@ -124,6 +126,13 @@ func requireDemo(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+}
+
+func serviceURL(name string, fallback string) string {
+	if value := os.Getenv(name); value != "" {
+		return value
+	}
+	return fallback
 }
 
 func publishTelemetry(t *testing.T, ctx context.Context, deviceID string, now time.Time) {
@@ -307,7 +316,11 @@ func assertDeliveryCounts(t *testing.T, ctx context.Context, pool *pgxpool.Pool,
 	if err := pool.QueryRow(ctx, "SELECT count(*) FROM command_acknowledgements WHERE command_id = $1", commandID).Scan(&acknowledgements); err != nil {
 		t.Fatal(err)
 	}
-	database, err := sql.Open("sqlite", filepath.Join(repositoryRoot(t), ".local/demo/gateway.db"))
+	databasePath := os.Getenv("GRIDOS_GATEWAY_DATABASE")
+	if databasePath == "" {
+		databasePath = filepath.Join(repositoryRoot(t), ".local/demo/gateway.db")
+	}
+	database, err := sql.Open("sqlite", databasePath)
 	if err != nil {
 		t.Fatal(err)
 	}
