@@ -631,7 +631,7 @@ Owns: `services/control/internal/storage/` (including
   own module). sqlc-generated code from 0D.5 committed under
   `internal/storage/gen`, and `cmd/migrate` applying `database/migrations`
   with `golang-migrate`. Verify: `go run ./services/control/cmd/migrate up` against `make up` succeeds and `go build ./...` succeeds.
-- `[~]` 1D.2 `[P]` Test harness: each test gets a disposable database via
+- `[x]` 1D.2 `[P]` Test harness: each test gets a disposable database via
   `CREATE DATABASE` on the compose PostgreSQL (or `testcontainers-go`), with
   migrations applied. Verify: `go test ./services/control/internal/storage/ -run Harness` passes.
 - `[~]` 1D.3 `[P]` RED: `events_test.go`: state transitions follow the
