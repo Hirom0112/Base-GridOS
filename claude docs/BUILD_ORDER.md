@@ -666,7 +666,7 @@ Owns: `services/control/internal/storage/` (including
   Recording an acknowledgement never changes the event state directly; a send
   with no acknowledgement inside its deadline is marked `UNCERTAIN` with a
   stored signed feasible-power interval. Verify: `-run Ack` passes.
-- `[~]` 1D.8 `[P]` Model-based test with `rapid`: random sequences of
+- `[x]` 1D.8 `[P]` Model-based test with `rapid`: random sequences of
   transitions, acknowledgements, and expiries against an in-memory reference
   model of the command state machine; the database agrees with the model at
   every step. Verify: `go test ./services/control/internal/storage/ -run Model -rapid.checks=500` passes.
