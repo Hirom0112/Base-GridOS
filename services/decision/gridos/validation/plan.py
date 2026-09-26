@@ -65,6 +65,7 @@ def _schedule_violations(
 
 def _shortfall_violations(
     plan: FallbackPlan,
+    probabilities: dict[str, float],
     intervals: list[PlanningInterval],
     tolerance: float,
 ) -> list[Violation]:
@@ -72,20 +73,29 @@ def _shortfall_violations(
         return [Violation("VECTOR_LENGTH")]
     violations: list[Violation] = []
     for index, (shortfall, interval) in enumerate(zip(plan.shortfalls, intervals, strict=True)):
-        values = (shortfall.requested_kw, shortfall.allocated_kw, shortfall.shortfall_kw)
+        values = (
+            shortfall.requested_kw,
+            shortfall.allocated_kw,
+            shortfall.expected_kw,
+            shortfall.shortfall_kw,
+        )
         if not all(isfinite(value) for value in values):
             violations.append(Violation("NONFINITE_VALUE", interval_index=index))
             continue
-        allocated = sum(
-            schedule.intervals[index].grid_service_kw
-            for schedule in plan.schedules
-            if index < len(schedule.intervals)
-        )
+        allocated = 0.0
+        expected = 0.0
+        for schedule in plan.schedules:
+            if index < len(schedule.intervals):
+                grid_service_kw = schedule.intervals[index].grid_service_kw
+                allocated += grid_service_kw
+                expected += grid_service_kw * probabilities.get(schedule.device_id, 0.0)
         if abs(shortfall.requested_kw - interval.target_kw) > tolerance:
             violations.append(Violation("TARGET_MISMATCH", interval_index=index))
         if abs(shortfall.allocated_kw - allocated) > tolerance:
             violations.append(Violation("ALLOCATION_MISMATCH", interval_index=index))
-        expected_shortfall = max(0.0, interval.target_kw - allocated)
+        if abs(shortfall.expected_kw - expected) > tolerance:
+            violations.append(Violation("EXPECTED_MISMATCH", interval_index=index))
+        expected_shortfall = max(0.0, interval.target_kw - expected)
         if (
             shortfall.shortfall_kw < 0.0
             or abs(shortfall.shortfall_kw - expected_shortfall) > tolerance
@@ -115,5 +125,6 @@ def validate_plan(
             violations.append(Violation("UNKNOWN_DEVICE", schedule.device_id))
             continue
         violations.extend(_schedule_violations(schedule, device, intervals, tolerance))
-    violations.extend(_shortfall_violations(plan, intervals, tolerance))
+    probabilities = {device.device_id: device.availability_probability for device in devices}
+    violations.extend(_shortfall_violations(plan, probabilities, intervals, tolerance))
     return tuple(violations)

@@ -2,6 +2,7 @@
   "canonical_state": {
     "devices": [
       {
+        "availability_probability": 1.0,
         "available": true,
         "device_id": "device-a",
         "discharge_efficiency": 0.95,
@@ -30,6 +31,7 @@
     "shortfalls": [
       {
         "allocated_kw": 0.0,
+        "expected_kw": 0.0,
         "requested_kw": 3.0,
         "shortfall_kw": 3.0
       }

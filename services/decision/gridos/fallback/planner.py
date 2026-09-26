@@ -13,6 +13,7 @@ class DeviceState:
     max_discharge_kw: float
     discharge_efficiency: float
     home_load_kw: float
+    availability_probability: float = 1.0
     available: bool = True
     stale: bool = False
     maintenance: bool = False
@@ -48,6 +49,7 @@ class Exclusion:
 class Shortfall:
     requested_kw: float
     allocated_kw: float
+    expected_kw: float
     shortfall_kw: float
 
 
@@ -78,9 +80,12 @@ def _validate_device(device: DeviceState) -> None:
         device.max_discharge_kw,
         device.discharge_efficiency,
         device.home_load_kw,
+        device.availability_probability,
     )
     if not device.device_id or not all(isfinite(value) for value in values):
         raise ValueError("device values must be identified and finite")
+    if not 0.0 <= device.availability_probability <= 1.0:
+        raise ValueError("availability probability must be in [0, 1]")
     if device.usable_energy_kwh < 0.0 or not 0.0 <= device.energy_kwh <= device.usable_energy_kwh:
         raise ValueError("device energy is outside capacity")
     if not all(0.0 <= value <= 100.0 for value in values[2:5]):
@@ -96,7 +101,7 @@ def exclusion_reason(device: DeviceState) -> str | None:
         return "STALE_TELEMETRY"
     if device.maintenance:
         return "MAINTENANCE_LOCK"
-    if not device.available:
+    if not device.available or device.availability_probability <= 0.0:
         return "UNAVAILABLE"
     if device.operating_state != "ON_GRID":
         return "UNAVAILABLE"
@@ -110,6 +115,12 @@ def _interval_capacity_kw(device: DeviceState, energy_kwh: float, duration_hours
     available_ac_kwh = max(0.0, energy_kwh - reserve_kwh) * device.discharge_efficiency
     discharge_kw = min(device.max_discharge_kw, available_ac_kwh / duration_hours)
     return max(0.0, discharge_kw - device.home_load_kw)
+
+
+def _counted_capacity_kw(device: DeviceState, energy_kwh: float, duration_hours: float) -> float:
+    return device.availability_probability * _interval_capacity_kw(
+        device, energy_kwh, duration_hours
+    )
 
 
 def plan_fallback(devices: list[DeviceState], intervals: list[PlanningInterval]) -> FallbackPlan:
@@ -139,16 +150,19 @@ def plan_fallback(devices: list[DeviceState], intervals: list[PlanningInterval])
         ranked = sorted(
             eligible,
             key=lambda device: (
-                -_interval_capacity_kw(device, energies[device.device_id], interval.duration_hours),
+                -_counted_capacity_kw(device, energies[device.device_id], interval.duration_hours),
                 device.device_id,
             ),
         )
         remaining_kw = interval.target_kw
+        allocated_kw = 0.0
+        expected_kw = 0.0
         for device in ranked:
             capacity_kw = _interval_capacity_kw(
                 device, energies[device.device_id], interval.duration_hours
             )
-            grid_service_kw = min(remaining_kw, capacity_kw)
+            probability = device.availability_probability
+            grid_service_kw = min(remaining_kw / probability, capacity_kw)
             discharge_kw = (
                 min(device.max_discharge_kw, grid_service_kw + device.home_load_kw)
                 if grid_service_kw > 0.0
@@ -163,9 +177,11 @@ def plan_fallback(devices: list[DeviceState], intervals: list[PlanningInterval])
             scheduled[device.device_id].append(
                 ScheduleInterval(grid_service_kw, discharge_kw, next_energy)
             )
-            remaining_kw -= grid_service_kw
-        allocated_kw = interval.target_kw - remaining_kw
-        shortfalls.append(Shortfall(interval.target_kw, allocated_kw, remaining_kw))
+            remaining_kw = max(0.0, remaining_kw - grid_service_kw * probability)
+            allocated_kw += grid_service_kw
+            expected_kw += grid_service_kw * probability
+        shortfall_kw = max(0.0, interval.target_kw - expected_kw)
+        shortfalls.append(Shortfall(interval.target_kw, allocated_kw, expected_kw, shortfall_kw))
     schedules = tuple(
         DeviceSchedule(device.device_id, tuple(scheduled[device.device_id]))
         for device in eligible

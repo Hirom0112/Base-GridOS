@@ -49,6 +49,7 @@ def _device_states(request: optimization_pb2.OptimizationRequest) -> list[Device
             max_discharge_kw=device.max_discharge_kw,
             discharge_efficiency=device.discharge_efficiency,
             home_load_kw=0.0,
+            availability_probability=device.availability_probability,
             available=not eligible_ids or device.device_id in eligible_ids,
             stale=device.stale,
         )
@@ -106,7 +107,7 @@ def _response(
         output_shortfall.interval_begin_time.CopyFrom(request.intervals[index].begin_time)
         output_shortfall.interval_end_time.CopyFrom(request.intervals[index].end_time)
         output_shortfall.requested_kw = shortfall.requested_kw
-        output_shortfall.feasible_kw = shortfall.allocated_kw
+        output_shortfall.feasible_kw = shortfall.expected_kw
         output_shortfall.shortfall_kw = shortfall.shortfall_kw
         if shortfall.shortfall_kw > 0.0:
             output_shortfall.reasons.append("INSUFFICIENT_FEASIBLE_CAPACITY")
