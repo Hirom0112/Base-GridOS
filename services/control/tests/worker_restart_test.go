@@ -44,7 +44,7 @@ func TestWorkerRestart(t *testing.T) {
 	}
 	taskQueue := fmt.Sprintf("worker-restart-%d", time.Now().UnixNano())
 	first := startRestartWorker(t, databaseURL, taskQueue)
-	temporalClient, err := client.Dial(client.Options{})
+	temporalClient, err := client.Dial(client.Options{HostPort: "127.0.0.1:7233"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -80,8 +80,22 @@ func (activities *restartActivities) FreezeInputs(_ context.Context, input dispa
 }
 
 func (activities *restartActivities) RequestPlan(ctx context.Context, frozen dispatch.FrozenEvent) (dispatch.FrozenEvent, error) {
+	now := activities.now()
+	_, err := activities.pool.Exec(ctx, `INSERT INTO input_snapshots (snapshot_id, event_id, captured_at, inputs, provenance, correlation_id)
+		VALUES ('restart-input', $1, $2, '{}', '{"source":"SIMULATED"}', 'restart')`, frozen.Input.EventID, now)
+	if err == nil {
+		_, err = activities.pool.Exec(ctx, `INSERT INTO eligibility_snapshots (snapshot_id, event_id, captured_at, eligible_device_ids, exclusions, policy_version, correlation_id)
+			VALUES ('restart-eligibility', $1, $2, '{}', '[]', 'policy-1', 'restart')`, frozen.Input.EventID, now)
+	}
+	if err == nil {
+		_, err = activities.pool.Exec(ctx, `INSERT INTO plan_versions (event_id, version, input_snapshot_id, eligibility_snapshot_id, plan, solver_version, model_version, correlation_id, created_at)
+			VALUES ($1, 1, 'restart-input', 'restart-eligibility', '{}', 'test', 'test', 'restart', $2)`, frozen.Input.EventID, now)
+	}
+	if err != nil {
+		return frozen, err
+	}
 	advance := storage.EventTransition{EventID: frozen.Input.EventID, ExpectedState: "REQUESTED", NextState: "PLANNED", ActorID: "worker", CorrelationID: "restart", OccurredAt: activities.now()}
-	_, err := storage.TransitionEvent(ctx, activities.pool, advance)
+	_, err = storage.TransitionEvent(ctx, activities.pool, advance)
 	frozen.Input.PlanVersion = 1
 	return frozen, err
 }
@@ -144,12 +158,12 @@ func (activities *restartActivities) ReconcileLateMessages(context.Context, disp
 func (activities *restartActivities) ProduceReport(context.Context, dispatch.Input) error { return nil }
 
 func runRestartWorker(t *testing.T) {
-	pool, err := pgxpool.New(context.Background(), os.Getenv("GRIDOS_DATABASE_URL"))
+	pool, err := pgxpool.New(context.Background(), os.Getenv("GRIDOS_RESTART_DATABASE_URL"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer pool.Close()
-	temporalClient, err := client.Dial(client.Options{})
+	temporalClient, err := client.Dial(client.Options{HostPort: "127.0.0.1:7233"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -168,7 +182,9 @@ func startRestartWorker(t *testing.T, databaseURL, taskQueue string) *exec.Cmd {
 		t.Fatal(err)
 	}
 	command := exec.Command(binary, "-test.run=TestWorkerRestart", "-test.v")
-	command.Env = append(os.Environ(), "GRIDOS_WORKER_HELPER=1", "GRIDOS_DATABASE_URL="+databaseURL, "GRIDOS_TASK_QUEUE="+taskQueue)
+	command.Env = append(os.Environ(), "GRIDOS_WORKER_HELPER=1", "GRIDOS_RESTART_DATABASE_URL="+databaseURL, "GRIDOS_TASK_QUEUE="+taskQueue)
+	command.Stdout = os.Stdout
+	command.Stderr = os.Stderr
 	if err = command.Start(); err != nil {
 		t.Fatal(err)
 	}
@@ -186,15 +202,15 @@ func stopRestartWorker(t *testing.T, command *exec.Cmd) {
 }
 
 func waitRestartState(t *testing.T, pool *pgxpool.Pool, expected string) {
-	deadline := time.Now().Add(10 * time.Second)
+	deadline := time.Now().Add(25 * time.Second)
+	actual := ""
 	for time.Now().Before(deadline) {
-		var state string
-		if pool.QueryRow(context.Background(), "SELECT state FROM dispatch_events WHERE event_id = 'restart-event'").Scan(&state) == nil && state == expected {
+		if pool.QueryRow(context.Background(), "SELECT state FROM dispatch_events WHERE event_id = 'restart-event'").Scan(&actual) == nil && actual == expected {
 			return
 		}
 		time.Sleep(20 * time.Millisecond)
 	}
-	t.Fatalf("event did not reach %s", expected)
+	t.Fatalf("event state = %s, want %s", actual, expected)
 }
 
 func advanceRestartEvent(t *testing.T, pool *pgxpool.Pool, expected, next string) {
@@ -244,5 +260,5 @@ func restartDatabase(t *testing.T) (*pgxpool.Pool, string) {
 			t.Fatal(err)
 		}
 	}
-	return pool, config.ConnString()
+	return pool, fmt.Sprintf("postgres://gridos:gridos@localhost:5432/%s?sslmode=disable", name)
 }

@@ -48,12 +48,13 @@ const (
 )
 
 type Input struct {
-	EventID     string
-	CommandID   string
-	Generation  uint64
-	ExpiresAt   time.Time
-	PlanVersion uint64
-	Request     *gridosv1.EventRequest
+	EventID                 string
+	CommandID               string
+	Generation              uint64
+	ExpiresAt               time.Time
+	AcknowledgementDeadline time.Time
+	PlanVersion             uint64
+	Request                 *gridosv1.EventRequest
 }
 
 type Approval struct {
@@ -127,6 +128,9 @@ func Workflow(ctx workflow.Context, input Input) (Result, error) {
 	emergency := workflow.GetSignalChannel(ctx, EmergencyStopSignal)
 	replacements := workflow.GetSignalChannel(ctx, ReplaceDeviceSignal)
 	nextGeneration := input.Generation + 1
+	if err := waitForAcknowledgements(ctx, input.AcknowledgementDeadline); err != nil {
+		return result, err
+	}
 	steps := []struct {
 		activity string
 		states   []State
@@ -150,6 +154,13 @@ func Workflow(ctx workflow.Context, input Input) (Result, error) {
 		return result, err
 	}
 	return result, nil
+}
+
+func waitForAcknowledgements(ctx workflow.Context, deadline time.Time) error {
+	if deadline.IsZero() {
+		return nil
+	}
+	return waitUntil(ctx, deadline)
 }
 
 func expire(ctx workflow.Context, input Input, generation uint64) error {
