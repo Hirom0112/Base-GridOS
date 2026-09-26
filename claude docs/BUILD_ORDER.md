@@ -746,8 +746,11 @@ After lane D completes: `services/control/internal/storage/` and
   provenance mix, and freshness on every aggregate. Installed capacity
   carries the provenance of the fleet records it sums (`SIMULATED` with the
   record count for the demo fleet); each count carries the provenance mix of
-  the sites it counts; `ListSites` cells likewise. RED test first asserting
-  no aggregate in either response has an empty mix. Found by the UI track
+  the sites it counts; `ListSites` cells likewise; and `DispatchEvent`
+  responses carry the `provenance` field added in 0B (`SIMULATED` for
+  events created against the simulated fleet), stored with the event. RED
+  test first asserting no aggregate in either response has an empty mix and
+  `GetEvent` returns provenance. Found by the UI track
   against the live demo. Verify: `go test ./services/control/internal/api/ -run Provenance` passes and a `curl` of `GetFleetSummary` on `make demo` shows a non-empty `provenanceMix` on every quantity and count.
 
 ### Lane 1F — telemetry ingest and vertical-slice end to end
