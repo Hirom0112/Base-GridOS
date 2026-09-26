@@ -690,7 +690,7 @@ Owns: `services/control/internal/fleet/`, `services/control/internal/api/`,
   carries both backup-hours estimates; aggregate MW and MWh are sums of
   fresh on-grid sites only, and every aggregate carries a timestamp,
   provenance mix, and freshness. Verify: fails.
-- `[~]` 1E.2 `[P]` GREEN: `internal/fleet/twin.go`. Verify: `go test ./services/control/internal/fleet/ -run Twin` passes.
+- `[x]` 1E.2 `[P]` GREEN: `internal/fleet/twin.go`. Verify: `go test ./services/control/internal/fleet/ -run Twin` passes.
 - `[~]` 1E.3 `[P]` RED then GREEN: eligibility with exclusion reasons
   (offline, stale, islanded or off-grid, overcurrent, maintenance lock,
   under reserve, alarm, outside region, outside participation window). Under-reserved devices are excluded and
