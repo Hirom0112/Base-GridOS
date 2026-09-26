@@ -530,7 +530,7 @@ Owns: `services/gateway-simulator/`.
   `ValueState=MISSING`, never a zero; the five power-flow fields balance
   (`to_home_kw` equals grid plus storage plus solar contributions within
   tolerance). Verify: fails.
-- `[~]` 1A.6 `[P]` GREEN: `internal/telemetry` producing observations from the
+- `[x]` 1A.6 `[P]` GREEN: `internal/telemetry` producing observations from the
   battery model on the scenario clock, buffering to SQLite before publish,
   deleting only after confirmed cloud receipt, and replaying the buffer on
   reconnect (TECHSTACK items 6 to 8). Verify: `go test ./services/gateway-simulator/internal/telemetry/` passes.
@@ -599,22 +599,22 @@ Owns: `services/decision/`, `testdata/golden/`.
   ineligible devices, ranks survivors, allocates conservatively, and reports a
   per-interval shortfall whose sum equals target minus allocated; an
   infeasible target never lowers any reserve. Verify: fails.
-- `[~]` 1C.5 `[P]` GREEN: `gridos/fallback/planner.py` implementing the
+- `[x]` 1C.5 `[P]` GREEN: `gridos/fallback/planner.py` implementing the
   `system-understanding.md` "Forecasts and optimization" fallback with the
   same hard constraints the solver will use. Verify: `uv run --project services/decision pytest services/decision -k fallback` passes.
-- `[~]` 1C.6 `[P]` Golden fixtures: `testdata/golden/plans/` with at least
+- `[x]` 1C.6 `[P]` Golden fixtures: `testdata/golden/plans/` with at least
   eight `OptimizationRequest` + expected `DispatchPlan` pairs (feasible,
   infeasible with shortfall, reserve-tight, stale device excluded, zero-percent
   plan with hardware floor, weather override, expired window, duplicate
   device). A pytest regenerates and diffs them. Verify: `uv run --project services/decision pytest services/decision -k golden` passes and the fixture directory is checked in.
-- `[~]` 1C.7 `[P]` Hypothesis invariants: for random fleets, the fallback
+- `[x]` 1C.7 `[P]` Hypothesis invariants: for random fleets, the fallback
   plan never violates power, energy, or reserve bounds and declared shortfall
   is never negative. Verify: `uv run --project services/decision pytest services/decision -k hypothesis` passes with `--hypothesis-seed=0`.
 - `[~]` 1C.8 `[after 0B.6]` gRPC server `gridos/server.py` exposing
   `Optimize(OptimizationRequest) -> DispatchPlan` that runs the fallback (the
   solver arrives in Wave 3), with a hard timeout budget from the request and a
   `fallback=true` flag in the response. Verify: `uv run --project services/decision pytest services/decision -k server` passes using an in-process gRPC channel.
-- `[~]` 1C.9 `[P]` RED then GREEN: `validation/` module that independently
+- `[x]` 1C.9 `[P]` RED then GREEN: `validation/` module that independently
   checks any plan for finite values, vector lengths, and feasibility with
   explicit tolerances before it leaves the service. Verify: `uv run --project services/decision pytest services/decision -k validation` passes.
 

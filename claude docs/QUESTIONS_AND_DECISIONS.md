@@ -147,4 +147,8 @@ assumptions reported by workers land here too.
   on a retried generate; Wave 1 item 1F.6 moves every plugin to a local
   binary installed by `make plugins`, so generation never depends on
   buf.build being reachable or generous.
+- **Numerical tolerance (lane C, 1C.7 and 1C.9):** property checks and the
+  independent plan validator use an absolute tolerance of 1e-9 kWh at the
+  reserve and energy-balance boundaries. FULL_SPEC calls for explicit
+  tolerances without naming values. Accepted.
 
