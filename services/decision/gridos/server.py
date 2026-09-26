@@ -358,6 +358,8 @@ class OptimizationServer:
             context.abort(grpc.StatusCode.INVALID_ARGUMENT, str(error))
         if validate_plan(fallback, devices, intervals):
             context.abort(grpc.StatusCode.INTERNAL, "fallback validation failed")
+        if "forecast_transport_timeout" in request.forecast.unavailable_sources:
+            return _response(request, devices, Decision(fallback, "FORECAST_TIMEOUT"))
         outcome = solve_within_budget(self._solver, devices, intervals, budget)
         return _response(request, devices, resolve(outcome, fallback, devices, intervals))
 
