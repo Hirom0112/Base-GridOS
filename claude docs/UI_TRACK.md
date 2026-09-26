@@ -70,6 +70,11 @@ From the specs:
 - The anomaly alert uses the fixed wording "energy anomaly signal" and no
   intrusion, burglary, or safety language (FULL_SPEC §5.10).
 - New telemetry is visible within 5 seconds in the local demo (FULL_SPEC §10).
+- Backup readiness is always shown two ways: hours at current usage and hours
+  at a 750 W reference load. A site that is off grid, in overcurrent, or
+  reporting `TelemetryUnavailable` is drawn as exactly that state, never as
+  "online" with stale numbers. Home power is drawn as the five-field power
+  flow (from grid, from storage, from solar, non-solar to home, to home).
 - Roles: operator, approver, analyst, partner, service, member. The partner
   view shows aggregates only and never travel or away state (FULL_SPEC §11).
 
@@ -152,8 +157,9 @@ the Vitest test or the Playwright step is written before the view.
 
 - `[ ]` U1.1 `[after 0F.2]` Fleet command center: installed MW and MWh,
   dispatchable now and forecast, reserved for backup, device counts by
-  online, offline, degraded, stale, maintenance, communications and
-  acknowledgement health. Each metric carries timestamp, provenance, and
+  operating state (on grid, off-grid outage, no home power, overcurrent,
+  standby, telemetry unavailable) and by online, offline, degraded, stale,
+  maintenance, plus communications and acknowledgement health. Each metric carries timestamp, provenance, and
   freshness. Vitest against the `GetFleetSummary` fixture. Verify: `vitest run fleet`.
 - `[ ]` U1.2 `[P]` Dispatch request form: region, window, target MW, and the
   measurement boundary shown explicitly; Zod schema validates before submit.
@@ -218,9 +224,11 @@ the Vitest test or the Playwright step is written before the view.
   market to feeder. Verify: `vitest run map && playwright test map`.
 - `[ ]` U4.2 `[P]` Map privacy: the site popup has no address field and exact
   location appears only with `site_location`. Verify: `vitest run map-privacy`.
-- `[ ]` U4.3 `[after BUILD_ORDER 4F.2]` Member status: backup readiness and
-  expected duration, why the battery did or did not participate, plan and
-  reserve, savings and participation outcomes. Verify: `vitest run member-status`.
+- `[ ]` U4.3 `[after BUILD_ORDER 4F.2]` Member status: operating state,
+  state of energy, backup hours at current usage and at 750 W, the power-flow
+  diagram, the recent grid-event list explaining why the battery did or did
+  not participate, plan and reserve, savings and participation outcomes.
+  One view per operating-state fixture. Verify: `vitest run member-status`.
 - `[ ]` U4.4 `[P]` Plan selection with reserve, price, risk tradeoff, exact
   consent text and catalog version, and the `0%` explanation.
   Verify: `vitest run plan-select`.

@@ -209,22 +209,37 @@ Owns: `contracts/`, `buf.yaml`, `buf.gen.yaml`.
   optional `simulation_seed`), battery parameters with explicit units in field
   names (`usable_energy_kwh`, `max_charge_kw`, `max_discharge_kw`,
   `charge_efficiency`, `discharge_efficiency`), state of health, temperature,
-  alarms, firmware, `last_seen_at`, weather zone, H3 cell (never a street
-  address). Verify: `buf lint contracts` passes.
+  alarms, firmware, `last_seen_at`, `has_solar`, `has_automatic_backup`,
+  gateway connection state, weather zone, load zone, H3 cell (never a street
+  address, never coordinates). `Cohort` with `name`, `algorithm_name`, and
+  `load_zone` so a partition is addressable the way market partitions are.
+  Verify: `buf lint contracts` passes.
 - `[ ]` 0B.3 `[P]` `telemetry.proto`: `TelemetryObservation` with
   `source_time`, `receive_time`, `observation_time`, units, sign convention
   enum (AC side, discharge positive), `sequence`, quality flags, measurement
   boundary enum (`BATTERY_TERMINAL`, `METER_NET_EXPORT`,
   `IMPORT_REDUCTION_VS_BASELINE`), and a `ValueState` enum with `MISSING`,
   `STALE`, `UNKNOWN`, `ZERO` as distinct states (TECHSTACK "Service
-  contracts"). Verify: `buf lint contracts` passes.
+  contracts"). The observation body is a `PowerFlow` (`from_grid_kw`,
+  `from_storage_kw`, `from_solar_kw`, `non_solar_to_home_kw`, `to_home_kw`),
+  `state_of_energy_percent`, grid voltage, and an operating-state one-of:
+  `OnGrid`, `OffGridOutage`, `OffGridNoHomePower`, `OffGridOvercurrent`
+  (with `overcurrent_limit_kw`), `OffGridOvercurrentStandby`, or
+  `TelemetryUnavailable`, each carrying `observed_at`. Every state except
+  `TelemetryUnavailable` also carries
+  `estimated_backup_hours_at_current_usage` and
+  `estimated_backup_hours_at_750_watts` (the reference critical load, see
+  0C.1). Verify: `buf lint contracts` passes.
 - `[ ]` 0B.4 `[P]` `dispatch.proto`: `EventRequest`, `DispatchEvent` with the
   eleven-state lifecycle enum from TECHSTACK "Temporal workflows",
   `EligibilitySnapshot` with exclusion reason enum, `ReservePolicy`,
   `CommandIntent` (immutable `command_id`, `idempotency_key`, `device_id`,
   `event_id`, `plan_version`, `generation`, `setpoint_kw`, `issued_at`,
   `effective_at`, `expires_at`, `policy_version`, `correlation_id`),
-  `CommandAcknowledgement`, `EmergencyStop`. Verify: `buf lint contracts` passes.
+  `CommandAcknowledgement` (an acceptance of receipt, never a result),
+  `EmergencyStop`, and the member-facing `GridEvent` (`begin_time`,
+  `end_time`, `event_type`) that explains why a battery did or did not
+  participate. Verify: `buf lint contracts` passes.
 - `[ ]` 0B.5 `[P]` `optimization.proto`: `OptimizationRequest`, `DispatchPlan`
   (objective breakdown, constraint margins, exclusions with reasons, fallback
   flag, solver and model versions), `DeviceSchedule`, `ShortfallReport` per
@@ -237,8 +252,16 @@ Owns: `contracts/`, `buf.yaml`, `buf.gen.yaml`.
   `TravelFlexWindow` (start, end, timezone, temporary reserve, early-return
   action, credit type enum fixed daily / event / annual), `ReserveOverride`
   (reason enum: weather, outage risk, health, stale telemetry, alarm, early
-  return), `PricingCatalogSnapshot` with separate membership fee, energy price,
-  installation price, and flexibility reward fields, `FlexibilityOffer`,
+  return), `PricingCatalogSnapshot` built from a `MemberPlan` that splits into an
+  `EnergyPlan` (supply rate one-of: fixed, indexed with discount, subscription,
+  or time-of-use windows; delivery one-of: passthrough, percentage credit,
+  included; solar buyback one-of: fixed, realtime adder, match supply;
+  `monthly_charge_cents`, `term_months`, early termination fee, renewable
+  percentage) and a `BatteryPlan` (`BatteryEquipment` with `hardware_sku`,
+  `description`, `energy_rate_offset_cents_per_kwh`; `monthly_payment_cents`,
+  `term_months`; optional `PlanAddOn` with `rate_offset_cents` and
+  `monthly_fee_cents`), plus the separate flexibility reward field, so no
+  market inherits another market's fee structure. `FlexibilityOffer`,
   `MarginEstimate` with every term of the FULL_SPEC §5.11 formula,
   `HomeActivityAlert` whose description field is fixed text "energy anomaly
   signal, not a verified intrusion". Then run generation.
@@ -258,10 +281,15 @@ Owns: `docs/domain/truth-model.md`, `tools/generation/`, `testdata/fleets/`,
   equation and reserve inequality from `system-understanding.md` "The physical
   model", effective reserve rule `max(hardware_floor, plan_floor,
   dynamic_override)` (TECHSTACK "Safety and delivery semantics"), command
-  semantics (idempotency, generation, expiry), and the event and per-command
-  state machines as explicit transition tables. Each open decision from
-  FULL_SPEC §15 that this doc resolves is reported as an assumption for the
-  director to log.
+  semantics (idempotency, generation, expiry), the site operating-state
+  machine (on grid, off-grid outage, off-grid no home power, off-grid
+  overcurrent, overcurrent standby, telemetry unavailable) with the rule that
+  an islanded site has zero grid-service capacity, the backup-duration
+  convention (always report hours at current usage and hours at a 750 W
+  reference critical load, which resolves the FULL_SPEC §15 critical-load
+  question), and the event and per-command state machines as explicit
+  transition tables. Each open decision from FULL_SPEC §15 that this doc
+  resolves is reported as an assumption for the director to log.
   Verify: every state named in TECHSTACK "Temporal workflows" appears in the transition table; at least six `worker: ASSUMPTION 0C.1` lines reach the mailbox.
 - `[ ]` 0C.2 `[P]` RED: `tools/generation/tests/test_fleet_determinism.py`
   pins that `generate_fleet(seed=20260926, size=5000)` produces a SHA-256 the
@@ -272,8 +300,9 @@ Owns: `docs/domain/truth-model.md`, `tools/generation/`, `testdata/fleets/`,
   plausible battery parameters (usable energy 10 to 40 kWh, power 5 to 12 kW,
   one-way efficiencies 0.92 to 0.97), ERCOT weather-zone assignment across the
   eight zones, load-profile type assignment from the ERCOT residential profile
-  classes in DATASETS §3, reliability traits, reserve preferences, and H3 cells
-  generated inside the zone polygon. No street addresses, no names
+  classes in DATASETS §3, `has_solar` and `has_automatic_backup` flags, load
+  zone, cohort membership, reliability traits, reserve preferences, and H3
+  cells generated inside the zone polygon. No street addresses, no names
   (FULL_SPEC §8). Every record has `provenance: SIMULATED` and
   `simulation_seed`. Verify: `uv run pytest tools/generation` passes.
 - `[ ]` 0C.4 `[P]` RED: `test_fleet_bounds.py` with Hypothesis: for any seed,
@@ -311,7 +340,9 @@ Owns: `database/`, `sqlc.yaml`.
   `command_acknowledgements`, `uncertainty_intervals`. Verify: same as 0D.1.
 - `[ ]` 0D.3 `[P]` `0003_policy.sql`: `reserve_policies` (versioned),
   `resilience_plans` (effective-dated, consent text + version),
-  `travel_flex_windows`, `reserve_overrides`, `pricing_catalog_snapshots`,
+  `travel_flex_windows`, `reserve_overrides`, `pricing_catalog_snapshots`
+  (energy plan and battery plan as separate JSONB documents matching 0B.6,
+  each with its own term and monthly charge), `plan_add_ons`,
   `flexibility_offers`, `reward_ledger` (append-only). Verify: same as 0D.1.
 - `[ ]` 0D.4 `[P]` `0004_audit.sql`: `operator_approvals`, `emergency_stops`,
   `verification_summaries`, `audit_journal` (append-only, trigger blocks
@@ -434,7 +465,11 @@ Owns: `services/gateway-simulator/`.
   backup 4.805 h. Verify: `go test ./services/gateway-simulator/internal/battery/` fails with "undefined".
 - `[ ]` 1A.2 `[P]` GREEN: `internal/battery` implementing the energy update
   with one-way efficiencies, mode exclusion (no simultaneous charge and
-  discharge), power and energy bounds, ramp limit, temperature derate hook.
+  discharge), power and energy bounds, ramp limit, temperature derate hook,
+  the operating-state machine from `truth-model.md` (on grid, off-grid
+  outage, no home power, overcurrent with a configurable limit in kW,
+  overcurrent standby), and backup-hours estimates at current usage and at
+  750 W. An islanded state reports zero grid-service capacity.
   Verify: `go test ./services/gateway-simulator/internal/battery/` passes.
 - `[ ]` 1A.3 `[P]` RED: `internal/gateway/store_test.go`: a command is
   persisted to SQLite before the acknowledgement is returned; a duplicate
@@ -449,9 +484,12 @@ Owns: `services/gateway-simulator/`.
   Verify: `go test ./services/gateway-simulator/internal/gateway/` passes.
 - `[ ]` 1A.5 `[P]` RED: `internal/telemetry/producer_test.go`: observations
   carry distinct `source_time`, `receive_time`, `observation_time`, a
-  monotonic `sequence` per device, explicit units, and the measurement
-  boundary; a gap yields `ValueState=MISSING`, never a zero.
-  Verify: fails.
+  monotonic `sequence` per device, explicit units, the measurement
+  boundary, the five-field `PowerFlow`, `state_of_energy_percent`, and the
+  operating-state one-of; a gap yields `TelemetryUnavailable` and
+  `ValueState=MISSING`, never a zero; the five power-flow fields balance
+  (`to_home_kw` equals grid plus storage plus solar contributions within
+  tolerance). Verify: fails.
 - `[ ]` 1A.6 `[P]` GREEN: `internal/telemetry` producing observations from the
   battery model on the scenario clock, buffering to SQLite before publish,
   deleting only after confirmed cloud receipt, and replaying the buffer on
@@ -588,12 +626,15 @@ Owns: `services/control/internal/fleet/`, `services/control/internal/api/`,
 - `[ ]` 1E.1 `[P]` RED: `fleet/twin_test.go`: the twin holds the latest
   accepted state per site; a command being issued does not change the twin
   (FULL_SPEC §5.3); telemetry older than the freshness threshold marks the
-  site `STALE`; aggregate MW and MWh are sums of fresh sites only, and every
-  aggregate carries a timestamp, provenance mix, and freshness. Verify: fails.
+  site `STALE`; a site whose operating state is any off-grid variant or
+  `TelemetryUnavailable` contributes zero dispatchable capacity; the twin
+  carries both backup-hours estimates; aggregate MW and MWh are sums of
+  fresh on-grid sites only, and every aggregate carries a timestamp,
+  provenance mix, and freshness. Verify: fails.
 - `[ ]` 1E.2 `[P]` GREEN: `internal/fleet/twin.go`. Verify: `go test ./services/control/internal/fleet/ -run Twin` passes.
 - `[ ]` 1E.3 `[P]` RED then GREEN: eligibility with exclusion reasons
-  (offline, stale, maintenance lock, under reserve, alarm, outside region,
-  outside participation window). Under-reserved devices are excluded and
+  (offline, stale, islanded or off-grid, overcurrent, maintenance lock,
+  under reserve, alarm, outside region, outside participation window). Under-reserved devices are excluded and
   reported (TECHSTACK e2e scenario 2). Verify: `-run Eligibility` passes.
 - `[ ]` 1E.4 `[after 1D.6]` ConnectRPC server `cmd/control` with handlers:
   `GetFleetSummary`, `ListSites` (H3 aggregate by default, exact location
@@ -1037,7 +1078,9 @@ Owns: `services/control/internal/fleet/policy/`,
   Verify: `-run Anomaly` passes.
 - `[ ]` 4A.7 `[after 4A.5]` Connect service `internal/api/member` with
   `SelectResiliencePlan`, `ScheduleTravelFlex`, `EndTravelFlexEarly`,
-  `GetMemberStatus`, the member role only seeing its own site, registered in
+  `GetMemberStatus` (operating state, `state_of_energy_percent`, backup
+  hours at current usage and at 750 W, the recent `GridEvent` list, current
+  plan and reserve), the member role only seeing its own site, registered in
   `cmd/control`. Verify: `go test ./services/control/internal/api/member/` passes.
 
 ### Lane 4B — incremental margin evaluator
@@ -1136,9 +1179,9 @@ Owns: `tests/integration/`, `testdata/scenarios/`, `tests/end-to-end/`,
   `negative-margin-no-dispatch`, `no-fee-market-reward`,
   `anomaly-signal-label`. Each asserts its outcome through the API and the
   stored report. Verify: `go test ./tests/integration/ -run "TravelFlex|RaiseFloor|ZeroPercent|NegativeMargin|NoFee|Anomaly"` passes.
-- `[ ]` 4F.2 `[after 4A.7]` Record member fixtures: `GetMemberStatus`,
-  `SelectResiliencePlan`, `ScheduleTravelFlex`, `EndTravelFlexEarly`, and a
-  `HomeActivityAlert`. Verify: `go test ./tools/development/mockapi/ -run Fixtures` passes.
+- `[ ]` 4F.2 `[after 4A.7]` Record member fixtures: `GetMemberStatus` in
+  each operating state, `SelectResiliencePlan`, `ScheduleTravelFlex`,
+  `EndTravelFlexEarly`, and a `HomeActivityAlert`. Verify: `go test ./tools/development/mockapi/ -run Fixtures` passes.
 - `[ ]` 4F.3 `[after 4D.3, 4C.2]` Record context and geo fixtures: market,
   weather, outage risk, dispatch windows, H3 cells at each resolution, one
   drill-down path. Verify: fixtures test passes.
