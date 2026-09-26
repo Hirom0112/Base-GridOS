@@ -874,7 +874,7 @@ Owns: `services/control/internal/dispatch/`, `services/control/cmd/worker`,
   gets a new generation, never a reused one. Verify: `-run Retry` passes.
 - `[x]` 2B.5 `[P]` Replay test: recorded workflow history from 2B.3 replays
   without nondeterminism errors after the code change in 2B.4. Verify: `go test ./services/control/internal/dispatch/ -run Replay` passes.
-- `[~]` 2B.6 `[after 1D.9]` Worker-kill integration test: start an
+- `[x]` 2B.6 `[after 1D.9]` Worker-kill integration test: start an
   event against the compose Temporal, kill the worker process after `SENT`,
   restart it, and assert the event reaches `VERIFIED` with no duplicated
   physical intent (FULL_SPEC §10 "Resume an in-flight event"). Verify: `go test ./services/control/tests -run WorkerRestart` passes.
@@ -962,7 +962,7 @@ Owns: `services/decision/`, `testdata/golden/`.
   that dropped out mid-event, the service proposes replacements only within
   the approved envelope and reports the shortfall if none exist.
   Verify: `-k replacement` passes.
-- `[~]` 2E.5 `[P]` Uncertainty margins: availability probability reduces
+- `[x]` 2E.5 `[P]` Uncertainty margins: availability probability reduces
   counted capacity; `confidence × nameplate` is never presented as guaranteed
   (`system-understanding.md`). RED pins a numeric case. Verify: `-k margin` passes.
 - `[~]` 2E.6 `[P]` Extend `testdata/golden/plans/` with timeout, no-incumbent,
@@ -977,7 +977,7 @@ Owns: `services/gateway-simulator/tests/`, `services/control/internal/api/events
 After lane A completes: `services/gateway-simulator/internal/telemetry/` and
 `services/gateway-simulator/cmd/` for the fleet telemetry loop (2F.1).
 
-- `[~]` 2F.1 `[P]` RED then GREEN: simulator scale. 5,000 simulated devices
+- `[x]` 2F.1 `[P]` RED then GREEN: simulator scale. 5,000 simulated devices
   in one process produce telemetry every 5 seconds for 10 minutes with no
   sequence gaps (FULL_SPEC §8 "approximately 5,000 devices"; the cadence and
   resource budget are assumptions to report).

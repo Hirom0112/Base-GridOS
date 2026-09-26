@@ -299,4 +299,17 @@ assumptions reported by workers land here too.
   `gridos/fallback/replacement.py` but the contract has no RPC or fields to
   carry the dropped list and approved plan. Opened 3D.6 to add a `Replace`
   RPC and route the workflow's `IssueReplacement` through it.
+- **2D.2 (lane D), accepted:** the harness never touches `make demo`; each
+  run creates `gridos_integration_<nanos>`, migrates it, starts decision,
+  gateway with `--scenario`, control, and worker on ephemeral ports, drops
+  the database and stops the processes in cleanup, and skips when Docker,
+  PostgreSQL, or Temporal is unreachable; the event window is the scenario
+  duration shifted to real time because the gate rejects plans in the past.
+- **2B.6 (lane B), accepted:** the recovery test allows 25 seconds for
+  Temporal sticky-queue reassignment after a worker kill and holds VERIFIED
+  for three seconds so the durable state is observable.
+- **2E.5 (lane E), accepted:** setpoints stay physical; a device counts
+  availability probability times setpoint toward the target; shortfall is
+  target minus expected; `feasible_kw` carries the expected value, never the
+  nameplate sum; probability zero is an UNAVAILABLE exclusion.
 
