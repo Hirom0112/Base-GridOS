@@ -739,6 +739,17 @@ After lane D completes: `services/control/internal/storage/` and
   over nil sites and mounted none of the other services.
   Verify: `GRIDOS_FLEET=testdata/fleets/austin-5000.jsonl go run ./services/control/cmd/control` starts, and `curl` to `ListSites` returns at least 200 cells while `PublishTelemetry` on the same port returns a durable receipt.
 
+- `[~]` 1E.8 `[P]` Provenance on every aggregate: `GetFleetSummary`
+  currently emits `installed_mw`, `installed_mwh`, and every device-count
+  aggregate with an empty provenance mix (`quantity(installedMW, now, 0,
+  nil)` and the count helpers). FULL_SPEC §5.1 requires timestamp,
+  provenance mix, and freshness on every aggregate. Installed capacity
+  carries the provenance of the fleet records it sums (`SIMULATED` with the
+  record count for the demo fleet); each count carries the provenance mix of
+  the sites it counts; `ListSites` cells likewise. RED test first asserting
+  no aggregate in either response has an empty mix. Found by the UI track
+  against the live demo. Verify: `go test ./services/control/internal/api/ -run Provenance` passes and a `curl` of `GetFleetSummary` on `make demo` shows a non-empty `provenanceMix` on every quantity and count.
+
 ### Lane 1F — telemetry ingest and vertical-slice end to end
 
 Owns: `services/control/internal/ingest/`, `tests/end-to-end/`, the
@@ -764,7 +775,7 @@ Owns: `services/control/internal/ingest/`, `tests/end-to-end/`, the
   safety approved, operator approval recorded, intents persisted before any
   network send, gateway acknowledges, telemetry ingested, basic report
   contains provenance and versions. Verify: `make demo` comes up and `go test ./tests/end-to-end/ -run VerticalSlice` passes.
-- `[~]` 1F.4 `[after 1F.3, 1F.7]` Record real responses for every Wave 1
+- `[~]` 1F.4 `[after 1F.3, 1F.7, 1E.8]` Record real responses for every Wave 1
   method from the running demo stack seeded with the `austin-5000` fleet
   (not `texas-50`, which stays a unit-test fleet) using `mockapi record`,
   replacing the hand-authored fixtures. `ListSites` must show a few hundred
@@ -1504,12 +1515,12 @@ Owns: `README.md`, `docs/operations/` (except `security/`), `AGENTS.md`.
 | Wave | A | B | C | D | E | F | Total |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | 0 | 5 | 9 | 7 | 6 | 8 | 4 | 39 |
-| 1 | 8 | 7 | 11 | 9 | 7 | 7 | 49 |
+| 1 | 8 | 7 | 11 | 9 | 8 | 7 | 50 |
 | 2 | 5 | 7 | 7 | 6 | 6 | 6 | 37 |
 | 3 | 6 | 8 | 4 | 5 | 4 | 5 | 32 |
 | 4 | 7 | 6 | 4 | 3 | 5 | 5 | 30 |
 | 5 | 3 | 3 | 4 | 6 | 4 | 4 | 24 |
-| | | | | | | | **211** |
+| | | | | | | | **212** |
 
 154 items are fully parallel and 48 wait on one other lane. Plus the five
 standing items applied every wave. The UI track adds 40 items of its own in
