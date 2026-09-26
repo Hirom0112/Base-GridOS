@@ -12,6 +12,7 @@ import (
 
 	controlapi "github.com/Hirom0112/Base-GridOS/services/control/internal/api"
 	apievents "github.com/Hirom0112/Base-GridOS/services/control/internal/api/events"
+	apigeo "github.com/Hirom0112/Base-GridOS/services/control/internal/api/geo"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/dispatch"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/fleet"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/ingest"
@@ -72,7 +73,10 @@ func main() {
 	}
 	telemetry := ingest.NewService(storage.NewTelemetryStore(pool), telemetryTwin, time.Now)
 	events := apievents.NewService(apievents.NewPostgresSource(pool, service, sites, time.Now, 30*time.Second), 250*time.Millisecond)
-	server := &http.Server{Addr: address, Handler: controlapi.NewControlHandler(service, telemetry, telemetryToken, events), ReadHeaderTimeout: 5 * time.Second, IdleTimeout: 30 * time.Second}
+	mux := http.NewServeMux()
+	mux.Handle("/geo/", apigeo.AssetHandler(os.DirFS("testdata/fixtures/geo")))
+	mux.Handle("/", controlapi.NewControlHandler(service, telemetry, telemetryToken, events))
+	server := &http.Server{Addr: address, Handler: mux, ReadHeaderTimeout: 5 * time.Second, IdleTimeout: 30 * time.Second}
 	go func() {
 		<-ctx.Done()
 		shutdownContext, cancel := context.WithTimeout(context.Background(), 5*time.Second)
