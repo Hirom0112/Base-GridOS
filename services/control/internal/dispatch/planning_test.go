@@ -20,6 +20,14 @@ type timeoutOptimizer struct {
 	activityOptimizer
 }
 
+type optimizeTimeoutOptimizer struct {
+	activityOptimizer
+}
+
+func (optimizeTimeoutOptimizer) Optimize(context.Context, *gridosv1.OptimizationRequest) (*gridosv1.DispatchPlan, error) {
+	return nil, context.DeadlineExceeded
+}
+
 func (timeoutOptimizer) Forecast(context.Context, *gridosv1.ForecastRequest) (*gridosv1.ForecastResponse, error) {
 	return nil, context.DeadlineExceeded
 }
@@ -80,4 +88,17 @@ func TestPlanningActivitiesRecordForecastTransportTimeout(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, harness.activities.ValidatePlan(context.Background(), planned))
 	require.Equal(t, "VALIDATED", harness.state(t))
+}
+
+func TestPlanningActivitiesRecordOptimizeTransportTimeout(t *testing.T) {
+	harness := newActivityHarness(t)
+	harness.activities.Dispatcher.Optimizer = optimizeTimeoutOptimizer{harness.activities.Dispatcher.Optimizer.(activityOptimizer)}
+	frozen := harness.freeze(t)
+	_, err := harness.activities.RequestPlan(context.Background(), frozen)
+	require.ErrorIs(t, err, context.DeadlineExceeded)
+	var reason string
+	err = harness.pool.QueryRow(context.Background(), `SELECT new_values->>'reason' FROM audit_journal WHERE resource_id = $1 AND action = 'OPTIMIZATION_TIMEOUT'`, harness.input.EventID).Scan(&reason)
+	require.NoError(t, err)
+	require.Equal(t, "TRANSPORT_TIMEOUT", reason)
+	require.Equal(t, "REQUESTED", harness.state(t))
 }
