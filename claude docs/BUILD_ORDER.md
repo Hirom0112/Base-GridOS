@@ -902,7 +902,7 @@ Owns: `services/control/internal/reconciliation/`,
   actual elapsed intervals; measurement gaps stay `UNKNOWN` and are reported
   as uncertain intervals, never as zero delivery (TECHSTACK e2e scenario 11).
   Verify: `-run Gaps` passes.
-- `[~]` 2C.5 `[P]` RED then GREEN: late and duplicated observations update
+- `[x]` 2C.5 `[P]` RED then GREEN: late and duplicated observations update
   reconciliation history by event time without erasing earlier knowledge.
   Verify: `-run Late` passes.
 - `[~]` 2C.6 `[P]` Property test: for random sequences of acks, telemetry,

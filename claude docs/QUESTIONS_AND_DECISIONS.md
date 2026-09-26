@@ -274,4 +274,7 @@ assumptions reported by workers land here too.
   0.5 MW (about eighty devices through the greedy fallback, one publisher
   batch) because they prove failure handling rather than scale; the canonical
   heat event keeps 20 MW for the Wave 3 solver.
+- **2C.5 (lane C), accepted:** observations are keyed by device and
+  observation time; a second observation at the same time is a duplicate
+  and the first value is kept even if the values differ.
 
