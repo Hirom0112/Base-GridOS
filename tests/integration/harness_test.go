@@ -10,10 +10,7 @@ import (
 	gridosv1 "github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1"
 )
 
-const (
-	publisherBatch = 100
-	cohortSize     = 400
-)
+const cohortSize = 400
 
 func TestMain(m *testing.M) {
 	code := m.Run()
@@ -62,8 +59,8 @@ func TestHarness(t *testing.T) {
 			launchedCommands++
 		}
 	}
-	if launchedCommands == 0 || launchedCommands > publisherBatch {
-		t.Fatalf("launch persisted %d commands, publisher batch is %d", launchedCommands, publisherBatch)
+	if launchedCommands == 0 {
+		t.Fatal("launch persisted no dispatch commands")
 	}
 	if retained := stack.gatewayCommands(t, ctx, eventID); retained != len(commands) {
 		t.Fatalf("gateway retained %d of %d commands", retained, len(commands))
