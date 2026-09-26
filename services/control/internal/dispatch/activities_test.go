@@ -43,6 +43,10 @@ func (activityOptimizer) Forecast(context.Context, *gridosv1.ForecastRequest) (*
 	return &gridosv1.ForecastResponse{}, nil
 }
 
+func (optimizer activityOptimizer) Replace(context.Context, *gridosv1.ReplaceRequest) (*gridosv1.ReplaceResponse, error) {
+	return &gridosv1.ReplaceResponse{ReplacementPlan: optimizer.plan}, nil
+}
+
 type activitySafety struct{}
 
 func (activitySafety) Validate(*gridosv1.DispatchPlan, safety.CanonicalState) error { return nil }

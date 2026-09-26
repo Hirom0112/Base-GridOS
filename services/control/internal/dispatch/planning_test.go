@@ -44,6 +44,10 @@ func (boundedOptimizer) Forecast(context.Context, *gridosv1.ForecastRequest) (*g
 	return &gridosv1.ForecastResponse{}, nil
 }
 
+func (optimizer boundedOptimizer) Replace(context.Context, *gridosv1.ReplaceRequest) (*gridosv1.ReplaceResponse, error) {
+	return &gridosv1.ReplaceResponse{ReplacementPlan: optimizer.plan}, nil
+}
+
 func TestPlanningActivitiesApplyBudgetAndRecordFallback(t *testing.T) {
 	harness := newActivityHarness(t)
 	snapshotter := harness.activities.Dispatcher.Snapshots.(activitySnapshotter)
