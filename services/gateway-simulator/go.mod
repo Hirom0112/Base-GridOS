@@ -5,7 +5,7 @@ go 1.26.0
 require modernc.org/sqlite v1.59.0
 
 require (
-	connectrpc.com/connect v1.19.1
+	connectrpc.com/connect v1.21.0
 	github.com/Hirom0112/Base-GridOS/contracts/gen/go v0.0.0
 	google.golang.org/protobuf v1.36.12
 )
