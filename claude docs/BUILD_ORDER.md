@@ -993,7 +993,7 @@ For 2F.5 and 2F.6: `contracts/gridos/v1/api.proto` additively (`EventsService`,
   `GetEvent` at several lifecycle states, the timeline, and an
   `EmergencyStop` response, into `testdata/fixtures/api/`.
   Verify: `go test ./tools/development/mockapi/ -run Fixtures` passes.
-- `[~]` 2F.4 `[after 2D.4]` Run the UI track's `demo-path` spec against
+- `[x]` 2F.4 `[after 2D.4]` Run the UI track's `demo-path` spec against
   `make demo` and record the result in the gate report; route failures to the
   UI track or the owning backend lane. Verify: `pnpm --dir apps/console playwright test demo-path` executed and output saved.
 - `[~]` 2F.5 `[after 2C.7, 2B.7]` `internal/api/events`: an `EventsService` in
