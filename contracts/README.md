@@ -6,5 +6,5 @@ bindings with `buf generate contracts`.
 Before merging a contract change, check file-level compatibility against main:
 
 ```sh
-buf breaking contracts --against '.git#branch=main'
+buf breaking contracts --against '.git#branch=main,subdir=contracts'
 ```
