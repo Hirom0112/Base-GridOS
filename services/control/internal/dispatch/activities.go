@@ -46,6 +46,9 @@ func (activities *Activities) FreezeInputs(ctx context.Context, input Input) (Fr
 	if err != nil {
 		return FrozenEvent{}, err
 	}
+	if snapshot.Optimization == nil || snapshot.Optimization.GetBudget() == nil {
+		return FrozenEvent{}, errors.New("versioned forecast request with budget required")
+	}
 	budget := snapshot.Optimization.GetBudget().AsDuration()
 	if budget <= 0 {
 		return FrozenEvent{}, errors.New("positive forecast budget required")
@@ -87,6 +90,9 @@ func (activities *Activities) RequestPlan(ctx context.Context, frozen FrozenEven
 	}
 	if err = frozen.verifySnapshot(request); err != nil {
 		return frozen, err
+	}
+	if request.GetBudget() == nil {
+		return frozen, errors.New("optimization budget required")
 	}
 	budget := request.GetBudget().AsDuration()
 	if budget <= 0 {
