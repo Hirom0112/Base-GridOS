@@ -12,8 +12,10 @@ type Kind string
 const (
 	RawTelemetry        Kind = "raw_telemetry"
 	NormalizedTelemetry Kind = "normalized_telemetry"
-	ForecastAndActual   Kind = "forecast_and_actual"
+	ForecastFact        Kind = "forecast_fact"
+	ActualFact          Kind = "actual_fact"
 	DispatchFact        Kind = "dispatch_fact"
+	VerificationFact    Kind = "verification_fact"
 	DataQualityFact     Kind = "data_quality_fact"
 )
 
@@ -43,7 +45,7 @@ func (record Record) validate() error {
 		return errors.New("record id is required")
 	}
 	switch record.Kind {
-	case RawTelemetry, NormalizedTelemetry, ForecastAndActual, DispatchFact, DataQualityFact:
+	case RawTelemetry, NormalizedTelemetry, ForecastFact, ActualFact, DispatchFact, VerificationFact, DataQualityFact:
 	default:
 		return errors.New("unknown analytics record kind")
 	}
