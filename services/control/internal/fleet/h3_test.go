@@ -1,6 +1,7 @@
 package fleet_test
 
 import (
+	"math"
 	"testing"
 	"time"
 
@@ -25,10 +26,10 @@ func TestH3CapacityAndAvailability(t *testing.T) {
 		t.Fatalf("cells = %d, want 1", len(cells))
 	}
 	cell := cells[0]
-	if cell.Cell != "cell-1" || cell.SiteCount != 2 || cell.InstalledMW != 0.008 || cell.InstalledMWh != 0.018 {
+	if cell.Cell != "cell-1" || cell.SiteCount != 2 || math.Abs(cell.InstalledMW-0.008) > 1e-12 || math.Abs(cell.InstalledMWh-0.018) > 1e-12 {
 		t.Fatalf("identity and installed capacity = %#v", cell)
 	}
-	if cell.DispatchableMW != 0.004 || cell.ReservedMWh != 0.003 {
+	if math.Abs(cell.DispatchableMW-0.004) > 1e-12 || math.Abs(cell.ReservedMWh-0.003) > 1e-12 {
 		t.Fatalf("dispatchable and reserved capacity = %#v", cell)
 	}
 	if cell.OperatingCounts[fleet.OnGrid] != 2 || cell.AvailabilityCounts[fleet.Online] != 1 || cell.AvailabilityCounts[fleet.Stale] != 1 {

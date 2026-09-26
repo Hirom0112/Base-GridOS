@@ -98,6 +98,11 @@ message H3SiteAggregate {
   uint64 site_count = 2;
   FleetQuantityAggregate installed_mw = 3;
   FleetQuantityAggregate installed_mwh = 4;
+  FleetQuantityAggregate dispatchable_mw = 5;
+  FleetQuantityAggregate reserved_mwh = 6;
+  repeated OperatingStateDeviceCount operating_state_counts = 7;
+  AggregateMetadata metadata = 8;
+  repeated AvailabilityStateDeviceCount availability_state_counts = 9;
 }
 
 message AuthorizedSite {
