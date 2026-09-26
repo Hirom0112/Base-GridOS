@@ -151,4 +151,11 @@ assumptions reported by workers land here too.
   independent plan validator use an absolute tolerance of 1e-9 kWh at the
   reserve and energy-balance boundaries. FULL_SPEC calls for explicit
   tolerances without naming values. Accepted.
+- **Missing optimization RPC (found by lane C at 1C.8):** the contract had
+  the request and plan messages but no service, and the request carried no
+  device state or time budget. Opened 1C.10; lane C owns
+  `optimization.proto` additively for Wave 1. Pattern for later waves: the
+  lane that consumes a contract may add to it, additively, with the breaking
+  check as the gate, rather than routing through a contracts lane that no
+  longer exists.
 

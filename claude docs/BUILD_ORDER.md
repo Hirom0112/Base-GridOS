@@ -580,7 +580,8 @@ Owns: `services/control/internal/safety/`.
 
 ### Lane 1C — decision service: energy math and deterministic fallback
 
-Owns: `services/decision/`, `testdata/golden/`.
+Owns: `services/decision/`, `testdata/golden/`,
+`contracts/gridos/v1/optimization.proto` (additive only).
 
 - `[x]` 1C.1 `[P]` `uv` project at `services/decision` with Python 3.12,
   `numpy`, `polars`, `highspy` (installed now, used in Wave 3), `hypothesis`,
@@ -610,7 +611,20 @@ Owns: `services/decision/`, `testdata/golden/`.
 - `[x]` 1C.7 `[P]` Hypothesis invariants: for random fleets, the fallback
   plan never violates power, energy, or reserve bounds and declared shortfall
   is never negative. Verify: `uv run --project services/decision pytest services/decision -k hypothesis` passes with `--hypothesis-seed=0`.
-- `[~]` 1C.8 `[after 0B.6]` gRPC server `gridos/server.py` exposing
+- `[~]` 1C.10 `[P]` Contract additions for the decision service, in
+  `contracts/gridos/v1/optimization.proto` (lane C owns that one file this
+  wave; additive only, `buf breaking` is the gate): `OptimizationService`
+  with `rpc Optimize(OptimizationRequest) returns (DispatchPlan)`;
+  `OptimizationRequest` gains `google.protobuf.Duration budget`,
+  `MeasurementBoundary measurement_boundary`, and `repeated DeviceState
+  devices`; `DeviceState` carries `device_id`, `usable_energy_kwh`,
+  `energy_kwh`, `hardware_floor_kwh`, `effective_reserve_kwh`,
+  `max_charge_kw`, `max_discharge_kw`, `charge_efficiency`,
+  `discharge_efficiency`, `availability_probability`, `stale`,
+  `telemetry_observed_at`, and `load_zone`. `DispatchPlan` gains
+  `fallback_reason`. Found at 1C.8: no RPC existed and the request could
+  not carry physical state. Verify: `buf lint contracts && buf breaking contracts --against '.git#branch=main,subdir=contracts' && make generate` and `grep -c '^service OptimizationService' contracts/gridos/v1/optimization.proto` prints 1.
+- `[~]` 1C.8 `[after 1C.10]` gRPC server `gridos/server.py` exposing
   `Optimize(OptimizationRequest) -> DispatchPlan` that runs the fallback (the
   solver arrives in Wave 3), with a hard timeout budget from the request and a
   `fallback=true` flag in the response. Verify: `uv run --project services/decision pytest services/decision -k server` passes using an in-process gRPC channel.
@@ -1434,12 +1448,12 @@ Owns: `README.md`, `docs/operations/` (except `security/`), `AGENTS.md`.
 | Wave | A | B | C | D | E | F | Total |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | 0 | 5 | 9 | 7 | 6 | 8 | 4 | 39 |
-| 1 | 8 | 7 | 9 | 9 | 6 | 6 | 45 |
+| 1 | 8 | 7 | 10 | 9 | 6 | 6 | 46 |
 | 2 | 5 | 7 | 7 | 6 | 6 | 5 | 36 |
 | 3 | 6 | 8 | 4 | 5 | 4 | 5 | 32 |
 | 4 | 7 | 6 | 4 | 3 | 5 | 5 | 30 |
 | 5 | 3 | 3 | 4 | 6 | 4 | 4 | 24 |
-| | | | | | | | **206** |
+| | | | | | | | **207** |
 
 154 items are fully parallel and 48 wait on one other lane. Plus the five
 standing items applied every wave. The UI track adds 40 items of its own in
