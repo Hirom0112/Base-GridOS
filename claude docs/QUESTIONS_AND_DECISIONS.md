@@ -615,3 +615,16 @@ assumptions reported by workers land here too.
   trait, and optional county. Director: regenerated, buf lint clean, api
   and fleet packages ok. 3D.2 marks when the dispatch activities and the
   decision server side pass `-run PlanningActivities`.
+- **4C.3 (lane 4C), verified:** the control service serves a MapLibre style
+  with only local GeoJSON sources under `/geo/`: a Texas outline from the
+  public Census TIGERweb generalized state boundary (CONFIRMED_PUBLIC) and
+  weather-zone and load-zone extents that are SIMULATED rectangles taken
+  from the fleet generator, not operational boundaries. Assets total 516 KB.
+  Director: geo tests ok; standing demo rebuilt so the route answers on
+  28080.
+- **3D.2 timeout semantics, accepted:** the decision server computes the
+  deterministic baseline before the learned model and returns it on an
+  internal model timeout; a transport timeout in dispatch freezes an
+  explicit unavailable forecast, audits the decision, and the optimizer's
+  deterministic fallback proceeds through validation. Go never fabricates a
+  baseline it did not receive.

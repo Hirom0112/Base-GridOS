@@ -1354,7 +1354,7 @@ Owns: `services/control/internal/fleet/geo/`,
   clearly labelled synthetic or licensed public model (FULL_SPEC §5.2), exact
   site only with the `site_location` permission; registered in `cmd/control`
   after 4D.3's registration lands. Verify: `go test ./services/control/internal/api/geo/` passes including a 403 test.
-- `[ ]` 4C.3 `[P]` Offline map assets: a MapLibre style JSON and small Texas
+- `[x]` 4C.3 `[P]` Offline map assets: a MapLibre style JSON and small Texas
   boundary, weather-zone, and load-zone GeoJSON under `testdata/fixtures/geo/`
   served by the control service, so the map renders with no proprietary token
   and no network (TECHSTACK "Fleet map"). Verify: `curl localhost:8080/geo/style.json` returns the style and `du -sh testdata/fixtures/geo` under 5 MB.
