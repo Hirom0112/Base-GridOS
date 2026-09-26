@@ -9,6 +9,9 @@ plugins:
   - protoc_builtin: python
     protoc_path: .local/bin/protoc
     out: services/decision/gridos/gen
+  - protoc_builtin: pyi
+    protoc_path: .local/bin/protoc
+    out: services/decision/gridos/gen
   - local:
       - uv
       - run
