@@ -3,6 +3,7 @@ package dispatch
 import (
 	"context"
 	"crypto/sha256"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"time"
@@ -68,7 +69,8 @@ func (activities *Activities) RequestPlan(ctx context.Context, frozen FrozenEven
 		return frozen, err
 	}
 	frozen.Input.PlanVersion = plan.GetPlanVersion()
-	return frozen, nil
+	frozen.Input.ApprovalDigest, err = approvalDigest(request, plan)
+	return frozen, err
 }
 
 func (activities *Activities) ValidatePlan(ctx context.Context, frozen FrozenEvent) error {
@@ -78,6 +80,17 @@ func (activities *Activities) ValidatePlan(ctx context.Context, frozen FrozenEve
 	}
 	if err = frozen.verifySnapshot(request); err != nil {
 		return err
+	}
+	_, plan, err := activities.Events.LoadPlan(ctx, frozen.Input.EventID, frozen.Input.PlanVersion)
+	if err != nil {
+		return err
+	}
+	digest, err := approvalDigest(request, plan)
+	if err != nil {
+		return err
+	}
+	if digest != frozen.Input.ApprovalDigest {
+		return errors.New("approval digest changed")
 	}
 	err = activities.Dispatcher.ValidatePlan(ctx, frozen.Input.EventID, frozen.Input.PlanVersion, canonicalFromFrozen(request))
 	if errors.Is(err, controlapi.ErrSafetyRejected) {
@@ -105,6 +118,23 @@ func (frozen FrozenEvent) verifySnapshot(request *gridosv1.OptimizationRequest) 
 	return nil
 }
 
+func approvalDigest(request *gridosv1.OptimizationRequest, plan *gridosv1.DispatchPlan) ([32]byte, error) {
+	options := proto.MarshalOptions{Deterministic: true}
+	inputs, err := options.Marshal(request)
+	if err != nil {
+		return [32]byte{}, err
+	}
+	planned, err := options.Marshal(plan)
+	if err != nil {
+		return [32]byte{}, err
+	}
+	encoded := make([]byte, 8, 8+len(inputs)+len(planned))
+	binary.BigEndian.PutUint64(encoded, uint64(len(inputs)))
+	encoded = append(encoded, inputs...)
+	encoded = append(encoded, planned...)
+	return sha256.Sum256(encoded), nil
+}
+
 func canonicalFromFrozen(request *gridosv1.OptimizationRequest) safety.CanonicalState {
 	canonical := safety.CanonicalState{Now: request.GetRequestedAt().AsTime(), Boundary: safety.MeterNetExport, PolicyVersion: request.GetReservePolicy().GetPolicyVersion(), ExpectedGeneration: int64(request.GetPlanVersion()), Devices: make(map[string]safety.DeviceState, len(request.GetDevices()))}
 	for _, device := range request.GetDevices() {
@@ -120,13 +150,24 @@ func canonicalFromFrozen(request *gridosv1.OptimizationRequest) safety.Canonical
 }
 
 func (activities *Activities) PersistIntents(ctx context.Context, request PersistInput) error {
+	inputs, plan, err := activities.Events.LoadPlan(ctx, request.Input.EventID, request.Input.PlanVersion)
+	if err != nil {
+		return err
+	}
+	digest, err := approvalDigest(inputs, plan)
+	if err != nil {
+		return err
+	}
+	if digest != request.Input.ApprovalDigest {
+		return errors.New("approval digest changed")
+	}
 	if _, err := activities.Dispatcher.PersistApproved(ctx, request.Input.EventID, request.Input.PlanVersion); err != nil {
 		return err
 	}
 	if request.Launch == nil {
 		return errors.New("launch request required")
 	}
-	_, err := activities.Events.Launch(ctx, request.Launch)
+	_, err = activities.Events.Launch(ctx, request.Launch)
 	return err
 }
 

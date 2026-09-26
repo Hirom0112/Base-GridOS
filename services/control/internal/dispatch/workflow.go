@@ -56,6 +56,7 @@ type Input struct {
 	ExpiresAt               time.Time
 	AcknowledgementDeadline time.Time
 	PlanVersion             uint64
+	ApprovalDigest          [32]byte
 	Request                 *gridosv1.EventRequest
 }
 
