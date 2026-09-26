@@ -5,7 +5,7 @@ import grpc
 import pytest
 from google.protobuf.timestamp_pb2 import Timestamp
 from gridos.fallback.planner import plan_fallback
-from gridos.server import OptimizationServer
+from gridos.server import OptimizationServer, _device_states
 from gridos.v1 import optimization_pb2, optimization_pb2_grpc
 
 
@@ -61,3 +61,16 @@ def test_server_forecast_uses_public_profile_and_marks_missing_source(
     assert len(response.device_availability) == 1
     assert response.device_availability[0].probability.value > 0
     assert "site_load:missing" in response.unavailable_sources
+
+
+def test_server_optimizer_uses_frozen_availability_forecast(
+    optimize_request: optimization_pb2.OptimizeRequest,
+) -> None:
+    request = optimize_request.request
+    assert _device_states(request)[0].availability_probability == 1.0
+    prediction = request.forecast.device_availability.add(device_id="device-a")
+    prediction.probability.value = 0.25
+    prediction.probability.model_version = "availability-baseline-v1"
+    prediction.probability.feature_version = "reliability-freshness-v1"
+    prediction.probability.value_kind = "modeled_estimate"
+    assert _device_states(request)[0].availability_probability == 0.25
