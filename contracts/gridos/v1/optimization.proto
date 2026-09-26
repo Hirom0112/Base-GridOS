@@ -50,6 +50,10 @@ message ForecastValue {
   string model_version = 5;
   string value_kind = 6;
   DataProvenance provenance = 7;
+  google.protobuf.Timestamp training_window_begin = 8;
+  google.protobuf.Timestamp training_window_end = 9;
+  google.protobuf.Timestamp issued_at = 10;
+  google.protobuf.Duration horizon = 11;
 }
 
 message ForecastSiteLoad {
@@ -167,7 +171,20 @@ message OptimizeResponse {
   DispatchPlan plan = 1;
 }
 
+message ReplaceRequest {
+  OptimizationRequest current = 1;
+  DispatchPlan approved_plan = 2;
+  repeated string dropped_device_ids = 3;
+  repeated string envelope_device_ids = 4;
+  string idempotency_key = 5;
+}
+
+message ReplaceResponse {
+  DispatchPlan replacement_plan = 1;
+}
+
 service OptimizationService {
   rpc Forecast(ForecastRequest) returns (ForecastResponse);
   rpc Optimize(OptimizeRequest) returns (OptimizeResponse);
+  rpc Replace(ReplaceRequest) returns (ReplaceResponse);
 }
