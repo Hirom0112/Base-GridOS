@@ -611,7 +611,7 @@ Owns: `services/decision/`, `testdata/golden/`,
 - `[x]` 1C.7 `[P]` Hypothesis invariants: for random fleets, the fallback
   plan never violates power, energy, or reserve bounds and declared shortfall
   is never negative. Verify: `uv run --project services/decision pytest services/decision -k hypothesis` passes with `--hypothesis-seed=0`.
-- `[~]` 1C.10 `[P]` Contract additions for the decision service, in
+- `[x]` 1C.10 `[P]` Contract additions for the decision service, in
   `contracts/gridos/v1/optimization.proto` (lane C owns that one file this
   wave; additive only, `buf breaking` is the gate): `OptimizationService`
   with `rpc Optimize(OptimizationRequest) returns (DispatchPlan)`;
