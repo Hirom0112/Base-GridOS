@@ -2,11 +2,13 @@ package integration
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"testing"
 	"time"
 
 	gridosv1 "github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 func TestUnderReservedExcluded(t *testing.T) {
@@ -242,7 +244,66 @@ func TestOldExpiryNewerPending(t *testing.T) {
 }
 
 func TestOutageReplay(t *testing.T) {
-	t.Skip("pending 2D.4: the harness does not yet stream simulator telemetry through control to drive the buffered replay")
+	stack := startStack(t, "network-outage-sqlite-replay")
+	ctx := context.Background()
+	now := time.Now().UTC()
+	stack.publishTelemetry(t, ctx, stack.cohort(t), now, constantStateOfEnergy)
+	eventID := fmt.Sprintf("outage-replay-%d", now.UnixNano())
+	stack.createEvent(t, ctx, eventID)
+	stack.waitEventState(t, ctx, eventID, "VALIDATED")
+	stack.approveEvent(t, ctx, eventID, now)
+	stack.launchEvent(t, ctx, eventID, now)
+	database, err := sql.Open("sqlite", stack.gatewayDB)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = database.Close() }()
+	var bufferedID string
+	deadline := time.Now().Add(time.Minute)
+	for time.Now().Before(deadline) {
+		var count int
+		if err = database.QueryRowContext(ctx, "SELECT count(*) FROM telemetry_buffer").Scan(&count); err != nil {
+			t.Fatal(err)
+		}
+		if count == 1 {
+			var payload []byte
+			if err = database.QueryRowContext(ctx, "SELECT observation_id, payload FROM telemetry_buffer").Scan(&bufferedID, &payload); err != nil {
+				t.Fatal(err)
+			}
+			observation := new(gridosv1.TelemetryObservation)
+			if err = protojson.Unmarshal(payload, observation); err != nil {
+				t.Fatal(err)
+			}
+			if observation.GetSourceTime().AsTime().Equal(stack.scenario.Injections[0].At) {
+				time.Sleep(500 * time.Millisecond)
+				if err = database.QueryRowContext(ctx, "SELECT count(*) FROM telemetry_buffer WHERE observation_id = ?", bufferedID).Scan(&count); err != nil {
+					t.Fatal(err)
+				}
+				if count == 1 {
+					break
+				}
+			}
+		}
+		bufferedID = ""
+		time.Sleep(statePoll)
+	}
+	if bufferedID == "" {
+		t.Fatal("no delayed observation remained in the gateway SQLite buffer")
+	}
+	response := stack.waitEventState(t, ctx, eventID, "REPORTED")
+	var retained, replayed, live int
+	if err = database.QueryRowContext(ctx, "SELECT count(*) FROM telemetry_buffer WHERE observation_id = ?", bufferedID).Scan(&retained); err != nil {
+		t.Fatal(err)
+	}
+	if err = stack.pool.QueryRow(ctx, `SELECT count(*) FILTER (WHERE new_values->>'observationId' = $1),
+		count(*) FILTER (WHERE new_values->>'observationId' <> $1)
+		FROM audit_journal WHERE action = 'TELEMETRY_RECEIVED' AND occurred_at = $2`, bufferedID, stack.scenario.Injections[0].At).Scan(&replayed, &live); err != nil {
+		t.Fatal(err)
+	}
+	if retained != 0 || replayed != 1 || live == 0 {
+		t.Fatalf("buffered observation %s: retained %d, replayed %d, live controls %d", bufferedID, retained, replayed, live)
+	}
+	stack.assertOutcome(t, ctx, eventID, response)
 }
 
 func TestMeasurementGapUnknown(t *testing.T) {
