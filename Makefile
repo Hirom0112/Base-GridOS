@@ -11,10 +11,13 @@ generate:
 	buf breaking contracts --against '.git#branch=main'
 
 test-go:
-	go test ./...
+	go test $$(go list -m -f '{{if .Main}}{{.Path}}/...{{end}}' all)
 
 test-py:
-	uv run pytest
+	@find tools services -name pyproject.toml -type f -print | sort | while read -r project; do \
+		dir=$${project%/*}; \
+		uv run --project "$$dir" pytest "$$dir"; \
+	done
 
 test-web:
 	pnpm --dir apps/console test

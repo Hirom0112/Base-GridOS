@@ -14,7 +14,7 @@ dist/
 coverage/
 bazel-*
 presentations/system-overview/build/
-/services/control/internal/gen/
+/contracts/gen/go/**/*.go
 /services/decision/gridos/gen/
 /apps/console/src/api/gen/
 
