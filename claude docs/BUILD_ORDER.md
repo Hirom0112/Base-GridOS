@@ -1024,7 +1024,7 @@ For 2F.5 per-cell delivery: an additive `DeliveredByCell` in
   `cmd/control`. The first update after `LaunchEvent` reports `SENT` only
   when commands have actually been sent. Verify: `go test ./services/control/internal/api/events/ -run Watch` passes and a client sees an update within 5 s of new telemetry.
 
-- `[~]` 2F.6 `[after 1E.4]` Per-H3 dispatchable capacity and availability
+- `[x]` 2F.6 `[after 1E.4]` Per-H3 dispatchable capacity and availability
   state in `ListSites` (moved forward from Wave 4 at the UI track's request,
   `ISSUES.md` issue 2): each cell carries dispatchable MW now, reserved MWh,
   device counts by operating state, and aggregate metadata.
@@ -1036,6 +1036,16 @@ For 2F.5 per-cell delivery: an additive `DeliveredByCell` in
   brings the stack up, runs them, and tears it down. Found at Gate 1:
   `make test-go` failed on those two tests with no stack running while the
   same tests passed against `make demo`. Verify: `make test-go` green with nothing running; `make test-e2e` green.
+
+- `[~]` 2F.8 `[P]` The demo and the end-to-end stack run the Temporal worker.
+  `make demo` (and therefore `make test-e2e` and the e2e log dir) builds and
+  starts `cmd/worker` against the compose Temporal alongside control, with
+  its pid in the pid file and a listen or readiness probe; the vertical-slice
+  and duplicate-delivery tests poll `GetEvent` until VALIDATED (then SENT or
+  ACKNOWLEDGED_OR_UNCERTAIN after launch) with a bounded deadline instead of
+  expecting a synchronous state. Found at 2B.7 verification: with the API
+  handing the lifecycle to Temporal, `make test-e2e` fails at REQUESTED and
+  the standing demo's approve and launch flows dead-end. Verify: `make test-e2e` green with `-count=1`, and after a standing-demo rebuild a curl of `GetEvent` on a freshly created event reaches VALIDATED within the deadline.
 
 ### Gate 2
 
@@ -1565,11 +1575,11 @@ Owns: `README.md`, `docs/operations/` (except `security/`), `AGENTS.md`.
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | 0 | 5 | 9 | 7 | 6 | 8 | 4 | 39 |
 | 1 | 8 | 7 | 11 | 9 | 8 | 7 | 50 |
-| 2 | 6 | 7 | 7 | 6 | 6 | 7 | 39 |
+| 2 | 6 | 7 | 7 | 6 | 6 | 8 | 40 |
 | 3 | 6 | 8 | 4 | 6 | 4 | 5 | 33 |
 | 4 | 7 | 6 | 4 | 3 | 5 | 5 | 30 |
 | 5 | 3 | 3 | 4 | 6 | 4 | 4 | 24 |
-| | | | | | | | **215** |
+| | | | | | | | **216** |
 
 154 items are fully parallel and 48 wait on one other lane. Plus the five
 standing items applied every wave. The UI track adds 40 items of its own in
