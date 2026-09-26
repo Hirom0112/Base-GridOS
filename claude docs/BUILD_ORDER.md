@@ -547,7 +547,7 @@ Owns: `services/gateway-simulator/`.
 
 Owns: `services/control/internal/safety/`.
 
-- `[~]` 1B.1 `[P]` RED: `safety_test.go` table tests, one case per check in
+- `[x]` 1B.1 `[P]` RED: `safety_test.go` table tests, one case per check in
   TECHSTACK "Safety and delivery semantics": non-finite value, wrong vector
   length, charge bound, discharge bound, simultaneous charge and discharge,
   energy balance drift beyond tolerance, energy below effective reserve at
@@ -556,7 +556,7 @@ Owns: `services/control/internal/safety/`.
   generation, effective time in the past, expiry before effective, policy
   version mismatch, undeclared shortfall. Each case expects a specific
   machine-readable violation code. Verify: `go test ./services/control/internal/safety/` fails with "undefined".
-- `[~]` 1B.2 `[P]` GREEN: `Validate(plan, canonicalState) (Approval, []Violation)`
+- `[x]` 1B.2 `[P]` GREEN: `Validate(plan, canonicalState) (Approval, []Violation)`
   reconstructing energy trajectories from canonical state, not from the
   plan's own claims. Verify: table tests pass.
 - `[~]` 1B.3 `[P]` RED then GREEN: effective reserve = max(hardware floor,
@@ -727,7 +727,7 @@ Owns: `services/control/internal/ingest/`, `tests/end-to-end/`, the
 `testdata/fixtures/api/` (recording), `tools/generation/fleet/` and
 `testdata/fleets/` and `testdata/scenarios/` (for 1F.7 only).
 
-- `[~]` 1F.1 `[P]` RED: `ingest_test.go`: the control-side gRPC telemetry
+- `[x]` 1F.1 `[P]` RED: `ingest_test.go`: the control-side gRPC telemetry
   receive service acknowledges receipt only after a durable write, so the
   gateway may delete its buffer (TECHSTACK gateway item 7); out-of-order
   sequences are accepted and ordered by `sequence`; duplicates by
