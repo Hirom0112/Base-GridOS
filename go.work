@@ -6,5 +6,6 @@ use (
 	./services/gateway-simulator
 	./tests/contract
 	./tests/end-to-end
+	./tests/integration
 	./tools/development/mockapi
 )
