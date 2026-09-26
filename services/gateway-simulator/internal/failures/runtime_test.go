@@ -30,7 +30,7 @@ func TestRuntimeTargetsOnlySeededDevices(t *testing.T) {
 	runtime.Advance(start.Add(time.Minute))
 	affected := 0
 	for _, device := range devices {
-		if runtime.Affects(DroppedMessages, device.ID) {
+		if runtime.Affects(string(DroppedMessages), device.ID) {
 			affected++
 		}
 	}
@@ -40,7 +40,7 @@ func TestRuntimeTargetsOnlySeededDevices(t *testing.T) {
 	runtime.Advance(start.Add(2 * time.Minute))
 	regional := 0
 	for _, device := range devices {
-		if runtime.Affects(PartialRegionOutage, device.ID) {
+		if runtime.Affects(string(PartialRegionOutage), device.ID) {
 			regional++
 			if device.Region != "LZ_HOUSTON" {
 				t.Fatalf("affected device %s is outside Houston", device.ID)

@@ -16,6 +16,7 @@ type Device struct {
 }
 
 type Effect struct {
+	At        time.Time
 	Kind      Kind
 	DeviceIDs []string
 	Region    string
@@ -71,7 +72,7 @@ func (engine *Engine) Advance(now time.Time) []Effect {
 }
 
 func (engine *Engine) effect(injection Injection) Effect {
-	effect := Effect{Kind: injection.Kind}
+	effect := Effect{At: injection.At, Kind: injection.Kind}
 	if globalKind(injection.Kind) {
 		return effect
 	}
@@ -104,7 +105,7 @@ func (engine *Engine) seededIndex(injection Injection, length int) int {
 }
 
 func globalKind(kind Kind) bool {
-	return kind == DelayedGateway || kind == GatewayRestart || kind == BadForecasts || kind == OptimizerTimeout
+	return kind == GatewayRestart || kind == BadForecasts || kind == OptimizerTimeout
 }
 
 func validKind(kind Kind) bool {

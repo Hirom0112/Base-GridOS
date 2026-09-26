@@ -31,10 +31,12 @@ type config struct {
 	scenarioPath     string
 	scenarioStart    time.Time
 	telemetryCadence time.Duration
+	scenarioTick     time.Duration
 }
 
 type fleetDevice struct {
 	DeviceID string `json:"device_id"`
+	LoadZone string `json:"load_zone"`
 }
 
 func main() {
@@ -52,10 +54,9 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	if configuration.scenarioPath != "" {
-		if _, err := scenariorunner.TelemetryHashes(configuration.scenarioPath); err != nil {
-			return err
-		}
+	runtime, err := failureRuntime(configuration, devices)
+	if err != nil {
+		return err
 	}
 	authorizationToken := os.Getenv("GRIDOS_GATEWAY_TOKEN")
 	if authorizationToken == "" {
@@ -73,9 +74,16 @@ func run() error {
 		}
 	}()
 	startedAt := time.Now()
-	scenarioNow := func() time.Time { return configuration.scenarioStart.Add(time.Since(startedAt)) }
+	scenarioNow := func() time.Time {
+		ticks := time.Since(startedAt) / configuration.telemetryCadence
+		return configuration.scenarioStart.Add(time.Duration(ticks) * configuration.scenarioTick)
+	}
 	commandHandler := protocol.NewCommandHandler(store, configuration.gatewayID, authorizationToken, scenarioNow)
-	path, handler := gridosv1connect.NewCommandServiceHandler(commandHandler)
+	commandService := gridosv1connect.CommandServiceHandler(commandHandler)
+	if runtime != nil {
+		commandService = newRuntimeCommandHandler(commandService, runtime, scenarioNow)
+	}
+	path, handler := gridosv1connect.NewCommandServiceHandler(commandService)
 	mux := http.NewServeMux()
 	mux.Handle(path, handler)
 	protocols := new(http.Protocols)
@@ -95,21 +103,8 @@ func run() error {
 		serveErrors <- server.ListenAndServe()
 	}()
 	telemetryErrors := make(chan error, 1)
-	if configuration.controlAddress != "" {
-		deviceIDs := make([]string, 0, len(devices))
-		for _, device := range devices {
-			deviceIDs = append(deviceIDs, device.DeviceID)
-		}
-		publisher := telemetry.NewConnectPublisher(
-			gridosv1connect.NewTelemetryServiceClient(http.DefaultClient, configuration.controlAddress),
-			configuration.gatewayID,
-			authorizationToken,
-		)
-		fleet, err := telemetry.NewFleet(store, deviceIDs, configuration.telemetryCadence, publisher)
-		if err != nil {
-			return err
-		}
-		go runTelemetry(ctx, fleet, configuration.scenarioStart, configuration.telemetryCadence, telemetryErrors)
+	if err := startTelemetry(ctx, configuration, devices, store, runtime, authorizationToken, telemetryErrors); err != nil {
+		return err
 	}
 	select {
 	case err := <-serveErrors:
@@ -126,6 +121,55 @@ func run() error {
 	}
 }
 
+func failureRuntime(configuration config, devices []fleetDevice) (*failures.Runtime, error) {
+	if configuration.scenarioPath == "" {
+		return nil, nil
+	}
+	if _, err := scenariorunner.TelemetryHashes(configuration.scenarioPath); err != nil {
+		return nil, err
+	}
+	scenario, err := failures.LoadScenario(configuration.scenarioPath)
+	if err != nil {
+		return nil, err
+	}
+	failureDevices := make([]failures.Device, 0, len(devices))
+	for _, device := range devices {
+		failureDevices = append(failureDevices, failures.Device{ID: device.DeviceID, Region: device.LoadZone})
+	}
+	engine, err := failures.NewEngine(scenario, failureDevices)
+	if err != nil {
+		return nil, err
+	}
+	return failures.NewRuntime(engine), nil
+}
+
+func startTelemetry(ctx context.Context, configuration config, devices []fleetDevice, store *gateway.Store, runtime *failures.Runtime, authorizationToken string, telemetryErrors chan<- error) error {
+	if configuration.controlAddress == "" {
+		return nil
+	}
+	deviceIDs := make([]string, 0, len(devices))
+	for _, device := range devices {
+		deviceIDs = append(deviceIDs, device.DeviceID)
+	}
+	publisher := telemetry.NewConnectPublisher(gridosv1connect.NewTelemetryServiceClient(http.DefaultClient, configuration.controlAddress), configuration.gatewayID, authorizationToken)
+	network, err := failures.NewNetwork(publisher)
+	if err != nil {
+		return err
+	}
+	fleet, err := telemetry.NewFleet(store, deviceIDs, configuration.telemetryCadence, network)
+	if err != nil {
+		return err
+	}
+	if err := fleet.SetSourceStep(configuration.scenarioTick); err != nil {
+		return err
+	}
+	if runtime != nil {
+		fleet.SetEffects(runtime)
+	}
+	go runTelemetry(ctx, fleet, configuration.scenarioStart, configuration.scenarioTick, configuration.telemetryCadence, telemetryErrors)
+	return nil
+}
+
 func parseConfig(arguments []string) (config, error) {
 	flags := flag.NewFlagSet("gateway-simulator", flag.ContinueOnError)
 	var configuration config
@@ -137,7 +181,7 @@ func parseConfig(arguments []string) (config, error) {
 	flags.StringVar(&configuration.gatewayID, "gateway-id", "", "")
 	flags.StringVar(&configuration.scenarioPath, "scenario", "", "")
 	flags.StringVar(&scenarioStart, "scenario-start", "", "")
-	configuration.telemetryCadence = 5 * time.Second
+	flags.DurationVar(&configuration.telemetryCadence, "cadence", 0, "")
 	if err := flags.Parse(arguments); err != nil {
 		return config{}, err
 	}
@@ -160,11 +204,14 @@ func configureScenario(configuration config, scenarioStart string) (config, erro
 	}
 	configuration.fleetPath = scenario.FleetPath
 	configuration.scenarioStart = scenario.Start
-	configuration.telemetryCadence = scenario.Tick
+	configuration.scenarioTick = scenario.Tick
+	if configuration.telemetryCadence == 0 {
+		configuration.telemetryCadence = scenario.Tick
+	}
 	return configuration, nil
 }
 
-func runTelemetry(ctx context.Context, fleet *telemetry.Fleet, start time.Time, cadence time.Duration, failures chan<- error) {
+func runTelemetry(ctx context.Context, fleet *telemetry.Fleet, start time.Time, sourceStep, cadence time.Duration, failures chan<- error) {
 	timer := time.NewTimer(cadence)
 	select {
 	case <-ctx.Done():
@@ -172,7 +219,7 @@ func runTelemetry(ctx context.Context, fleet *telemetry.Fleet, start time.Time, 
 			<-timer.C
 		}
 	case <-timer.C:
-		if err := fleet.Run(ctx, start.Add(cadence)); err != nil && !errors.Is(err, context.Canceled) {
+		if err := fleet.Run(ctx, start.Add(sourceStep)); err != nil && !errors.Is(err, context.Canceled) {
 			failures <- err
 		}
 	}
@@ -187,6 +234,10 @@ func configureExplicitScenario(configuration config, scenarioStart string) (conf
 		return config{}, fmt.Errorf("scenario start: %w", err)
 	}
 	configuration.scenarioStart = parsedStart
+	if configuration.telemetryCadence == 0 {
+		configuration.telemetryCadence = 5 * time.Second
+	}
+	configuration.scenarioTick = configuration.telemetryCadence
 	return configuration, nil
 }
 

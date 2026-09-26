@@ -14,12 +14,21 @@ func TestNetworkFailureBuffersAndReplaysOnNextCadence(t *testing.T) {
 	defer cancel()
 	store := openStore(t, ctx)
 	start := time.Date(2026, 8, 12, 18, 0, 0, 0, time.UTC)
-	publisher := &recoveringBatchPublisher{cancel: cancel}
+	publisher := &recoveringBatchPublisher{failFirst: true, recovered: make(chan struct{}, 1)}
 	fleet, err := NewFleet(store, []string{"device-1"}, time.Millisecond, publisher)
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = fleet.Run(ctx, start)
+	result := make(chan error, 1)
+	go func() { result <- fleet.Run(ctx, start) }()
+	select {
+	case <-publisher.recovered:
+	case <-time.After(time.Second):
+		t.Fatal("publisher did not recover")
+	}
+	time.Sleep(10 * time.Millisecond)
+	cancel()
+	err = <-result
 	if !errors.Is(err, context.Canceled) {
 		t.Fatalf("run error=%v", err)
 	}
@@ -61,8 +70,9 @@ func TestRuntimeEffectsApplyOnlyToSelectedDevice(t *testing.T) {
 }
 
 type recoveringBatchPublisher struct {
-	batches [][]*gridosv1.TelemetryObservation
-	cancel  context.CancelFunc
+	batches   [][]*gridosv1.TelemetryObservation
+	failFirst bool
+	recovered chan struct{}
 }
 
 func (publisher *recoveringBatchPublisher) Publish(context.Context, *gridosv1.TelemetryObservation) error {
@@ -71,11 +81,14 @@ func (publisher *recoveringBatchPublisher) Publish(context.Context, *gridosv1.Te
 
 func (publisher *recoveringBatchPublisher) PublishBatch(_ context.Context, observations []*gridosv1.TelemetryObservation) error {
 	publisher.batches = append(publisher.batches, append([]*gridosv1.TelemetryObservation(nil), observations...))
-	if len(publisher.batches) == 1 {
+	if publisher.failFirst && len(publisher.batches) == 1 {
 		return ErrPublishUnavailable
 	}
-	if publisher.cancel != nil {
-		publisher.cancel()
+	if publisher.recovered != nil {
+		select {
+		case publisher.recovered <- struct{}{}:
+		default:
+		}
 	}
 	return nil
 }

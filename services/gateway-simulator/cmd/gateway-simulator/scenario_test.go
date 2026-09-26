@@ -75,16 +75,24 @@ func TestRuntimeDropsSelectedReceiptAfterDurableCommand(t *testing.T) {
 		}
 	})
 	now := time.Now().UTC()
-	engine, err := failures.NewEngine(
-		failures.Scenario{Seed: 2, Start: now, Tick: time.Second, Injections: []failures.Injection{{At: now, Kind: failures.DroppedMessages}}},
-		[]failures.Device{{ID: "selected", Region: "LZ_AEN"}, {ID: "healthy", Region: "LZ_AEN"}},
-	)
+	scenario := failures.Scenario{Seed: 2, Start: now, Tick: time.Second, Injections: []failures.Injection{{At: now, Kind: failures.DroppedMessages}}}
+	devices := []failures.Device{{ID: "a", Region: "LZ_AEN"}, {ID: "b", Region: "LZ_AEN"}}
+	preview, err := failures.NewEngine(scenario, devices)
+	if err != nil {
+		t.Fatal(err)
+	}
+	selectedID := preview.Advance(now)[0].DeviceIDs[0]
+	healthyID := "a"
+	if selectedID == healthyID {
+		healthyID = "b"
+	}
+	engine, err := failures.NewEngine(scenario, devices)
 	if err != nil {
 		t.Fatal(err)
 	}
 	runtime := failures.NewRuntime(engine)
 	handler := newRuntimeCommandHandler(protocol.NewCommandHandler(store, "gateway", "token", func() time.Time { return now }), runtime, func() time.Time { return now })
-	selected := connect.NewRequest(commandRequest("selected", now))
+	selected := connect.NewRequest(commandRequest(selectedID, now))
 	selected.Header().Set("Authorization", "token")
 	if _, err := handler.SubmitCommand(ctx, selected); connect.CodeOf(err) != connect.CodeUnavailable {
 		t.Fatalf("selected response error=%v", err)
@@ -93,10 +101,10 @@ func TestRuntimeDropsSelectedReceiptAfterDurableCommand(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(commands) != 1 || commands[0].DeviceID != "selected" {
+	if len(commands) != 1 || commands[0].DeviceID != selectedID {
 		t.Fatalf("stored commands=%+v", commands)
 	}
-	healthy := connect.NewRequest(commandRequest("healthy", now))
+	healthy := connect.NewRequest(commandRequest(healthyID, now))
 	healthy.Header().Set("Authorization", "token")
 	if _, err := handler.SubmitCommand(ctx, healthy); err != nil {
 		t.Fatal(err)

@@ -33,9 +33,33 @@ func (network *Network) Publish(ctx context.Context, observation *gridosv1.Telem
 	connected := network.connected
 	network.mutex.RUnlock()
 	if !connected {
-		return errors.New("network unavailable")
+		return telemetry.ErrPublishUnavailable
 	}
-	return network.publisher.Publish(ctx, observation)
+	if err := network.publisher.Publish(ctx, observation); err != nil {
+		return errors.Join(telemetry.ErrPublishUnavailable, err)
+	}
+	return nil
+}
+
+func (network *Network) PublishBatch(ctx context.Context, observations []*gridosv1.TelemetryObservation) error {
+	network.mutex.RLock()
+	connected := network.connected
+	network.mutex.RUnlock()
+	if !connected {
+		return telemetry.ErrPublishUnavailable
+	}
+	if publisher, ok := network.publisher.(telemetry.BatchPublisher); ok {
+		if err := publisher.PublishBatch(ctx, observations); err != nil {
+			return errors.Join(telemetry.ErrPublishUnavailable, err)
+		}
+		return nil
+	}
+	for _, observation := range observations {
+		if err := network.publisher.Publish(ctx, observation); err != nil {
+			return errors.Join(telemetry.ErrPublishUnavailable, err)
+		}
+	}
+	return nil
 }
 
 func (network *Network) Restore(ctx context.Context, producer *telemetry.Producer) error {
