@@ -8,7 +8,7 @@ import "gridos/v1/device.proto";
 import "gridos/v1/dispatch.proto";
 import "gridos/v1/telemetry.proto";
 
-option go_package = "github.com/Hirom0112/Base-GridOS/services/control/internal/gen/gridos/v1;gridosv1";
+option go_package = "github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1;gridosv1";
 
 enum FleetOperatingState {
   FLEET_OPERATING_STATE_UNSPECIFIED = 0;
