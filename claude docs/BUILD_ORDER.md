@@ -283,6 +283,20 @@ Owns: `contracts/`, `buf.yaml`, `buf.gen.yaml`.
   `buf breaking contracts --against '.git#branch=main'`, documented in
   `contracts/README.md`; lane A adds it to the `Makefile` `generate` target
   on request. Verify: the command exits 0 on a clean tree and exits 1 when a field number is changed in the working tree.
+- `[~]` 0B.8 `[P]` `contracts/gridos/v1/api.proto`: the Connect services
+  Wave 1 needs, with their request and response messages, reusing the
+  messages from 0B.2 to 0B.6. `FleetService`: `GetFleetSummary` (installed
+  MW and MWh, dispatchable now and forecast, reserved for backup, device
+  counts by operating state and by online, offline, degraded, stale,
+  maintenance, communications and acknowledgement health, each aggregate with
+  timestamp, provenance mix, and freshness), `ListSites` (H3 aggregate by
+  default; exact cell only with the `site_location` permission).
+  `DispatchService`: `CreateEventRequest`, `GetEvent`, `ApproveEvent`.
+  `TelemetryService`: `PublishTelemetry` (gateway to control, acknowledges
+  durable receipt so the gateway may delete its buffer). `CommandService`
+  from 0B.4 stays. Found at 0F.1: no service existed for the mock server or
+  the console to call. Verify: `buf lint contracts && buf generate contracts` and `grep -c '^service' contracts/gridos/v1/api.proto` prints 3.
+
 ### Lane 0C — truth model, fleet generator, scenario format
 
 Owns: `docs/domain/truth-model.md`, `tools/generation/`, `testdata/fleets/`,
@@ -424,13 +438,13 @@ lane. This lane gives the UI track something to build against from day one.
 
 Owns: `tools/development/mockapi/`, `testdata/fixtures/api/`, `tests/contract/`.
 
-- `[~]` 0F.1 `[after 0B.6]` `tools/development/mockapi`: a Go Connect server
+- `[~]` 0F.1 `[after 0B.8]` `tools/development/mockapi`: a Go Connect server
   that serves every operator and member method in `gridos.v1` from JSON
   fixture files at `testdata/fixtures/api/<Service>/<Method>.json`, with
   `GRIDOS_AUTH_MODE=local` identities, the six roles, and the
   `site_location` permission, so the console runs with no backend.
   Verify: `go run ./tools/development/mockapi & curl -s -X POST -H 'content-type: application/json' localhost:8080/gridos.v1.FleetService/GetFleetSummary -d '{}'` returns the fixture.
-- `[~]` 0F.2 `[after 0C.5]` Hand-authored fixtures for the Wave 1 methods
+- `[~]` 0F.2 `[after 0B.8, 0C.5]` Hand-authored fixtures for the Wave 1 methods
   (`GetFleetSummary`, `ListSites`, `CreateEventRequest`, `GetEvent`,
   `ApproveEvent`) derived from the `texas-50` fleet, every aggregate carrying
   timestamp, provenance mix, and freshness, every record `SIMULATED`, plus
@@ -1392,13 +1406,13 @@ Owns: `README.md`, `docs/operations/` (except `security/`), `AGENTS.md`.
 
 | Wave | A | B | C | D | E | F | Total |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 0 | 5 | 7 | 7 | 6 | 8 | 4 | 37 |
+| 0 | 5 | 8 | 7 | 6 | 8 | 4 | 38 |
 | 1 | 8 | 7 | 9 | 9 | 6 | 5 | 44 |
 | 2 | 5 | 7 | 7 | 6 | 6 | 5 | 36 |
 | 3 | 6 | 8 | 4 | 5 | 4 | 5 | 32 |
 | 4 | 7 | 6 | 4 | 3 | 5 | 5 | 30 |
 | 5 | 3 | 3 | 4 | 6 | 4 | 4 | 24 |
-| | | | | | | | **203** |
+| | | | | | | | **204** |
 
 154 items are fully parallel and 48 wait on one other lane. Plus the five
 standing items applied every wave. The UI track adds 40 items of its own in

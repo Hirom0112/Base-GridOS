@@ -119,4 +119,10 @@ assumptions reported by workers land here too.
   devices go offline 15 minutes after start and the gateway delay begins 5
   minutes after that; the synthetic evening is 2026-08-12 and claims no
   historical event.
+- **Missing API services (found by lane F at 0F.1):** no build-order item
+  defined the Connect services; 0B.2 to 0B.6 defined messages only. Opened
+  0B.8 for lane B: `api.proto` with `FleetService`, `DispatchService`, and
+  `TelemetryService` for Wave 1. Later waves add `EventsService`,
+  `ReportService`, `GeoService`, `MemberService`, and `ContextService` in
+  their own lanes, as additive changes the breaking check allows.
 
