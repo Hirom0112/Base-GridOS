@@ -624,7 +624,7 @@ Owns: `services/decision/`, `testdata/golden/`,
   `telemetry_observed_at`, and `load_zone`. `DispatchPlan` gains
   `fallback_reason`. Found at 1C.8: no RPC existed and the request could
   not carry physical state. Verify: `buf lint contracts && buf breaking contracts --against '.git#branch=main,subdir=contracts' && make generate` and `grep -c '^service OptimizationService' contracts/gridos/v1/optimization.proto` prints 1.
-- `[~]` 1C.11 `[P]` Runnable decision entrypoint: `python -m gridos.server
+- `[x]` 1C.11 `[P]` Runnable decision entrypoint: `python -m gridos.server
   --port <n>` serving `OptimizationService`, plus `make decision` running it
   through `uv run --project services/decision`. Found at 1F.3: the server
   existed only under test. Verify: `uv run --project services/decision python -m gridos.server --port 50061 &` then a Python client `Optimize` call returns a plan with `fallback_used` true.
