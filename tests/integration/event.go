@@ -82,11 +82,10 @@ func (stack *stack) boundary(t *testing.T) gridosv1.MeasurementBoundary {
 	return gridosv1.MeasurementBoundary(value)
 }
 
-func (stack *stack) createEvent(t *testing.T, ctx context.Context, eventID string, now time.Time) *gridosv1.DispatchEvent {
+func (stack *stack) createEvent(t *testing.T, ctx context.Context, eventID string) *gridosv1.DispatchEvent {
 	t.Helper()
-	begin := now.Add(time.Minute)
 	request := connect.NewRequest(&gridosv1.CreateEventRequestRequest{EventRequest: &gridosv1.EventRequest{
-		RequestId: eventID, EventType: "GRID_SERVICE", BeginTime: timestamppb.New(begin), EndTime: timestamppb.New(begin.Add(stack.scenario.duration())),
+		RequestId: eventID, EventType: "GRID_SERVICE", BeginTime: timestamppb.New(stack.scenario.Event.StartAt), EndTime: timestamppb.New(stack.scenario.Event.EndAt),
 		TargetKw: stack.scenario.Event.TargetMW * 1000, MeasurementBoundary: stack.boundary(t),
 		LoadZones: []string{stack.scenario.Event.Region}, CorrelationId: eventID,
 	}, IdempotencyKey: "create-" + eventID})

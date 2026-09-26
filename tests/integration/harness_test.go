@@ -32,7 +32,7 @@ func TestHarness(t *testing.T) {
 	stack.publishTelemetry(t, ctx, cohort, now, constantStateOfEnergy)
 	stack.assertDispatchable(t, ctx)
 	eventID := fmt.Sprintf("harness-%d", now.UnixNano())
-	created := stack.createEvent(t, ctx, eventID, now)
+	created := stack.createEvent(t, ctx, eventID)
 	if created.GetState() != gridosv1.DispatchEventState_DISPATCH_EVENT_STATE_REQUESTED {
 		t.Fatalf("created event state = %s", created.GetState())
 	}
@@ -76,7 +76,7 @@ func constantStateOfEnergy(FleetDevice) float64 {
 
 func (stack *stack) runEvent(t *testing.T, ctx context.Context, eventID string, now time.Time) *gridosv1.GetEventResponse {
 	t.Helper()
-	stack.createEvent(t, ctx, eventID, now)
+	stack.createEvent(t, ctx, eventID)
 	stack.waitEventState(t, ctx, eventID, "VALIDATED")
 	stack.approveEvent(t, ctx, eventID, now)
 	stack.launchEvent(t, ctx, eventID, now)

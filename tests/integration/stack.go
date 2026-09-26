@@ -17,6 +17,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"gopkg.in/yaml.v3"
 )
 
 const (
@@ -73,7 +74,7 @@ func startStack(t *testing.T, scenarioName string) *stack {
 	root := repositoryRoot(t)
 	requireInfrastructure(t, root)
 	built := buildBinaries(t, root)
-	scenario := loadScenario(t, root, scenarioName)
+	scenario := loadScenario(t, root, scenarioName).retime(time.Now().UTC())
 	ctx := context.Background()
 	name := fmt.Sprintf("gridos_integration_%d", time.Now().UnixNano())
 	stack := &stack{
@@ -81,6 +82,14 @@ func startStack(t *testing.T, scenarioName string) *stack {
 		logDir: t.TempDir(), processes: make(map[string]*process), client: &http.Client{Timeout: clientTimeout},
 	}
 	stack.gatewayDB = filepath.Join(stack.logDir, "gateway.db")
+	runtimeScenario, err := yaml.Marshal(scenario)
+	if err != nil {
+		t.Fatal(err)
+	}
+	runtimeScenarioPath := filepath.Join(stack.logDir, "scenario.yaml")
+	if err = os.WriteFile(runtimeScenarioPath, runtimeScenario, 0o600); err != nil {
+		t.Fatal(err)
+	}
 	createDatabase(t, ctx, name)
 	t.Cleanup(func() { dropDatabase(t, context.Background(), name) })
 	stack.migrate(t, built.migrate)
@@ -94,7 +103,7 @@ func startStack(t *testing.T, scenarioName string) *stack {
 	stack.decisionURL, stack.gatewayURL, stack.controlURL = "http://"+decisionAddress, "http://"+gatewayAddress, "http://"+controlAddress
 	stack.start(t, "decision", decisionAddress, nil, "uv", "run", "--project", "services/decision", "python", "-m", "gridos.server", "--port", port(t, decisionAddress))
 	stack.start(t, "gateway", gatewayAddress, []string{"GRIDOS_GATEWAY_TOKEN=" + gatewayToken}, built.gateway,
-		"--scenario", filepath.Join("testdata/scenarios", scenarioName+".yaml"), "--address", gatewayAddress, "--database", stack.gatewayDB, "--gateway-id", gatewayID)
+		"--scenario", runtimeScenarioPath, "--address", gatewayAddress, "--database", stack.gatewayDB, "--gateway-id", gatewayID, "--cadence", "5s", "--control-address", stack.controlURL)
 	controlEnv := []string{
 		"GRIDOS_CONTROL_ADDRESS=" + controlAddress, "GRIDOS_DATABASE_URL=" + stack.databaseURL, "GRIDOS_GATEWAY_ADDR=" + stack.gatewayURL,
 		"GRIDOS_DECISION_ADDR=" + stack.decisionURL, "GRIDOS_FLEET=" + scenario.Fleet.Path, "GRIDOS_GATEWAY_TOKEN=" + gatewayToken, "TEMPORAL_ADDRESS=" + temporalAddress,

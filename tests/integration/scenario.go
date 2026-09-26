@@ -76,6 +76,20 @@ func (scenario Scenario) duration() time.Duration {
 	return scenario.Event.EndAt.Sub(scenario.Event.StartAt)
 }
 
+func (scenario Scenario) retime(now time.Time) Scenario {
+	begin := now.Add(10 * time.Second)
+	duration := scenario.duration()
+	for index := range scenario.Injections {
+		offset := scenario.Injections[index].At.Sub(scenario.Event.StartAt)
+		scenario.Injections[index].At = begin.Add(time.Duration(float64(offset) / float64(duration) * float64(time.Minute)))
+	}
+	scenario.Clock.StartAt = now
+	scenario.Clock.IntervalSeconds = 5
+	scenario.Event.StartAt = begin
+	scenario.Event.EndAt = begin.Add(time.Minute)
+	return scenario
+}
+
 func (stack *stack) cohort(t *testing.T) []FleetDevice {
 	t.Helper()
 	file, err := os.Open(filepath.Join(stack.root, stack.scenario.Fleet.Path))
