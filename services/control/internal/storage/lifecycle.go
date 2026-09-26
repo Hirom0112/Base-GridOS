@@ -17,6 +17,64 @@ type StoredViolation struct {
 	Code string `json:"code"`
 }
 
+func (store *PostgresEventStore) StoreFrozen(ctx context.Context, eventID string, request *gridosv1.OptimizationRequest, at time.Time) (string, string, error) {
+	if request == nil || request.GetPlanVersion() == 0 || request.GetEligibilitySnapshot() == nil {
+		return "", "", errors.New("versioned optimization snapshot required")
+	}
+	inputs, err := protojson.Marshal(request)
+	if err != nil {
+		return "", "", err
+	}
+	exclusions, err := exclusionJSON(request.GetEligibilitySnapshot().GetExclusions())
+	if err != nil {
+		return "", "", err
+	}
+	inputID, eligibilityID := snapshotIDs(eventID, request.GetPlanVersion())
+	tx, err := store.pool.Begin(ctx)
+	if err != nil {
+		return "", "", err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	_, err = tx.Exec(ctx, `INSERT INTO input_snapshots
+        (snapshot_id, event_id, captured_at, inputs, provenance, correlation_id)
+        VALUES ($1, $2, $3, $4, '{"source":"SIMULATED"}', $5)
+		ON CONFLICT (snapshot_id) DO NOTHING`, inputID, eventID, at, inputs, request.GetCorrelationId())
+	if err != nil {
+		return "", "", err
+	}
+	eligibleDeviceIDs := request.GetEligibilitySnapshot().GetEligibleDeviceIds()
+	if eligibleDeviceIDs == nil {
+		eligibleDeviceIDs = []string{}
+	}
+	_, err = tx.Exec(ctx, `INSERT INTO eligibility_snapshots
+        (snapshot_id, event_id, captured_at, eligible_device_ids, exclusions, policy_version, correlation_id)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
+		ON CONFLICT (snapshot_id) DO NOTHING`, eligibilityID, eventID, at, eligibleDeviceIDs, exclusions,
+		request.GetReservePolicy().GetPolicyVersion(), request.GetCorrelationId())
+	if err != nil {
+		return "", "", err
+	}
+	if err = tx.Commit(ctx); err != nil {
+		return "", "", err
+	}
+	return inputID, eligibilityID, nil
+}
+
+func (store *PostgresEventStore) LoadFrozen(ctx context.Context, eventID, inputID, eligibilityID string) (*gridosv1.OptimizationRequest, error) {
+	var inputs []byte
+	err := store.pool.QueryRow(ctx, `SELECT input.inputs FROM input_snapshots AS input
+		JOIN eligibility_snapshots AS eligibility ON eligibility.event_id = input.event_id
+		WHERE input.event_id = $1 AND input.snapshot_id = $2 AND eligibility.snapshot_id = $3`, eventID, inputID, eligibilityID).Scan(&inputs)
+	if err != nil {
+		return nil, err
+	}
+	request := new(gridosv1.OptimizationRequest)
+	if err = protojson.Unmarshal(inputs, request); err != nil {
+		return nil, err
+	}
+	return request, nil
+}
+
 func (store *PostgresEventStore) StorePlanned(ctx context.Context, eventID string, request *gridosv1.OptimizationRequest, plan *gridosv1.DispatchPlan, at time.Time) (*gridosv1.DispatchEvent, error) {
 	if request == nil || plan == nil || plan.GetPlanVersion() == 0 {
 		return nil, errors.New("optimization request and versioned plan required")
@@ -46,21 +104,22 @@ func (store *PostgresEventStore) StorePlanned(ctx context.Context, eventID strin
 	if err != nil {
 		return nil, err
 	}
-	inputID := fmt.Sprintf("%s-input-%d", eventID, plan.GetPlanVersion())
-	eligibilityID := fmt.Sprintf("%s-eligibility-%d", eventID, plan.GetPlanVersion())
+	inputID, eligibilityID := snapshotIDs(eventID, plan.GetPlanVersion())
 	eligibleDeviceIDs := request.GetEligibilitySnapshot().GetEligibleDeviceIds()
 	if eligibleDeviceIDs == nil {
 		eligibleDeviceIDs = []string{}
 	}
 	_, err = tx.Exec(ctx, `INSERT INTO input_snapshots
         (snapshot_id, event_id, captured_at, inputs, provenance, correlation_id)
-        VALUES ($1, $2, $3, $4, '{"source":"SIMULATED"}', $5)`, inputID, eventID, at, inputs, request.GetCorrelationId())
+		VALUES ($1, $2, $3, $4, '{"source":"SIMULATED"}', $5)
+		ON CONFLICT (snapshot_id) DO NOTHING`, inputID, eventID, at, inputs, request.GetCorrelationId())
 	if err != nil {
 		return nil, err
 	}
 	_, err = tx.Exec(ctx, `INSERT INTO eligibility_snapshots
         (snapshot_id, event_id, captured_at, eligible_device_ids, exclusions, policy_version, correlation_id)
-        VALUES ($1, $2, $3, $4, $5, $6, $7)`, eligibilityID, eventID, at,
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		ON CONFLICT (snapshot_id) DO UPDATE SET exclusions = EXCLUDED.exclusions`, eligibilityID, eventID, at,
 		eligibleDeviceIDs, exclusions, request.GetReservePolicy().GetPolicyVersion(), request.GetCorrelationId())
 	if err != nil {
 		return nil, err
@@ -80,6 +139,10 @@ func (store *PostgresEventStore) StorePlanned(ctx context.Context, eventID strin
 		return nil, err
 	}
 	return eventFromRow(updated, nil), nil
+}
+
+func snapshotIDs(eventID string, planVersion uint64) (string, string) {
+	return fmt.Sprintf("%s-input-%d", eventID, planVersion), fmt.Sprintf("%s-eligibility-%d", eventID, planVersion)
 }
 
 func (store *PostgresEventStore) ValidatePlanned(ctx context.Context, eventID string, planVersion uint64, violations []StoredViolation, at time.Time) (*gridosv1.DispatchEvent, error) {
