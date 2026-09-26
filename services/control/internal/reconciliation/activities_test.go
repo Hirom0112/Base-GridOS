@@ -41,21 +41,10 @@ func TestVerifyDeliveryActivityWritesSummariesAndUncertainty(t *testing.T) {
 	if rows := harness.count(t, "verification_summaries"); rows != 12 {
 		t.Fatalf("verification summaries = %d, want 12", rows)
 	}
-	var deliveredKW, confidence float64
-	err := harness.pool.QueryRow(context.Background(), `SELECT delivered_kw, confidence FROM verification_summaries
-		WHERE event_id = 'event-1' AND interval_begin_time = $1`, harness.begin).Scan(&deliveredKW, &confidence)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if deliveredKW != 4 || confidence != 0.5 {
+	if deliveredKW, confidence := harness.summary(t, harness.begin); deliveredKW != 4 || confidence != 0.5 {
 		t.Fatalf("first interval delivered = %v kW at confidence %v, want 4 kW at 0.5", deliveredKW, confidence)
 	}
-	err = harness.pool.QueryRow(context.Background(), `SELECT delivered_kw, confidence FROM verification_summaries
-		WHERE event_id = 'event-1' AND interval_begin_time = $1`, harness.begin.Add(30*time.Minute)).Scan(&deliveredKW, &confidence)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if deliveredKW != 0 || confidence != 0 {
+	if deliveredKW, confidence := harness.summary(t, harness.begin.Add(30*time.Minute)); deliveredKW != 0 || confidence != 0 {
 		t.Fatalf("gap interval delivered = %v kW at confidence %v, want 0 kW at 0", deliveredKW, confidence)
 	}
 
@@ -66,11 +55,15 @@ func TestVerifyDeliveryActivityWritesSummariesAndUncertainty(t *testing.T) {
 	if delivered == nil {
 		t.Fatal("no delivered verification was recorded")
 	}
-	if math.Abs(delivered.DeliveredMWh-4*35.0/60/1000) > 1e-9 || math.Abs(delivered.DeliveredMW-0.004) > 1e-9 || math.Abs(delivered.TrackingErrorMW) > 1e-9 {
-		t.Fatalf("delivered = %+v", *delivered)
+	want := report.Delivered{DeliveredMWh: 4 * 35.0 / 60 / 1000, DeliveredMW: 0.004, TrackingErrorMW: 0, ResponseLatency: 0, Completeness: 35.0 / 120, Responded: 1, Commanded: 2}
+	got := *delivered
+	got.UncertainIntervals = nil
+	if math.Abs(got.DeliveredMWh-want.DeliveredMWh) > 1e-9 || math.Abs(got.DeliveredMW-want.DeliveredMW) > 1e-9 || math.Abs(got.Completeness-want.Completeness) > 1e-9 {
+		t.Fatalf("delivered = %+v, want %+v", got, want)
 	}
-	if math.Abs(delivered.Completeness-35.0/120) > 1e-9 || delivered.ResponseLatency != 0 || delivered.Responded != 1 || delivered.Commanded != 2 {
-		t.Fatalf("delivered = %+v", *delivered)
+	got.DeliveredMWh, got.DeliveredMW, got.Completeness = want.DeliveredMWh, want.DeliveredMW, want.Completeness
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("delivered = %+v, want %+v", got, want)
 	}
 	wantUncertain := []report.UncertainInterval{
 		{DeviceID: "device-1", Begin: harness.begin.Add(20 * time.Minute), End: harness.begin.Add(45 * time.Minute)},
@@ -129,20 +122,39 @@ func newActivityHarness(t *testing.T) *activityHarness {
 	harness := &activityHarness{pool: pool, begin: begin, end: begin.Add(time.Hour), now: begin.Add(65 * time.Minute)}
 	harness.activities = &Activities{Pool: pool, Events: storage.NewPostgresEventStore(pool), Now: func() time.Time { return harness.now }, MaxGap: 10 * time.Minute}
 	ctx := context.Background()
-	statements := []string{
-		`INSERT INTO dispatch_requests (request_id, event_type, begin_time, end_time, target_kw, measurement_boundary, load_zones, correlation_id)
-		 VALUES ('request-1', 'GRID_SERVICE', $1, $2, 7, 'METER_NET_EXPORT', ARRAY['LZ_AEN'], 'correlation-1')`,
-		`INSERT INTO dispatch_events (event_id, request_id, state, plan_version, correlation_id)
-		 VALUES ('event-1', 'request-1', 'ACKNOWLEDGED_OR_UNCERTAIN', 1, 'correlation-1')`,
-		`INSERT INTO input_snapshots (snapshot_id, event_id, captured_at, inputs, provenance, correlation_id)
-		 VALUES ('input-1', 'event-1', $1, '{}', '{}', 'correlation-1')`,
-		`INSERT INTO eligibility_snapshots (snapshot_id, event_id, captured_at, eligible_device_ids, exclusions, policy_version, correlation_id)
-		 VALUES ('eligibility-1', 'event-1', $1, ARRAY['device-1', 'device-2'], '[]', 'policy-1', 'correlation-1')`,
-		`INSERT INTO plan_versions (event_id, version, input_snapshot_id, eligibility_snapshot_id, plan, solver_version, model_version, correlation_id)
-		 VALUES ('event-1', 1, 'input-1', 'eligibility-1', '{}', 'solver-1', 'model-1', 'correlation-1')`,
+	seeds := []struct {
+		sql   string
+		at    time.Time
+		until time.Time
+	}{
+		{`INSERT INTO dispatch_requests (request_id, event_type, begin_time, end_time, target_kw, measurement_boundary, load_zones, correlation_id)
+		 VALUES ('request-1', 'GRID_SERVICE', $1, $2, 7, 'METER_NET_EXPORT', ARRAY['LZ_AEN'], 'correlation-1')`, begin, harness.end},
+		{`INSERT INTO dispatch_events (event_id, request_id, state, plan_version, correlation_id)
+		 VALUES ('event-1', 'request-1', 'ACKNOWLEDGED_OR_UNCERTAIN', 1, 'correlation-1')`, time.Time{}, time.Time{}},
+		{`INSERT INTO input_snapshots (snapshot_id, event_id, captured_at, inputs, provenance, correlation_id)
+		 VALUES ('input-1', 'event-1', $1, '{}', '{}', 'correlation-1')`, begin, time.Time{}},
+		{`INSERT INTO eligibility_snapshots (snapshot_id, event_id, captured_at, eligible_device_ids, exclusions, policy_version, correlation_id)
+		 VALUES ('eligibility-1', 'event-1', $1, ARRAY['device-1', 'device-2'], '[]', 'policy-1', 'correlation-1')`, begin, time.Time{}},
+		{`INSERT INTO plan_versions (event_id, version, input_snapshot_id, eligibility_snapshot_id, plan, solver_version, model_version, correlation_id)
+		 VALUES ('event-1', 1, 'input-1', 'eligibility-1', '{}', 'solver-1', 'model-1', 'correlation-1')`, time.Time{}, time.Time{}},
 	}
-	for _, statement := range statements {
-		if _, err := pool.Exec(ctx, statement, begin, begin.Add(time.Hour)); err != nil {
+	for _, seed := range seeds {
+		arguments := make([]time.Time, 0, 2)
+		for _, argument := range []time.Time{seed.at, seed.until} {
+			if !argument.IsZero() {
+				arguments = append(arguments, argument)
+			}
+		}
+		var err error
+		switch len(arguments) {
+		case 0:
+			_, err = pool.Exec(ctx, seed.sql)
+		case 1:
+			_, err = pool.Exec(ctx, seed.sql, arguments[0])
+		default:
+			_, err = pool.Exec(ctx, seed.sql, arguments[0], arguments[1])
+		}
+		if err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -197,6 +209,17 @@ func (harness *activityHarness) observeExport(t *testing.T, deviceID string, exp
 	if _, err := storage.NewTelemetryStore(harness.pool).Write(context.Background(), observations); err != nil {
 		t.Fatal(err)
 	}
+}
+
+func (harness *activityHarness) summary(t *testing.T, at time.Time) (float64, float64) {
+	t.Helper()
+	var deliveredKW, confidence float64
+	err := harness.pool.QueryRow(context.Background(), `SELECT delivered_kw, confidence FROM verification_summaries
+		WHERE event_id = 'event-1' AND interval_begin_time = $1`, at).Scan(&deliveredKW, &confidence)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return deliveredKW, confidence
 }
 
 func (harness *activityHarness) eventState(t *testing.T) string {
