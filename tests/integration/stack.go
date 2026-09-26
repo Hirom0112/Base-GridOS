@@ -98,6 +98,7 @@ func startStack(t *testing.T, scenarioName string) *stack {
 	controlEnv := []string{
 		"GRIDOS_CONTROL_ADDRESS=" + controlAddress, "GRIDOS_DATABASE_URL=" + stack.databaseURL, "GRIDOS_GATEWAY_ADDR=" + stack.gatewayURL,
 		"GRIDOS_DECISION_ADDR=" + stack.decisionURL, "GRIDOS_FLEET=" + scenario.Fleet.Path, "GRIDOS_GATEWAY_TOKEN=" + gatewayToken, "TEMPORAL_ADDRESS=" + temporalAddress,
+		"GRIDOS_TASK_QUEUE=" + name,
 	}
 	stack.start(t, "control", controlAddress, controlEnv, built.control)
 	stack.start(t, "worker", "", controlEnv, built.worker)
