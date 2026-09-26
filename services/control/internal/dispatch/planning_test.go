@@ -102,3 +102,14 @@ func TestPlanningActivitiesRecordOptimizeTransportTimeout(t *testing.T) {
 	require.Equal(t, "TRANSPORT_TIMEOUT", reason)
 	require.Equal(t, "REQUESTED", harness.state(t))
 }
+
+func TestPlanningActivitiesRetryUsesStoredPlan(t *testing.T) {
+	harness := newActivityHarness(t)
+	frozen := harness.freeze(t)
+	first, err := harness.activities.RequestPlan(context.Background(), frozen)
+	require.NoError(t, err)
+	second, err := harness.activities.RequestPlan(context.Background(), frozen)
+	require.NoError(t, err)
+	require.Equal(t, first.Input.ApprovalDigest, second.Input.ApprovalDigest)
+	require.Equal(t, 1, harness.count(t, "plan_versions"))
+}
