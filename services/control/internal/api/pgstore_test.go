@@ -24,7 +24,10 @@ func TestPostgresEventStoreSurvivesServiceRestart(t *testing.T) {
 	pool := apiTestDatabase(t)
 	seedAPIEvent(t, pool)
 	now := time.Date(2026, 9, 26, 12, 0, 0, 0, time.UTC)
-	first := httptest.NewServer(NewHandler(NewService(NewPostgresEventStore(pool), fleet.NewTwin(time.Minute), nil, func() time.Time { return now })))
+	service := NewService(NewPostgresEventStore(pool), fleet.NewTwin(time.Minute), nil, func() time.Time { return now })
+	service.approveWorkflow = func(context.Context, string, dispatchWorkflowApproval) error { return nil }
+	service.launchWorkflow = func(context.Context, string, *gridosv1.LaunchEventRequest) error { return nil }
+	first := httptest.NewServer(NewHandler(service))
 	client := gridosv1connect.NewDispatchServiceClient(http.DefaultClient, first.URL)
 	approval := connect.NewRequest(&gridosv1.ApproveEventRequest{EventId: "event-restart", PlanVersion: 3, IdempotencyKey: "approve-restart", ApprovedBy: "approver-1", ApprovedAt: timestamp(now)})
 	approval.Header().Set(roleHeader, "approver")
@@ -48,7 +51,7 @@ func TestPostgresEventStoreSurvivesServiceRestart(t *testing.T) {
 		t.Fatal(err)
 	}
 	event := response.Msg.GetEvent()
-	if event.GetState() != gridosv1.DispatchEventState_DISPATCH_EVENT_STATE_COMMANDS_PERSISTED || event.GetLaunch().GetRequestedBy() != "approver-1" || event.GetLaunch().GetPlanVersion() != 3 {
+	if event.GetState() != gridosv1.DispatchEventState_DISPATCH_EVENT_STATE_APPROVED || event.GetLaunch() != nil {
 		t.Fatalf("restarted event = %#v", event)
 	}
 	groups := response.Msg.GetExclusions()
@@ -62,7 +65,7 @@ func TestPostgresEventStoreSurvivesServiceRestart(t *testing.T) {
 	if err = pool.QueryRow(context.Background(), "SELECT count(*) FROM audit_journal WHERE resource_id = $1 AND action = 'EVENT_LAUNCHED'", "event-restart").Scan(&launches); err != nil {
 		t.Fatal(err)
 	}
-	if approvals != 1 || launches != 1 {
+	if approvals != 1 || launches != 0 {
 		t.Fatalf("approvals = %d, launch audits = %d", approvals, launches)
 	}
 }

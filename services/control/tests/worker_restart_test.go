@@ -60,6 +60,9 @@ func TestWorkerRestart(t *testing.T) {
 	if err = temporalClient.SignalWorkflow(context.Background(), taskQueue, run.GetRunID(), dispatch.ApproveEventSignal, dispatch.Approval{ApprovedBy: "operator-1"}); err != nil {
 		t.Fatal(err)
 	}
+	if err = temporalClient.SignalWorkflow(context.Background(), taskQueue, run.GetRunID(), dispatch.LaunchEventSignal, &gridosv1.LaunchEventRequest{PlanVersion: 1, RequestedBy: "operator-1"}); err != nil {
+		t.Fatal(err)
+	}
 	waitRestartState(t, pool, "SENT")
 	stopRestartWorker(t, first)
 	second := startRestartWorker(t, databaseURL, taskQueue)
@@ -105,7 +108,8 @@ func (activities *restartActivities) ValidatePlan(ctx context.Context, frozen di
 	return err
 }
 
-func (activities *restartActivities) PersistIntents(ctx context.Context, input dispatch.Input) error {
+func (activities *restartActivities) PersistIntents(ctx context.Context, request dispatch.PersistInput) error {
+	input := request.Input
 	now := activities.now()
 	err := storage.InsertCommand(ctx, activities.pool, storage.CommandIntent{
 		CommandID: "restart-command", IdempotencyKey: "restart-command", DeviceID: "device-1", EventID: input.EventID,

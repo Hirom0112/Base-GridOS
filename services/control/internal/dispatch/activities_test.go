@@ -106,7 +106,7 @@ func TestValidatePlanActivity(t *testing.T) {
 func TestPersistIntentsActivity(t *testing.T) {
 	harness := newActivityHarness(t)
 	harness.approve(t)
-	require.NoError(t, harness.activities.PersistIntents(context.Background(), harness.input))
+	require.NoError(t, harness.activities.PersistIntents(context.Background(), PersistInput{Input: harness.input, Launch: harness.launch()}))
 	require.Equal(t, 1, harness.count(t, "command_intents"))
 	require.Equal(t, 1, harness.count(t, "command_outbox"))
 	require.Equal(t, "COMMANDS_PERSISTED", harness.state(t))
@@ -127,13 +127,6 @@ func TestTrackAcknowledgementsActivity(t *testing.T) {
 	require.Equal(t, "ACKNOWLEDGED_OR_UNCERTAIN", harness.state(t))
 }
 
-func TestVerifyDeliveryActivityStub(t *testing.T) {
-	harness := newActivityHarness(t)
-	harness.track(t)
-	require.NoError(t, harness.activities.VerifyDelivery(context.Background(), harness.input))
-	require.Equal(t, "VERIFIED", harness.state(t))
-}
-
 func TestEndEventActivity(t *testing.T) {
 	harness := newActivityHarness(t)
 	harness.persist(t)
@@ -144,21 +137,30 @@ func TestEndEventActivity(t *testing.T) {
 	require.Zero(t, setpoint)
 }
 
-func TestReconcileLateMessagesActivityStub(t *testing.T) {
+func TestEmergencyStopIssuesPerDeviceZeroSetpoints(t *testing.T) {
 	harness := newActivityHarness(t)
-	harness.track(t)
-	require.NoError(t, harness.activities.VerifyDelivery(context.Background(), harness.input))
-	require.NoError(t, harness.activities.ReconcileLateMessages(context.Background(), harness.input))
-	require.Equal(t, "RECONCILED", harness.state(t))
+	harness.persist(t)
+	require.NoError(t, harness.activities.IssueEmergencyStop(context.Background(), EmergencyCommand{EventID: harness.input.EventID, Generation: 2}))
+	var deviceID string
+	var setpoint float64
+	require.NoError(t, harness.pool.QueryRow(context.Background(), "SELECT device_id, setpoint_kw FROM command_intents ORDER BY generation DESC LIMIT 1").Scan(&deviceID, &setpoint))
+	require.Equal(t, "device-1", deviceID)
+	require.Zero(t, setpoint)
 }
 
 func TestProduceReportActivity(t *testing.T) {
 	harness := newActivityHarness(t)
 	harness.track(t)
-	require.NoError(t, harness.activities.VerifyDelivery(context.Background(), harness.input))
-	require.NoError(t, harness.activities.ReconcileLateMessages(context.Background(), harness.input))
+	harness.advance(t, "ACKNOWLEDGED_OR_UNCERTAIN", "EXECUTING")
+	harness.advance(t, "EXECUTING", "VERIFIED")
+	harness.advance(t, "VERIFIED", "RECONCILED")
 	require.NoError(t, harness.activities.ProduceReport(context.Background(), harness.input))
 	require.Equal(t, "REPORTED", harness.state(t))
+}
+
+func (harness *activityHarness) advance(t *testing.T, expected, next string) {
+	_, err := harness.events.Advance(context.Background(), harness.input.EventID, expected, next, "test", time.Now())
+	require.NoError(t, err)
 }
 
 func TestIssueReplacementActivity(t *testing.T) {
@@ -229,7 +231,13 @@ func (harness *activityHarness) approve(t *testing.T) {
 
 func (harness *activityHarness) persist(t *testing.T) {
 	harness.approve(t)
-	require.NoError(t, harness.activities.PersistIntents(context.Background(), harness.input))
+	require.NoError(t, harness.activities.PersistIntents(context.Background(), PersistInput{Input: harness.input, Launch: harness.launch()}))
+}
+
+func (harness *activityHarness) launch() *gridosv1.LaunchEventRequest {
+	return &gridosv1.LaunchEventRequest{
+		EventId: harness.input.EventID, PlanVersion: harness.input.PlanVersion, IdempotencyKey: "launch-event-1", RequestedBy: "operator-1", RequestedAt: timestamppb.Now(),
+	}
 }
 
 func (harness *activityHarness) publish(t *testing.T) {

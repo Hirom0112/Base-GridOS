@@ -18,7 +18,6 @@ import (
 	"github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1/gridosv1connect"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/fleet"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/storage"
-	storagepublisher "github.com/Hirom0112/Base-GridOS/services/control/internal/storage/publisher"
 	"go.temporal.io/api/enums/v1"
 	"go.temporal.io/sdk/client"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -41,7 +40,7 @@ func TestTemporalLifecycleRequiresWorker(t *testing.T) {
 	now := time.Now().UTC()
 	request := connect.NewRequest(&gridosv1.CreateEventRequestRequest{EventRequest: &gridosv1.EventRequest{
 		RequestId: taskQueue, EventType: "GRID_SERVICE", BeginTime: timestamppb.New(now.Add(time.Minute)), EndTime: timestamppb.New(now.Add(time.Hour)),
-		TargetKw: 1, MeasurementBoundary: gridosv1.MeasurementBoundary_MEASUREMENT_BOUNDARY_METER_NET_EXPORT, LoadZones: []string{}, CorrelationId: taskQueue,
+		TargetKw: 1, MeasurementBoundary: gridosv1.MeasurementBoundary_MEASUREMENT_BOUNDARY_METER_NET_EXPORT, LoadZones: []string{"LZ_AEN"}, CorrelationId: taskQueue,
 	}, IdempotencyKey: taskQueue})
 	request.Header().Set(roleHeader, "operator")
 	created, err := dispatchClient.CreateEventRequest(context.Background(), request)
@@ -74,7 +73,8 @@ func TestControlLifecycleWithRealDecisionAndGateway(t *testing.T) {
 
 	pool := apiTestDatabase(t)
 	twin := fleet.NewTwin(time.Minute)
-	sites, telemetryTwin, err := fleet.Load(filepath.Join(root, "testdata/fleets/austin-5000.jsonl"), twin, now)
+	fleetPath := filepath.Join(root, "testdata/fleets/texas-50.jsonl")
+	sites, telemetryTwin, err := fleet.Load(fleetPath, twin, now)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -84,71 +84,77 @@ func TestControlLifecycleWithRealDecisionAndGateway(t *testing.T) {
 		ValueState: gridosv1.ValueState_VALUE_STATE_PRESENT, StateOfEnergyPercent: 74,
 		OperatingState: &gridosv1.TelemetryObservation_OnGrid{OnGrid: &gridosv1.OnGrid{ObservedAt: timestamppb.New(now)}},
 	})
-	client := apiH2Client()
+	if _, err = storage.NewTelemetryStore(pool).Write(context.Background(), []*gridosv1.TelemetryObservation{{
+		ObservationId: "worker-lifecycle-observation", DeviceId: deviceID, Sequence: 1, ObservationTime: timestamppb.New(now),
+		ValueState: gridosv1.ValueState_VALUE_STATE_PRESENT, StateOfEnergyPercent: 74,
+		OperatingState: &gridosv1.TelemetryObservation_OnGrid{OnGrid: &gridosv1.OnGrid{ObservedAt: timestamppb.New(now)}},
+	}}); err != nil {
+		t.Fatal(err)
+	}
 	events := NewPostgresEventStore(pool)
-	publisher := storagepublisher.New(storagepublisher.Config{
-		Pool: pool, Client: gridosv1connect.NewCommandServiceClient(client, "http://"+gatewayAddress, connect.WithGRPC()),
-		AuthorizationToken: "Bearer lifecycle-token", BatchSize: 10, LeaseDuration: time.Second, AcknowledgementTimeout: 2 * time.Second,
-		Now: time.Now, Interval: integrationInterval,
-	})
+	temporalClient, err := client.Dial(client.Options{HostPort: "127.0.0.1:7233"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer temporalClient.Close()
+	taskQueue := "lifecycle-worker-" + fmt.Sprint(time.Now().UnixNano())
+	eventID := "lifecycle-event-" + fmt.Sprint(time.Now().UnixNano())
 	service := NewService(events, twin, sites, time.Now)
-	service.SetDispatcher(&Dispatcher{
-		Events: events, Snapshots: NewFleetSnapshotter(twin, sites, time.Now),
-		Optimizer: NewConnectOptimizer(gridosv1connect.NewOptimizationServiceClient(client, "http://"+decisionAddress, connect.WithGRPC())),
-		Safety:    IndependentSafetyGate{}, Approval: NewStoredApprovalGate(events), Commands: NewCommandPipeline(pool, publisher), Now: time.Now,
-	})
+	service.SetWorkflowClient(temporalClient, taskQueue)
+	database := pool.Config().ConnConfig
+	startAPIProcessWithEnv(t, root, []string{
+		fmt.Sprintf("GRIDOS_DATABASE_URL=postgres://%s:%s@%s:%d/%s?sslmode=disable", database.User, database.Password, database.Host, database.Port, database.Database),
+		"GRIDOS_DECISION_ADDR=http://" + decisionAddress,
+		"GRIDOS_GATEWAY_ADDR=http://" + gatewayAddress,
+		"GRIDOS_FLEET=" + fleetPath,
+		"GRIDOS_TASK_QUEUE=" + taskQueue,
+	}, "go", "run", "./services/control/cmd/worker")
 	control := httptest.NewServer(NewHandler(service))
 	defer control.Close()
 	dispatch := gridosv1connect.NewDispatchServiceClient(http.DefaultClient, control.URL)
 	begin := now.Add(time.Minute)
 	create := connect.NewRequest(&gridosv1.CreateEventRequestRequest{EventRequest: &gridosv1.EventRequest{
-		RequestId: "lifecycle-event", EventType: "GRID_SERVICE", BeginTime: timestamppb.New(begin), EndTime: timestamppb.New(begin.Add(time.Hour)),
-		TargetKw: 1, MeasurementBoundary: gridosv1.MeasurementBoundary_MEASUREMENT_BOUNDARY_METER_NET_EXPORT, LoadZones: []string{"LZ_AEN"}, CorrelationId: "lifecycle",
+		RequestId: eventID, EventType: "GRID_SERVICE", BeginTime: timestamppb.New(begin), EndTime: timestamppb.New(begin.Add(time.Hour)),
+		TargetKw: 1, MeasurementBoundary: gridosv1.MeasurementBoundary_MEASUREMENT_BOUNDARY_METER_NET_EXPORT, LoadZones: []string{sites[0].GetSite().GetLoadZone()}, CorrelationId: "lifecycle",
 	}, IdempotencyKey: "create-lifecycle"})
 	create.Header().Set(roleHeader, "operator")
 	created, err := dispatch.CreateEventRequest(context.Background(), create)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if created.Msg.GetEvent().GetState() != gridosv1.DispatchEventState_DISPATCH_EVENT_STATE_VALIDATED || created.Msg.GetEvent().GetPlanVersion() != 1 {
-		t.Fatalf("created event = %#v, want validated plan 1", created.Msg.GetEvent())
+	if created.Msg.GetEvent().GetState() != gridosv1.DispatchEventState_DISPATCH_EVENT_STATE_REQUESTED {
+		t.Fatalf("created event = %#v, want requested", created.Msg.GetEvent())
 	}
-	approve := connect.NewRequest(&gridosv1.ApproveEventRequest{EventId: "lifecycle-event", PlanVersion: 1, IdempotencyKey: "approve-lifecycle", ApprovedBy: "approver-1", ApprovedAt: timestamppb.Now()})
+	if _, err = temporalClient.DescribeWorkflowExecution(context.Background(), eventID, ""); err != nil {
+		t.Fatal(err)
+	}
+	waitForEventState(t, dispatch, eventID, gridosv1.DispatchEventState_DISPATCH_EVENT_STATE_VALIDATED)
+	approve := connect.NewRequest(&gridosv1.ApproveEventRequest{EventId: eventID, PlanVersion: 1, IdempotencyKey: "approve-lifecycle", ApprovedBy: "approver-1", ApprovedAt: timestamppb.Now()})
 	approve.Header().Set(roleHeader, "approver")
 	if _, err = dispatch.ApproveEvent(context.Background(), approve); err != nil {
 		t.Fatal(err)
 	}
-	launch := connect.NewRequest(&gridosv1.LaunchEventRequest{EventId: "lifecycle-event", PlanVersion: 1, IdempotencyKey: "launch-lifecycle", RequestedBy: "approver-1", RequestedAt: timestamppb.Now()})
+	launch := connect.NewRequest(&gridosv1.LaunchEventRequest{EventId: eventID, PlanVersion: 1, IdempotencyKey: "launch-lifecycle", RequestedBy: "approver-1", RequestedAt: timestamppb.Now()})
 	launch.Header().Set(roleHeader, "approver")
-	launched, err := dispatch.LaunchEvent(context.Background(), launch)
-	if err != nil {
+	if _, err = dispatch.LaunchEvent(context.Background(), launch); err != nil {
 		t.Fatal(err)
 	}
-	want := map[gridosv1.DispatchEventState]bool{
-		gridosv1.DispatchEventState_DISPATCH_EVENT_STATE_SENT:                      true,
-		gridosv1.DispatchEventState_DISPATCH_EVENT_STATE_ACKNOWLEDGED_OR_UNCERTAIN: true,
-	}
-	if !want[launched.Msg.GetEvent().GetState()] {
-		t.Fatalf("launched state = %s", launched.Msg.GetEvent().GetState())
-	}
-	get := connect.NewRequest(&gridosv1.GetEventRequest{EventId: "lifecycle-event"})
-	get.Header().Set(roleHeader, "operator")
-	loaded, err := dispatch.GetEvent(context.Background(), get)
-	if err != nil || !want[loaded.Msg.GetEvent().GetState()] {
-		t.Fatalf("loaded event = %#v, %v", loaded, err)
-	}
+	waitForEventState(t, dispatch, eventID, gridosv1.DispatchEventState_DISPATCH_EVENT_STATE_SENT)
 }
 
-func integrationInterval(command storage.ClaimedCommand, now time.Time) storage.FeasiblePowerInterval {
-	return storage.FeasiblePowerInterval{DeviceID: command.DeviceID, IntervalBegin: now, IntervalEnd: command.ExpiresAt, LowerKW: min(0, command.SetpointKW), UpperKW: max(0, command.SetpointKW), PossiblyAcceptedCommandID: command.CommandID, PossiblyAcceptedSetpointKW: command.SetpointKW, PossiblyAcceptedEffectiveAt: command.EffectiveAt, PossiblyAcceptedExpiresAt: command.ExpiresAt, FreshTelemetryObservedAt: now, DerivedAt: now, CorrelationID: command.CorrelationID}
-}
-
-func apiH2Client() *http.Client {
-	transport := http.DefaultTransport.(*http.Transport).Clone()
-	protocols := new(http.Protocols)
-	protocols.SetUnencryptedHTTP2(true)
-	transport.Protocols = protocols
-	return &http.Client{Transport: transport, Timeout: 10 * time.Second}
+func waitForEventState(t *testing.T, dispatch gridosv1connect.DispatchServiceClient, eventID string, minimum gridosv1.DispatchEventState) {
+	t.Helper()
+	deadline := time.Now().Add(20 * time.Second)
+	for time.Now().Before(deadline) {
+		request := connect.NewRequest(&gridosv1.GetEventRequest{EventId: eventID})
+		request.Header().Set(roleHeader, "operator")
+		response, err := dispatch.GetEvent(context.Background(), request)
+		if err == nil && response.Msg.GetEvent().GetState() >= minimum {
+			return
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	t.Fatalf("event %s did not reach %s", eventID, minimum)
 }
 
 func apiRepositoryRoot(t *testing.T) string {
@@ -179,10 +185,14 @@ func port(address string) string {
 }
 
 func startAPIProcess(t *testing.T, root, name string, arguments ...string) {
+	startAPIProcessWithEnv(t, root, nil, name, arguments...)
+}
+
+func startAPIProcessWithEnv(t *testing.T, root string, environment []string, name string, arguments ...string) {
 	t.Helper()
 	command := exec.Command(name, arguments...)
 	command.Dir = root
-	command.Env = append(os.Environ(), "GRIDOS_GATEWAY_TOKEN=Bearer lifecycle-token")
+	command.Env = append(os.Environ(), append(environment, "GRIDOS_GATEWAY_TOKEN=Bearer lifecycle-token")...)
 	if err := command.Start(); err != nil {
 		t.Fatal(err)
 	}

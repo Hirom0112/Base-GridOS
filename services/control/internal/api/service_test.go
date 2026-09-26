@@ -80,11 +80,11 @@ func TestDispatchServiceApprovalLaunchAndGroupedExclusions(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if launched.Msg.GetEvent().GetState() != gridosv1.DispatchEventState_DISPATCH_EVENT_STATE_COMMANDS_PERSISTED || launched.Msg.GetEvent().GetLaunch().GetRequestedBy() != "approver-1" {
+	if launched.Msg.GetEvent().GetState() != gridosv1.DispatchEventState_DISPATCH_EVENT_STATE_APPROVED {
 		t.Fatalf("launched event = %#v", launched.Msg.GetEvent())
 	}
 	audit := store.Audit()
-	if len(audit) != 2 || audit[1].Action != "EVENT_LAUNCHED" {
+	if len(audit) != 1 || audit[0].Action != "EVENT_APPROVED" {
 		t.Fatalf("audit = %#v", audit)
 	}
 
@@ -128,6 +128,9 @@ func testServer(t *testing.T) (*httptest.Server, gridosv1connect.FleetServiceCli
 		Devices: []*gridosv1.Device{{DeviceId: "device-1", SiteId: "site-1", BatteryParameters: &gridosv1.BatteryParameters{UsableEnergyKwh: 39.2, MaxDischargeKw: 10}}},
 	}}
 	store := NewMemoryEventStore()
-	server := httptest.NewServer(NewHandler(NewService(store, twin, sites, func() time.Time { return now })))
+	service := NewService(store, twin, sites, func() time.Time { return now })
+	service.approveWorkflow = func(context.Context, string, dispatchWorkflowApproval) error { return nil }
+	service.launchWorkflow = func(context.Context, string, *gridosv1.LaunchEventRequest) error { return nil }
+	server := httptest.NewServer(NewHandler(service))
 	return server, gridosv1connect.NewFleetServiceClient(http.DefaultClient, server.URL), gridosv1connect.NewDispatchServiceClient(http.DefaultClient, server.URL), store
 }

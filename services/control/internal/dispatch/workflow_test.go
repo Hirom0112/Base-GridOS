@@ -1,11 +1,14 @@
 package dispatch
 
 import (
+	"context"
 	"testing"
 	"time"
 
+	gridosv1 "github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+	"go.temporal.io/sdk/activity"
 	"go.temporal.io/sdk/testsuite"
 )
 
@@ -16,6 +19,7 @@ func TestSmoke(t *testing.T) {
 	mockWorkflowActivities(environment, input)
 	environment.RegisterDelayedCallback(func() {
 		environment.SignalWorkflow(ApproveEventSignal, Approval{ApprovedBy: "operator-1"})
+		environment.SignalWorkflow(LaunchEventSignal, persistArgument(input).Launch)
 	}, time.Hour)
 	environment.ExecuteWorkflow(Workflow, input)
 
@@ -33,18 +37,18 @@ func TestLifecycle(t *testing.T) {
 	environment.OnActivity(FreezeInputsActivity, mock.Anything, input).Return(frozen, nil).Once()
 	environment.OnActivity(RequestPlanActivity, mock.Anything, frozen).Return(frozen, nil).Once()
 	environment.OnActivity(ValidatePlanActivity, mock.Anything, frozen).Return(nil).Once()
-	activities := []string{PersistIntentsActivity, PublishCommandsActivity, TrackAcknowledgementsActivity, VerifyDeliveryActivity, EndEventActivity, ReconcileLateMessagesActivity, ProduceReportActivity}
+	activities := []string{PublishCommandsActivity, TrackAcknowledgementsActivity, VerifyDeliveryActivity, EndEventActivity, ReconcileLateMessagesActivity, ProduceReportActivity}
 	approved := false
+	environment.OnActivity(PersistIntentsActivity, mock.Anything, persistArgument(input)).Return(nil).Run(func(mock.Arguments) {
+		require.True(t, approved)
+	})
 	for _, activity := range activities {
-		environment.OnActivity(activity, mock.Anything, input).Return(nil).Run(func(mock.Arguments) {
-			if activity == PersistIntentsActivity {
-				require.True(t, approved)
-			}
-		})
+		environment.OnActivity(activity, mock.Anything, input).Return(nil)
 	}
 	environment.RegisterDelayedCallback(func() {
 		approved = true
 		environment.SignalWorkflow(ApproveEventSignal, Approval{ApprovedBy: "operator-1"})
+		environment.SignalWorkflow(LaunchEventSignal, &gridosv1.LaunchEventRequest{PlanVersion: input.PlanVersion, RequestedBy: "operator-1"})
 	}, time.Hour)
 
 	environment.ExecuteWorkflow(Workflow, input)
@@ -78,7 +82,8 @@ func TestEmergencyStopAfterSent(t *testing.T) {
 			environment.OnActivity(FreezeInputsActivity, mock.Anything, input).Return(frozen, nil)
 			environment.OnActivity(RequestPlanActivity, mock.Anything, frozen).Return(frozen, nil)
 			environment.OnActivity(ValidatePlanActivity, mock.Anything, frozen).Return(nil)
-			for _, activity := range []string{PersistIntentsActivity, PublishCommandsActivity, TrackAcknowledgementsActivity, VerifyDeliveryActivity, EndEventActivity, ReconcileLateMessagesActivity, ProduceReportActivity} {
+			environment.OnActivity(PersistIntentsActivity, mock.Anything, persistArgument(input)).Return(nil)
+			for _, activity := range []string{PublishCommandsActivity, TrackAcknowledgementsActivity, VerifyDeliveryActivity, EndEventActivity, ReconcileLateMessagesActivity, ProduceReportActivity} {
 				call := environment.OnActivity(activity, mock.Anything, input).Return(nil)
 				if activity == trigger {
 					call.Run(func(mock.Arguments) {
@@ -91,6 +96,7 @@ func TestEmergencyStopAfterSent(t *testing.T) {
 			}).Return(nil).Once()
 			environment.RegisterDelayedCallback(func() {
 				environment.SignalWorkflow(ApproveEventSignal, Approval{ApprovedBy: "operator-1"})
+				environment.SignalWorkflow(LaunchEventSignal, &gridosv1.LaunchEventRequest{PlanVersion: input.PlanVersion, RequestedBy: "operator-1"})
 			}, time.Millisecond)
 
 			environment.ExecuteWorkflow(Workflow, input)
@@ -107,11 +113,18 @@ func mockWorkflowActivities(environment *testsuite.TestWorkflowEnvironment, inpu
 	environment.OnActivity(FreezeInputsActivity, mock.Anything, input).Return(frozen, nil)
 	environment.OnActivity(RequestPlanActivity, mock.Anything, frozen).Return(frozen, nil)
 	environment.OnActivity(ValidatePlanActivity, mock.Anything, frozen).Return(nil)
-	for _, activity := range []string{PersistIntentsActivity, PublishCommandsActivity, TrackAcknowledgementsActivity, VerifyDeliveryActivity, EndEventActivity, ReconcileLateMessagesActivity, ProduceReportActivity} {
+	environment.OnActivity(PersistIntentsActivity, mock.Anything, persistArgument(input)).Return(nil)
+	for _, activity := range []string{PublishCommandsActivity, TrackAcknowledgementsActivity, VerifyDeliveryActivity, EndEventActivity, ReconcileLateMessagesActivity, ProduceReportActivity} {
 		environment.OnActivity(activity, mock.Anything, input).Return(nil)
 	}
 }
 
+func persistArgument(input Input) PersistInput {
+	return PersistInput{Input: input, Launch: &gridosv1.LaunchEventRequest{PlanVersion: input.PlanVersion, RequestedBy: "operator-1"}}
+}
+
 func registerActivities(environment *testsuite.TestWorkflowEnvironment) {
 	environment.RegisterActivity(&Activities{})
+	environment.RegisterActivityWithOptions(func(context.Context, Input) error { return nil }, activity.RegisterOptions{Name: VerifyDeliveryActivity})
+	environment.RegisterActivityWithOptions(func(context.Context, Input) error { return nil }, activity.RegisterOptions{Name: ReconcileLateMessagesActivity})
 }

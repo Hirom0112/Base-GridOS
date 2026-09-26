@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	gridosv1 "github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"go.temporal.io/sdk/temporal"
@@ -96,7 +97,10 @@ func mockLifecycle(environment *testsuite.TestWorkflowEnvironment, input Input, 
 	if !skipped[ValidatePlanActivity] {
 		environment.OnActivity(ValidatePlanActivity, mock.Anything, frozen).Return(nil).Maybe()
 	}
-	for _, activity := range []string{PersistIntentsActivity, PublishCommandsActivity, TrackAcknowledgementsActivity, VerifyDeliveryActivity, EndEventActivity, ReconcileLateMessagesActivity, ProduceReportActivity} {
+	if !skipped[PersistIntentsActivity] {
+		environment.OnActivity(PersistIntentsActivity, mock.Anything, persistArgument(input)).Return(nil).Maybe()
+	}
+	for _, activity := range []string{PublishCommandsActivity, TrackAcknowledgementsActivity, VerifyDeliveryActivity, EndEventActivity, ReconcileLateMessagesActivity, ProduceReportActivity} {
 		if !skipped[activity] {
 			environment.OnActivity(activity, mock.Anything, input).Return(nil).Maybe()
 		}
@@ -106,5 +110,6 @@ func mockLifecycle(environment *testsuite.TestWorkflowEnvironment, input Input, 
 func approve(environment *testsuite.TestWorkflowEnvironment) {
 	environment.RegisterDelayedCallback(func() {
 		environment.SignalWorkflow(ApproveEventSignal, Approval{ApprovedBy: "operator-1"})
+		environment.SignalWorkflow(LaunchEventSignal, &gridosv1.LaunchEventRequest{RequestedBy: "operator-1"})
 	}, time.Millisecond)
 }
