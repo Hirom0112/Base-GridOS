@@ -270,4 +270,8 @@ assumptions reported by workers land here too.
   cadence emits 120 samples per device from start through start plus
   9m55s; the 20-minute test timeout is the only resource ceiling because no
   memory limit is specified.
+- **2D.1 amended (lane D), accepted:** the eight failure scenarios target
+  0.5 MW (about eighty devices through the greedy fallback, one publisher
+  batch) because they prove failure handling rather than scale; the canonical
+  heat event keeps 20 MW for the Wave 3 solver.
 
