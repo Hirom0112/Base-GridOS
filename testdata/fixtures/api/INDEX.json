@@ -11,49 +11,82 @@
       "gridos.v1.DispatchService.GetEvent",
       "gridos.v1.DispatchService.ApproveEvent",
       "gridos.v1.DispatchService.LaunchEvent"
+    ],
+    "event_timeline": [
+      "gridos.v1.EventsService.GetEventTimeline",
+      "gridos.v1.EventsService.EmergencyStop"
     ]
   },
   "requests": {
-    "gridos.v1.FleetService.GetFleetSummary": {"role": "operator", "body": {}},
-    "gridos.v1.FleetService.ListSites": {"role": "operator", "body": {"pageSize": 500}},
+    "gridos.v1.FleetService.GetFleetSummary": {
+      "role": "operator",
+      "body": {}
+    },
+    "gridos.v1.FleetService.ListSites": {
+      "role": "operator",
+      "body": {
+        "pageSize": 500
+      }
+    },
     "gridos.v1.DispatchService.CreateEventRequest": {
       "role": "operator",
       "body": {
         "eventRequest": {
-          "requestId": "event_austin_wave1_0004",
-          "eventType": "ERCOT_DEMAND_RESPONSE",
-          "beginTime": "2026-09-27T00:00:00Z",
-          "endTime": "2026-09-27T01:00:00Z",
+          "requestId": "event_austin_wave2_live_0002",
+          "eventType": "GRID_SERVICE",
+          "beginTime": "2026-09-26T22:34:17Z",
+          "endTime": "2026-09-26T23:34:17Z",
           "targetKw": 1,
           "measurementBoundary": "MEASUREMENT_BOUNDARY_METER_NET_EXPORT",
-          "loadZones": ["LZ_AEN"],
-          "correlationId": "corr_austin_wave1_0004"
+          "loadZones": [
+            "LZ_AEN"
+          ],
+          "correlationId": "event_austin_wave2_live_0002"
         },
-        "idempotencyKey": "idem_austin_create_0004"
+        "idempotencyKey": "create-event_austin_wave2_live_0002"
       }
     },
     "gridos.v1.DispatchService.GetEvent": {
       "role": "operator",
-      "body": {"eventId": "event_austin_wave1_0004"}
+      "body": {
+        "eventId": "event_austin_wave2_live_0002"
+      }
     },
     "gridos.v1.DispatchService.ApproveEvent": {
       "role": "approver",
       "body": {
-        "eventId": "event_austin_wave1_0004",
+        "eventId": "event_austin_wave2_live_0002",
         "planVersion": "1",
-        "idempotencyKey": "idem_austin_approve_0004",
-        "approvedBy": "approver_austin_0001",
-        "approvedAt": "2026-09-26T20:45:00Z"
+        "idempotencyKey": "approve-event_austin_wave2_live_0002",
+        "approvedBy": "fixture-operator",
+        "approvedAt": "2026-09-26T22:31:17Z"
       }
     },
     "gridos.v1.DispatchService.LaunchEvent": {
       "role": "approver",
       "body": {
-        "eventId": "event_austin_wave1_0004",
+        "eventId": "event_austin_wave2_live_0002",
         "planVersion": "1",
-        "idempotencyKey": "idem_austin_launch_0004",
-        "requestedBy": "approver_austin_0001",
-        "requestedAt": "2026-09-26T20:46:00Z"
+        "idempotencyKey": "launch-event_austin_wave2_live_0002",
+        "requestedBy": "fixture-operator",
+        "requestedAt": "2026-09-26T22:31:17Z"
+      }
+    },
+    "gridos.v1.EventsService.GetEventTimeline": {
+      "role": "operator",
+      "body": {
+        "eventId": "event_austin_wave2_live_0002"
+      }
+    },
+    "gridos.v1.EventsService.EmergencyStop": {
+      "role": "operator",
+      "body": {
+        "eventId": "event_austin_wave2_live_0002",
+        "idempotencyKey": "stop-event_austin_wave2_live_0002",
+        "requestedBy": "fixture-operator",
+        "reason": "fixture safety drill",
+        "requestedAt": "2026-09-26T22:31:18Z",
+        "correlationId": "event_austin_wave2_live_0002"
       }
     }
   }

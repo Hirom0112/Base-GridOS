@@ -1,0 +1,1 @@
+{"emergencyStop":{"emergencyStopId":"event_austin_wave2_live_0002:stop-event_austin_wave2_live_0002","idempotencyKey":"stop-event_austin_wave2_live_0002","eventId":"event_austin_wave2_live_0002","requestedBy":"fixture-operator","reason":"fixture safety drill","requestedAt":"2026-09-26T22:31:18Z","correlationId":"event_austin_wave2_live_0002"},"stopRequested":true}
