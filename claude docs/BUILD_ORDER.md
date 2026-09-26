@@ -886,7 +886,7 @@ Owns: `services/control/internal/dispatch/`, `services/control/cmd/worker`,
 Owns: `services/control/internal/reconciliation/`,
 `services/control/internal/report/`.
 
-- `[~]` 2C.1 `[P]` RED: `uncertain_test.go`: a send whose acknowledgement is
+- `[x]` 2C.1 `[P]` RED: `uncertain_test.go`: a send whose acknowledgement is
   lost produces a signed feasible-power interval derived from the last
   confirmed command, the possibly accepted command, effective and expiry
   times, ramp behaviour, and fresh telemetry (TECHSTACK "Safety and delivery
