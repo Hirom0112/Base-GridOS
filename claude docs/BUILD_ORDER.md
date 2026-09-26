@@ -463,7 +463,7 @@ Owns: `tools/development/mockapi/`, `testdata/fixtures/api/`,
   RED: a test validates every fixture against its generated proto type and
   every method in `INDEX.json` against the proto descriptors.
   Verify: `go test ./tools/development/mockapi/ -run Fixtures` passes.
-- `[~]` 0F.3 `[after 0B.9]` `tests/contract/`: the shared
+- `[x]` 0F.3 `[after 0B.9]` `tests/contract/`: the shared
   `CommandIntent` JSON fixture (`testdata/fixtures/contracts/command_intent.json`)
   and a Go test (its own module `tests/contract/go.mod`) that round-trips it
   through the generated types in `contracts/gen/go` to byte-identical
