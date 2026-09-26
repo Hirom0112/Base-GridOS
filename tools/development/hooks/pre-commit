@@ -33,7 +33,8 @@ if [ -n "$code_files" ]; then
 
   comments=$(printf '%s\n' "$added" \
     | grep -E '^[[:space:]]*(//|#|/\*|\*[[:space:]]|--[[:space:]]|--$|\{/\*)' \
-    | grep -vE '^[[:space:]]*(//go:|#!|// Code generated|#[[:space:]]*-\*-|/// <reference)' || true)
+    | grep -vE '^[[:space:]]*(//go:|#!|// Code generated|#[[:space:]]*-\*-|/// <reference)' \
+    | grep -vE '^[[:space:]]*-- name: [A-Za-z][A-Za-z0-9_]* :(one|many|exec|execresult|execrows|execlastid|batchexec|batchmany|batchone|copyfrom)[[:space:]]*$' || true)
   [ -z "$comments" ] || fail "added comment lines (rename or restructure instead):
 $comments"
 

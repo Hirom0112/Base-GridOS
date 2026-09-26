@@ -33,7 +33,7 @@ Authorization at every boundary. Idempotency keys on every command. Timeouts and
 
 ## Comments: zero
 
-Write zero comments or docstrings. If code needs explaining, rename or restructure it until it does not. This includes inline and block comments, doc blocks, JSX comments, commented-out code, and divider banners. Machine directives (`//go:`, `#!`, `// Code generated`) are the only exception. The pre-commit hook rejects any other added comment line.
+Write zero comments or docstrings. If code needs explaining, rename or restructure it until it does not. This includes inline and block comments, doc blocks, JSX comments, commented-out code, and divider banners. Machine directives (`//go:`, `#!`, `// Code generated`, sqlc `-- name:` annotations) are the only exception. The pre-commit hook rejects any other added comment line.
 
 ## Gates are one-way
 
