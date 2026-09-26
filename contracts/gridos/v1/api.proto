@@ -1,0 +1,180 @@
+syntax = "proto3";
+
+package gridos.v1;
+
+import "google/protobuf/duration.proto";
+import "google/protobuf/timestamp.proto";
+import "gridos/v1/device.proto";
+import "gridos/v1/dispatch.proto";
+import "gridos/v1/telemetry.proto";
+
+option go_package = "github.com/Hirom0112/Base-GridOS/services/control/internal/gen/gridos/v1;gridosv1";
+
+enum FleetOperatingState {
+  FLEET_OPERATING_STATE_UNSPECIFIED = 0;
+  FLEET_OPERATING_STATE_ON_GRID = 1;
+  FLEET_OPERATING_STATE_OFF_GRID_OUTAGE = 2;
+  FLEET_OPERATING_STATE_OFF_GRID_NO_HOME_POWER = 3;
+  FLEET_OPERATING_STATE_OFF_GRID_OVERCURRENT = 4;
+  FLEET_OPERATING_STATE_OFF_GRID_OVERCURRENT_STANDBY = 5;
+  FLEET_OPERATING_STATE_TELEMETRY_UNAVAILABLE = 6;
+}
+
+enum FleetAvailabilityState {
+  FLEET_AVAILABILITY_STATE_UNSPECIFIED = 0;
+  FLEET_AVAILABILITY_STATE_ONLINE = 1;
+  FLEET_AVAILABILITY_STATE_OFFLINE = 2;
+  FLEET_AVAILABILITY_STATE_DEGRADED = 3;
+  FLEET_AVAILABILITY_STATE_STALE = 4;
+  FLEET_AVAILABILITY_STATE_MAINTENANCE = 5;
+}
+
+enum FleetHealthState {
+  FLEET_HEALTH_STATE_UNSPECIFIED = 0;
+  FLEET_HEALTH_STATE_HEALTHY = 1;
+  FLEET_HEALTH_STATE_DEGRADED = 2;
+  FLEET_HEALTH_STATE_UNHEALTHY = 3;
+  FLEET_HEALTH_STATE_UNKNOWN = 4;
+}
+
+message ProvenanceShare {
+  DataProvenance provenance = 1;
+  uint64 record_count = 2;
+}
+
+message AggregateMetadata {
+  google.protobuf.Timestamp timestamp = 1;
+  repeated ProvenanceShare provenance_mix = 2;
+  google.protobuf.Duration freshness = 3;
+}
+
+message FleetQuantityAggregate {
+  double value = 1;
+  AggregateMetadata metadata = 2;
+}
+
+message FleetDeviceCountAggregate {
+  uint64 device_count = 1;
+  AggregateMetadata metadata = 2;
+}
+
+message OperatingStateDeviceCount {
+  FleetOperatingState operating_state = 1;
+  FleetDeviceCountAggregate aggregate = 2;
+}
+
+message AvailabilityStateDeviceCount {
+  FleetAvailabilityState availability_state = 1;
+  FleetDeviceCountAggregate aggregate = 2;
+}
+
+message HealthStateDeviceCount {
+  FleetHealthState health_state = 1;
+  FleetDeviceCountAggregate aggregate = 2;
+}
+
+message FleetSummary {
+  FleetQuantityAggregate installed_mw = 1;
+  FleetQuantityAggregate installed_mwh = 2;
+  FleetQuantityAggregate dispatchable_now_mw = 3;
+  FleetQuantityAggregate forecast_dispatchable_mw = 4;
+  FleetQuantityAggregate reserved_for_backup_mwh = 5;
+  repeated OperatingStateDeviceCount operating_state_counts = 6;
+  repeated AvailabilityStateDeviceCount availability_state_counts = 7;
+  repeated HealthStateDeviceCount communications_health_counts = 8;
+  repeated HealthStateDeviceCount acknowledgement_health_counts = 9;
+}
+
+message GetFleetSummaryRequest {
+  repeated string load_zones = 1;
+}
+
+message GetFleetSummaryResponse {
+  FleetSummary summary = 1;
+}
+
+message H3SiteAggregate {
+  string h3_cell = 1;
+  uint64 site_count = 2;
+  FleetQuantityAggregate installed_mw = 3;
+  FleetQuantityAggregate installed_mwh = 4;
+}
+
+message AuthorizedSite {
+  Site site = 1;
+  repeated Device devices = 2;
+}
+
+message SiteLocation {
+  oneof location {
+    H3SiteAggregate aggregate = 1;
+    AuthorizedSite exact = 2;
+  }
+}
+
+message ListSitesRequest {
+  repeated string load_zones = 1;
+  bool request_exact_h3_cells = 2;
+  uint32 page_size = 3;
+  string page_token = 4;
+}
+
+message ListSitesResponse {
+  repeated SiteLocation sites = 1;
+  string next_page_token = 2;
+}
+
+message CreateEventRequestRequest {
+  EventRequest event_request = 1;
+  string idempotency_key = 2;
+}
+
+message CreateEventRequestResponse {
+  DispatchEvent event = 1;
+}
+
+message GetEventRequest {
+  string event_id = 1;
+}
+
+message GetEventResponse {
+  DispatchEvent event = 1;
+}
+
+message ApproveEventRequest {
+  string event_id = 1;
+  uint64 plan_version = 2;
+  string idempotency_key = 3;
+  string approved_by = 4;
+  google.protobuf.Timestamp approved_at = 5;
+}
+
+message ApproveEventResponse {
+  DispatchEvent event = 1;
+}
+
+message PublishTelemetryRequest {
+  string gateway_id = 1;
+  repeated TelemetryObservation observations = 2;
+}
+
+message PublishTelemetryResponse {
+  string durable_receipt_id = 1;
+  repeated string observation_ids = 2;
+  google.protobuf.Timestamp durably_received_at = 3;
+}
+
+service FleetService {
+  rpc GetFleetSummary(GetFleetSummaryRequest) returns (GetFleetSummaryResponse);
+  rpc ListSites(ListSitesRequest) returns (ListSitesResponse);
+}
+
+service DispatchService {
+  rpc CreateEventRequest(CreateEventRequestRequest) returns (CreateEventRequestResponse);
+  rpc GetEvent(GetEventRequest) returns (GetEventResponse);
+  rpc ApproveEvent(ApproveEventRequest) returns (ApproveEventResponse);
+}
+
+service TelemetryService {
+  rpc PublishTelemetry(PublishTelemetryRequest) returns (PublishTelemetryResponse);
+}
