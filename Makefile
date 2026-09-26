@@ -70,7 +70,7 @@ demo: up
 	go build -o $(GRIDOS_DEMO_DIR)/control ./services/control/cmd/control
 	@set -e; \
 		: > $(GRIDOS_DEMO_DIR)/pids; \
-		env GRIDOS_GATEWAY_TOKEN='Bearer local-gateway' $(GRIDOS_DEMO_DIR)/gateway --address :$(GRIDOS_DEMO_GATEWAY_PORT) --database $(GRIDOS_DEMO_DIR)/gateway.db --fleet testdata/fleets/austin-5000.jsonl --gateway-id demo-gateway --scenario-start "$$(date -u +%Y-%m-%dT%H:%M:%SZ)" > $(GRIDOS_DEMO_DIR)/gateway.log 2>&1 & echo $$! >> $(GRIDOS_DEMO_DIR)/pids; \
+		env GRIDOS_GATEWAY_TOKEN='Bearer local-gateway' $(GRIDOS_DEMO_DIR)/gateway --address :$(GRIDOS_DEMO_GATEWAY_PORT) --control-address http://localhost:$(GRIDOS_DEMO_CONTROL_PORT) --database $(GRIDOS_DEMO_DIR)/gateway.db --fleet testdata/fleets/austin-5000.jsonl --gateway-id demo-gateway --scenario-start "$$(date -u +%Y-%m-%dT%H:%M:%SZ)" > $(GRIDOS_DEMO_DIR)/gateway.log 2>&1 & echo $$! >> $(GRIDOS_DEMO_DIR)/pids; \
 		uv run --project services/decision python -m gridos.server --port $(GRIDOS_DEMO_DECISION_PORT) > $(GRIDOS_DEMO_DIR)/decision.log 2>&1 & echo $$! >> $(GRIDOS_DEMO_DIR)/pids; \
 		env GRIDOS_DATABASE_URL='$(DEMO_DATABASE_URL)' GRIDOS_CONTROL_ADDRESS=:$(GRIDOS_DEMO_CONTROL_PORT) GRIDOS_GATEWAY_TOKEN='Bearer local-gateway' GRIDOS_GATEWAY_ADDR=http://localhost:$(GRIDOS_DEMO_GATEWAY_PORT) GRIDOS_DECISION_ADDR=http://localhost:$(GRIDOS_DEMO_DECISION_PORT) GRIDOS_FLEET=testdata/fleets/austin-5000.jsonl $(GRIDOS_DEMO_DIR)/control > $(GRIDOS_DEMO_DIR)/control.log 2>&1 & echo $$! >> $(GRIDOS_DEMO_DIR)/pids; \
 		if test -f apps/console/package.json && test "$(GRIDOS_DEMO_DIR)" = ".local/demo"; then pnpm --dir apps/console dev > $(GRIDOS_DEMO_DIR)/console.log 2>&1 & echo $$! >> $(GRIDOS_DEMO_DIR)/pids; fi; \
