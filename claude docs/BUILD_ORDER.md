@@ -262,7 +262,7 @@ Owns: `contracts/`, `buf.yaml`, `buf.gen.yaml`.
   `UncertaintyInterval` (signed feasible-power bounds with the derivation
   inputs listed in TECHSTACK "Safety and delivery semantics"), event report
   message with every field from FULL_SPEC §5.9. Verify: `buf lint contracts` passes.
-- `[~]` 0B.6 `[P]` `member_policy.proto` and `pricing.proto`: `ResiliencePlan`
+- `[x]` 0B.6 `[P]` `member_policy.proto` and `pricing.proto`: `ResiliencePlan`
   (effective-dated, consent text and version, market, reserve floor),
   `TravelFlexWindow` (start, end, timezone, temporary reserve, early-return
   action, credit type enum fixed daily / event / annual), `ReserveOverride`
@@ -497,13 +497,13 @@ Every lane starts with `[P]` items; the cross-lane waits are last.
 
 Owns: `services/gateway-simulator/`.
 
-- `[ ]` 1A.1 `[P]` RED: `internal/battery/model_test.go` pins the worked
+- `[~]` 1A.1 `[P]` RED: `internal/battery/model_test.go` pins the worked
   example from `system-understanding.md`: 39.2 kWh usable, 74% SOC, 40%
   reserve, 10 kW inverter, 3.1 kW load, 0.95 discharge efficiency gives
   stored 29.008 kWh, reserve 15.680 kWh, above-reserve 13.328 kWh, AC
   available 12.6616 kWh, two-hour discharge 6.3308 kW, net export 3.2308 kW,
   backup 4.805 h. Verify: `go test ./services/gateway-simulator/internal/battery/` fails with "undefined".
-- `[ ]` 1A.2 `[P]` GREEN: `internal/battery` implementing the energy update
+- `[~]` 1A.2 `[P]` GREEN: `internal/battery` implementing the energy update
   with one-way efficiencies, mode exclusion (no simultaneous charge and
   discharge), power and energy bounds, ramp limit, temperature derate hook,
   the operating-state machine from `truth-model.md` (on grid, off-grid
@@ -511,18 +511,18 @@ Owns: `services/gateway-simulator/`.
   overcurrent standby), and backup-hours estimates at current usage and at
   750 W. An islanded state reports zero grid-service capacity.
   Verify: `go test ./services/gateway-simulator/internal/battery/` passes.
-- `[ ]` 1A.3 `[P]` RED: `internal/gateway/store_test.go`: a command is
+- `[~]` 1A.3 `[P]` RED: `internal/gateway/store_test.go`: a command is
   persisted to SQLite before the acknowledgement is returned; a duplicate
   `command_id` is acknowledged idempotently without a second physical effect;
   a lower `generation` than the stored one is rejected with reason
   `OBSOLETE_GENERATION`; a command whose `expires_at` has passed is rejected.
   Verify: fails with "undefined".
-- `[ ]` 1A.4 `[P]` GREEN: `internal/gateway` SQLite store (`modernc.org/sqlite`
+- `[~]` 1A.4 `[P]` GREEN: `internal/gateway` SQLite store (`modernc.org/sqlite`
   so the build stays pure Go) with `commands` and `telemetry_buffer` tables,
   write-then-ack ordering, dedup, generation check, effective and expiry
   enforcement (TECHSTACK "Gateway simulator and SQLite" items 1 to 4).
   Verify: `go test ./services/gateway-simulator/internal/gateway/` passes.
-- `[ ]` 1A.5 `[P]` RED: `internal/telemetry/producer_test.go`: observations
+- `[~]` 1A.5 `[P]` RED: `internal/telemetry/producer_test.go`: observations
   carry distinct `source_time`, `receive_time`, `observation_time`, a
   monotonic `sequence` per device, explicit units, the measurement
   boundary, the five-field `PowerFlow`, `state_of_energy_percent`, and the
@@ -530,16 +530,16 @@ Owns: `services/gateway-simulator/`.
   `ValueState=MISSING`, never a zero; the five power-flow fields balance
   (`to_home_kw` equals grid plus storage plus solar contributions within
   tolerance). Verify: fails.
-- `[ ]` 1A.6 `[P]` GREEN: `internal/telemetry` producing observations from the
+- `[~]` 1A.6 `[P]` GREEN: `internal/telemetry` producing observations from the
   battery model on the scenario clock, buffering to SQLite before publish,
   deleting only after confirmed cloud receipt, and replaying the buffer on
   reconnect (TECHSTACK items 6 to 8). Verify: `go test ./services/gateway-simulator/internal/telemetry/` passes.
-- `[ ]` 1A.7 `[after 0B.6]` gRPC server in `cmd/gateway-simulator` implementing
+- `[~]` 1A.7 `[after 0B.6]` gRPC server in `cmd/gateway-simulator` implementing
   the command receipt and telemetry publish services from `gridos.v1`, loading
   a fleet file and scenario clock from flags. Real gRPC test in
   `services/gateway-simulator/tests/protocol_test.go` sending a `CommandIntent`
   and reading back an acknowledgement and telemetry. Verify: `go test ./services/gateway-simulator/...` passes.
-- `[ ]` 1A.8 `[P]` RED then GREEN: restart test. Kill the process mid-event,
+- `[~]` 1A.8 `[P]` RED then GREEN: restart test. Kill the process mid-event,
   restart, and assert retained commands still execute and buffered telemetry
   is delivered exactly once. Verify: `go test ./services/gateway-simulator/tests -run Restart` passes.
 
@@ -547,7 +547,7 @@ Owns: `services/gateway-simulator/`.
 
 Owns: `services/control/internal/safety/`.
 
-- `[ ]` 1B.1 `[P]` RED: `safety_test.go` table tests, one case per check in
+- `[~]` 1B.1 `[P]` RED: `safety_test.go` table tests, one case per check in
   TECHSTACK "Safety and delivery semantics": non-finite value, wrong vector
   length, charge bound, discharge bound, simultaneous charge and discharge,
   energy balance drift beyond tolerance, energy below effective reserve at
@@ -556,65 +556,65 @@ Owns: `services/control/internal/safety/`.
   generation, effective time in the past, expiry before effective, policy
   version mismatch, undeclared shortfall. Each case expects a specific
   machine-readable violation code. Verify: `go test ./services/control/internal/safety/` fails with "undefined".
-- `[ ]` 1B.2 `[P]` GREEN: `Validate(plan, canonicalState) (Approval, []Violation)`
+- `[~]` 1B.2 `[P]` GREEN: `Validate(plan, canonicalState) (Approval, []Violation)`
   reconstructing energy trajectories from canonical state, not from the
   plan's own claims. Verify: table tests pass.
-- `[ ]` 1B.3 `[P]` RED then GREEN: effective reserve = max(hardware floor,
+- `[~]` 1B.3 `[P]` RED then GREEN: effective reserve = max(hardware floor,
   plan floor, dynamic override). Cases: a `0%` Grid Flex plan still protects
   the hardware floor; a weather override raises the floor above the plan; a
   Travel Flex window before its start or after its end or after early return
   cannot lower the floor; an active override blocks Travel Flex.
   Verify: `go test ./services/control/internal/safety/ -run Reserve` passes.
-- `[ ]` 1B.4 `[P]` RED then GREEN: fail closed. Missing state of charge,
+- `[~]` 1B.4 `[P]` RED then GREEN: fail closed. Missing state of charge,
   missing freshness, or contradictory inputs produce a rejection, never an
   approval (FULL_SPEC §4 invariant 8). Verify: `-run FailClosed` passes.
-- `[ ]` 1B.5 `[P]` Property test with `pgregory.net/rapid`: for random plans
+- `[~]` 1B.5 `[P]` Property test with `pgregory.net/rapid`: for random plans
   and states, an approved plan never has energy below effective reserve at
   any interval. Verify: `go test ./services/control/internal/safety/ -run Property -rapid.checks=2000` passes.
-- `[ ]` 1B.6 `[after 1C.6]` Differential test reading the golden fixtures in
+- `[~]` 1B.6 `[after 1C.6]` Differential test reading the golden fixtures in
   `testdata/golden/plans/`: every Python-approved plan is Go-approved and
   every Python-flagged plan is Go-rejected with the same violation family.
   Verify: `go test ./services/control/internal/safety/ -run Golden` passes.
-- `[ ]` 1B.7 `[P]` Benchmark: validation of a 5,000-device, 24-interval plan
+- `[~]` 1B.7 `[P]` Benchmark: validation of a 5,000-device, 24-interval plan
   under 2 seconds (FULL_SPEC §10). Verify: `go test ./services/control/internal/safety/ -bench Validate5000 -benchtime 3x` reports under 2 s per op.
 
 ### Lane 1C — decision service: energy math and deterministic fallback
 
 Owns: `services/decision/`, `testdata/golden/`.
 
-- `[ ]` 1C.1 `[P]` `uv` project at `services/decision` with Python 3.12,
+- `[~]` 1C.1 `[P]` `uv` project at `services/decision` with Python 3.12,
   `numpy`, `polars`, `highspy` (installed now, used in Wave 3), `hypothesis`,
   `pytest`, `ruff`, `mypy --strict`, plus the Python leg of the contract
   round-trip: `tests/contract/test_command_intent.py` reading
   `testdata/fixtures/contracts/command_intent.json` through the generated
   `gridos.gen` types to byte-identical canonical JSON.
   Verify: `uv run --project services/decision mypy gridos` passes and `uv run --project services/decision pytest services/decision/tests/contract` passes.
-- `[ ]` 1C.2 `[P]` RED: `tests/test_energy.py` pins the same worked example as
+- `[~]` 1C.2 `[P]` RED: `tests/test_energy.py` pins the same worked example as
   1A.1 to four decimal places. Verify: fails with ImportError.
-- `[ ]` 1C.3 `[P]` GREEN: `gridos/physics/energy.py` with the energy update,
+- `[~]` 1C.3 `[P]` GREEN: `gridos/physics/energy.py` with the energy update,
   reserve inequality, per-interval energy-limited power, and backup-duration
   estimate given a critical-load forecast. Verify: `uv run --project services/decision pytest services/decision -k energy` passes.
-- `[ ]` 1C.4 `[P]` RED: `tests/test_fallback.py`: given the 50-device fleet
+- `[~]` 1C.4 `[P]` RED: `tests/test_fallback.py`: given the 50-device fleet
   and a target that only 30 devices can meet, the fallback filters
   ineligible devices, ranks survivors, allocates conservatively, and reports a
   per-interval shortfall whose sum equals target minus allocated; an
   infeasible target never lowers any reserve. Verify: fails.
-- `[ ]` 1C.5 `[P]` GREEN: `gridos/fallback/planner.py` implementing the
+- `[~]` 1C.5 `[P]` GREEN: `gridos/fallback/planner.py` implementing the
   `system-understanding.md` "Forecasts and optimization" fallback with the
   same hard constraints the solver will use. Verify: `uv run --project services/decision pytest services/decision -k fallback` passes.
-- `[ ]` 1C.6 `[P]` Golden fixtures: `testdata/golden/plans/` with at least
+- `[~]` 1C.6 `[P]` Golden fixtures: `testdata/golden/plans/` with at least
   eight `OptimizationRequest` + expected `DispatchPlan` pairs (feasible,
   infeasible with shortfall, reserve-tight, stale device excluded, zero-percent
   plan with hardware floor, weather override, expired window, duplicate
   device). A pytest regenerates and diffs them. Verify: `uv run --project services/decision pytest services/decision -k golden` passes and the fixture directory is checked in.
-- `[ ]` 1C.7 `[P]` Hypothesis invariants: for random fleets, the fallback
+- `[~]` 1C.7 `[P]` Hypothesis invariants: for random fleets, the fallback
   plan never violates power, energy, or reserve bounds and declared shortfall
   is never negative. Verify: `uv run --project services/decision pytest services/decision -k hypothesis` passes with `--hypothesis-seed=0`.
-- `[ ]` 1C.8 `[after 0B.6]` gRPC server `gridos/server.py` exposing
+- `[~]` 1C.8 `[after 0B.6]` gRPC server `gridos/server.py` exposing
   `Optimize(OptimizationRequest) -> DispatchPlan` that runs the fallback (the
   solver arrives in Wave 3), with a hard timeout budget from the request and a
   `fallback=true` flag in the response. Verify: `uv run --project services/decision pytest services/decision -k server` passes using an in-process gRPC channel.
-- `[ ]` 1C.9 `[P]` RED then GREEN: `validation/` module that independently
+- `[~]` 1C.9 `[P]` RED then GREEN: `validation/` module that independently
   checks any plan for finite values, vector lengths, and feasibility with
   explicit tolerances before it leaves the service. Verify: `uv run --project services/decision pytest services/decision -k validation` passes.
 
@@ -624,39 +624,39 @@ Owns: `services/control/internal/storage/` (including
 `internal/storage/publisher/`), `services/control/go.mod` (Wave 1 owner),
 `services/control/cmd/migrate`.
 
-- `[ ]` 1D.1 `[P]` `services/control/go.mod` pre-declaring every Go dependency
+- `[~]` 1D.1 `[P]` `services/control/go.mod` pre-declaring every Go dependency
   Waves 1 and 2 need so no other lane edits it: `pgx/v5`, `golang-migrate`,
   `connect-go`, `grpc`, `pgregory.net/rapid`, `testcontainers-go`, the
   Temporal Go SDK, `modernc.org/sqlite` is not needed here (gateway is its
   own module). sqlc-generated code from 0D.5 committed under
   `internal/storage/gen`, and `cmd/migrate` applying `database/migrations`
   with `golang-migrate`. Verify: `go run ./services/control/cmd/migrate up` against `make up` succeeds and `go build ./...` succeeds.
-- `[ ]` 1D.2 `[P]` Test harness: each test gets a disposable database via
+- `[~]` 1D.2 `[P]` Test harness: each test gets a disposable database via
   `CREATE DATABASE` on the compose PostgreSQL (or `testcontainers-go`), with
   migrations applied. Verify: `go test ./services/control/internal/storage/ -run Harness` passes.
-- `[ ]` 1D.3 `[P]` RED: `events_test.go`: state transitions follow the
+- `[~]` 1D.3 `[P]` RED: `events_test.go`: state transitions follow the
   transition table in `truth-model.md`; an illegal transition returns
   `ErrIllegalTransition`; a conditional update with a stale expected state
   affects zero rows; every transition appends an `audit_journal` row.
   Verify: fails.
-- `[ ]` 1D.4 `[P]` GREEN: `internal/storage/events.go`. Verify: `go test ./services/control/internal/storage/ -run Event` passes.
-- `[ ]` 1D.5 `[P]` RED: `outbox_test.go`: inserting a command intent and its
+- `[~]` 1D.4 `[P]` GREEN: `internal/storage/events.go`. Verify: `go test ./services/control/internal/storage/ -run Event` passes.
+- `[~]` 1D.5 `[P]` RED: `outbox_test.go`: inserting a command intent and its
   outbox row is one transaction (a forced failure after the intent insert
   leaves neither row); claiming a batch uses `SKIP LOCKED` so two claimers
   never receive the same row; a re-claimed row after a crash keeps the same
   `command_id` and payload (FULL_SPEC §4 invariant 5). Verify: fails.
-- `[ ]` 1D.6 `[P]` GREEN: `internal/storage/outbox.go` and the
+- `[~]` 1D.6 `[P]` GREEN: `internal/storage/outbox.go` and the
   `OutboxPublisher` interface the control API and workflows will use.
   Verify: `-run Outbox` passes.
-- `[ ]` 1D.7 `[P]` RED then GREEN: acknowledgements and uncertainty intervals.
+- `[~]` 1D.7 `[P]` RED then GREEN: acknowledgements and uncertainty intervals.
   Recording an acknowledgement never changes the event state directly; a send
   with no acknowledgement inside its deadline is marked `UNCERTAIN` with a
   stored signed feasible-power interval. Verify: `-run Ack` passes.
-- `[ ]` 1D.8 `[P]` Model-based test with `rapid`: random sequences of
+- `[~]` 1D.8 `[P]` Model-based test with `rapid`: random sequences of
   transitions, acknowledgements, and expiries against an in-memory reference
   model of the command state machine; the database agrees with the model at
   every step. Verify: `go test ./services/control/internal/storage/ -run Model -rapid.checks=500` passes.
-- `[ ]` 1D.9 `[after 1A.7]` `internal/storage/publisher`: claims outbox rows
+- `[~]` 1D.9 `[after 1A.7]` `internal/storage/publisher`: claims outbox rows
   and delivers them over gRPC to the gateway, records acknowledgements, marks
   uncertain on deadline, retries with the same `command_id` (TECHSTACK
   "Transactional command outbox"). Integration test against the real gateway
@@ -667,7 +667,7 @@ Owns: `services/control/internal/storage/` (including
 Owns: `services/control/internal/fleet/`, `services/control/internal/api/`,
 `services/control/internal/report/`, `services/control/cmd/control`.
 
-- `[ ]` 1E.1 `[P]` RED: `fleet/twin_test.go`: the twin holds the latest
+- `[~]` 1E.1 `[P]` RED: `fleet/twin_test.go`: the twin holds the latest
   accepted state per site; a command being issued does not change the twin
   (FULL_SPEC §5.3); telemetry older than the freshness threshold marks the
   site `STALE`; a site whose operating state is any off-grid variant or
@@ -675,24 +675,24 @@ Owns: `services/control/internal/fleet/`, `services/control/internal/api/`,
   carries both backup-hours estimates; aggregate MW and MWh are sums of
   fresh on-grid sites only, and every aggregate carries a timestamp,
   provenance mix, and freshness. Verify: fails.
-- `[ ]` 1E.2 `[P]` GREEN: `internal/fleet/twin.go`. Verify: `go test ./services/control/internal/fleet/ -run Twin` passes.
-- `[ ]` 1E.3 `[P]` RED then GREEN: eligibility with exclusion reasons
+- `[~]` 1E.2 `[P]` GREEN: `internal/fleet/twin.go`. Verify: `go test ./services/control/internal/fleet/ -run Twin` passes.
+- `[~]` 1E.3 `[P]` RED then GREEN: eligibility with exclusion reasons
   (offline, stale, islanded or off-grid, overcurrent, maintenance lock,
   under reserve, alarm, outside region, outside participation window). Under-reserved devices are excluded and
   reported (TECHSTACK e2e scenario 2). Verify: `-run Eligibility` passes.
-- `[ ]` 1E.4 `[after 1D.6]` ConnectRPC server `cmd/control` with handlers:
+- `[~]` 1E.4 `[after 1D.6]` ConnectRPC server `cmd/control` with handlers:
   `GetFleetSummary`, `ListSites` (H3 aggregate by default, exact location
   only with the separately granted `site_location` permission),
   `CreateEventRequest`, `GetEvent`, `ApproveEvent`. Authorization enforced
   server-side for the six FULL_SPEC §11 roles; the approver role is required
   for `ApproveEvent`. Tests use the generated Connect client.
   Verify: `go test ./services/control/internal/api/` passes including a 403 for the wrong role.
-- `[ ]` 1E.5 `[after 1B.2, 1C.8, 1D.9]` Phase 1 straight-line dispatcher (no
+- `[~]` 1E.5 `[after 1B.2, 1C.8, 1D.9]` Phase 1 straight-line dispatcher (no
   Temporal yet, replaced in Wave 2): create event, freeze snapshot, call the
   decision service, run the safety gate, require approval, persist intents,
   hand to the publisher. Marked `REPLACED-IN-WAVE-2` in code and reported as
   a stub. Verify: `go test ./services/control/internal/api/ -run Dispatch` passes.
-- `[ ]` 1E.6 `[P]` RED then GREEN: `internal/report` basic event report
+- `[~]` 1E.6 `[P]` RED then GREEN: `internal/report` basic event report
   (requested, approved, commanded, acknowledged MW; devices excluded by
   reason; provenance and versions) assembled from storage.
   Verify: `go test ./services/control/internal/report/` passes.
@@ -702,30 +702,30 @@ Owns: `services/control/internal/ingest/`, `tests/end-to-end/`, the
 `Makefile` `demo` and `plugins` targets, `buf.gen.yaml`,
 `testdata/fixtures/api/` (recording).
 
-- `[ ]` 1F.1 `[P]` RED: `ingest_test.go`: the control-side gRPC telemetry
+- `[~]` 1F.1 `[P]` RED: `ingest_test.go`: the control-side gRPC telemetry
   receive service acknowledges receipt only after a durable write, so the
   gateway may delete its buffer (TECHSTACK gateway item 7); out-of-order
   sequences are accepted and ordered by `sequence`; duplicates by
   (`device_id`, `sequence`) are dropped; `MISSING` and `STALE` are stored as
   states, never coerced to zero. Verify: fails with "undefined".
-- `[ ]` 1F.2 `[after 1D.6, 1E.2]` GREEN: `internal/ingest` writing
+- `[~]` 1F.2 `[after 1D.6, 1E.2]` GREEN: `internal/ingest` writing
   observations through storage and updating the fleet twin.
   Verify: `go test ./services/control/internal/ingest/` passes.
-- `[ ]` 1F.3 `[after 1E.5, 1A.7, 1F.2]` `make demo` target (compose, migrate,
+- `[~]` 1F.3 `[after 1E.5, 1A.7, 1F.2]` `make demo` target (compose, migrate,
   seed `texas-50`, start gateway simulator, decision service, control
   service, console) and `tests/end-to-end/vertical_slice_test.go` driving
   the whole Phase 1 path through the API: create event, fallback plan,
   safety approved, operator approval recorded, intents persisted before any
   network send, gateway acknowledges, telemetry ingested, basic report
   contains provenance and versions. Verify: `make demo` comes up and `go test ./tests/end-to-end/ -run VerticalSlice` passes.
-- `[ ]` 1F.4 `[after 1F.3]` Record real responses for every Wave 1 method
+- `[~]` 1F.4 `[after 1F.3]` Record real responses for every Wave 1 method
   from the running demo stack with `mockapi record`, replacing the
   hand-authored fixtures. Verify: `go test ./tools/development/mockapi/ -run Fixtures` passes on the recordings and every Wave 1 file in `testdata/fixtures/api/` changed.
-- `[ ]` 1F.5 `[after 1F.3]` Duplicate-delivery end to end: publish the same
+- `[~]` 1F.5 `[after 1F.3]` Duplicate-delivery end to end: publish the same
   `command_id` twice through the outbox; the gateway shows one physical
   effect and storage shows one acknowledgement. Verify: `go test ./tests/end-to-end/ -run DuplicateDelivery` passes.
 
-- `[ ]` 1F.6 `[P]` Local Buf plugins: `buf.gen.yaml` switches every
+- `[~]` 1F.6 `[P]` Local Buf plugins: `buf.gen.yaml` switches every
   `remote:` plugin to a `local:` binary (`protoc-gen-go`,
   `protoc-gen-connect-go` via `go install`; `protoc-gen-es` via
   `pnpm dlx`/a pinned devDependency in `tools/development/`; Python via

@@ -1,8 +1,8 @@
 # Gate 0 report
 
 **Run:** 2026-09-26 by the director on `main` after all six lanes reported.
-**Result:** GREEN pending one item (0B.6, TypeScript message-type generation).
-**Verified items:** 38 of 39 in Wave 0. Every item was independently
+**Result:** GREEN.
+**Verified items:** 39 of 39 in Wave 0. Every item was independently
 re-run by the director before being marked `[x]`.
 
 ## Checks and evidence
@@ -79,7 +79,7 @@ apps/console/src/api/gen/gridos/v1/dispatch_connect.ts
 - No suppressions, no file over 500 lines, no comment lines in code. The three suppression-scan hits are `AGENTS.md`, its `CLAUDE.md` symlink, and the hook itself naming the forbidden markers.
 - One `STUBBED` marker in the tree, one row in `STUBS.md`.
 - No prefixed commit subjects in the last 80 commits, no stashes.
-- **Pending:** TypeScript generation emits only `*_connect.ts`; the `bufbuild/es` plugin swap (0B.6) is outstanding. Re-run of the last check closes the gate.
+- TypeScript generation (0B.6, commit 94d8518): eight `*_pb.ts` files, `dispatch_pb.ts` carries `CommandService`, single `bufbuild/es` plugin. Remote plugins hit the registry rate limit during the gate; 1F.6 moves them local.
 - **UI track:** not started; the 17-step Playwright spec is not yet available. Recorded as "UI track pending" per the decisions log.
 
 ## Corrections made during the wave
