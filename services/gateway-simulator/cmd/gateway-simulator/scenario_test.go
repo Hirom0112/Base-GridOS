@@ -111,6 +111,51 @@ func TestRuntimeDropsSelectedReceiptAfterDurableCommand(t *testing.T) {
 	}
 }
 
+func TestRuntimeDelayedGatewayTimesOutAfterDurableCommand(t *testing.T) {
+	ctx := context.Background()
+	store, err := gateway.Open(ctx, filepath.Join(t.TempDir(), "gateway.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if err := store.Close(); err != nil {
+			t.Error(err)
+		}
+	})
+	now := time.Now().UTC()
+	scenario := failures.Scenario{Seed: 2, Start: now, Tick: time.Second, Injections: []failures.Injection{{At: now, Kind: failures.DelayedGateway}}}
+	devices := []failures.Device{{ID: "a", Region: "LZ_AEN"}, {ID: "b", Region: "LZ_AEN"}}
+	preview, err := failures.NewEngine(scenario, devices)
+	if err != nil {
+		t.Fatal(err)
+	}
+	selectedID := preview.Advance(now)[0].DeviceIDs[0]
+	healthyID := "a"
+	if selectedID == healthyID {
+		healthyID = "b"
+	}
+	engine, err := failures.NewEngine(scenario, devices)
+	if err != nil {
+		t.Fatal(err)
+	}
+	runtime := failures.NewRuntime(engine)
+	handler := newRuntimeCommandHandler(protocol.NewCommandHandler(store, "gateway", "token", func() time.Time { return now }), runtime, func() time.Time { return now })
+	selected := connect.NewRequest(commandRequest(selectedID, now))
+	selected.Header().Set("Authorization", "token")
+	if _, err := handler.SubmitCommand(ctx, selected); connect.CodeOf(err) != connect.CodeDeadlineExceeded {
+		t.Fatalf("delayed response error=%v", err)
+	}
+	commands, err := store.Commands(ctx)
+	if err != nil || len(commands) != 1 || commands[0].DeviceID != selectedID {
+		t.Fatalf("stored commands=%+v, error=%v", commands, err)
+	}
+	healthy := connect.NewRequest(commandRequest(healthyID, now))
+	healthy.Header().Set("Authorization", "token")
+	if _, err := handler.SubmitCommand(ctx, healthy); err != nil {
+		t.Fatalf("healthy response error=%v", err)
+	}
+}
+
 func TestRuntimeScheduledFaultFollowsAcceptedCommand(t *testing.T) {
 	ctx := context.Background()
 	store, err := gateway.Open(ctx, filepath.Join(t.TempDir(), "gateway.db"))
