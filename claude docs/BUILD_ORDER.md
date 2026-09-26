@@ -691,7 +691,7 @@ Owns: `services/control/internal/fleet/`, `services/control/internal/api/`,
   fresh on-grid sites only, and every aggregate carries a timestamp,
   provenance mix, and freshness. Verify: fails.
 - `[x]` 1E.2 `[P]` GREEN: `internal/fleet/twin.go`. Verify: `go test ./services/control/internal/fleet/ -run Twin` passes.
-- `[~]` 1E.3 `[P]` RED then GREEN: eligibility with exclusion reasons
+- `[x]` 1E.3 `[P]` RED then GREEN: eligibility with exclusion reasons
   (offline, stale, islanded or off-grid, overcurrent, maintenance lock,
   under reserve, alarm, outside region, outside participation window). Under-reserved devices are excluded and
   reported (TECHSTACK e2e scenario 2). Verify: `-run Eligibility` passes.
