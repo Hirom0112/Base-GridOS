@@ -384,3 +384,36 @@ assumptions reported by workers land here too.
   The original headless session is stopped. The director no longer staffs
   lanes itself; the orchestrator runs three subagents plus its own lane.
 
+- **3A.1, 3A.2 (lane 3A), verified:** the RED test fails with the missing
+  `gridos.forecasting` module, which is the named reason for a new package;
+  the similar-day baseline uses the latest complete same-class day and a
+  90th-percentile absolute-residual radius as the calibrated interval, and
+  carries training window, feature and model versions, issue time, horizon.
+- **3B.2 scope (lane 3B), accepted:** `optimization/model.py` is a
+  discharge-only LP over the event window: nonnegative service per device
+  and interval, power bound net of home load, one-way discharge efficiency,
+  whole-window energy bound above the effective reserve (which, with no
+  charging, holds at every interval), a soft shortfall column priced at
+  1000 per kW, and availability as expected delivery. The per-kW unit cost
+  on service is the cycling term. Charging variables and charge/discharge
+  mode exclusion are deferred: no interval carries a price or a pre-event
+  horizon yet, so there is no concrete need (AGENTS.md "Before adding
+  code" rule 1). Revisit when the rolling horizon spans priced hours.
+- **3B.3 green on first run, accepted:** the soft-shortfall LP already
+  yields a visible per-interval shortfall without touching any reserve; the
+  test has a positive control (the shortfall is nonzero and equals target
+  minus expected), so no artificial RED was manufactured.
+- **3B.4 (lane 3B), verified:** cohorts group eligible devices by power,
+  efficiency, home load, and availability; disaggregation is greedy by
+  headroom above reserve and raises when the cohort plan cannot be met,
+  never relaxing a reserve. Reconstruction sums back within tolerance.
+- **UI request, geographic context (2026-09-26):** the console's sparse
+  rectangular cell field is the real fixture: `_austin_cells` samples
+  uniformly inside a lat/lon bounding box. That is a generation flaw, not a
+  rendering one, so a new item 2D.7 gives the Austin fixture a
+  density-weighted urban silhouette and regenerates the fleet and the
+  recorded `ListSites` fixture. No terrain or basemap tiles will ever be
+  served; 4C.3 (Wave 4) delivers a locally served MapLibre style plus small
+  Texas boundary, weather-zone, and load-zone GeoJSON. U1.7 renders cells
+  and boundary lines only; U4.1 waits for 4C.3. The UI agent is right not to
+  fabricate locations or density to match a generated concept image.

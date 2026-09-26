@@ -954,6 +954,14 @@ Owns: `testdata/scenarios/`, `tests/integration/`, `tests/end-to-end/`,
   `gateway-restart`, `network-outage-sqlite-replay`. Verify: `-run "Worker|GatewayRestart|OutageReplay"` passes.
 - `[~]` 2D.5 `[after 2C.4]` Unskip and pass: `measurement-gap-unknown`,
   `under-reserved-excluded`. Verify: `-run "Gap|UnderReserved"` passes.
+- `[ ]` 2D.7 `[P]` Austin fleet footprint: `_austin_cells` in
+  `tools/generation/fleet/generate.py` samples a density-weighted urban
+  silhouette (dense core, thinning suburbs, no cells on the bounding-box
+  edges) instead of a uniform box; regenerate `testdata/fleets/austin-5000.jsonl`
+  and the recorded `ListSites` fixture so the console shows the real fixture
+  shape. Lane D owns `tools/generation/fleet/` for this item. Verify:
+  `uv run --project tools/generation pytest tools/generation -k austin` passes and the
+  fixture cell count per H3 ring-distance from downtown decreases monotonically.
 - `[~]` 2D.6 `[P]` Audit-trail invariant: after every scenario, the
   `audit_journal` contains an unbroken chain of transitions for the event and
   every command (FULL_SPEC §10 "without losing the event audit trail").
@@ -1076,12 +1084,12 @@ Owns: `services/decision/gridos/forecasting/`,
 `services/decision/tests/forecasting/`. (3B owns `pyproject.toml` this wave
 and pre-declares any forecasting dependency in 3B.1.)
 
-- `[~]` 3A.1 `[P]` RED: `test_load_baseline.py`: the similar-day baseline for
+- `[x]` 3A.1 `[P]` RED: `test_load_baseline.py`: the similar-day baseline for
   a site with the RESHIWR COAST profile reproduces a held-out day within a
   pinned mean absolute error, and the output carries `training_window`,
   `feature_version`, `model_version`, `issued_at`, `horizon`, and a calibrated
   interval (FULL_SPEC §5.4). Verify: fails.
-- `[~]` 3A.2 `[P]` GREEN: `forecasting/load.py` similar-day baseline using the
+- `[x]` 3A.2 `[P]` GREEN: `forecasting/load.py` similar-day baseline using the
   normalized ERCOT profiles from 0E.3 assigned by 0C.3. Verify: `uv run --project services/decision pytest services/decision -k load_baseline` passes.
 - `[~]` 3A.3 `[P]` RED then GREEN: regional load and price forecasts from
   normalized ERCOT system load and DAM/RTM prices (persistence plus
@@ -1104,19 +1112,21 @@ Owns: `services/decision/gridos/optimization/`,
 `services/decision/tests/optimization/`, `services/decision/gridos/server.py`,
 `services/decision/pyproject.toml` (Wave 3 owner), `testdata/golden/`.
 
-- `[~]` 3B.1 `[P]` RED: `test_optimizer_small.py`: on the 50-device fleet with
+- `[x]` 3B.1 `[P]` RED: `test_optimizer_small.py`: on the 50-device fleet with
   a 2-hour window and a target only 30 devices can meet, the LP allocates the
   target at every interval, respects every reserve, produces zero shortfall,
   and solves under 1 second. Verify: fails.
-- `[~]` 3B.2 `[P]` GREEN: `optimization/model.py` building the HiGHS model
+- `[x]` 3B.2 `[P]` GREEN: `optimization/model.py` building the HiGHS model
   with nonnegative `p_ch` and `p_dis`, one-way efficiencies, energy and power
   bounds, effective reserve at every interval, mode exclusion, soft shortfall
   variable, objective valuing delivered service and penalizing shortfall,
   cycling, and uncertainty (FULL_SPEC §5.5). Verify: `-k optimizer_small` passes.
-- `[~]` 3B.3 `[P]` RED then GREEN: infeasible target yields a visible
+  (Accepted as a discharge-only event-window LP; charging and mode exclusion
+  wait for a priced pre-event horizon, see the decisions log.)
+- `[x]` 3B.3 `[P]` RED then GREEN: infeasible target yields a visible
   per-interval shortfall and no reserve relaxation (TECHSTACK e2e scenario 10).
   Verify: `-k infeasible` passes.
-- `[~]` 3B.4 `[P]` RED then GREEN: cohort construction and disaggregation from
+- `[x]` 3B.4 `[P]` RED then GREEN: cohort construction and disaggregation from
   cohort plan to per-device `DeviceSchedule`, with a reconstruction test that
   sums disaggregated schedules back to the cohort plan within tolerance.
   Verify: `-k disaggregate` passes.
