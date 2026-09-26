@@ -465,3 +465,14 @@ assumptions reported by workers land here too.
   clock; the control service and worker see no altered time. The checked-in
   scenario files keep their two-hour product windows. Commits f9d57f7 (RED)
   and 1118d77 (GREEN); director re-run ok in 0.4 s.
+- **3C.1 rejected then accepted (lane 3C):** the first differential test
+  (35c2ece) had no rejected fixture, so it could not catch a gate that
+  approves everything. 7b37e30 adds a control per fixture: a dynamic
+  reserve raised above stored energy must yield ENERGY_BELOW_RESERVE and a
+  discharge one kW above the device maximum must yield DISCHARGE_BOUND.
+  Director re-run: 36 subtests pass.
+- **3C.2 (lane 3C), accepted:** the aggregate commitment check already
+  existed in the gate (declared shortfall must cover target minus actual)
+  and gains a test; the ramp check is new with a device
+  `MaxRampKWPerMinute` where zero means no ramp limit beyond the power
+  bounds, since FULL_SPEC §5.6 carries no ramp metadata.

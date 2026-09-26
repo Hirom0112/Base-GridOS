@@ -1169,9 +1169,9 @@ Owns: `services/decision/gridos/optimization/`,
 Owns: `services/control/internal/safety/`, `services/control/tests/`,
 `services/control/go.mod` (Wave 3 owner).
 
-- `[ ]` 3C.1 `[after 3B.8]` Golden differential rerun over the solver-produced
+- `[x]` 3C.1 `[after 3B.8]` Golden differential rerun over the solver-produced
   fixtures. Verify: `go test ./services/control/internal/safety/ -run Golden` passes.
-- `[ ]` 3C.2 `[P]` RED then GREEN: aggregate commitment check and ramp-rate
+- `[x]` 3C.2 `[P]` RED then GREEN: aggregate commitment check and ramp-rate
   check added to the gate (FULL_SPEC §5.6). Verify: `-run "Aggregate|Ramp"` passes.
 - `[ ]` 3C.3 `[P]` RED then GREEN: any material input change after approval
   invalidates the plan version and requires re-approval (FULL_SPEC §5.6).
