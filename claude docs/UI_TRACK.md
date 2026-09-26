@@ -109,7 +109,7 @@ defines it, and the FULL_SPEC §9 demo steps it must make pass.
 
 | Screen | Route | API methods | Spec | Demo steps |
 | --- | --- | --- | --- | --- |
-| Shell: top bar, left nav, status strip, provenance badge | all | none | 3d web logs "Composition", FULL_SPEC §2 | all |
+| Shell: top bar, left nav, status strip, provenance badge | all | none | `visual-system.md` "Composition", FULL_SPEC §2 | all |
 | Fleet command center | `/fleet` | `FleetService.GetFleetSummary`, `ListSites`, `ContextService.GetMarketContext`, `GetWeatherContext`, `GetOutageRisk`, `ListDispatchWindows` | FULL_SPEC §5.1 | 1 |
 | Dispatch request | `/dispatch/new` | `DispatchService.CreateEventRequest` | FULL_SPEC §9 steps 2 and 3 | 2, 3 |
 | Plan explanation and approval | `/dispatch/:eventId` | `GetEvent`, `GetPlanExplanation`, `ValidateAlternative`, `ApproveEvent` | FULL_SPEC §5.5, §5.6, §9 steps 4 to 9 | 4, 5, 6, 8, 9 |
