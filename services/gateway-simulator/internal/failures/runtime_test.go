@@ -106,3 +106,26 @@ func TestScheduledScopeAffectsTelemetryForOneCommandedEvent(t *testing.T) {
 		t.Fatal("telemetry fault selected an idle device")
 	}
 }
+
+func TestScheduledScopeAffectsTelemetryAcrossActiveEvents(t *testing.T) {
+	start := time.Date(2026, 8, 12, 18, 0, 0, 0, time.UTC)
+	at := start.Add(time.Minute)
+	scenario := Scenario{Seed: 17, Start: start, Tick: time.Minute, Injections: []Injection{{At: at, Kind: DroppedMessages, Scope: Scheduled}}}
+	engine, err := NewEngine(scenario, []Device{{ID: "a", Region: "LZ_AEN"}, {ID: "b", Region: "LZ_AEN"}, {ID: "idle", Region: "LZ_AEN"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	runtime := NewRuntime(engine)
+	runtime.RecordCommand(start, "event-a", "a")
+	runtime.RecordCommand(start, "event-b", "b")
+	runtime.Advance(at)
+	affected := 0
+	for _, deviceID := range []string{"a", "b"} {
+		if runtime.Affects(string(DroppedMessages), deviceID) {
+			affected++
+		}
+	}
+	if affected != 1 || runtime.Affects(string(DroppedMessages), "idle") {
+		t.Fatalf("telemetry affected %d commanded devices and idle=%t", affected, runtime.Affects(string(DroppedMessages), "idle"))
+	}
+}
