@@ -573,3 +573,17 @@ assumptions reported by workers land here too.
   `services/decision/gridos/server.py` plus its tests additively, lane 3B
   being complete. A forecast timeout is a timeline decision and the
   deterministic baseline from 3A.6 is used.
+- **3D.2 history source and persistence seam (2026-09-26):** no telemetry
+  history travels over the wire and no new snapshot table is added. The
+  `ForecastRequest` carries identifiers only: per site the
+  `load_profile_type`, `load_zone`, `weather_zone`, and county, plus the
+  frozen device telemetry already in the snapshot. The decision service
+  reads the public fixtures it already owns under
+  `testdata/fixtures/public/` (load profiles, ERCOT prices, system load,
+  outages, weather) by those identifiers, with CONFIRMED_PUBLIC provenance;
+  a missing source yields an unavailable forecast, never a synthesized
+  number. The forecast is an optimizer input, so FreezeInputs calls
+  `Forecast` with its budget before persisting the input snapshot and the
+  forecast lands inside that snapshot; a timeout records a timeline decision
+  and freezes the 3A.6 deterministic baseline instead. `lifecycle.go` is
+  untouched.
