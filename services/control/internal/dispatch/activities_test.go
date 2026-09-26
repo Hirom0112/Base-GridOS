@@ -19,6 +19,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -107,7 +108,7 @@ func TestFreezeInputsAustinResultStaysBelowTemporalLimit(t *testing.T) {
 	}
 	_, err = events.Create(context.Background(), request, "create-austin-freeze", now)
 	require.NoError(t, err)
-	activities := &Activities{Dispatcher: &controlapi.Dispatcher{Events: events, Snapshots: controlapi.NewFleetSnapshotter(twin, sites, func() time.Time { return now })}, Events: events, Pool: pool, Now: func() time.Time { return now }}
+	activities := &Activities{Dispatcher: &controlapi.Dispatcher{Events: events, Snapshots: controlapi.NewFleetSnapshotter(twin, sites, func() time.Time { return now }), Optimizer: activityOptimizer{}}, Events: events, Pool: pool, Now: func() time.Time { return now }}
 	frozen, err := activities.FreezeInputs(context.Background(), Input{EventID: request.GetRequestId(), Request: request})
 	require.NoError(t, err)
 	payload, err := json.Marshal(frozen)
@@ -251,7 +252,7 @@ func newActivityHarness(t *testing.T) *activityHarness {
 	energy := 5.0
 	snapshot := controlapi.FrozenSnapshot{
 		Optimization: &gridosv1.OptimizationRequest{
-			EventId: "event-1", PlanVersion: 1, CorrelationId: "correlation-1",
+			EventId: "event-1", PlanVersion: 1, CorrelationId: "correlation-1", Budget: durationpb.New(5 * time.Second),
 			EligibilitySnapshot: &gridosv1.EligibilitySnapshot{EventId: "event-1", EligibleDeviceIds: []string{"device-1"}},
 			ReservePolicy:       &gridosv1.ReservePolicy{PolicyVersion: "policy-1"},
 		},

@@ -4,14 +4,16 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/binary"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
 	"time"
 
+	"connectrpc.com/connect"
 	gridosv1 "github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1"
 	controlapi "github.com/Hirom0112/Base-GridOS/services/control/internal/api"
 	reporting "github.com/Hirom0112/Base-GridOS/services/control/internal/report"
-	"github.com/Hirom0112/Base-GridOS/services/control/internal/safety"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/storage"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.temporal.io/sdk/temporal"
@@ -37,10 +39,32 @@ func (activities *Activities) FreezeInputs(ctx context.Context, input Input) (Fr
 	if input.Request == nil {
 		return FrozenEvent{}, errors.New("event request required")
 	}
+	if activities.Dispatcher == nil || activities.Dispatcher.Optimizer == nil {
+		return FrozenEvent{}, errors.New("forecast service required")
+	}
 	snapshot, err := activities.Dispatcher.Freeze(ctx, input.EventID, input.Request)
 	if err != nil {
 		return FrozenEvent{}, err
 	}
+	budget := snapshot.Optimization.GetBudget().AsDuration()
+	if budget <= 0 {
+		return FrozenEvent{}, errors.New("positive forecast budget required")
+	}
+	forecastCtx, cancel := context.WithTimeout(ctx, budget+time.Second)
+	forecast, err := activities.Dispatcher.Optimizer.Forecast(forecastCtx, &gridosv1.ForecastRequest{Request: snapshot.Optimization})
+	cancel()
+	if errors.Is(err, context.DeadlineExceeded) || connect.CodeOf(err) == connect.CodeDeadlineExceeded {
+		forecast = &gridosv1.ForecastResponse{UnavailableSources: []string{"forecast_transport_timeout"}}
+		if err = activities.recordPlanningDecision(ctx, snapshot.Optimization, "FORECAST_TIMEOUT", "TRANSPORT_TIMEOUT"); err != nil {
+			return FrozenEvent{}, err
+		}
+	} else if err != nil {
+		return FrozenEvent{}, err
+	}
+	if forecast == nil {
+		return FrozenEvent{}, errors.New("forecast response required")
+	}
+	snapshot.Optimization.Forecast = forecast
 	inputID, eligibilityID, err := storage.NewPostgresEventStore(activities.Pool).StoreFrozen(ctx, input.EventID, snapshot.Optimization, activities.Now())
 	if err != nil {
 		return FrozenEvent{}, err
@@ -64,9 +88,20 @@ func (activities *Activities) RequestPlan(ctx context.Context, frozen FrozenEven
 	if err = frozen.verifySnapshot(request); err != nil {
 		return frozen, err
 	}
-	plan, err := activities.Dispatcher.RequestPlan(ctx, controlapi.FrozenSnapshot{Optimization: request})
+	budget := request.GetBudget().AsDuration()
+	if budget <= 0 {
+		return frozen, errors.New("positive optimization budget required")
+	}
+	planCtx, cancel := context.WithTimeout(ctx, budget+time.Second)
+	defer cancel()
+	plan, err := activities.Dispatcher.RequestPlan(planCtx, controlapi.FrozenSnapshot{Optimization: request})
 	if err != nil {
 		return frozen, err
+	}
+	if plan.GetFallbackUsed() {
+		if err = activities.recordPlanningDecision(ctx, request, "PLAN_FALLBACK_SELECTED", plan.GetFallbackReason()); err != nil {
+			return frozen, err
+		}
 	}
 	frozen.Input.PlanVersion = plan.GetPlanVersion()
 	frozen.Input.ApprovalDigest, err = approvalDigest(request, plan)
@@ -92,7 +127,7 @@ func (activities *Activities) ValidatePlan(ctx context.Context, frozen FrozenEve
 	if digest != frozen.Input.ApprovalDigest {
 		return errors.New("approval digest changed")
 	}
-	err = activities.Dispatcher.ValidatePlan(ctx, frozen.Input.EventID, frozen.Input.PlanVersion, canonicalFromFrozen(request))
+	err = activities.Dispatcher.ValidatePlan(ctx, frozen.Input.EventID, frozen.Input.PlanVersion, controlapi.CanonicalFromFrozen(request))
 	if errors.Is(err, controlapi.ErrSafetyRejected) {
 		return temporal.NewNonRetryableApplicationError(err.Error(), ValidationError, err)
 	}
@@ -135,18 +170,42 @@ func approvalDigest(request *gridosv1.OptimizationRequest, plan *gridosv1.Dispat
 	return sha256.Sum256(encoded), nil
 }
 
-func canonicalFromFrozen(request *gridosv1.OptimizationRequest) safety.CanonicalState {
-	canonical := safety.CanonicalState{Now: request.GetRequestedAt().AsTime(), Boundary: safety.MeterNetExport, PolicyVersion: request.GetReservePolicy().GetPolicyVersion(), ExpectedGeneration: int64(request.GetPlanVersion()), Devices: make(map[string]safety.DeviceState, len(request.GetDevices()))}
-	for _, device := range request.GetDevices() {
-		energy := device.GetEnergyKwh()
-		observedAt := device.GetTelemetryObservedAt().AsTime()
-		canonical.Devices[device.GetDeviceId()] = safety.DeviceState{
-			EnergyKWh: &energy, UsableCapacityKWh: device.GetUsableEnergyKwh(), HardwareReserveKWh: device.GetHardwareFloorKwh(), PlanReserveKWh: device.GetEffectiveReserveKwh(),
-			MaxChargeKW: device.GetMaxChargeKw(), MaxDischargeKW: device.GetMaxDischargeKw(), ChargeEfficiency: device.GetChargeEfficiency(), DischargeEfficiency: device.GetDischargeEfficiency(),
-			Available: device.GetAvailabilityProbability() == 1, TelemetryAt: &observedAt, FreshnessLimit: 30 * time.Second, MeterExportLimitKW: device.GetMaxDischargeKw(), InterconnectionLimitKW: device.GetMaxDischargeKw(),
-		}
+func (activities *Activities) recordPlanningDecision(ctx context.Context, request *gridosv1.OptimizationRequest, action, reason string) error {
+	tx, err := activities.Pool.Begin(ctx)
+	if err != nil {
+		return err
 	}
-	return canonical
+	defer func() { _ = tx.Rollback(ctx) }()
+	var locked int
+	if err = tx.QueryRow(ctx, `SELECT 1 FROM dispatch_events WHERE event_id = $1 FOR UPDATE`, request.GetEventId()).Scan(&locked); err != nil {
+		return err
+	}
+	var recorded bool
+	err = tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM audit_journal WHERE resource_id = $1 AND action = $2 AND new_values->>'plan_version' = $3)`, request.GetEventId(), action, strconv.FormatUint(request.GetPlanVersion(), 10)).Scan(&recorded)
+	if err != nil {
+		return err
+	}
+	if recorded {
+		return tx.Commit(ctx)
+	}
+	decision := struct {
+		Reason         string `json:"reason,omitempty"`
+		FallbackReason string `json:"fallback_reason,omitempty"`
+		PlanVersion    uint64 `json:"plan_version"`
+	}{PlanVersion: request.GetPlanVersion()}
+	if action == "PLAN_FALLBACK_SELECTED" {
+		decision.FallbackReason = reason
+	} else {
+		decision.Reason = reason
+	}
+	values, err := json.Marshal(decision)
+	if err != nil {
+		return err
+	}
+	if err = storage.AppendAudit(ctx, tx, storage.AuditRecord{OccurredAt: activities.Now(), ActorID: "decision", Action: action, ResourceID: request.GetEventId(), NewValues: values, CorrelationID: request.GetCorrelationId()}); err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
 }
 
 func (activities *Activities) PersistIntents(ctx context.Context, request PersistInput) error {
