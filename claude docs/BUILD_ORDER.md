@@ -662,7 +662,7 @@ Owns: `services/control/internal/storage/` (including
 - `[x]` 1D.6 `[P]` GREEN: `internal/storage/outbox.go` and the
   `OutboxPublisher` interface the control API and workflows will use.
   Verify: `-run Outbox` passes.
-- `[~]` 1D.7 `[P]` RED then GREEN: acknowledgements and uncertainty intervals.
+- `[x]` 1D.7 `[P]` RED then GREEN: acknowledgements and uncertainty intervals.
   Recording an acknowledgement never changes the event state directly; a send
   with no acknowledgement inside its deadline is marked `UNCERTAIN` with a
   stored signed feasible-power interval. Verify: `-run Ack` passes.
