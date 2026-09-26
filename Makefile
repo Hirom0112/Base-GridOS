@@ -8,7 +8,7 @@ down:
 
 generate:
 	buf generate contracts
-	buf breaking contracts --against '.git#branch=main'
+	buf breaking contracts --against '.git#branch=main,subdir=contracts'
 
 test-go:
 	go test $$(go list -m -f '{{if .Main}}{{.Path}}/...{{end}}' all)
