@@ -436,7 +436,8 @@ additions.
 The console itself is built by the UI track (`UI_TRACK.md`), not by a backend
 lane. This lane gives the UI track something to build against from day one.
 
-Owns: `tools/development/mockapi/`, `testdata/fixtures/api/`, `tests/contract/`.
+Owns: `tools/development/mockapi/`, `testdata/fixtures/api/`,
+`testdata/fixtures/contracts/`, `tests/contract/`.
 
 - `[~]` 0F.1 `[after 0B.8]` `tools/development/mockapi`: a Go Connect server
   that serves every operator and member method in `gridos.v1` from JSON
