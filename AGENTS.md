@@ -49,7 +49,7 @@ Install once: `git config core.hooksPath tools/development/hooks`
 
 ## Tests
 
-- Engines, validators, math, state machines, storage transitions, generators: write the failing test first, confirm it fails for the named reason, then the minimum code to pass. RED and GREEN are separate commits.
+- Engines, validators, math, state machines, storage transitions, generators: write the failing test first, confirm it fails for the named reason, then the minimum code to pass. RED and GREEN are separate commits. A RED commit stages only test files and the hook skips test execution for it; a commit that stages implementation must be green.
 - A negative assertion needs a positive control proving the path is live. A test that fails by typo proves nothing.
 - Unit tests live beside their code. Only cross-service behavior goes under `tests/`.
 - State the exact command and its last line with every result. A fast-gate result is never reported as the full gate.
