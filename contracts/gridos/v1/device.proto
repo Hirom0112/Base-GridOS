@@ -48,6 +48,9 @@ message Site {
   bool has_solar = 5;
   bool has_automatic_backup = 6;
   Provenance provenance = 7;
+  string load_profile_type = 8;
+  string reliability_trait = 9;
+  optional string county = 10;
 }
 
 message Device {
