@@ -30,7 +30,7 @@ type activityHarness struct {
 
 func TestVerifyDeliveryActivityWritesSummariesAndUncertainty(t *testing.T) {
 	harness := newActivityHarness(t)
-	harness.observeExport(t, "device-1", 4, 0, 10, 20, 45, 50, 55, 60, 62)
+	harness.observeExport(t, 0, 10, 20, 45, 50, 55, 60, 62)
 
 	if err := harness.activities.VerifyDelivery(context.Background(), Input{EventID: "event-1"}); err != nil {
 		t.Fatal(err)
@@ -77,11 +77,11 @@ func TestVerifyDeliveryActivityWritesSummariesAndUncertainty(t *testing.T) {
 
 func TestReconcileLateMessagesActivityAbsorbsLateTelemetry(t *testing.T) {
 	harness := newActivityHarness(t)
-	harness.observeExport(t, "device-1", 4, 0, 10, 20, 45, 50, 55, 60, 62)
+	harness.observeExport(t, 0, 10, 20, 45, 50, 55, 60, 62)
 	if err := harness.activities.VerifyDelivery(context.Background(), Input{EventID: "event-1"}); err != nil {
 		t.Fatal(err)
 	}
-	harness.observeExport(t, "device-1", 4, 30)
+	harness.observeExport(t, 30)
 
 	if err := harness.activities.ReconcileLateMessages(context.Background(), Input{EventID: "event-1"}); err != nil {
 		t.Fatal(err)
@@ -106,7 +106,7 @@ func TestReconcileLateMessagesActivityAbsorbsLateTelemetry(t *testing.T) {
 
 func TestDeliveredByCellKeepsUnobservedCellsUnknown(t *testing.T) {
 	harness := newActivityHarness(t)
-	harness.observeExport(t, "device-1", 4, 0, 10, 20, 30, 40, 50, 60)
+	harness.observeExport(t, 0, 10, 20, 30, 40, 50, 60)
 
 	cells, err := DeliveredByCell(context.Background(), harness.pool, "event-1", map[string]string{
 		"device-1": "cell-a",
@@ -219,16 +219,16 @@ func (harness *activityHarness) command(id, deviceID string, setpointKW float64)
 	}
 }
 
-func (harness *activityHarness) observeExport(t *testing.T, deviceID string, exportKW float64, minuteOffsets ...int) {
+func (harness *activityHarness) observeExport(t *testing.T, minuteOffsets ...int) {
 	t.Helper()
 	observations := make([]*gridosv1.TelemetryObservation, 0, len(minuteOffsets))
 	for _, offset := range minuteOffsets {
 		at := harness.begin.Add(time.Duration(offset) * time.Minute)
 		observations = append(observations, &gridosv1.TelemetryObservation{
-			ObservationId: fmt.Sprintf("%s-%d", deviceID, offset), DeviceId: deviceID, Sequence: uint64(offset + 1000),
+			ObservationId: fmt.Sprintf("device-1-%d", offset), DeviceId: "device-1", Sequence: uint64(offset + 1000),
 			SourceTime: timestamppb.New(at), ReceiveTime: timestamppb.New(harness.now), ObservationTime: timestamppb.New(at),
 			ValueState: gridosv1.ValueState_VALUE_STATE_PRESENT, MeasurementBoundary: gridosv1.MeasurementBoundary_MEASUREMENT_BOUNDARY_METER_NET_EXPORT,
-			PowerFlow: &gridosv1.PowerFlow{FromGridKw: -exportKW, FromStorageKw: exportKW},
+			PowerFlow: &gridosv1.PowerFlow{FromGridKw: -4, FromStorageKw: 4},
 		})
 	}
 	if _, err := storage.NewTelemetryStore(harness.pool).Write(context.Background(), observations); err != nil {
