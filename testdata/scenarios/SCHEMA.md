@@ -17,6 +17,7 @@ Scenario files are YAML documents validated by `tools.generation.scenario.model.
 | `event.boundary` | boundary enum | Measurement boundary used by planning and verification |
 | `injections[].at` | timezone-aware timestamp | Seeded injection time |
 | `injections[].kind` | injection enum | Failure to inject |
+| `injections[].scope` | optional `scheduled` | Select a device with an accepted command for the active event using the seed and sorted commanded device IDs |
 | `expected.final_event_state` | `VERIFIED`, `RECONCILED`, or `REPORTED` | Required terminal progress |
 | `expected.reserve_violations` | nonnegative integer | Allowed reserve violations |
 | `expected.allows_shortfall` | boolean | Whether safe shortfall is acceptable |
