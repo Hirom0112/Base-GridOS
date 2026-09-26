@@ -74,3 +74,14 @@ def test_server_optimizer_uses_frozen_availability_forecast(
     prediction.probability.feature_version = "reliability-freshness-v1"
     prediction.probability.value_kind = "modeled_estimate"
     assert _device_states(request)[0].availability_probability == 0.25
+
+
+def test_server_forecast_transport_timeout_forces_safe_fallback(
+    serve: Callable[[OptimizationServer], optimization_pb2_grpc.OptimizationServiceStub],
+    optimize_request: optimization_pb2.OptimizeRequest,
+) -> None:
+    optimize_request.request.forecast.unavailable_sources.append("forecast_transport_timeout")
+    response = serve(OptimizationServer()).Optimize(optimize_request)
+    assert response.plan.fallback_used
+    assert response.plan.fallback_reason == "FORECAST_TIMEOUT"
+    assert response.plan.device_schedules[0].intervals[0].setpoint_kw == 3.0
