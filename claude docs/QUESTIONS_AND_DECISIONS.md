@@ -249,4 +249,11 @@ assumptions reported by workers land here too.
   from fresh telemetry clips the last confirmed and zero candidates but never
   the possibly accepted setpoint; a zero max ramp means unknown and clips
   nothing. Conservative in the direction TECHSTACK requires.
+- **2D.1 scenario mappings (lane D), accepted:** the Houston scenario uses
+  `texas-5000` in `LZ_HOUSTON` because the Austin fleet has no Houston
+  devices; worker termination is a harness action, not a simulator
+  injection; network outage is expressed as `DELAYED_TELEMETRY` and the
+  measurement gap as `DROPPED_MESSAGES` because the schema has no dedicated
+  kinds; shortfall is disallowed for worker termination, gateway restart, and
+  the outage replay because those faults must not lose delivery.
 

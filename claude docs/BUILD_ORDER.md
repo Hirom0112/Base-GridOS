@@ -918,7 +918,7 @@ Owns: `services/control/internal/reconciliation/`,
 Owns: `testdata/scenarios/`, `tests/integration/`, `tests/end-to-end/`,
 `tools/development/scenario-run.sh`.
 
-- `[~]` 2D.1 `[P]` Write every scenario file for the TECHSTACK "Required
+- `[x]` 2D.1 `[P]` Write every scenario file for the TECHSTACK "Required
   end-to-end scenarios" list that Waves 2 and 3 can exercise:
   `heat-event-canonical` (from 0C.7, run in 3D.5 once the solver exists),
   `under-reserved-excluded`,
