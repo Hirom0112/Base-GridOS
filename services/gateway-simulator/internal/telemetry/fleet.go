@@ -8,12 +8,18 @@ import (
 	gridosv1 "github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1"
 	"github.com/Hirom0112/Base-GridOS/services/gateway-simulator/internal/battery"
 	"github.com/Hirom0112/Base-GridOS/services/gateway-simulator/internal/gateway"
+	"google.golang.org/protobuf/encoding/protojson"
 )
+
+type BatchPublisher interface {
+	PublishBatch(context.Context, []*gridosv1.TelemetryObservation) error
+}
 
 type Fleet struct {
 	producers []*Producer
 	cadence   time.Duration
 	publisher Publisher
+	store     *gateway.Store
 }
 
 func NewFleet(store *gateway.Store, deviceIDs []string, cadence time.Duration, publisher Publisher) (*Fleet, error) {
@@ -33,7 +39,7 @@ func NewFleet(store *gateway.Store, deviceIDs []string, cadence time.Duration, p
 		}
 		producers = append(producers, producer)
 	}
-	return &Fleet{producers: producers, cadence: cadence, publisher: publisher}, nil
+	return &Fleet{producers: producers, cadence: cadence, publisher: publisher, store: store}, nil
 }
 
 func (fleet *Fleet) Emit(ctx context.Context, sourceTime time.Time) error {
@@ -48,7 +54,35 @@ func (fleet *Fleet) Emit(ctx context.Context, sourceTime time.Time) error {
 			return err
 		}
 	}
-	return fleet.producers[0].Flush(ctx, fleet.publisher)
+	batch, ok := fleet.publisher.(BatchPublisher)
+	if !ok {
+		return fleet.producers[0].Flush(ctx, fleet.publisher)
+	}
+	return fleet.flushBatch(ctx, batch)
+}
+
+func (fleet *Fleet) flushBatch(ctx context.Context, publisher BatchPublisher) error {
+	buffered, err := fleet.store.BufferedObservations(ctx)
+	if err != nil {
+		return err
+	}
+	observations := make([]*gridosv1.TelemetryObservation, 0, len(buffered))
+	for _, item := range buffered {
+		observation := &gridosv1.TelemetryObservation{}
+		if err := protojson.Unmarshal(item.Payload, observation); err != nil {
+			return err
+		}
+		observations = append(observations, observation)
+	}
+	if err := publisher.PublishBatch(ctx, observations); err != nil {
+		return err
+	}
+	for _, item := range buffered {
+		if err := fleet.store.ConfirmObservation(ctx, item.ObservationID); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (fleet *Fleet) Run(ctx context.Context, start time.Time) error {

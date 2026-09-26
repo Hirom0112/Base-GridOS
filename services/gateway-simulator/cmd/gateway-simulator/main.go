@@ -14,7 +14,6 @@ import (
 	"syscall"
 	"time"
 
-	"connectrpc.com/connect"
 	"github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1/gridosv1connect"
 	scenariorunner "github.com/Hirom0112/Base-GridOS/services/gateway-simulator/cmd/scenario"
 	"github.com/Hirom0112/Base-GridOS/services/gateway-simulator/internal/failures"
@@ -101,8 +100,8 @@ func run() error {
 		for _, device := range devices {
 			deviceIDs = append(deviceIDs, device.DeviceID)
 		}
-		publisher := protocol.NewTelemetryPublisher(
-			gridosv1connect.NewTelemetryServiceClient(h2Client(), configuration.controlAddress, connect.WithGRPC()),
+		publisher := telemetry.NewConnectPublisher(
+			gridosv1connect.NewTelemetryServiceClient(http.DefaultClient, configuration.controlAddress),
 			configuration.gatewayID,
 			authorizationToken,
 		)
@@ -177,14 +176,6 @@ func runTelemetry(ctx context.Context, fleet *telemetry.Fleet, start time.Time, 
 			failures <- err
 		}
 	}
-}
-
-func h2Client() *http.Client {
-	transport := http.DefaultTransport.(*http.Transport).Clone()
-	protocols := new(http.Protocols)
-	protocols.SetUnencryptedHTTP2(true)
-	transport.Protocols = protocols
-	return &http.Client{Transport: transport, Timeout: 10 * time.Second}
 }
 
 func configureExplicitScenario(configuration config, scenarioStart string) (config, error) {
