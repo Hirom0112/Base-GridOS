@@ -1,0 +1,71 @@
+{
+  "description": "Transmission constraint and PTDF analysis for monitored element 5127__A, showing how 40 MW of storage sited behind the binding element relieves a 32 MW overload",
+  "source": "Base Power public blog",
+  "monitoredElement": "5127__A",
+  "constraint": {
+    "emergencyRatingMva": 1200,
+    "postContingencyFlowBeforeMw": 1232,
+    "postContingencyFlowAfterMw": 1198,
+    "reliefMw": 34.2,
+    "sitedCapacityMw": 40,
+    "unsitedEquivalentMw": 490,
+    "excessOverRatingMw": 32,
+    "dataCenterShiftFactor": 0.9,
+    "dataCenterFlowContributionMw": 450,
+    "loadZoneAveragePtdf": 0.07
+  },
+  "substations": [
+    {
+      "name": "WILLOW BEND",
+      "ptdf": 0.88,
+      "reliefMwPer20Mw": -17.6
+    },
+    {
+      "name": "PECAN FLAT",
+      "ptdf": 0.83,
+      "reliefMwPer20Mw": -16.6
+    }
+  ],
+  "summaryTable": [
+    [
+      "5127__A emergency rating",
+      "1,200 MVA"
+    ],
+    [
+      "Post-contingency flow, data center at load",
+      "1,232 MW"
+    ],
+    [
+      "Excess over rating",
+      "+32 MW"
+    ],
+    [
+      "Data center shift factor on 5127__A",
+      "0.90, so +450 MW of that flow"
+    ],
+    [
+      "WILLOW BEND |PTDF|",
+      "0.88 — −17.6 MW per 20 MW discharged"
+    ],
+    [
+      "PECAN FLAT |PTDF|",
+      "0.83 — −16.6 MW per 20 MW discharged"
+    ],
+    [
+      "Total relief, 40 MW sited in the pocket",
+      "−34.2 MW"
+    ],
+    [
+      "Resulting flow",
+      "1,198 MW, within the rating"
+    ],
+    [
+      "Load-zone average |PTDF|",
+      "0.07 — 2.8 MW from the same 40 MW"
+    ],
+    [
+      "Unsited capacity for the same relief",
+      "≈490 MW"
+    ]
+  ]
+}

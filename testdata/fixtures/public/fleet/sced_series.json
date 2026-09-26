@@ -1,0 +1,2178 @@
+{
+  "description": "High-resolution SCED series at 30-second intervals over the 3-hour CLREDP dispatch window",
+  "source": "Base Power public blog",
+  "fields": {
+    "s": "Seconds from start of window",
+    "realized": "Realized fleet power MW",
+    "issued": "ERCOT-issued set point MW",
+    "sced": "ERCOT SCED base point MW"
+  },
+  "series": [
+    {
+      "s": 0,
+      "realized": 1.29,
+      "issued": 1.8,
+      "sced": 1.8
+    },
+    {
+      "s": 30,
+      "realized": 1.29,
+      "issued": 1.8,
+      "sced": 7.1
+    },
+    {
+      "s": 60,
+      "realized": 1.29,
+      "issued": 2.42,
+      "sced": 7.1
+    },
+    {
+      "s": 90,
+      "realized": 2.22,
+      "issued": 3.04,
+      "sced": 7.1
+    },
+    {
+      "s": 120,
+      "realized": 2.69,
+      "issued": 3.65,
+      "sced": 7.1
+    },
+    {
+      "s": 150,
+      "realized": 3.16,
+      "issued": 4.36,
+      "sced": 7.1
+    },
+    {
+      "s": 180,
+      "realized": 4.09,
+      "issued": 4.98,
+      "sced": 7.1
+    },
+    {
+      "s": 210,
+      "realized": 4.54,
+      "issued": 5.69,
+      "sced": 7.1
+    },
+    {
+      "s": 240,
+      "realized": 5.48,
+      "issued": 6.3,
+      "sced": 7.1
+    },
+    {
+      "s": 270,
+      "realized": 5.96,
+      "issued": 7.01,
+      "sced": 7.1
+    },
+    {
+      "s": 300,
+      "realized": 6.9,
+      "issued": 7.1,
+      "sced": 7.1
+    },
+    {
+      "s": 330,
+      "realized": 6.91,
+      "issued": 7.1,
+      "sced": 11.2
+    },
+    {
+      "s": 360,
+      "realized": 6.9,
+      "issued": 7.65,
+      "sced": 11.2
+    },
+    {
+      "s": 390,
+      "realized": 7.37,
+      "issued": 8.12,
+      "sced": 11.2
+    },
+    {
+      "s": 420,
+      "realized": 7.85,
+      "issued": 8.67,
+      "sced": 11.2
+    },
+    {
+      "s": 450,
+      "realized": 8.32,
+      "issued": 9.15,
+      "sced": 11.2
+    },
+    {
+      "s": 480,
+      "realized": 8.78,
+      "issued": 9.7,
+      "sced": 11.2
+    },
+    {
+      "s": 510,
+      "realized": 9.24,
+      "issued": 10.18,
+      "sced": 11.2
+    },
+    {
+      "s": 540,
+      "realized": 9.7,
+      "issued": 10.72,
+      "sced": 11.2
+    },
+    {
+      "s": 570,
+      "realized": 10.17,
+      "issued": 11.2,
+      "sced": 11.2
+    },
+    {
+      "s": 600,
+      "realized": 10.64,
+      "issued": 11.2,
+      "sced": 11.2
+    },
+    {
+      "s": 630,
+      "realized": 11.11,
+      "issued": 11.2,
+      "sced": 11.2
+    },
+    {
+      "s": 660,
+      "realized": 11.12,
+      "issued": 11.09,
+      "sced": 10.1
+    },
+    {
+      "s": 690,
+      "realized": 10.62,
+      "issued": 10.96,
+      "sced": 10.1
+    },
+    {
+      "s": 720,
+      "realized": 10.63,
+      "issued": 10.81,
+      "sced": 10.1
+    },
+    {
+      "s": 750,
+      "realized": 10.62,
+      "issued": 10.69,
+      "sced": 10.1
+    },
+    {
+      "s": 780,
+      "realized": 10.15,
+      "issued": 10.56,
+      "sced": 10.1
+    },
+    {
+      "s": 810,
+      "realized": 10.16,
+      "issued": 10.41,
+      "sced": 10.1
+    },
+    {
+      "s": 840,
+      "realized": 10.16,
+      "issued": 10.28,
+      "sced": 10.1
+    },
+    {
+      "s": 870,
+      "realized": 10.17,
+      "issued": 10.14,
+      "sced": 10.1
+    },
+    {
+      "s": 900,
+      "realized": 9.69,
+      "issued": 10.1,
+      "sced": 10.1
+    },
+    {
+      "s": 930,
+      "realized": 9.69,
+      "issued": 10.1,
+      "sced": 9.4
+    },
+    {
+      "s": 960,
+      "realized": 9.7,
+      "issued": 10.02,
+      "sced": 9.4
+    },
+    {
+      "s": 990,
+      "realized": 9.71,
+      "issued": 9.93,
+      "sced": 9.4
+    },
+    {
+      "s": 1020,
+      "realized": 9.72,
+      "issued": 9.83,
+      "sced": 9.4
+    },
+    {
+      "s": 1050,
+      "realized": 9.69,
+      "issued": 9.75,
+      "sced": 9.4
+    },
+    {
+      "s": 1080,
+      "realized": 9.44,
+      "issued": 9.66,
+      "sced": 9.4
+    },
+    {
+      "s": 1110,
+      "realized": 9.23,
+      "issued": 9.57,
+      "sced": 9.4
+    },
+    {
+      "s": 1140,
+      "realized": 9.24,
+      "issued": 9.48,
+      "sced": 9.4
+    },
+    {
+      "s": 1170,
+      "realized": 9.24,
+      "issued": 9.4,
+      "sced": 9.4
+    },
+    {
+      "s": 1200,
+      "realized": 9.24,
+      "issued": 9.4,
+      "sced": 9.4
+    },
+    {
+      "s": 1230,
+      "realized": 9.24,
+      "issued": 9.4,
+      "sced": 12.1
+    },
+    {
+      "s": 1260,
+      "realized": 9.25,
+      "issued": 9.76,
+      "sced": 12.1
+    },
+    {
+      "s": 1290,
+      "realized": 9.24,
+      "issued": 10.07,
+      "sced": 12.1
+    },
+    {
+      "s": 1320,
+      "realized": 9.72,
+      "issued": 10.44,
+      "sced": 12.1
+    },
+    {
+      "s": 1350,
+      "realized": 10.18,
+      "issued": 10.75,
+      "sced": 12.1
+    },
+    {
+      "s": 1380,
+      "realized": 10.2,
+      "issued": 11.11,
+      "sced": 12.1
+    },
+    {
+      "s": 1410,
+      "realized": 10.66,
+      "issued": 11.43,
+      "sced": 12.1
+    },
+    {
+      "s": 1440,
+      "realized": 11.13,
+      "issued": 11.74,
+      "sced": 12.1
+    },
+    {
+      "s": 1470,
+      "realized": 11.59,
+      "issued": 12.1,
+      "sced": 12.1
+    },
+    {
+      "s": 1500,
+      "realized": 11.6,
+      "issued": 12.1,
+      "sced": 12.1
+    },
+    {
+      "s": 1530,
+      "realized": 11.6,
+      "issued": 12.1,
+      "sced": 11.9
+    },
+    {
+      "s": 1560,
+      "realized": 11.6,
+      "issued": 12.08,
+      "sced": 11.9
+    },
+    {
+      "s": 1590,
+      "realized": 11.6,
+      "issued": 12.05,
+      "sced": 11.9
+    },
+    {
+      "s": 1620,
+      "realized": 11.6,
+      "issued": 12.03,
+      "sced": 11.9
+    },
+    {
+      "s": 1650,
+      "realized": 11.6,
+      "issued": 12,
+      "sced": 11.9
+    },
+    {
+      "s": 1680,
+      "realized": 11.6,
+      "issued": 11.97,
+      "sced": 11.9
+    },
+    {
+      "s": 1710,
+      "realized": 11.61,
+      "issued": 11.95,
+      "sced": 11.9
+    },
+    {
+      "s": 1740,
+      "realized": 11.61,
+      "issued": 11.92,
+      "sced": 11.9
+    },
+    {
+      "s": 1770,
+      "realized": 11.61,
+      "issued": 11.9,
+      "sced": 11.9
+    },
+    {
+      "s": 1800,
+      "realized": 11.62,
+      "issued": 11.9,
+      "sced": 11.9
+    },
+    {
+      "s": 1830,
+      "realized": 11.62,
+      "issued": 11.9,
+      "sced": 11.5
+    },
+    {
+      "s": 1860,
+      "realized": 11.61,
+      "issued": 11.85,
+      "sced": 11.5
+    },
+    {
+      "s": 1890,
+      "realized": 11.62,
+      "issued": 11.8,
+      "sced": 11.5
+    },
+    {
+      "s": 1920,
+      "realized": 11.62,
+      "issued": 11.75,
+      "sced": 11.5
+    },
+    {
+      "s": 1950,
+      "realized": 11.62,
+      "issued": 11.7,
+      "sced": 11.5
+    },
+    {
+      "s": 1980,
+      "realized": 11.62,
+      "issued": 11.65,
+      "sced": 11.5
+    },
+    {
+      "s": 2010,
+      "realized": 11.1,
+      "issued": 11.6,
+      "sced": 11.5
+    },
+    {
+      "s": 2040,
+      "realized": 11.09,
+      "issued": 11.55,
+      "sced": 11.5
+    },
+    {
+      "s": 2070,
+      "realized": 11.08,
+      "issued": 11.5,
+      "sced": 11.5
+    },
+    {
+      "s": 2100,
+      "realized": 11.09,
+      "issued": 11.5,
+      "sced": 11.5
+    },
+    {
+      "s": 2130,
+      "realized": 11.1,
+      "issued": 11.5,
+      "sced": 11.8
+    },
+    {
+      "s": 2160,
+      "realized": 11.1,
+      "issued": 11.54,
+      "sced": 11.8
+    },
+    {
+      "s": 2190,
+      "realized": 11.11,
+      "issued": 11.57,
+      "sced": 11.8
+    },
+    {
+      "s": 2220,
+      "realized": 11.11,
+      "issued": 11.61,
+      "sced": 11.8
+    },
+    {
+      "s": 2250,
+      "realized": 11.11,
+      "issued": 11.65,
+      "sced": 11.8
+    },
+    {
+      "s": 2280,
+      "realized": 11.58,
+      "issued": 11.69,
+      "sced": 11.8
+    },
+    {
+      "s": 2310,
+      "realized": 11.57,
+      "issued": 11.72,
+      "sced": 11.8
+    },
+    {
+      "s": 2340,
+      "realized": 11.55,
+      "issued": 11.76,
+      "sced": 11.8
+    },
+    {
+      "s": 2370,
+      "realized": 11.56,
+      "issued": 11.8,
+      "sced": 11.8
+    },
+    {
+      "s": 2400,
+      "realized": 11.56,
+      "issued": 11.8,
+      "sced": 11.8
+    },
+    {
+      "s": 2430,
+      "realized": 11.57,
+      "issued": 11.8,
+      "sced": 11.8
+    },
+    {
+      "s": 2460,
+      "realized": 11.57,
+      "issued": 11.77,
+      "sced": 11.5
+    },
+    {
+      "s": 2490,
+      "realized": 11.56,
+      "issued": 11.73,
+      "sced": 11.5
+    },
+    {
+      "s": 2520,
+      "realized": 11.56,
+      "issued": 11.7,
+      "sced": 11.5
+    },
+    {
+      "s": 2550,
+      "realized": 11.56,
+      "issued": 11.66,
+      "sced": 11.5
+    },
+    {
+      "s": 2580,
+      "realized": 11.57,
+      "issued": 11.62,
+      "sced": 11.5
+    },
+    {
+      "s": 2610,
+      "realized": 11.06,
+      "issued": 11.59,
+      "sced": 11.5
+    },
+    {
+      "s": 2640,
+      "realized": 11.08,
+      "issued": 11.54,
+      "sced": 11.5
+    },
+    {
+      "s": 2670,
+      "realized": 11.12,
+      "issued": 11.51,
+      "sced": 11.5
+    },
+    {
+      "s": 2700,
+      "realized": 11.12,
+      "issued": 11.5,
+      "sced": 11.5
+    },
+    {
+      "s": 2730,
+      "realized": 11.13,
+      "issued": 11.5,
+      "sced": 11.5
+    },
+    {
+      "s": 2760,
+      "realized": 11.13,
+      "issued": 11.5,
+      "sced": 11.5
+    },
+    {
+      "s": 2790,
+      "realized": 11.14,
+      "issued": 11.5,
+      "sced": 11.5
+    },
+    {
+      "s": 2820,
+      "realized": 11.13,
+      "issued": 11.5,
+      "sced": 11.5
+    },
+    {
+      "s": 2850,
+      "realized": 11.14,
+      "issued": 11.5,
+      "sced": 11.5
+    },
+    {
+      "s": 2880,
+      "realized": 11.13,
+      "issued": 11.5,
+      "sced": 11.5
+    },
+    {
+      "s": 2910,
+      "realized": 11.14,
+      "issued": 11.5,
+      "sced": 11.5
+    },
+    {
+      "s": 2940,
+      "realized": 11.14,
+      "issued": 11.5,
+      "sced": 11.5
+    },
+    {
+      "s": 2970,
+      "realized": 11.13,
+      "issued": 11.5,
+      "sced": 11.5
+    },
+    {
+      "s": 3000,
+      "realized": 11.14,
+      "issued": 11.5,
+      "sced": 11.5
+    },
+    {
+      "s": 3030,
+      "realized": 11.15,
+      "issued": 11.5,
+      "sced": 11.6
+    },
+    {
+      "s": 3060,
+      "realized": 11.14,
+      "issued": 11.51,
+      "sced": 11.6
+    },
+    {
+      "s": 3090,
+      "realized": 11.15,
+      "issued": 11.53,
+      "sced": 11.6
+    },
+    {
+      "s": 3120,
+      "realized": 11.15,
+      "issued": 11.54,
+      "sced": 11.6
+    },
+    {
+      "s": 3150,
+      "realized": 11.15,
+      "issued": 11.55,
+      "sced": 11.6
+    },
+    {
+      "s": 3180,
+      "realized": 11.15,
+      "issued": 11.56,
+      "sced": 11.6
+    },
+    {
+      "s": 3210,
+      "realized": 11.16,
+      "issued": 11.57,
+      "sced": 11.6
+    },
+    {
+      "s": 3240,
+      "realized": 11.15,
+      "issued": 11.59,
+      "sced": 11.6
+    },
+    {
+      "s": 3270,
+      "realized": 11.15,
+      "issued": 11.6,
+      "sced": 11.6
+    },
+    {
+      "s": 3300,
+      "realized": 11.15,
+      "issued": 11.6,
+      "sced": 11.6
+    },
+    {
+      "s": 3330,
+      "realized": 11.15,
+      "issued": 11.6,
+      "sced": 11.8
+    },
+    {
+      "s": 3360,
+      "realized": 11.15,
+      "issued": 11.63,
+      "sced": 11.8
+    },
+    {
+      "s": 3390,
+      "realized": 11.16,
+      "issued": 11.65,
+      "sced": 11.8
+    },
+    {
+      "s": 3420,
+      "realized": 11.16,
+      "issued": 11.68,
+      "sced": 11.8
+    },
+    {
+      "s": 3450,
+      "realized": 11.15,
+      "issued": 11.7,
+      "sced": 11.8
+    },
+    {
+      "s": 3480,
+      "realized": 11.62,
+      "issued": 11.73,
+      "sced": 11.8
+    },
+    {
+      "s": 3510,
+      "realized": 11.62,
+      "issued": 11.75,
+      "sced": 11.8
+    },
+    {
+      "s": 3540,
+      "realized": 11.62,
+      "issued": 11.78,
+      "sced": 11.8
+    },
+    {
+      "s": 3570,
+      "realized": 11.62,
+      "issued": 11.8,
+      "sced": 11.8
+    },
+    {
+      "s": 3600,
+      "realized": 11.62,
+      "issued": 11.8,
+      "sced": 11.8
+    },
+    {
+      "s": 3630,
+      "realized": 11.62,
+      "issued": 11.8,
+      "sced": 11.8
+    },
+    {
+      "s": 3660,
+      "realized": 11.62,
+      "issued": 11.84,
+      "sced": 12.2
+    },
+    {
+      "s": 3690,
+      "realized": 11.62,
+      "issued": 11.89,
+      "sced": 12.2
+    },
+    {
+      "s": 3720,
+      "realized": 11.62,
+      "issued": 11.94,
+      "sced": 12.2
+    },
+    {
+      "s": 3750,
+      "realized": 11.63,
+      "issued": 11.99,
+      "sced": 12.2
+    },
+    {
+      "s": 3780,
+      "realized": 11.62,
+      "issued": 12.05,
+      "sced": 12.2
+    },
+    {
+      "s": 3810,
+      "realized": 11.61,
+      "issued": 12.09,
+      "sced": 12.2
+    },
+    {
+      "s": 3840,
+      "realized": 11.63,
+      "issued": 12.15,
+      "sced": 12.2
+    },
+    {
+      "s": 3870,
+      "realized": 11.62,
+      "issued": 12.19,
+      "sced": 12.2
+    },
+    {
+      "s": 3900,
+      "realized": 12.08,
+      "issued": 12.2,
+      "sced": 12.2
+    },
+    {
+      "s": 3930,
+      "realized": 12.09,
+      "issued": 12.2,
+      "sced": 12.2
+    },
+    {
+      "s": 3960,
+      "realized": 12.08,
+      "issued": 14.25,
+      "sced": 36.8
+    },
+    {
+      "s": 3990,
+      "realized": 13.93,
+      "issued": 17.12,
+      "sced": 36.8
+    },
+    {
+      "s": 4020,
+      "realized": 16.69,
+      "issued": 20.4,
+      "sced": 36.8
+    },
+    {
+      "s": 4050,
+      "realized": 17.81,
+      "issued": 23.27,
+      "sced": 36.8
+    },
+    {
+      "s": 4080,
+      "realized": 22.8,
+      "issued": 26.55,
+      "sced": 36.8
+    },
+    {
+      "s": 4110,
+      "realized": 26.05,
+      "issued": 29.42,
+      "sced": 36.8
+    },
+    {
+      "s": 4140,
+      "realized": 28.89,
+      "issued": 32.7,
+      "sced": 36.8
+    },
+    {
+      "s": 4170,
+      "realized": 32.14,
+      "issued": 35.57,
+      "sced": 36.8
+    },
+    {
+      "s": 4200,
+      "realized": 35.37,
+      "issued": 36.8,
+      "sced": 36.8
+    },
+    {
+      "s": 4230,
+      "realized": 36.26,
+      "issued": 36.8,
+      "sced": 36.8
+    },
+    {
+      "s": 4260,
+      "realized": 36.33,
+      "issued": 37.79,
+      "sced": 46.7
+    },
+    {
+      "s": 4290,
+      "realized": 37.28,
+      "issued": 39.11,
+      "sced": 46.7
+    },
+    {
+      "s": 4320,
+      "realized": 38.61,
+      "issued": 40.27,
+      "sced": 46.7
+    },
+    {
+      "s": 4350,
+      "realized": 39.97,
+      "issued": 41.59,
+      "sced": 46.7
+    },
+    {
+      "s": 4380,
+      "realized": 40.89,
+      "issued": 42.74,
+      "sced": 46.7
+    },
+    {
+      "s": 4410,
+      "realized": 42.25,
+      "issued": 44.06,
+      "sced": 46.7
+    },
+    {
+      "s": 4440,
+      "realized": 43.74,
+      "issued": 45.38,
+      "sced": 46.7
+    },
+    {
+      "s": 4470,
+      "realized": 45.04,
+      "issued": 46.53,
+      "sced": 46.7
+    },
+    {
+      "s": 4500,
+      "realized": 45.81,
+      "issued": 46.7,
+      "sced": 46.7
+    },
+    {
+      "s": 4530,
+      "realized": 45.74,
+      "issued": 46.7,
+      "sced": 46.7
+    },
+    {
+      "s": 4560,
+      "realized": 45.8,
+      "issued": 46.7,
+      "sced": 46.7
+    },
+    {
+      "s": 4590,
+      "realized": 45.78,
+      "issued": 46.7,
+      "sced": 46.7
+    },
+    {
+      "s": 4620,
+      "realized": 45.73,
+      "issued": 46.7,
+      "sced": 46.7
+    },
+    {
+      "s": 4650,
+      "realized": 45.75,
+      "issued": 46.7,
+      "sced": 46.7
+    },
+    {
+      "s": 4680,
+      "realized": 45.72,
+      "issued": 46.7,
+      "sced": 46.7
+    },
+    {
+      "s": 4710,
+      "realized": 45.72,
+      "issued": 46.7,
+      "sced": 46.7
+    },
+    {
+      "s": 4740,
+      "realized": 45.7,
+      "issued": 46.7,
+      "sced": 46.7
+    },
+    {
+      "s": 4770,
+      "realized": 45.69,
+      "issued": 46.7,
+      "sced": 46.7
+    },
+    {
+      "s": 4800,
+      "realized": 45.7,
+      "issued": 46.7,
+      "sced": 46.7
+    },
+    {
+      "s": 4830,
+      "realized": 45.74,
+      "issued": 46.7,
+      "sced": 46.7
+    },
+    {
+      "s": 4860,
+      "realized": 45.74,
+      "issued": 46.7,
+      "sced": 46.7
+    },
+    {
+      "s": 4890,
+      "realized": 45.8,
+      "issued": 46.7,
+      "sced": 46.7
+    },
+    {
+      "s": 4920,
+      "realized": 45.82,
+      "issued": 46.7,
+      "sced": 46.7
+    },
+    {
+      "s": 4950,
+      "realized": 45.82,
+      "issued": 46.7,
+      "sced": 46.7
+    },
+    {
+      "s": 4980,
+      "realized": 45.81,
+      "issued": 46.7,
+      "sced": 46.7
+    },
+    {
+      "s": 5010,
+      "realized": 45.84,
+      "issued": 46.7,
+      "sced": 46.7
+    },
+    {
+      "s": 5040,
+      "realized": 45.78,
+      "issued": 46.7,
+      "sced": 46.7
+    },
+    {
+      "s": 5070,
+      "realized": 45.81,
+      "issued": 46.7,
+      "sced": 46.7
+    },
+    {
+      "s": 5100,
+      "realized": 45.78,
+      "issued": 46.7,
+      "sced": 46.7
+    },
+    {
+      "s": 5130,
+      "realized": 45.81,
+      "issued": 46.7,
+      "sced": 46.7
+    },
+    {
+      "s": 5160,
+      "realized": 45.82,
+      "issued": 46.7,
+      "sced": 46.7
+    },
+    {
+      "s": 5190,
+      "realized": 45.8,
+      "issued": 46.7,
+      "sced": 46.7
+    },
+    {
+      "s": 5220,
+      "realized": 45.78,
+      "issued": 46.7,
+      "sced": 46.7
+    },
+    {
+      "s": 5250,
+      "realized": 45.79,
+      "issued": 46.7,
+      "sced": 46.7
+    },
+    {
+      "s": 5280,
+      "realized": 45.73,
+      "issued": 46.7,
+      "sced": 46.7
+    },
+    {
+      "s": 5310,
+      "realized": 45.73,
+      "issued": 46.7,
+      "sced": 46.7
+    },
+    {
+      "s": 5340,
+      "realized": 45.77,
+      "issued": 46.7,
+      "sced": 46.7
+    },
+    {
+      "s": 5370,
+      "realized": 45.79,
+      "issued": 46.7,
+      "sced": 46.7
+    },
+    {
+      "s": 5400,
+      "realized": 45.75,
+      "issued": 46.7,
+      "sced": 46.7
+    },
+    {
+      "s": 5430,
+      "realized": 45.71,
+      "issued": 46.7,
+      "sced": 46.7
+    },
+    {
+      "s": 5460,
+      "realized": 44.68,
+      "issued": 44.54,
+      "sced": 20.8
+    },
+    {
+      "s": 5490,
+      "realized": 43.65,
+      "issued": 41.52,
+      "sced": 20.8
+    },
+    {
+      "s": 5520,
+      "realized": 40.74,
+      "issued": 38.5,
+      "sced": 20.8
+    },
+    {
+      "s": 5550,
+      "realized": 38.12,
+      "issued": 35.05,
+      "sced": 20.8
+    },
+    {
+      "s": 5580,
+      "realized": 34.89,
+      "issued": 32.02,
+      "sced": 20.8
+    },
+    {
+      "s": 5610,
+      "realized": 31.63,
+      "issued": 28.57,
+      "sced": 20.8
+    },
+    {
+      "s": 5640,
+      "realized": 28.35,
+      "issued": 25.55,
+      "sced": 20.8
+    },
+    {
+      "s": 5670,
+      "realized": 25.11,
+      "issued": 22.09,
+      "sced": 20.8
+    },
+    {
+      "s": 5700,
+      "realized": 21.8,
+      "issued": 20.8,
+      "sced": 20.8
+    },
+    {
+      "s": 5730,
+      "realized": 20.37,
+      "issued": 20.8,
+      "sced": 0
+    },
+    {
+      "s": 5760,
+      "realized": 20.4,
+      "issued": 18.03,
+      "sced": 0
+    },
+    {
+      "s": 5790,
+      "realized": 17.54,
+      "issued": 15.6,
+      "sced": 0
+    },
+    {
+      "s": 5820,
+      "realized": 15.28,
+      "issued": 12.83,
+      "sced": 0
+    },
+    {
+      "s": 5850,
+      "realized": 12.52,
+      "issued": 10.4,
+      "sced": 0
+    },
+    {
+      "s": 5880,
+      "realized": 10.22,
+      "issued": 7.63,
+      "sced": 0
+    },
+    {
+      "s": 5910,
+      "realized": 7.37,
+      "issued": 5.2,
+      "sced": 0
+    },
+    {
+      "s": 5940,
+      "realized": 5.02,
+      "issued": 2.43,
+      "sced": 0
+    },
+    {
+      "s": 5970,
+      "realized": 2.27,
+      "issued": 0,
+      "sced": 0
+    },
+    {
+      "s": 6000,
+      "realized": -0.12,
+      "issued": 0,
+      "sced": 0
+    },
+    {
+      "s": 6030,
+      "realized": -0.18,
+      "issued": 0,
+      "sced": 0
+    },
+    {
+      "s": 6060,
+      "realized": -0.19,
+      "issued": 0,
+      "sced": 0
+    },
+    {
+      "s": 6090,
+      "realized": -0.19,
+      "issued": 0,
+      "sced": 0
+    },
+    {
+      "s": 6120,
+      "realized": -0.19,
+      "issued": 0,
+      "sced": 0
+    },
+    {
+      "s": 6150,
+      "realized": -0.19,
+      "issued": 0,
+      "sced": 0
+    },
+    {
+      "s": 6180,
+      "realized": -0.2,
+      "issued": 0,
+      "sced": 0
+    },
+    {
+      "s": 6210,
+      "realized": -0.2,
+      "issued": 0,
+      "sced": 0
+    },
+    {
+      "s": 6240,
+      "realized": -0.2,
+      "issued": 0,
+      "sced": 0
+    },
+    {
+      "s": 6270,
+      "realized": -0.2,
+      "issued": 0,
+      "sced": 0
+    },
+    {
+      "s": 6300,
+      "realized": -0.19,
+      "issued": 0,
+      "sced": 0
+    },
+    {
+      "s": 6330,
+      "realized": -0.2,
+      "issued": 0,
+      "sced": -0.1
+    },
+    {
+      "s": 6360,
+      "realized": -0.2,
+      "issued": -0.01,
+      "sced": -0.1
+    },
+    {
+      "s": 6390,
+      "realized": -0.21,
+      "issued": -0.03,
+      "sced": -0.1
+    },
+    {
+      "s": 6420,
+      "realized": -0.22,
+      "issued": -0.04,
+      "sced": -0.1
+    },
+    {
+      "s": 6450,
+      "realized": -0.23,
+      "issued": -0.05,
+      "sced": -0.1
+    },
+    {
+      "s": 6480,
+      "realized": -0.24,
+      "issued": -0.06,
+      "sced": -0.1
+    },
+    {
+      "s": 6510,
+      "realized": -0.25,
+      "issued": -0.07,
+      "sced": -0.1
+    },
+    {
+      "s": 6540,
+      "realized": -0.26,
+      "issued": -0.09,
+      "sced": -0.1
+    },
+    {
+      "s": 6570,
+      "realized": -0.27,
+      "issued": -0.1,
+      "sced": -0.1
+    },
+    {
+      "s": 6600,
+      "realized": -0.28,
+      "issued": -0.1,
+      "sced": -0.1
+    },
+    {
+      "s": 6630,
+      "realized": -0.28,
+      "issued": -0.52,
+      "sced": -25.3
+    },
+    {
+      "s": 6660,
+      "realized": -0.62,
+      "issued": -3.88,
+      "sced": -25.3
+    },
+    {
+      "s": 6690,
+      "realized": -3.68,
+      "issued": -6.82,
+      "sced": -25.3
+    },
+    {
+      "s": 6720,
+      "realized": -6.66,
+      "issued": -10.18,
+      "sced": -25.3
+    },
+    {
+      "s": 6750,
+      "realized": -9.67,
+      "issued": -13.12,
+      "sced": -25.3
+    },
+    {
+      "s": 6780,
+      "realized": -12.63,
+      "issued": -16.48,
+      "sced": -25.3
+    },
+    {
+      "s": 6810,
+      "realized": -15.6,
+      "issued": -19.42,
+      "sced": -25.3
+    },
+    {
+      "s": 6840,
+      "realized": -18.58,
+      "issued": -22.78,
+      "sced": -25.3
+    },
+    {
+      "s": 6870,
+      "realized": -22.04,
+      "issued": -25.3,
+      "sced": -25.3
+    },
+    {
+      "s": 6900,
+      "realized": -24.57,
+      "issued": -25.3,
+      "sced": -25.3
+    },
+    {
+      "s": 6930,
+      "realized": -24.6,
+      "issued": -25.64,
+      "sced": -45.6
+    },
+    {
+      "s": 6960,
+      "realized": -25.07,
+      "issued": -28.01,
+      "sced": -45.6
+    },
+    {
+      "s": 6990,
+      "realized": -27.17,
+      "issued": -30.71,
+      "sced": -45.6
+    },
+    {
+      "s": 7020,
+      "realized": -29.7,
+      "issued": -33.08,
+      "sced": -45.6
+    },
+    {
+      "s": 7050,
+      "realized": -31.74,
+      "issued": -35.79,
+      "sced": -45.6
+    },
+    {
+      "s": 7080,
+      "realized": -34.72,
+      "issued": -38.16,
+      "sced": -45.6
+    },
+    {
+      "s": 7110,
+      "realized": -36.82,
+      "issued": -40.86,
+      "sced": -45.6
+    },
+    {
+      "s": 7140,
+      "realized": -39.74,
+      "issued": -43.23,
+      "sced": -45.6
+    },
+    {
+      "s": 7170,
+      "realized": -42.23,
+      "issued": -45.6,
+      "sced": -45.6
+    },
+    {
+      "s": 7200,
+      "realized": -44.29,
+      "issued": -45.6,
+      "sced": -45.6
+    },
+    {
+      "s": 7230,
+      "realized": -44.3,
+      "issued": -45.6,
+      "sced": -17.2
+    },
+    {
+      "s": 7260,
+      "realized": -44.27,
+      "issued": -41.81,
+      "sced": -17.2
+    },
+    {
+      "s": 7290,
+      "realized": -40.72,
+      "issued": -38.5,
+      "sced": -17.2
+    },
+    {
+      "s": 7320,
+      "realized": -37.26,
+      "issued": -34.71,
+      "sced": -17.2
+    },
+    {
+      "s": 7350,
+      "realized": -33.68,
+      "issued": -31.4,
+      "sced": -17.2
+    },
+    {
+      "s": 7380,
+      "realized": -30.2,
+      "issued": -27.61,
+      "sced": -17.2
+    },
+    {
+      "s": 7410,
+      "realized": -27.11,
+      "issued": -24.3,
+      "sced": -17.2
+    },
+    {
+      "s": 7440,
+      "realized": -23.6,
+      "issued": -20.51,
+      "sced": -17.2
+    },
+    {
+      "s": 7470,
+      "realized": -19.62,
+      "issued": -17.2,
+      "sced": -17.2
+    },
+    {
+      "s": 7500,
+      "realized": -16.57,
+      "issued": -17.2,
+      "sced": -17.2
+    },
+    {
+      "s": 7530,
+      "realized": -16.58,
+      "issued": -16.91,
+      "sced": 0
+    },
+    {
+      "s": 7560,
+      "realized": -16.12,
+      "issued": -14.91,
+      "sced": 0
+    },
+    {
+      "s": 7590,
+      "realized": -14.22,
+      "issued": -12.61,
+      "sced": 0
+    },
+    {
+      "s": 7620,
+      "realized": -12.16,
+      "issued": -10.61,
+      "sced": 0
+    },
+    {
+      "s": 7650,
+      "realized": -10.16,
+      "issued": -8.31,
+      "sced": 0
+    },
+    {
+      "s": 7680,
+      "realized": -8.57,
+      "issued": -6.31,
+      "sced": 0
+    },
+    {
+      "s": 7710,
+      "realized": -6.16,
+      "issued": -4.01,
+      "sced": 0
+    },
+    {
+      "s": 7740,
+      "realized": -3.69,
+      "issued": -2.01,
+      "sced": 0
+    },
+    {
+      "s": 7770,
+      "realized": -1.67,
+      "issued": 0,
+      "sced": 0
+    },
+    {
+      "s": 7800,
+      "realized": -0.06,
+      "issued": 0,
+      "sced": 0
+    },
+    {
+      "s": 7830,
+      "realized": -0.21,
+      "issued": 0,
+      "sced": 0
+    },
+    {
+      "s": 7860,
+      "realized": -0.21,
+      "issued": 0,
+      "sced": 0
+    },
+    {
+      "s": 7890,
+      "realized": -0.21,
+      "issued": 0,
+      "sced": 0
+    },
+    {
+      "s": 7920,
+      "realized": -0.21,
+      "issued": 0,
+      "sced": 0
+    },
+    {
+      "s": 7950,
+      "realized": -0.21,
+      "issued": 0,
+      "sced": 0
+    },
+    {
+      "s": 7980,
+      "realized": -0.21,
+      "issued": 0,
+      "sced": 0
+    },
+    {
+      "s": 8010,
+      "realized": -0.21,
+      "issued": 0,
+      "sced": 0
+    },
+    {
+      "s": 8040,
+      "realized": -0.21,
+      "issued": 0,
+      "sced": 0
+    },
+    {
+      "s": 8070,
+      "realized": -0.21,
+      "issued": 0,
+      "sced": 0
+    },
+    {
+      "s": 8100,
+      "realized": -0.21,
+      "issued": 0,
+      "sced": 0
+    },
+    {
+      "s": 8130,
+      "realized": -0.21,
+      "issued": 0,
+      "sced": 0
+    },
+    {
+      "s": 8160,
+      "realized": -0.21,
+      "issued": 0,
+      "sced": 0
+    },
+    {
+      "s": 8190,
+      "realized": -0.21,
+      "issued": 0,
+      "sced": 0
+    },
+    {
+      "s": 8220,
+      "realized": -0.21,
+      "issued": 0,
+      "sced": 0
+    },
+    {
+      "s": 8250,
+      "realized": -0.21,
+      "issued": 0,
+      "sced": 0
+    },
+    {
+      "s": 8280,
+      "realized": -0.21,
+      "issued": 0,
+      "sced": 0
+    },
+    {
+      "s": 8310,
+      "realized": -0.21,
+      "issued": 0,
+      "sced": 0
+    },
+    {
+      "s": 8340,
+      "realized": -0.21,
+      "issued": 0,
+      "sced": 0
+    },
+    {
+      "s": 8370,
+      "realized": -0.21,
+      "issued": 0,
+      "sced": 0
+    },
+    {
+      "s": 8400,
+      "realized": -0.21,
+      "issued": 0,
+      "sced": 0
+    },
+    {
+      "s": 8430,
+      "realized": -0.2,
+      "issued": 0,
+      "sced": 0
+    },
+    {
+      "s": 8460,
+      "realized": -0.2,
+      "issued": 0,
+      "sced": 0
+    },
+    {
+      "s": 8490,
+      "realized": -0.2,
+      "issued": 0,
+      "sced": 0
+    },
+    {
+      "s": 8520,
+      "realized": -0.2,
+      "issued": 0,
+      "sced": 0
+    },
+    {
+      "s": 8550,
+      "realized": -0.2,
+      "issued": 0,
+      "sced": 0
+    },
+    {
+      "s": 8580,
+      "realized": -0.2,
+      "issued": 0,
+      "sced": 0
+    },
+    {
+      "s": 8610,
+      "realized": -0.2,
+      "issued": 0,
+      "sced": 0
+    },
+    {
+      "s": 8640,
+      "realized": -0.2,
+      "issued": 0,
+      "sced": 0
+    },
+    {
+      "s": 8670,
+      "realized": -0.2,
+      "issued": 0,
+      "sced": 0
+    },
+    {
+      "s": 8700,
+      "realized": -0.2,
+      "issued": 0,
+      "sced": 0
+    },
+    {
+      "s": 8730,
+      "realized": -0.2,
+      "issued": 0,
+      "sced": 0
+    },
+    {
+      "s": 8760,
+      "realized": -0.2,
+      "issued": 0,
+      "sced": 0
+    },
+    {
+      "s": 8790,
+      "realized": -0.2,
+      "issued": 0,
+      "sced": 0
+    },
+    {
+      "s": 8820,
+      "realized": -0.2,
+      "issued": 0,
+      "sced": 0
+    },
+    {
+      "s": 8850,
+      "realized": -0.2,
+      "issued": 0,
+      "sced": 0
+    },
+    {
+      "s": 8880,
+      "realized": -0.2,
+      "issued": 0,
+      "sced": 0
+    },
+    {
+      "s": 8910,
+      "realized": -0.2,
+      "issued": 0,
+      "sced": 0
+    },
+    {
+      "s": 8940,
+      "realized": -0.2,
+      "issued": 0,
+      "sced": 0
+    },
+    {
+      "s": 8970,
+      "realized": -0.2,
+      "issued": 0,
+      "sced": 0
+    },
+    {
+      "s": 9000,
+      "realized": -0.2,
+      "issued": 0,
+      "sced": 0
+    },
+    {
+      "s": 9030,
+      "realized": -0.2,
+      "issued": 0,
+      "sced": 0
+    },
+    {
+      "s": 9060,
+      "realized": -0.2,
+      "issued": 0,
+      "sced": 0
+    },
+    {
+      "s": 9090,
+      "realized": -0.2,
+      "issued": 0,
+      "sced": 0
+    },
+    {
+      "s": 9120,
+      "realized": -0.2,
+      "issued": 0,
+      "sced": 0
+    },
+    {
+      "s": 9150,
+      "realized": -0.2,
+      "issued": 0,
+      "sced": 0
+    },
+    {
+      "s": 9180,
+      "realized": -0.2,
+      "issued": 0,
+      "sced": 0
+    },
+    {
+      "s": 9210,
+      "realized": -0.2,
+      "issued": 0,
+      "sced": 0
+    },
+    {
+      "s": 9240,
+      "realized": -0.2,
+      "issued": 0,
+      "sced": 0
+    },
+    {
+      "s": 9270,
+      "realized": -0.2,
+      "issued": 0,
+      "sced": 0
+    },
+    {
+      "s": 9300,
+      "realized": -0.2,
+      "issued": 0,
+      "sced": 0
+    },
+    {
+      "s": 9330,
+      "realized": -0.2,
+      "issued": -0.42,
+      "sced": -25.2
+    },
+    {
+      "s": 9360,
+      "realized": -0.52,
+      "issued": -3.78,
+      "sced": -25.2
+    },
+    {
+      "s": 9390,
+      "realized": -3.65,
+      "issued": -6.72,
+      "sced": -25.2
+    },
+    {
+      "s": 9420,
+      "realized": -6.65,
+      "issued": -10.08,
+      "sced": -25.2
+    },
+    {
+      "s": 9450,
+      "realized": -9.71,
+      "issued": -13.02,
+      "sced": -25.2
+    },
+    {
+      "s": 9480,
+      "realized": -12.24,
+      "issued": -15.96,
+      "sced": -25.2
+    },
+    {
+      "s": 9510,
+      "realized": -15.21,
+      "issued": -19.32,
+      "sced": -25.2
+    },
+    {
+      "s": 9540,
+      "realized": -18.62,
+      "issued": -22.26,
+      "sced": -25.2
+    },
+    {
+      "s": 9570,
+      "realized": -21.65,
+      "issued": -25.2,
+      "sced": -25.2
+    },
+    {
+      "s": 9600,
+      "realized": -24.62,
+      "issued": -25.2,
+      "sced": -25.2
+    },
+    {
+      "s": 9630,
+      "realized": -24.65,
+      "issued": -25.54,
+      "sced": -45.8
+    },
+    {
+      "s": 9660,
+      "realized": -24.71,
+      "issued": -27.95,
+      "sced": -45.8
+    },
+    {
+      "s": 9690,
+      "realized": -27.2,
+      "issued": -30.69,
+      "sced": -45.8
+    },
+    {
+      "s": 9720,
+      "realized": -29.32,
+      "issued": -33.1,
+      "sced": -45.8
+    },
+    {
+      "s": 9750,
+      "realized": -31.8,
+      "issued": -35.84,
+      "sced": -45.8
+    },
+    {
+      "s": 9780,
+      "realized": -34.82,
+      "issued": -38.59,
+      "sced": -45.8
+    },
+    {
+      "s": 9810,
+      "realized": -37.38,
+      "issued": -40.99,
+      "sced": -45.8
+    },
+    {
+      "s": 9840,
+      "realized": -39.85,
+      "issued": -43.74,
+      "sced": -45.8
+    },
+    {
+      "s": 9870,
+      "realized": -42.44,
+      "issued": -45.8,
+      "sced": -45.8
+    },
+    {
+      "s": 9900,
+      "realized": -44.27,
+      "issued": -45.8,
+      "sced": -45.8
+    },
+    {
+      "s": 9930,
+      "realized": -44.68,
+      "issued": -45.8,
+      "sced": -45.8
+    },
+    {
+      "s": 9960,
+      "realized": -44.67,
+      "issued": -45.8,
+      "sced": -45.8
+    },
+    {
+      "s": 9990,
+      "realized": -44.64,
+      "issued": -45.8,
+      "sced": -45.8
+    },
+    {
+      "s": 10020,
+      "realized": -44.67,
+      "issued": -45.8,
+      "sced": -45.8
+    },
+    {
+      "s": 10050,
+      "realized": -44.74,
+      "issued": -45.8,
+      "sced": -45.8
+    },
+    {
+      "s": 10080,
+      "realized": -44.78,
+      "issued": -45.8,
+      "sced": -45.8
+    },
+    {
+      "s": 10110,
+      "realized": -44.77,
+      "issued": -45.8,
+      "sced": -45.8
+    },
+    {
+      "s": 10140,
+      "realized": -44.76,
+      "issued": -45.8,
+      "sced": -45.8
+    },
+    {
+      "s": 10170,
+      "realized": -44.74,
+      "issued": -45.8,
+      "sced": -45.8
+    },
+    {
+      "s": 10200,
+      "realized": -44.76,
+      "issued": -45.8,
+      "sced": -45.8
+    },
+    {
+      "s": 10230,
+      "realized": -44.77,
+      "issued": -45.8,
+      "sced": -45.6
+    },
+    {
+      "s": 10260,
+      "realized": -44.77,
+      "issued": -45.77,
+      "sced": -45.6
+    },
+    {
+      "s": 10290,
+      "realized": -44.79,
+      "issued": -45.75,
+      "sced": -45.6
+    },
+    {
+      "s": 10320,
+      "realized": -44.77,
+      "issued": -45.72,
+      "sced": -45.6
+    },
+    {
+      "s": 10350,
+      "realized": -44.79,
+      "issued": -45.7,
+      "sced": -45.6
+    },
+    {
+      "s": 10380,
+      "realized": -44.78,
+      "issued": -45.67,
+      "sced": -45.6
+    },
+    {
+      "s": 10410,
+      "realized": -44.35,
+      "issued": -45.65,
+      "sced": -45.6
+    },
+    {
+      "s": 10440,
+      "realized": -44.33,
+      "issued": -45.62,
+      "sced": -45.6
+    },
+    {
+      "s": 10470,
+      "realized": -44.34,
+      "issued": -45.6,
+      "sced": -45.6
+    },
+    {
+      "s": 10500,
+      "realized": -44.35,
+      "issued": -45.6,
+      "sced": -45.6
+    },
+    {
+      "s": 10530,
+      "realized": -44.37,
+      "issued": -45.55,
+      "sced": -42.9
+    },
+    {
+      "s": 10560,
+      "realized": -44.37,
+      "issued": -45.2,
+      "sced": -42.9
+    },
+    {
+      "s": 10590,
+      "realized": -43.91,
+      "issued": -44.88,
+      "sced": -42.9
+    },
+    {
+      "s": 10620,
+      "realized": -43.66,
+      "issued": -44.52,
+      "sced": -42.9
+    },
+    {
+      "s": 10650,
+      "realized": -43.42,
+      "issued": -44.2,
+      "sced": -42.9
+    },
+    {
+      "s": 10680,
+      "realized": -42.97,
+      "issued": -43.84,
+      "sced": -42.9
+    },
+    {
+      "s": 10710,
+      "realized": -42.89,
+      "issued": -43.53,
+      "sced": -42.9
+    },
+    {
+      "s": 10740,
+      "realized": -42.43,
+      "issued": -43.17,
+      "sced": -42.9
+    },
+    {
+      "s": 10770,
+      "realized": -41.92,
+      "issued": -42.9,
+      "sced": -42.9
+    },
+    {
+      "s": 10800,
+      "realized": -41.91,
+      "issued": -42.9,
+      "sced": -42.9
+    }
+  ]
+}

@@ -1,0 +1,176 @@
+{
+  "description": "Base Power fleet nameplate discharge capacity by month, May 2025 - August 2026",
+  "source": "Base Power public blog",
+  "fields": {
+    "month": "YYYY-MM",
+    "fleetMw": "Total fleet nameplate MW",
+    "north": "LZ North ADER enrollment MW",
+    "south": "LZ South ADER enrollment MW",
+    "houston": "LZ Houston ADER enrollment MW",
+    "restMw": "Non-ADER fleet capacity MW",
+    "aderSharePct": "ADER share of fleet as percentage",
+    "pendingMw": "Pending ADER enrollment MW"
+  },
+  "months": [
+    {
+      "month": "2025-05",
+      "fleetMw": 28.9,
+      "north": 0,
+      "south": 0,
+      "houston": 0,
+      "restMw": 28.9,
+      "aderSharePct": 0,
+      "pendingMw": 0
+    },
+    {
+      "month": "2025-06",
+      "fleetMw": 34.3,
+      "north": 4.2,
+      "south": 2.8,
+      "houston": 0,
+      "restMw": 27.3,
+      "aderSharePct": 20,
+      "pendingMw": 0
+    },
+    {
+      "month": "2025-07",
+      "fleetMw": 43.2,
+      "north": 4.2,
+      "south": 2.8,
+      "houston": 0,
+      "restMw": 36.2,
+      "aderSharePct": 16,
+      "pendingMw": 0
+    },
+    {
+      "month": "2025-08",
+      "fleetMw": 51.4,
+      "north": 4.2,
+      "south": 2.8,
+      "houston": 0,
+      "restMw": 44.4,
+      "aderSharePct": 14,
+      "pendingMw": 0
+    },
+    {
+      "month": "2025-09",
+      "fleetMw": 60.5,
+      "north": 4.2,
+      "south": 2.8,
+      "houston": 2,
+      "restMw": 51.5,
+      "aderSharePct": 15,
+      "pendingMw": 0
+    },
+    {
+      "month": "2025-10",
+      "fleetMw": 73.1,
+      "north": 4.2,
+      "south": 2.8,
+      "houston": 2,
+      "restMw": 64.1,
+      "aderSharePct": 12,
+      "pendingMw": 0
+    },
+    {
+      "month": "2025-11",
+      "fleetMw": 84.1,
+      "north": 4.2,
+      "south": 2.8,
+      "houston": 2,
+      "restMw": 75.1,
+      "aderSharePct": 11,
+      "pendingMw": 0
+    },
+    {
+      "month": "2025-12",
+      "fleetMw": 89.5,
+      "north": 4.2,
+      "south": 2.8,
+      "houston": 8.9,
+      "restMw": 73.5,
+      "aderSharePct": 18,
+      "pendingMw": 0
+    },
+    {
+      "month": "2026-01",
+      "fleetMw": 100.1,
+      "north": 14.7,
+      "south": 5.2,
+      "houston": 8.9,
+      "restMw": 71.3,
+      "aderSharePct": 29,
+      "pendingMw": 0
+    },
+    {
+      "month": "2026-02",
+      "fleetMw": 115.3,
+      "north": 14.7,
+      "south": 5.2,
+      "houston": 8.9,
+      "restMw": 86.5,
+      "aderSharePct": 25,
+      "pendingMw": 0
+    },
+    {
+      "month": "2026-03",
+      "fleetMw": 136.3,
+      "north": 14.7,
+      "south": 5.2,
+      "houston": 24.1,
+      "restMw": 92.4,
+      "aderSharePct": 32,
+      "pendingMw": 0
+    },
+    {
+      "month": "2026-04",
+      "fleetMw": 155.8,
+      "north": 22.9,
+      "south": 7.2,
+      "houston": 24.1,
+      "restMw": 101.7,
+      "aderSharePct": 35,
+      "pendingMw": 0
+    },
+    {
+      "month": "2026-05",
+      "fleetMw": 172.7,
+      "north": 22.9,
+      "south": 7.2,
+      "houston": 50.5,
+      "restMw": 92.1,
+      "aderSharePct": 47,
+      "pendingMw": 0
+    },
+    {
+      "month": "2026-06",
+      "fleetMw": 188.6,
+      "north": 22.9,
+      "south": 7.2,
+      "houston": 50.5,
+      "restMw": 108,
+      "aderSharePct": 43,
+      "pendingMw": 0
+    },
+    {
+      "month": "2026-07",
+      "fleetMw": 205.5,
+      "north": 22.9,
+      "south": 7.2,
+      "houston": 50.5,
+      "restMw": 124.9,
+      "aderSharePct": 39,
+      "pendingMw": 0
+    },
+    {
+      "month": "2026-08",
+      "fleetMw": 205.5,
+      "north": 22.9,
+      "south": 7.2,
+      "houston": 50.5,
+      "restMw": 124.9,
+      "aderSharePct": 39,
+      "pendingMw": 30
+    }
+  ]
+}
