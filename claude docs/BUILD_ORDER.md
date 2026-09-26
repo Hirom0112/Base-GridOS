@@ -681,7 +681,7 @@ Owns: `services/control/internal/storage/` (including
 Owns: `services/control/internal/fleet/`, `services/control/internal/api/`,
 `services/control/internal/report/`, `services/control/cmd/control`.
 
-- `[~]` 1E.1 `[P]` RED: `fleet/twin_test.go`: the twin holds the latest
+- `[x]` 1E.1 `[P]` RED: `fleet/twin_test.go`: the twin holds the latest
   accepted state per site; a command being issued does not change the twin
   (FULL_SPEC §5.3); telemetry older than the freshness threshold marks the
   site `STALE`; a site whose operating state is any off-grid variant or
