@@ -24,6 +24,6 @@ Scenario files are YAML documents validated by `tools.generation.scenario.model.
 
 Measurement boundaries are `BATTERY_TERMINAL`, `METER_NET_EXPORT`, and `IMPORT_REDUCTION_VS_BASELINE`.
 
-Injection kinds are `OFFLINE_DEVICES`, `DELAYED_TELEMETRY`, `DROPPED_MESSAGES`, `DUPLICATED_MESSAGES`, `GATEWAY_RESTART`, `WORKER_RESTART`, `PARTIAL_REGION_OUTAGE`, `BAD_FORECASTS`, `HOT_BATTERIES`, `STALE_STATE`, and `OPTIMIZER_TIMEOUT`.
+Injection kinds are `OFFLINE_DEVICES`, `DELAYED_GATEWAY`, `DELAYED_TELEMETRY`, `DROPPED_MESSAGES`, `DUPLICATED_MESSAGES`, `GATEWAY_RESTART`, `WORKER_RESTART`, `PARTIAL_REGION_OUTAGE`, `BAD_FORECASTS`, `HOT_BATTERIES`, `STALE_STATE`, and `OPTIMIZER_TIMEOUT`.
 
 Recovery actions are `RETRY`, `REMOVE_STALE_CAPACITY`, and `REBALANCE`. The clock must start no later than the event. Every injection must fall between clock start and event end.
