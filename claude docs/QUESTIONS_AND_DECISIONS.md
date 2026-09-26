@@ -228,4 +228,10 @@ assumptions reported by workers land here too.
   device so a nonempty region never yields an empty outage. **2B.3 (lane B):**
   workflow activities use a one-minute start-to-close timeout until
   production latency budgets exist. Both accepted.
+- **Staffing (found at Wave 2 start):** the Codex runtime allows three
+  subagents plus the orchestrator, so it can run at most four lanes. To keep
+  six lanes moving as Hirom asked, the director staffs the remaining lanes
+  with its own subagents under the same AGENTS.md, hooks, ownership, and
+  mailbox rules. In Wave 2: Codex runs A, B, F; the director's agents run C,
+  D, E. Lane ownership keeps them disjoint; the mailbox is shared.
 

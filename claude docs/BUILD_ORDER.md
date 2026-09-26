@@ -828,7 +828,8 @@ Implements FULL_SPEC §12 Phase 2 and TECHSTACK step 6.
 ### Lane 2A — failure laboratory in the simulator
 
 Owns: `services/gateway-simulator/internal/failures/`,
-`services/gateway-simulator/cmd/`.
+`services/gateway-simulator/cmd/`, and `scenario_determinism_test.go` in
+`services/gateway-simulator/tests/` (lane F owns the other files there).
 
 - `[x]` 2A.1 `[P]` RED: `failures/inject_test.go` for each injection in
   FULL_SPEC §5.8: offline device, delayed telemetry, dropped message,
