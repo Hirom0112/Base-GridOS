@@ -103,7 +103,7 @@ func TestAcknowledgedCommandIsNotMarkedUncertain(t *testing.T) {
 	if err := InsertCommand(context.Background(), pool, command); err != nil {
 		t.Fatal(err)
 	}
-	appendCommandState(t, pool, command.CommandID, "SENT", command.CorrelationID)
+	appendSentCommandState(t, pool, command.CommandID, command.CorrelationID)
 	deadline := time.Now().UTC()
 	if err := RecordAcknowledgement(context.Background(), pool, Acknowledgement{
 		AcknowledgementID: "acknowledgement-2",
