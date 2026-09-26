@@ -5,6 +5,7 @@ import (
 	"time"
 
 	gridosv1 "github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1"
+	"github.com/Hirom0112/Base-GridOS/services/control/internal/reconciliation"
 	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/workflow"
 )
@@ -138,11 +139,19 @@ func Workflow(ctx workflow.Context, input Input) (Result, error) {
 	if err := waitForAcknowledgements(ctx, input.AcknowledgementDeadline); err != nil {
 		return result, err
 	}
+	if err := advance(ctx, TrackAcknowledgementsActivity, input, AcknowledgedOrUncertain, &result); err != nil {
+		return result, err
+	}
+	if usesEventWindow(ctx, input) {
+		if err := runWindow(ctx, input, emergency, replacements, &nextGeneration, &result); err != nil {
+			return result, err
+		}
+		return result, nil
+	}
 	steps := []struct {
 		activity string
 		states   []State
 	}{
-		{TrackAcknowledgementsActivity, []State{AcknowledgedOrUncertain}},
 		{VerifyDeliveryActivity, []State{Executing, Verified}},
 		{EndEventActivity, nil},
 		{ReconcileLateMessagesActivity, []State{Reconciled}},
@@ -161,6 +170,94 @@ func Workflow(ctx workflow.Context, input Input) (Result, error) {
 		return result, err
 	}
 	return result, nil
+}
+
+func usesEventWindow(ctx workflow.Context, input Input) bool {
+	return workflow.GetVersion(ctx, "event-window", workflow.DefaultVersion, 1) != workflow.DefaultVersion && input.Request != nil && input.Request.GetBeginTime() != nil && input.Request.GetEndTime() != nil
+}
+
+func runWindow(ctx workflow.Context, input Input, emergency, replacements workflow.ReceiveChannel, generation *uint64, result *Result) error {
+	begin := input.Request.GetBeginTime().AsTime()
+	end := input.Request.GetEndTime().AsTime()
+	if !end.After(begin) {
+		return errors.New("event window end must follow begin")
+	}
+	if err := waitWithControl(ctx, begin, emergency, replacements, input.EventID, generation); err != nil {
+		return err
+	}
+	if err := run(ctx, VerifyDeliveryActivity, input); err != nil {
+		return err
+	}
+	result.States = append(result.States, Executing)
+	for intervalEnd := begin.Add(reconciliation.ReportingInterval); ; intervalEnd = intervalEnd.Add(reconciliation.ReportingInterval) {
+		if intervalEnd.After(end) {
+			intervalEnd = end
+		}
+		if err := waitWithControl(ctx, intervalEnd, emergency, replacements, input.EventID, generation); err != nil {
+			return err
+		}
+		if err := run(ctx, VerifyDeliveryActivity, input); err != nil {
+			return err
+		}
+		if err := handleControlSignals(ctx, emergency, replacements, input.EventID, generation); err != nil {
+			return err
+		}
+		if !intervalEnd.Before(end) {
+			break
+		}
+	}
+	result.States = append(result.States, Verified)
+	if err := run(ctx, EndEventActivity, input); err != nil {
+		return err
+	}
+	if err := waitWithControl(ctx, end.Add(30*time.Second), emergency, replacements, input.EventID, generation); err != nil {
+		return err
+	}
+	if err := advance(ctx, ReconcileLateMessagesActivity, input, Reconciled, result); err != nil {
+		return err
+	}
+	if err := advance(ctx, ProduceReportActivity, input, Reported, result); err != nil {
+		return err
+	}
+	return expire(ctx, input, *generation)
+}
+
+func waitWithControl(ctx workflow.Context, until time.Time, emergency, replacements workflow.ReceiveChannel, eventID string, generation *uint64) error {
+	for workflow.Now(ctx).Before(until) {
+		selector := workflow.NewSelector(ctx)
+		selector.AddFuture(workflow.NewTimer(ctx, until.Sub(workflow.Now(ctx))), func(workflow.Future) {})
+		var stop EmergencyStop
+		var replacement Replacement
+		var stopped, replaced bool
+		selector.AddReceive(emergency, func(channel workflow.ReceiveChannel, _ bool) {
+			channel.Receive(ctx, &stop)
+			stopped = true
+		})
+		selector.AddReceive(replacements, func(channel workflow.ReceiveChannel, _ bool) {
+			channel.Receive(ctx, &replacement)
+			replaced = true
+		})
+		selector.Select(ctx)
+		if stopped {
+			if stop.RequestedBy == "" {
+				return errors.New("emergency stop requester required")
+			}
+			if err := workflow.ExecuteActivity(ctx, IssueEmergencyStopActivity, EmergencyCommand{EventID: eventID, Generation: *generation, SetpointKW: 0}).Get(ctx, nil); err != nil {
+				return err
+			}
+			*generation++
+		}
+		if replaced {
+			if replacement.DeviceID == "" {
+				return errors.New("replacement device required")
+			}
+			if err := workflow.ExecuteActivity(ctx, IssueReplacementActivity, ReplacementCommand{EventID: eventID, DeviceID: replacement.DeviceID, Generation: *generation}).Get(ctx, nil); err != nil {
+				return err
+			}
+			*generation++
+		}
+	}
+	return handleControlSignals(ctx, emergency, replacements, eventID, generation)
 }
 
 func persist(ctx workflow.Context, input Input) error {

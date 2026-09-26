@@ -29,6 +29,27 @@ func TestWindowReportWaitsForEndAndLateMessages(t *testing.T) {
 	require.False(t, environment.Now().Before(end.Add(30*time.Second)))
 }
 
+func TestWindowProcessesSignalsDuringMeasurement(t *testing.T) {
+	var suite testsuite.WorkflowTestSuite
+	environment := suite.NewTestWorkflowEnvironment()
+	begin := environment.Now().Add(10 * time.Minute)
+	input := Input{EventID: "window-signals", Generation: 4, Request: &gridosv1.EventRequest{BeginTime: timestamppb.New(begin), EndTime: timestamppb.New(begin.Add(10 * time.Minute))}}
+	mockWorkflowActivities(environment, input)
+	environment.OnActivity(IssueEmergencyStopActivity, mock.Anything, EmergencyCommand{EventID: input.EventID, Generation: 5, SetpointKW: 0}).Return(nil).Once()
+	environment.OnActivity(IssueReplacementActivity, mock.Anything, ReplacementCommand{EventID: input.EventID, DeviceID: "replacement-1", Generation: 6}).Return(nil).Once()
+	environment.RegisterDelayedCallback(func() {
+		environment.SignalWorkflow(ApproveEventSignal, Approval{ApprovedBy: "operator-1"})
+		environment.SignalWorkflow(LaunchEventSignal, persistArgument(input).Launch)
+	}, time.Millisecond)
+	environment.RegisterDelayedCallback(func() {
+		environment.SignalWorkflow(EmergencyStopSignal, EmergencyStop{RequestedBy: "operator-1"})
+		environment.SignalWorkflow(ReplaceDeviceSignal, Replacement{DeviceID: "replacement-1"})
+	}, 15*time.Minute)
+	environment.ExecuteWorkflow(Workflow, input)
+	require.NoError(t, environment.GetWorkflowError())
+	environment.AssertExpectations(t)
+}
+
 func TestSmoke(t *testing.T) {
 	var suite testsuite.WorkflowTestSuite
 	environment := suite.NewTestWorkflowEnvironment()
