@@ -169,6 +169,22 @@ message BasicEventReport {
   string policy_version = 7;
   string solver_version = 8;
   string model_version = 9;
+  double delivered_mw = 10;
+  double delivered_mwh = 11;
+  double tracking_error_mw = 12;
+  google.protobuf.Duration response_latency = 13;
+  double completeness = 14;
+  uint64 responded_devices = 15;
+  uint64 commanded_devices = 16;
+  repeated UncertainDeliveryInterval uncertain_intervals = 17;
+}
+
+message UncertainDeliveryInterval {
+  string device_id = 1;
+  google.protobuf.Timestamp begin_time = 2;
+  google.protobuf.Timestamp end_time = 3;
+  double lower_kw = 4;
+  double upper_kw = 5;
 }
 
 message ApproveEventRequest {
