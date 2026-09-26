@@ -978,14 +978,15 @@ After lane A completes: `services/gateway-simulator/internal/telemetry/` and
 `services/gateway-simulator/cmd/` for the fleet telemetry loop (2F.1).
 For 2F.2: `services/control/internal/storage/telemetry.go` (bulk telemetry
 write, additive) and `services/control/internal/ingest/`.
-For 2F.5: `contracts/gridos/v1/api.proto` (additive `EventsService` only).
+For 2F.5 and 2F.6: `contracts/gridos/v1/api.proto` additively (`EventsService`,
+`H3SiteAggregate` fields) and `services/control/internal/api/fleet_views.go`.
 
 - `[x]` 2F.1 `[P]` RED then GREEN: simulator scale. 5,000 simulated devices
   in one process produce telemetry every 5 seconds for 10 minutes with no
   sequence gaps (FULL_SPEC §8 "approximately 5,000 devices"; the cadence and
   resource budget are assumptions to report).
   Verify: `go test ./services/gateway-simulator/tests -run Scale5000 -timeout 20m` passes.
-- `[~]` 2F.2 `[after 1F.2]` RED then GREEN: ingest scale. The control plane
+- `[x]` 2F.2 `[after 1F.2]` RED then GREEN: ingest scale. The control plane
   sustains the 5,000-device stream and twin freshness stays under 5 seconds
   (FULL_SPEC §10). Verify: `go test ./tests/end-to-end/ -run IngestScale -timeout 20m` passes.
 - `[~]` 2F.3 `[after 2B.7, 2F.5]` Record live-event fixtures from a scenario run:

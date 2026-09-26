@@ -331,4 +331,10 @@ assumptions reported by workers land here too.
   `report.Delivered` through `pgreport.go` and additive report proto fields;
   fix `insertZeroCommand`, which writes command rows under device ID
   "event" and so appears to reconciliation as an unmeasured pseudo-device.
+- **2F.2 (lane F):** bulk telemetry write with `CopyFrom` in one transaction,
+  receipt only after commit; 5,000 devices stay under 5 seconds fresh.
+- **Audit chain hole (found by lane D at 2D.6):** the launch transition's
+  audit row records the launch record but no state key, so the event chain
+  breaks at APPROVED to COMMANDS_PERSISTED. Routed to lane B with 2B.7:
+  every EVENT_STATE_TRANSITIONED row carries previous and new state.
 
