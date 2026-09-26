@@ -4,13 +4,31 @@ package gridos.v1;
 
 option go_package = "github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1;gridosv1";
 
+import "google/protobuf/duration.proto";
 import "google/protobuf/timestamp.proto";
 import "gridos/v1/dispatch.proto";
+import "gridos/v1/telemetry.proto";
 
 message OptimizationInterval {
   google.protobuf.Timestamp begin_time = 1;
   google.protobuf.Timestamp end_time = 2;
   double target_kw = 3;
+}
+
+message DeviceState {
+  string device_id = 1;
+  double usable_energy_kwh = 2;
+  double energy_kwh = 3;
+  double hardware_floor_kwh = 4;
+  double effective_reserve_kwh = 5;
+  double max_charge_kw = 6;
+  double max_discharge_kw = 7;
+  double charge_efficiency = 8;
+  double discharge_efficiency = 9;
+  double availability_probability = 10;
+  bool stale = 11;
+  google.protobuf.Timestamp telemetry_observed_at = 12;
+  string load_zone = 13;
 }
 
 message OptimizationRequest {
@@ -22,6 +40,9 @@ message OptimizationRequest {
   repeated OptimizationInterval intervals = 6;
   google.protobuf.Timestamp requested_at = 7;
   string correlation_id = 8;
+  google.protobuf.Duration budget = 9;
+  MeasurementBoundary measurement_boundary = 10;
+  repeated DeviceState devices = 11;
 }
 
 message ObjectiveBreakdown {
@@ -76,4 +97,17 @@ message DispatchPlan {
   string solver_version = 10;
   string model_version = 11;
   google.protobuf.Timestamp created_at = 12;
+  string fallback_reason = 13;
+}
+
+message OptimizeRequest {
+  OptimizationRequest request = 1;
+}
+
+message OptimizeResponse {
+  DispatchPlan plan = 1;
+}
+
+service OptimizationService {
+  rpc Optimize(OptimizeRequest) returns (OptimizeResponse);
 }
