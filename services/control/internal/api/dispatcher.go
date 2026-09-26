@@ -12,8 +12,6 @@ import (
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/storage"
 )
 
-const DispatcherLifecycle = "REPLACED-IN-WAVE-2"
-
 var (
 	ErrApprovalRequired = errors.New("approved plan required")
 	ErrSafetyRejected   = errors.New("safety gate rejected plan")
@@ -166,40 +164,6 @@ func (dispatcher *Dispatcher) Publish(ctx context.Context, commands []storage.Co
 		}
 	}
 	return nil
-}
-
-func (dispatcher *Dispatcher) Dispatch(ctx context.Context, request *gridosv1.CreateEventRequestRequest) (*gridosv1.DispatchEvent, error) {
-	event, err := dispatcher.Events.Create(ctx, request.GetEventRequest(), request.GetIdempotencyKey(), dispatcher.Now())
-	if err != nil {
-		return nil, err
-	}
-	snapshot, err := dispatcher.Snapshots.Freeze(ctx, event, request.GetEventRequest())
-	if err != nil {
-		return nil, err
-	}
-	plan, err := dispatcher.Optimizer.Optimize(ctx, snapshot.Optimization)
-	if err != nil {
-		return nil, err
-	}
-	if err = dispatcher.Safety.Validate(plan, snapshot.Canonical); err != nil {
-		return nil, errors.Join(ErrSafetyRejected, err)
-	}
-	if err = dispatcher.Approval.Require(ctx, event.GetEventId(), plan.GetPlanVersion()); err != nil {
-		return nil, errors.Join(ErrApprovalRequired, err)
-	}
-	commands, err := commandIntents(plan, snapshot.Optimization)
-	if err != nil {
-		return nil, err
-	}
-	if err = dispatcher.Commands.Persist(ctx, commands); err != nil {
-		return nil, err
-	}
-	for _, command := range commands {
-		if err = dispatcher.Commands.Publish(ctx, storage.ClaimedCommand{CommandIntent: command}); err != nil {
-			return nil, err
-		}
-	}
-	return event, nil
 }
 
 type IndependentSafetyGate struct{}
