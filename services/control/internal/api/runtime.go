@@ -33,6 +33,14 @@ func (optimizer *ConnectOptimizer) Optimize(ctx context.Context, request *gridos
 	return response.Msg.GetPlan(), nil
 }
 
+func (optimizer *ConnectOptimizer) Forecast(ctx context.Context, request *gridosv1.ForecastRequest) (*gridosv1.ForecastResponse, error) {
+	response, err := optimizer.client.Forecast(ctx, connect.NewRequest(request))
+	if err != nil {
+		return nil, err
+	}
+	return response.Msg, nil
+}
+
 type StoredApprovalGate struct {
 	events EventStore
 }
@@ -122,6 +130,10 @@ func (snapshotter *FleetSnapshotter) Freeze(ctx context.Context, event *gridosv1
 	canonical := safety.CanonicalState{Now: now, Boundary: safety.MeterNetExport, PolicyVersion: "fleet-file", ExpectedGeneration: int64(planVersion), Devices: make(map[string]safety.DeviceState)}
 	for _, site := range snapshotter.sites {
 		state := states[site.GetSite().GetSiteId()]
+		optimization.Sites = append(optimization.Sites, &gridosv1.ForecastSite{
+			SiteId: site.GetSite().GetSiteId(), LoadProfileType: site.GetSite().GetLoadProfileType(),
+			LoadZone: site.GetSite().GetLoadZone(), WeatherZone: site.GetSite().GetWeatherZone(), County: site.GetSite().GetCounty(),
+		})
 		for _, device := range site.GetDevices() {
 			parameters := device.GetBatteryParameters()
 			energy := state.EnergyKWh
@@ -132,6 +144,7 @@ func (snapshotter *FleetSnapshotter) Freeze(ctx context.Context, event *gridosv1
 				MaxChargeKw: parameters.GetMaxChargeKw(), MaxDischargeKw: parameters.GetMaxDischargeKw(),
 				ChargeEfficiency: parameters.GetChargeEfficiency(), DischargeEfficiency: parameters.GetDischargeEfficiency(),
 				AvailabilityProbability: boolFloat(available), Stale: state.Availability == fleet.Stale, TelemetryObservedAt: timestamppb.New(state.ObservedAt), LoadZone: site.GetSite().GetLoadZone(),
+				SiteId: site.GetSite().GetSiteId(), ReliabilityTrait: site.GetSite().GetReliabilityTrait(),
 			})
 			if available {
 				optimization.EligibilitySnapshot.EligibleDeviceIds = append(optimization.EligibilitySnapshot.EligibleDeviceIds, device.GetDeviceId())
