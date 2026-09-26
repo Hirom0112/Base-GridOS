@@ -224,4 +224,8 @@ assumptions reported by workers land here too.
 
 - **2A.1 (lane A):** a device-scoped injection with no explicit scope selects
   exactly one seeded device until the scenario names a scope. Accepted.
+- **2A.3 (lane A):** "twenty percent of devices" rounds up to at least one
+  device so a nonempty region never yields an empty outage. **2B.3 (lane B):**
+  workflow activities use a one-minute start-to-close timeout until
+  production latency budgets exist. Both accepted.
 

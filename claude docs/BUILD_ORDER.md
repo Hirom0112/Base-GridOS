@@ -839,7 +839,7 @@ Owns: `services/gateway-simulator/internal/failures/`,
   is seeded and reproducible. Verify: fails.
 - `[x]` 2A.2 `[P]` GREEN: injection engine driven by the scenario file from
   0C.6, keyed off the scenario clock. Verify: `go test ./services/gateway-simulator/internal/failures/` passes.
-- `[~]` 2A.3 `[P]` RED then GREEN: "twenty percent of Houston devices
+- `[x]` 2A.3 `[P]` RED then GREEN: "twenty percent of Houston devices
   disconnected" computes lost MW from the affected devices' schedules, not
   20% of fleet MW (`system-understanding.md` "Reliable execution"). Verify: `-run HoustonTwenty` passes.
 - `[~]` 2A.4 `[P]` RED then GREEN: network outage followed by SQLite replay
