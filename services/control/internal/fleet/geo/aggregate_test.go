@@ -78,3 +78,25 @@ func TestAggregateResolutions(t *testing.T) {
 		}
 	}
 }
+
+func TestAggregateUnknownSOC(t *testing.T) {
+	sites, states, active, now := privacyFixture()
+	for index := range states {
+		states[index].ObservedAt = time.Time{}
+		states[index].EnergyKWh = 0
+	}
+	cells, err := AggregatePrivate(sites, states, active, now, 5)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var unknown, low, medium, high uint64
+	for _, cell := range cells {
+		unknown += cell.SOCUnknownCount
+		low += cell.SOCLowCount
+		medium += cell.SOCMediumCount
+		high += cell.SOCHighCount
+	}
+	if unknown != uint64(len(sites)) || low != 0 || medium != 0 || high != 0 {
+		t.Fatalf("unobserved state classified as charge: unknown=%d low=%d medium=%d high=%d", unknown, low, medium, high)
+	}
+}
