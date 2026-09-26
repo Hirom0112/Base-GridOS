@@ -48,12 +48,13 @@ def _device(seed: int, index: int) -> dict[str, object]:
     plan = tuple(PLAN_RESERVES)[rng.randrange(len(PLAN_RESERVES))]
     profile = PROFILE_TYPES[rng.randrange(len(PROFILE_TYPES))]
     load_zone = LOAD_ZONES[weather_zone]
+    usable_energy_kwh = round(rng.uniform(10.0, 40.0), 3)
     return {
         "site_id": _identifier("site", seed, index),
         "device_id": _identifier("device", seed, index),
-        "usable_energy_kwh": round(rng.uniform(10.0, 40.0), 3),
-        "max_charge_kw": round(rng.uniform(5.0, 12.0), 3),
-        "max_discharge_kw": round(rng.uniform(5.0, 12.0), 3),
+        "usable_energy_kwh": usable_energy_kwh,
+        "max_charge_kw": round(rng.uniform(5.0, min(12.0, usable_energy_kwh)), 3),
+        "max_discharge_kw": round(rng.uniform(5.0, min(12.0, usable_energy_kwh)), 3),
         "charge_efficiency": round(rng.uniform(0.92, 0.97), 4),
         "discharge_efficiency": round(rng.uniform(0.92, 0.97), 4),
         "weather_zone": weather_zone,
