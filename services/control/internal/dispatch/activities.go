@@ -92,11 +92,36 @@ func (activities *Activities) PersistIntents(ctx context.Context, request Persis
 }
 
 func (activities *Activities) PublishCommands(ctx context.Context, input Input) error {
-	if err := activities.Dispatcher.Publish(ctx, nil); err != nil {
-		return err
+	for {
+		pending, err := activities.unpublishedCount(ctx, input.EventID)
+		if err != nil {
+			return err
+		}
+		if pending == 0 {
+			break
+		}
+		if err = activities.Dispatcher.Publish(ctx, nil); err != nil {
+			return err
+		}
+		remaining, err := activities.unpublishedCount(ctx, input.EventID)
+		if err != nil {
+			return err
+		}
+		if remaining >= pending {
+			return fmt.Errorf("%d commands remain unpublished for event %s", remaining, input.EventID)
+		}
 	}
 	_, err := activities.Events.Advance(ctx, input.EventID, "COMMANDS_PERSISTED", "SENT", "workflow", activities.Now())
 	return err
+}
+
+func (activities *Activities) unpublishedCount(ctx context.Context, eventID string) (int, error) {
+	var pending int
+	err := activities.Pool.QueryRow(ctx, `SELECT count(*) FROM command_intents AS intent
+		WHERE intent.event_id = $1 AND NOT EXISTS (
+			SELECT 1 FROM command_states AS state WHERE state.command_id = intent.command_id
+			AND state.state IN ('SENT', 'ACKNOWLEDGED', 'UNCERTAIN', 'REJECTED'))`, eventID).Scan(&pending)
+	return pending, err
 }
 
 func (activities *Activities) TrackAcknowledgements(ctx context.Context, input Input) error {
