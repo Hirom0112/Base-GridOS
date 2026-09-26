@@ -64,21 +64,18 @@ type LifecycleStore interface {
 	Violations(context.Context, string) ([]storage.StoredViolation, error)
 }
 
-func (dispatcher *Dispatcher) Plan(ctx context.Context, request *gridosv1.CreateEventRequestRequest) (*gridosv1.DispatchEvent, error) {
+func (dispatcher *Dispatcher) Freeze(ctx context.Context, eventID string, request *gridosv1.EventRequest) (FrozenSnapshot, error) {
+	event, _, err := dispatcher.Events.Get(ctx, eventID)
+	if err != nil {
+		return FrozenSnapshot{}, err
+	}
+	return dispatcher.Snapshots.Freeze(ctx, event, request)
+}
+
+func (dispatcher *Dispatcher) RequestPlan(ctx context.Context, snapshot FrozenSnapshot) (*gridosv1.DispatchPlan, error) {
 	store, ok := dispatcher.Events.(LifecycleStore)
 	if !ok {
 		return nil, errors.New("lifecycle store required")
-	}
-	event, err := dispatcher.Events.Create(ctx, request.GetEventRequest(), request.GetIdempotencyKey(), dispatcher.Now())
-	if err != nil {
-		return nil, err
-	}
-	if event.GetState() != gridosv1.DispatchEventState_DISPATCH_EVENT_STATE_REQUESTED {
-		return event, nil
-	}
-	snapshot, err := dispatcher.Snapshots.Freeze(ctx, event, request.GetEventRequest())
-	if err != nil {
-		return nil, err
 	}
 	plan, err := dispatcher.Optimizer.Optimize(ctx, snapshot.Optimization)
 	if err != nil {
@@ -87,14 +84,54 @@ func (dispatcher *Dispatcher) Plan(ctx context.Context, request *gridosv1.Create
 	if plan == nil || plan.GetPlanVersion() != snapshot.Optimization.GetPlanVersion() {
 		return nil, errors.New("optimizer returned the wrong plan version")
 	}
-	if _, err = store.StorePlanned(ctx, event.GetEventId(), snapshot.Optimization, plan, dispatcher.Now()); err != nil {
-		return nil, err
+	_, err = store.StorePlanned(ctx, plan.GetEventId(), snapshot.Optimization, plan, dispatcher.Now())
+	return plan, err
+}
+
+func (dispatcher *Dispatcher) ValidatePlan(ctx context.Context, eventID string, planVersion uint64, canonical safety.CanonicalState) error {
+	store, ok := dispatcher.Events.(LifecycleStore)
+	if !ok {
+		return errors.New("lifecycle store required")
+	}
+	_, plan, err := store.LoadPlan(ctx, eventID, planVersion)
+	if err != nil {
+		return err
 	}
 	violations := make([]storage.StoredViolation, 0)
-	if validateErr := dispatcher.Safety.Validate(plan, snapshot.Canonical); validateErr != nil {
+	if validateErr := dispatcher.Safety.Validate(plan, canonical); validateErr != nil {
 		violations = append(violations, storage.StoredViolation{Code: validateErr.Error()})
 	}
-	return store.ValidatePlanned(ctx, event.GetEventId(), plan.GetPlanVersion(), violations, dispatcher.Now())
+	_, err = store.ValidatePlanned(ctx, eventID, planVersion, violations, dispatcher.Now())
+	if err != nil {
+		return err
+	}
+	if len(violations) > 0 {
+		return errors.Join(ErrSafetyRejected, errors.New(violations[0].Code))
+	}
+	return nil
+}
+
+func (dispatcher *Dispatcher) Plan(ctx context.Context, request *gridosv1.CreateEventRequestRequest) (*gridosv1.DispatchEvent, error) {
+	event, err := dispatcher.Events.Create(ctx, request.GetEventRequest(), request.GetIdempotencyKey(), dispatcher.Now())
+	if err != nil {
+		return nil, err
+	}
+	if event.GetState() != gridosv1.DispatchEventState_DISPATCH_EVENT_STATE_REQUESTED {
+		return event, nil
+	}
+	snapshot, err := dispatcher.Freeze(ctx, event.GetEventId(), request.GetEventRequest())
+	if err != nil {
+		return nil, err
+	}
+	plan, err := dispatcher.RequestPlan(ctx, snapshot)
+	if err != nil {
+		return nil, err
+	}
+	if err = dispatcher.ValidatePlan(ctx, event.GetEventId(), plan.GetPlanVersion(), snapshot.Canonical); err != nil && !errors.Is(err, ErrSafetyRejected) {
+		return nil, err
+	}
+	validated, _, loadErr := dispatcher.Events.Get(ctx, event.GetEventId())
+	return validated, loadErr
 }
 
 func (dispatcher *Dispatcher) PersistApproved(ctx context.Context, eventID string, planVersion uint64) ([]storage.CommandIntent, error) {

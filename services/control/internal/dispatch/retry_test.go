@@ -1,7 +1,6 @@
 package dispatch
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -15,12 +14,12 @@ func TestRetryTransientGatewaySameCommandID(t *testing.T) {
 	var suite testsuite.WorkflowTestSuite
 	environment := suite.NewTestWorkflowEnvironment()
 	input := Input{EventID: "event-1", CommandID: "command-1", Generation: 7}
-	mockLifecycle(environment, input, PublishCommands)
+	mockLifecycle(environment, input, PublishCommandsActivity)
 	attempts := make([]string, 0, 2)
-	environment.OnActivity(PublishCommands, mock.Anything, input).Return(temporal.NewApplicationError("unavailable", GatewayTransientError)).Run(func(arguments mock.Arguments) {
+	environment.OnActivity(PublishCommandsActivity, mock.Anything, input).Return(temporal.NewApplicationError("unavailable", GatewayTransientError)).Run(func(arguments mock.Arguments) {
 		attempts = append(attempts, arguments.Get(1).(Input).CommandID)
 	}).Once()
-	environment.OnActivity(PublishCommands, mock.Anything, input).Return(nil).Run(func(arguments mock.Arguments) {
+	environment.OnActivity(PublishCommandsActivity, mock.Anything, input).Return(nil).Run(func(arguments mock.Arguments) {
 		attempts = append(attempts, arguments.Get(1).(Input).CommandID)
 	}).Once()
 	approve(environment)
@@ -35,8 +34,9 @@ func TestRetryValidationFailureDoesNotRetry(t *testing.T) {
 	var suite testsuite.WorkflowTestSuite
 	environment := suite.NewTestWorkflowEnvironment()
 	input := Input{EventID: "event-1"}
-	mockLifecycle(environment, input, ValidatePlan)
-	environment.OnActivity(ValidatePlan, mock.Anything, input).Return(temporal.NewApplicationError("reserve", ValidationError)).Once()
+	frozen := FrozenEvent{Input: input}
+	mockLifecycle(environment, input, ValidatePlanActivity)
+	environment.OnActivity(ValidatePlanActivity, mock.Anything, frozen).Return(temporal.NewApplicationError("reserve", ValidationError)).Once()
 
 	environment.ExecuteWorkflow(Workflow, input)
 
@@ -50,7 +50,7 @@ func TestRetryCommandExpiryUsesDurableTimer(t *testing.T) {
 	expiresAt := environment.Now().Add(time.Hour)
 	input := Input{EventID: "event-1", Generation: 7, ExpiresAt: expiresAt}
 	mockLifecycle(environment, input)
-	environment.OnActivity(ExpireCommands, mock.Anything, EmergencyCommand{
+	environment.OnActivity(ExpireCommandsActivity, mock.Anything, EmergencyCommand{
 		EventID: "event-1", Generation: 8, SetpointKW: 0,
 	}).Return(nil).Once()
 	approve(environment)
@@ -65,11 +65,11 @@ func TestRetryReplacementUsesNewGeneration(t *testing.T) {
 	var suite testsuite.WorkflowTestSuite
 	environment := suite.NewTestWorkflowEnvironment()
 	input := Input{EventID: "event-1", Generation: 7}
-	mockLifecycle(environment, input, TrackAcknowledgements)
-	environment.OnActivity(TrackAcknowledgements, mock.Anything, input).Return(nil).Run(func(mock.Arguments) {
+	mockLifecycle(environment, input, TrackAcknowledgementsActivity)
+	environment.OnActivity(TrackAcknowledgementsActivity, mock.Anything, input).Return(nil).Run(func(mock.Arguments) {
 		environment.SignalWorkflow(ReplaceDeviceSignal, Replacement{DeviceID: "device-2"})
 	}).Once()
-	environment.OnActivity(IssueReplacement, mock.Anything, ReplacementCommand{
+	environment.OnActivity(IssueReplacementActivity, mock.Anything, ReplacementCommand{
 		EventID: "event-1", DeviceID: "device-2", Generation: 8,
 	}).Return(nil).Once()
 	approve(environment)
@@ -80,14 +80,25 @@ func TestRetryReplacementUsesNewGeneration(t *testing.T) {
 	environment.AssertExpectations(t)
 }
 
-func mockLifecycle(environment *testsuite.TestWorkflowEnvironment, input Input, excluded ...func(context.Context, Input) error) {
+func mockLifecycle(environment *testsuite.TestWorkflowEnvironment, input Input, excluded ...string) {
+	registerActivities(environment)
 	skipped := make(map[string]bool, len(excluded))
 	for _, activity := range excluded {
-		skipped[activityName(activity)] = true
+		skipped[activity] = true
 	}
-	for _, activity := range []func(context.Context, Input) error{FreezeInputs, RequestPlan, ValidatePlan, PersistIntents, PublishCommands, TrackAcknowledgements, VerifyDelivery, EndEvent, ReconcileLateMessages, ProduceReport} {
-		if !skipped[activityName(activity)] {
-			environment.OnActivity(activity, mock.Anything, input).Return(nil)
+	frozen := FrozenEvent{Input: input}
+	if !skipped[FreezeInputsActivity] {
+		environment.OnActivity(FreezeInputsActivity, mock.Anything, input).Return(frozen, nil).Maybe()
+	}
+	if !skipped[RequestPlanActivity] {
+		environment.OnActivity(RequestPlanActivity, mock.Anything, frozen).Return(frozen, nil).Maybe()
+	}
+	if !skipped[ValidatePlanActivity] {
+		environment.OnActivity(ValidatePlanActivity, mock.Anything, frozen).Return(nil).Maybe()
+	}
+	for _, activity := range []string{PersistIntentsActivity, PublishCommandsActivity, TrackAcknowledgementsActivity, VerifyDeliveryActivity, EndEventActivity, ReconcileLateMessagesActivity, ProduceReportActivity} {
+		if !skipped[activity] {
+			environment.OnActivity(activity, mock.Anything, input).Return(nil).Maybe()
 		}
 	}
 }

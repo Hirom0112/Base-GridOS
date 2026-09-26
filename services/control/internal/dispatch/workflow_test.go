@@ -1,9 +1,6 @@
 package dispatch
 
 import (
-	"context"
-	"reflect"
-	"runtime"
 	"testing"
 	"time"
 
@@ -15,20 +12,12 @@ import (
 func TestSmoke(t *testing.T) {
 	var suite testsuite.WorkflowTestSuite
 	environment := suite.NewTestWorkflowEnvironment()
-	environment.RegisterActivity(FreezeInputs)
-	environment.RegisterActivity(RequestPlan)
-	environment.RegisterActivity(ValidatePlan)
-	environment.RegisterActivity(PersistIntents)
-	environment.RegisterActivity(PublishCommands)
-	environment.RegisterActivity(TrackAcknowledgements)
-	environment.RegisterActivity(VerifyDelivery)
-	environment.RegisterActivity(EndEvent)
-	environment.RegisterActivity(ReconcileLateMessages)
-	environment.RegisterActivity(ProduceReport)
+	input := Input{EventID: "event-1"}
+	mockWorkflowActivities(environment, input)
 	environment.RegisterDelayedCallback(func() {
 		environment.SignalWorkflow(ApproveEventSignal, Approval{ApprovedBy: "operator-1"})
 	}, time.Hour)
-	environment.ExecuteWorkflow(Workflow, Input{EventID: "event-1"})
+	environment.ExecuteWorkflow(Workflow, input)
 
 	require.True(t, environment.IsWorkflowCompleted())
 	require.NoError(t, environment.GetWorkflowError())
@@ -38,23 +27,17 @@ func TestSmoke(t *testing.T) {
 func TestLifecycle(t *testing.T) {
 	var suite testsuite.WorkflowTestSuite
 	environment := suite.NewTestWorkflowEnvironment()
+	registerActivities(environment)
 	input := Input{EventID: "event-1", Generation: 7}
-	activities := []func(context.Context, Input) error{
-		FreezeInputs,
-		RequestPlan,
-		ValidatePlan,
-		PersistIntents,
-		PublishCommands,
-		TrackAcknowledgements,
-		VerifyDelivery,
-		EndEvent,
-		ReconcileLateMessages,
-		ProduceReport,
-	}
+	frozen := FrozenEvent{Input: input}
+	environment.OnActivity(FreezeInputsActivity, mock.Anything, input).Return(frozen, nil).Once()
+	environment.OnActivity(RequestPlanActivity, mock.Anything, frozen).Return(frozen, nil).Once()
+	environment.OnActivity(ValidatePlanActivity, mock.Anything, frozen).Return(nil).Once()
+	activities := []string{PersistIntentsActivity, PublishCommandsActivity, TrackAcknowledgementsActivity, VerifyDeliveryActivity, EndEventActivity, ReconcileLateMessagesActivity, ProduceReportActivity}
 	approved := false
 	for _, activity := range activities {
 		environment.OnActivity(activity, mock.Anything, input).Return(nil).Run(func(mock.Arguments) {
-			if activityName(activity) == activityName(activities[3]) {
+			if activity == PersistIntentsActivity {
 				require.True(t, approved)
 			}
 		})
@@ -85,20 +68,25 @@ func TestLifecycle(t *testing.T) {
 }
 
 func TestEmergencyStopAfterSent(t *testing.T) {
-	for _, trigger := range []func(context.Context, Input) error{TrackAcknowledgements, VerifyDelivery, EndEvent, ReconcileLateMessages, ProduceReport} {
-		t.Run(activityName(trigger), func(t *testing.T) {
+	for _, trigger := range []string{TrackAcknowledgementsActivity, VerifyDeliveryActivity, EndEventActivity, ReconcileLateMessagesActivity, ProduceReportActivity} {
+		t.Run(trigger, func(t *testing.T) {
 			var suite testsuite.WorkflowTestSuite
 			environment := suite.NewTestWorkflowEnvironment()
+			registerActivities(environment)
 			input := Input{EventID: "event-1", Generation: 7}
-			for _, activity := range []func(context.Context, Input) error{FreezeInputs, RequestPlan, ValidatePlan, PersistIntents, PublishCommands, TrackAcknowledgements, VerifyDelivery, EndEvent, ReconcileLateMessages, ProduceReport} {
+			frozen := FrozenEvent{Input: input}
+			environment.OnActivity(FreezeInputsActivity, mock.Anything, input).Return(frozen, nil)
+			environment.OnActivity(RequestPlanActivity, mock.Anything, frozen).Return(frozen, nil)
+			environment.OnActivity(ValidatePlanActivity, mock.Anything, frozen).Return(nil)
+			for _, activity := range []string{PersistIntentsActivity, PublishCommandsActivity, TrackAcknowledgementsActivity, VerifyDeliveryActivity, EndEventActivity, ReconcileLateMessagesActivity, ProduceReportActivity} {
 				call := environment.OnActivity(activity, mock.Anything, input).Return(nil)
-				if activityName(activity) == activityName(trigger) {
+				if activity == trigger {
 					call.Run(func(mock.Arguments) {
 						environment.SignalWorkflow(EmergencyStopSignal, EmergencyStop{RequestedBy: "operator-1"})
 					})
 				}
 			}
-			environment.OnActivity(IssueEmergencyStop, mock.Anything, EmergencyCommand{
+			environment.OnActivity(IssueEmergencyStopActivity, mock.Anything, EmergencyCommand{
 				EventID: "event-1", Generation: 8, SetpointKW: 0,
 			}).Return(nil).Once()
 			environment.RegisterDelayedCallback(func() {
@@ -113,6 +101,17 @@ func TestEmergencyStopAfterSent(t *testing.T) {
 	}
 }
 
-func activityName(activity func(context.Context, Input) error) string {
-	return runtime.FuncForPC(reflect.ValueOf(activity).Pointer()).Name()
+func mockWorkflowActivities(environment *testsuite.TestWorkflowEnvironment, input Input) {
+	registerActivities(environment)
+	frozen := FrozenEvent{Input: input}
+	environment.OnActivity(FreezeInputsActivity, mock.Anything, input).Return(frozen, nil)
+	environment.OnActivity(RequestPlanActivity, mock.Anything, frozen).Return(frozen, nil)
+	environment.OnActivity(ValidatePlanActivity, mock.Anything, frozen).Return(nil)
+	for _, activity := range []string{PersistIntentsActivity, PublishCommandsActivity, TrackAcknowledgementsActivity, VerifyDeliveryActivity, EndEventActivity, ReconcileLateMessagesActivity, ProduceReportActivity} {
+		environment.OnActivity(activity, mock.Anything, input).Return(nil)
+	}
+}
+
+func registerActivities(environment *testsuite.TestWorkflowEnvironment) {
+	environment.RegisterActivity(&Activities{})
 }
