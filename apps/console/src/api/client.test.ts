@@ -21,12 +21,14 @@ test("client sends the selected local identity and a bounded timeout", async () 
     fetcher,
   );
   await client.fleet.getFleetSummary({});
-  const request = fetcher.mock.calls[0]?.[0];
-  expect(request).toBeInstanceOf(Request);
-  if (!(request instanceof Request)) throw new Error("Expected a request");
-  expect(request.headers.get("X-GridOS-Role")).toBe("analyst");
-  expect(request.headers.get("Connect-Timeout-Ms")).toBeTruthy();
-  expect(request.headers.has("X-GridOS-Permissions")).toBe(false);
+  const call = fetcher.mock.calls[0];
+  expect(call?.[0]).toBe(
+    "http://localhost/rpc/gridos.v1.FleetService/GetFleetSummary",
+  );
+  const headers = new Headers(call?.[1]?.headers);
+  expect(headers.get("X-GridOS-Role")).toBe("analyst");
+  expect(headers.get("Connect-Timeout-Ms")).toBeTruthy();
+  expect(headers.has("X-GridOS-Permissions")).toBe(false);
 });
 
 test("client preserves permission failures and never retries mutations", async () => {
