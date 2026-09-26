@@ -601,3 +601,8 @@ assumptions reported by workers land here too.
   work (U4.1). 4C.2 waits for 4D.3. Gate 3 still requires Gate 2 first.
   Lane 3F may record the `GetPlanExplanation` half of 3F.3 now and hold the
   forecast half for 3D.2.
+- **3D.2 metadata carry-through:** `Site` in `device.proto` gains additive
+  `load_profile_type`, `reliability_trait`, and optional `county`; the
+  fleet loader keeps them so the frozen snapshot can hand identifiers to
+  `Forecast`. County has no source yet, so outage risk is reported
+  unavailable until lane 4C's Texas boundary data can assign counties.
