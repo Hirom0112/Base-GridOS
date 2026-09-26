@@ -892,7 +892,7 @@ Owns: `services/control/internal/reconciliation/`,
   times, ramp behaviour, and fresh telemetry (TECHSTACK "Safety and delivery
   semantics"); the interval's upper bound is never below the possibly-executing
   setpoint. Verify: fails.
-- `[~]` 2C.2 `[P]` GREEN: `internal/reconciliation/uncertain.go`. Verify: `-run Uncertain` passes.
+- `[x]` 2C.2 `[P]` GREEN: `internal/reconciliation/uncertain.go`. Verify: `-run Uncertain` passes.
 - `[~]` 2C.3 `[P]` RED then GREEN: capacity is not reallocated over an
   uncertain device until its command expiry passes or fresh telemetry proves
   its state (TECHSTACK e2e scenario 4 and "Safety and delivery semantics":
@@ -974,6 +974,8 @@ Owns: `services/decision/`, `testdata/golden/`.
 Owns: `services/gateway-simulator/tests/`, `services/control/internal/api/events/`,
 `tests/end-to-end/`, `testdata/fixtures/api/`, the root `Makefile` (for 2F.7),
 `services/control/internal/fleet/geo/` (for 2F.6).
+After lane A completes: `services/gateway-simulator/internal/telemetry/` and
+`services/gateway-simulator/cmd/` for the fleet telemetry loop (2F.1).
 
 - `[~]` 2F.1 `[P]` RED then GREEN: simulator scale. 5,000 simulated devices
   in one process produce telemetry every 5 seconds for 10 minutes with no

@@ -242,4 +242,11 @@ assumptions reported by workers land here too.
 - **2A.5 (lane A):** the scenario determinism proof lives in
   `cmd/scenario` rather than the simulator's `tests/` directory. Accepted;
   the proof is the point, not the path.
+- **2C.2 (lane C), accepted:** the uncertain window runs from the
+  acknowledgement deadline to the possibly accepted expiry; bounds are the
+  hull of the possibly accepted setpoint, fresh telemetry, and the last
+  confirmed setpoint (plus zero if it expires inside the window); ramp reach
+  from fresh telemetry clips the last confirmed and zero candidates but never
+  the possibly accepted setpoint; a zero max ramp means unknown and clips
+  nothing. Conservative in the direction TECHSTACK requires.
 
