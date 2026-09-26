@@ -524,3 +524,26 @@ assumptions reported by workers land here too.
   row-error rejection all pass; the live smoke is skipped unless
   `GRIDOS_BIGQUERY_LIVE=1` with ADC and a table. Director re-run: three
   pass, one skip.
+- **2F.9 and 2F.10 (lane F), verified; lane F complete:** the publisher
+  drains batches until the event has no PERSISTED intent (progress-checked,
+  Temporal retries cover a concurrent event filling a batch); zero commands
+  at EndEvent are idempotent across worker retries and carry a valid
+  delivery window. The workflow is versioned under `event-window`: durable
+  timer to begin_time, EXECUTING, VerifyDelivery at every reporting
+  interval end with emergency stop and replacement signals live during
+  every wait, VERIFIED at end_time, EndEvent, a 30 s late-message grace,
+  ReconcileLateMessages, ProduceReport, then expiry. Old histories keep the
+  pre-window path. Director runs: dispatch unit tests ok; Harness,
+  AuditChain, and WorkerTermination pass in about 100 s each on the
+  director's machine, where all three previously stalled at SENT.
+- **2D.2 and 2D.6 verified** on the same run. 2D.4 still needs
+  gateway-restart and outage-replay; 2D.3 and 2D.5 remain with lane D.
+- **3E.4 rejected then accepted:** the import isolation is now a Go test
+  that shells out to `go list -deps` with a positive control, not a
+  one-off command. Lane 3E complete.
+- **Lane 3D opens in two agents (2026-09-26):** 3D-dispatch takes 3D.1,
+  3D.2, and 3D.6 in `internal/dispatch/`; 3D-api takes 3D.3 and 3D.4 in
+  `internal/api/`. Neither touches `tests/integration/` or
+  `testdata/scenarios/` while lane D holds them; 3D.5 waits for lane D.
+  The 3C.3 condition applies to 3D.1: the approval digest is computed over
+  the frozen snapshot.

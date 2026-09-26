@@ -942,7 +942,7 @@ Owns: `testdata/scenarios/`, `tests/integration/`, `tests/end-to-end/`,
   `gateway-restart`, `network-outage-sqlite-replay`,
   `measurement-gap-unknown`. Each validates against 0C.6.
   Verify: `for f in testdata/scenarios/*.yaml; do uv run python -m tools.generation.scenario validate "$f"; done` prints OK for each.
-- `[~]` 2D.2 `[P]` `tests/integration/harness_test.go`: starts compose,
+- `[x]` 2D.2 `[P]` `tests/integration/harness_test.go`: starts compose,
   gateway simulator with `--scenario`, decision service, control service and
   worker, then drives an event through the API and asserts the scenario's
   expected outcomes. Written now with `t.Skip` per scenario until the lane
@@ -967,7 +967,7 @@ Owns: `testdata/scenarios/`, `tests/integration/`, `tests/end-to-end/`,
   shape. Lane D owns `tools/generation/fleet/` for this item. Verify:
   `uv run --project tools/generation pytest tools/generation -k austin` passes and the
   fixture cell count per H3 ring-distance from downtown decreases monotonically.
-- `[~]` 2D.6 `[P]` Audit-trail invariant: after every scenario, the
+- `[x]` 2D.6 `[P]` Audit-trail invariant: after every scenario, the
   `audit_journal` contains an unbroken chain of transitions for the event and
   every command (FULL_SPEC §10 "without losing the event audit trail").
   Verify: `go test ./tests/integration/ -run AuditChain` passes.
@@ -1064,7 +1064,7 @@ for the same item.
   expecting a synchronous state. Found at 2B.7 verification: with the API
   handing the lifecycle to Temporal, `make test-e2e` fails at REQUESTED and
   the standing demo's approve and launch flows dead-end. Verify: `make test-e2e` green with `-count=1`, and after a standing-demo rebuild a curl of `GetEvent` on a freshly created event reaches VALIDATED within the deadline.
-- `[ ]` 2F.9 `[P]` Publisher drain. `PublishCommands` calls
+- `[x]` 2F.9 `[P]` Publisher drain. `PublishCommands` calls
   `Dispatcher.Publish` once, so with `BatchSize` 100 an event with more than
   100 intents advances to SENT with the remainder PERSISTED and
   `TrackAcknowledgements` fails. RED: an activities test with 113 persisted
@@ -1072,7 +1072,7 @@ for the same item.
   drain batches until no PERSISTED intent remains for the event, bounded by
   the intent count, before advancing. Found by lane D at 2D.4.
   Verify: `go test ./services/control/internal/dispatch/ -run Publish -count=1` passes and `go test ./tests/integration/ -run WorkerTermination -count=1` reaches REPORTED.
-- `[ ]` 2F.10 `[after 2F.9]` Event-window lifecycle. The workflow runs
+- `[x]` 2F.10 `[after 2F.9]` Event-window lifecycle. The workflow runs
   VerifyDelivery, EndEvent, ReconcileLateMessages, and ProduceReport
   immediately after acknowledgements, so REPORTED can precede `begin_time`.
   RED (SDK time-skipping test): REPORTED appears before `end_time` plus the
@@ -1185,17 +1185,17 @@ Owns: `services/control/internal/dispatch/`, `services/control/internal/api/`,
 `tests/integration/`, `testdata/scenarios/`,
 `contracts/gridos/v1/optimization.proto` (additive only).
 
-- `[ ]` 3D.1 `[P]` RED then GREEN: input snapshot freezing. The workflow
+- `[~]` 3D.1 `[P]` RED then GREEN: input snapshot freezing. The workflow
   stores the exact forecast inputs, eligibility snapshot, policy versions, and
   model versions used, and the plan version references them (FULL_SPEC §4
   invariant 9). Verify: `go test ./services/control/internal/dispatch/ -run Snapshot` passes.
-- `[ ]` 3D.2 `[after 3A.6, 3B.8]` Forecast and optimize activities call the
+- `[~]` 3D.2 `[after 3A.6, 3B.8]` Forecast and optimize activities call the
   decision service with a budget; a timeout is recorded as a decision in the
   timeline and the fallback plan proceeds to validation. Verify: `-run PlanningActivities` passes.
-- `[ ]` 3D.3 `[P]` Explanation API: `GetPlanExplanation` returning objective
+- `[~]` 3D.3 `[P]` Explanation API: `GetPlanExplanation` returning objective
   breakdown, reserve held back, constraint margins, exclusions with reasons,
   and per-interval shortfall. Verify: `go test ./services/control/internal/api/ -run Explanation` passes.
-- `[ ]` 3D.4 `[P]` Reject-then-approve path: the API can validate an
+- `[~]` 3D.4 `[P]` Reject-then-approve path: the API can validate an
   intentionally unsafe alternative and return machine-readable violations
   without creating commands (FULL_SPEC §9 step 8). Verify: `-run UnsafeAlternative` passes.
 - `[ ]` 3D.5 `[after 3D.2]` Scenarios `optimizer-timeout-fallback` and
@@ -1229,7 +1229,7 @@ Owns: `services/control/internal/analytics/`.
 - `[x]` 3E.3 `[P]` BigQuery sink integration test guarded by a build tag and a
   recorded-request fixture; one live smoke test documented but skipped without
   credentials. Verify: `go test -tags bigquery ./services/control/internal/analytics/` passes with the fixture.
-- `[ ]` 3E.4 `[P]` Assert the safety gate and command path never import the
+- `[x]` 3E.4 `[P]` Assert the safety gate and command path never import the
   analytics package (TECHSTACK "BigQuery is not queried by the safety gate").
   Verify: `go list -deps ./services/control/internal/safety ./services/control/internal/storage/publisher | grep analytics` prints nothing.
 
