@@ -38,6 +38,10 @@ func (optimizer activityOptimizer) Optimize(context.Context, *gridosv1.Optimizat
 	return optimizer.plan, nil
 }
 
+func (activityOptimizer) Forecast(context.Context, *gridosv1.ForecastRequest) (*gridosv1.ForecastResponse, error) {
+	return &gridosv1.ForecastResponse{}, nil
+}
+
 type activitySafety struct{}
 
 func (activitySafety) Validate(*gridosv1.DispatchPlan, safety.CanonicalState) error { return nil }
