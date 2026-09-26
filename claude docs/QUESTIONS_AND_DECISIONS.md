@@ -171,4 +171,8 @@ assumptions reported by workers land here too.
   Living Grid parked; one replay clock fed by `ReplayEvent`; all 17 demo
   steps must pass without WebGL. The lane that consumes a contract may add to
   it additively (lane E owns `api.proto` this wave).
+- **Greater Austin box (lane F, 1F.7):** latitude 29.95 to 30.90, longitude
+  -98.30 to -97.00 as a conservative Travis, Williamson, and Hays box until a
+  licensed polygon source is chosen. Accepted for simulated fixtures. The
+  generated fleet lands in 320 cells at resolution 7 with 42.6 MW nameplate.
 

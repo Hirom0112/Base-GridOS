@@ -571,7 +571,7 @@ Owns: `services/control/internal/safety/`.
 - `[x]` 1B.5 `[P]` Property test with `pgregory.net/rapid`: for random plans
   and states, an approved plan never has energy below effective reserve at
   any interval. Verify: `go test ./services/control/internal/safety/ -run Property -rapid.checks=2000` passes.
-- `[~]` 1B.6 `[after 1C.6]` Differential test reading the golden fixtures in
+- `[x]` 1B.6 `[after 1C.6]` Differential test reading the golden fixtures in
   `testdata/golden/plans/`: every Python-approved plan is Go-approved and
   every Python-flagged plan is Go-rejected with the same violation family.
   Verify: `go test ./services/control/internal/safety/ -run Golden` passes.
@@ -761,7 +761,7 @@ Owns: `services/control/internal/ingest/`, `tests/end-to-end/`, the
   remote plugins after repeated regeneration by six agents.
   Verify: `make plugins && make generate` succeeds with the network to buf.build blocked (`env HTTPS_PROXY=http://127.0.0.1:9 make generate`).
 
-- `[~]` 1F.7 `[P]` Greater Austin demonstration fleet: a generator preset
+- `[x]` 1F.7 `[P]` Greater Austin demonstration fleet: a generator preset
   `austin-5000` (seed 20260926) placing approximately 5,000 devices inside a
   Greater Austin bounding box (Travis, Williamson, Hays) at H3 resolution 7,
   weather zone `SCENT`, load zone `LZ_AEN`, spread over a few hundred cells;
