@@ -5,6 +5,7 @@ package gridos.v1;
 option go_package = "github.com/Hirom0112/Base-GridOS/services/control/internal/gen/gridos/v1;gridosv1";
 
 import "google/protobuf/timestamp.proto";
+import "gridos/v1/device.proto";
 import "gridos/v1/telemetry.proto";
 
 enum DispatchEventState {
@@ -62,6 +63,7 @@ message DispatchEvent {
   google.protobuf.Timestamp created_at = 5;
   google.protobuf.Timestamp updated_at = 6;
   string correlation_id = 7;
+  Provenance provenance = 8;
 }
 
 message DeviceExclusion {
