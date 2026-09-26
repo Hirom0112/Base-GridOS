@@ -65,7 +65,7 @@ func TestPublishTelemetryAcknowledgesOnlyAfterDurableWrite(t *testing.T) {
 	go func() {
 		_, err := service.PublishTelemetry(context.Background(), connect.NewRequest(&gridosv1.PublishTelemetryRequest{
 			GatewayId:    "gateway-1",
-			Observations: []*gridosv1.TelemetryObservation{observation("device-1", 1, gridosv1.ValueState_VALUE_STATE_PRESENT)},
+			Observations: []*gridosv1.TelemetryObservation{observation(1, gridosv1.ValueState_VALUE_STATE_PRESENT)},
 		}))
 		done <- err
 	}()
@@ -89,9 +89,9 @@ func TestPublishTelemetryOrdersSequencesAndDropsDuplicates(t *testing.T) {
 	twin := &recordingTwin{}
 	service := NewService(store, twin, time.Now)
 	request := connect.NewRequest(&gridosv1.PublishTelemetryRequest{GatewayId: "gateway-1", Observations: []*gridosv1.TelemetryObservation{
-		observation("device-1", 2, gridosv1.ValueState_VALUE_STATE_STALE),
-		observation("device-1", 1, gridosv1.ValueState_VALUE_STATE_MISSING),
-		observation("device-1", 2, gridosv1.ValueState_VALUE_STATE_PRESENT),
+		observation(2, gridosv1.ValueState_VALUE_STATE_STALE),
+		observation(1, gridosv1.ValueState_VALUE_STATE_MISSING),
+		observation(2, gridosv1.ValueState_VALUE_STATE_PRESENT),
 	}})
 	response, err := service.PublishTelemetry(context.Background(), request)
 	if err != nil {
@@ -112,7 +112,7 @@ func TestPublishTelemetryDoesNotAcknowledgeFailedWrite(t *testing.T) {
 	service := NewService(failingStore{}, &recordingTwin{}, time.Now)
 	response, err := service.PublishTelemetry(context.Background(), connect.NewRequest(&gridosv1.PublishTelemetryRequest{
 		GatewayId:    "gateway-1",
-		Observations: []*gridosv1.TelemetryObservation{observation("device-1", 1, gridosv1.ValueState_VALUE_STATE_PRESENT)},
+		Observations: []*gridosv1.TelemetryObservation{observation(1, gridosv1.ValueState_VALUE_STATE_PRESENT)},
 	}))
 	if err == nil || response != nil {
 		t.Fatalf("response, error = %v, %v; want nil response and error", response, err)
@@ -125,7 +125,8 @@ func (failingStore) Write(context.Context, []*gridosv1.TelemetryObservation) ([]
 	return nil, errors.New("write failed")
 }
 
-func observation(deviceID string, sequence uint64, state gridosv1.ValueState) *gridosv1.TelemetryObservation {
+func observation(sequence uint64, state gridosv1.ValueState) *gridosv1.TelemetryObservation {
+	deviceID := "device-1"
 	return &gridosv1.TelemetryObservation{
 		ObservationId:   deviceID + "-" + strconv.FormatUint(sequence, 10),
 		DeviceId:        deviceID,
