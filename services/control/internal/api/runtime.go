@@ -41,6 +41,14 @@ func (optimizer *ConnectOptimizer) Forecast(ctx context.Context, request *gridos
 	return response.Msg, nil
 }
 
+func (optimizer *ConnectOptimizer) Replace(ctx context.Context, request *gridosv1.ReplaceRequest) (*gridosv1.ReplaceResponse, error) {
+	response, err := optimizer.client.Replace(ctx, connect.NewRequest(request))
+	if err != nil {
+		return nil, err
+	}
+	return response.Msg, nil
+}
+
 type StoredApprovalGate struct {
 	events EventStore
 }

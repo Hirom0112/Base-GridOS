@@ -29,6 +29,7 @@ type Snapshotter interface {
 type Optimizer interface {
 	Optimize(context.Context, *gridosv1.OptimizationRequest) (*gridosv1.DispatchPlan, error)
 	Forecast(context.Context, *gridosv1.ForecastRequest) (*gridosv1.ForecastResponse, error)
+	Replace(context.Context, *gridosv1.ReplaceRequest) (*gridosv1.ReplaceResponse, error)
 }
 
 type SafetyGate interface {
