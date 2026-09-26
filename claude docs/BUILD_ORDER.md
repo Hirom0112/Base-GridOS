@@ -778,7 +778,7 @@ Owns: `services/control/internal/ingest/`, `tests/end-to-end/`, the
   safety approved, operator approval recorded, intents persisted before any
   network send, gateway acknowledges, telemetry ingested, basic report
   contains provenance and versions. Verify: `make demo` comes up and `go test ./tests/end-to-end/ -run VerticalSlice` passes.
-- `[~]` 1F.4 `[after 1F.3, 1F.7, 1E.8]` Record real responses for every Wave 1
+- `[x]` 1F.4 `[after 1F.3, 1F.7, 1E.8]` Record real responses for every Wave 1
   method from the running demo stack seeded with the `austin-5000` fleet
   (not `texas-50`, which stays a unit-test fleet) using `mockapi record`,
   replacing the hand-authored fixtures. `ListSites` must show a few hundred
