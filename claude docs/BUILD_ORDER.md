@@ -624,7 +624,7 @@ Owns: `services/control/internal/storage/` (including
 `internal/storage/publisher/`), `services/control/go.mod` (Wave 1 owner),
 `services/control/cmd/migrate`.
 
-- `[~]` 1D.1 `[P]` `services/control/go.mod` pre-declaring every Go dependency
+- `[x]` 1D.1 `[P]` `services/control/go.mod` pre-declaring every Go dependency
   Waves 1 and 2 need so no other lane edits it: `pgx/v5`, `golang-migrate`,
   `connect-go`, `grpc`, `pgregory.net/rapid`, `testcontainers-go`, the
   Temporal Go SDK, `modernc.org/sqlite` is not needed here (gateway is its
