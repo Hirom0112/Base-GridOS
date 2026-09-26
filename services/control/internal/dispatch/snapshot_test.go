@@ -25,3 +25,22 @@ func TestSnapshotRetryRejectsChangedLiveInputs(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEqual(t, snapshotter.snapshot.Optimization.Devices[0].GetEnergyKwh(), stored.GetDevices()[0].GetEnergyKwh())
 }
+
+func TestSnapshotApprovalSurvivesLiveChange(t *testing.T) {
+	harness := newActivityHarness(t)
+	harness.approve(t)
+	require.NotEmpty(t, harness.input.ApprovalDigest)
+	snapshotter := harness.activities.Dispatcher.Snapshots.(activitySnapshotter)
+	snapshotter.snapshot.Optimization.ReservePolicy.PolicyVersion = "later-policy"
+	require.NoError(t, harness.activities.PersistIntents(context.Background(), PersistInput{Input: harness.input, Launch: harness.launch()}))
+	require.Equal(t, 1, harness.count(t, "command_intents"))
+}
+
+func TestSnapshotApprovalRejectsChangedDigest(t *testing.T) {
+	harness := newActivityHarness(t)
+	harness.approve(t)
+	harness.input.ApprovalDigest[0] ^= 1
+	err := harness.activities.PersistIntents(context.Background(), PersistInput{Input: harness.input, Launch: harness.launch()})
+	require.ErrorContains(t, err, "approval digest changed")
+	require.Zero(t, harness.count(t, "command_intents"))
+}
