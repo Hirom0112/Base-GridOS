@@ -842,7 +842,7 @@ Owns: `services/gateway-simulator/internal/failures/`,
 - `[x]` 2A.3 `[P]` RED then GREEN: "twenty percent of Houston devices
   disconnected" computes lost MW from the affected devices' schedules, not
   20% of fleet MW (`system-understanding.md` "Reliable execution"). Verify: `-run HoustonTwenty` passes.
-- `[~]` 2A.4 `[P]` RED then GREEN: network outage followed by SQLite replay
+- `[x]` 2A.4 `[P]` RED then GREEN: network outage followed by SQLite replay
   delivers every buffered observation once, in sequence, with original
   `source_time`. Verify: `-run OutageReplay` passes.
 - `[~]` 2A.5 `[P]` Scenario runner flag `--scenario <file>` on the simulator
