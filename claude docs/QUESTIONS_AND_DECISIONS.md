@@ -359,4 +359,12 @@ assumptions reported by workers land here too.
 - **2A.6 (lane A):** scenario injections now act at runtime on exactly the
   seeded devices, failed publishes buffer to SQLite and replay once, and
   `--cadence` speeds integration runs; lane A complete again.
+- **Reversed: frozen inputs as an activity result.** At 5,000 devices the
+  FreezeInputs result is about 4 MB, above Temporal's payload limit, so
+  workflows failed and events stayed REQUESTED (found by lane F at 2F.8).
+  Correct design: FreezeInputs writes the input and eligibility snapshots
+  to PostgreSQL through the existing snapshot tables and returns only their
+  identifiers; RequestPlan and later activities load by identifier. Lane F
+  owns `internal/dispatch/activities.go` and `internal/api` runtime for this
+  fix since lane B is complete. The 5,000-device demo fleet is not reduced.
 

@@ -997,6 +997,9 @@ For 2F.5 and 2F.6: `contracts/gridos/v1/api.proto` additively (`EventsService`,
 `H3SiteAggregate` fields) and `services/control/internal/api/fleet_views.go`.
 For 2F.5 per-cell delivery: an additive `DeliveredByCell` in
 `services/control/internal/reconciliation/` and its storage query.
+For 2F.8 after lane B completes: `services/control/internal/dispatch/` and
+`services/control/internal/api/` runtime, to persist frozen snapshots and
+return identifiers.
 
 - `[x]` 2F.1 `[P]` RED then GREEN: simulator scale. 5,000 simulated devices
   in one process produce telemetry every 5 seconds for 10 minutes with no
