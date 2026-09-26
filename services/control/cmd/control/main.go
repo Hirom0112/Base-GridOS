@@ -56,7 +56,7 @@ func main() {
 	}
 	service := controlapi.NewService(controlapi.NewPostgresEventStore(pool), twin, sites, time.Now)
 	service.SetReportSource(controlapi.NewPostgresReportSource(pool))
-	decisionAddress := environment("GRIDOS_DECISION_ADDR", "http://localhost:8082")
+	decisionAddress := environment("GRIDOS_DECISION_ADDR", "http://localhost:50061")
 	gatewayAddress := environment("GRIDOS_GATEWAY_ADDR", "http://localhost:8081")
 	client := h2Client()
 	publisher := storagepublisher.New(storagepublisher.Config{
