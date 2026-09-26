@@ -1,0 +1,121 @@
+{
+    "@context": [
+        "https://geojson.org/geojson-ld/geojson-context.jsonld",
+        {
+            "@version": "1.1",
+            "wx": "https://api.weather.gov/ontology#",
+            "@vocab": "https://api.weather.gov/ontology#"
+        }
+    ],
+    "type": "FeatureCollection",
+    "features": [
+        {
+            "id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.76314c44ce7e06be0519f43a60681454bf37a851.001.1",
+            "type": "Feature",
+            "geometry": null,
+            "properties": {
+                "@id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.76314c44ce7e06be0519f43a60681454bf37a851.001.1",
+                "@type": "wx:Alert",
+                "id": "urn:oid:2.49.0.1.840.0.76314c44ce7e06be0519f43a60681454bf37a851.001.1",
+                "areaDesc": "Wise; Denton; Collin; Hunt; Parker; Tarrant; Dallas; Rockwall; Kaufman; Hood; Johnson; Ellis; Henderson",
+                "geocode": {
+                    "SAME": [
+                        "048497",
+                        "048121",
+                        "048085",
+                        "048231",
+                        "048367",
+                        "048439",
+                        "048113",
+                        "048397",
+                        "048257",
+                        "048221",
+                        "048251",
+                        "048139",
+                        "048213"
+                    ],
+                    "UGC": [
+                        "TXZ102",
+                        "TXZ103",
+                        "TXZ104",
+                        "TXZ105",
+                        "TXZ117",
+                        "TXZ118",
+                        "TXZ119",
+                        "TXZ120",
+                        "TXZ121",
+                        "TXZ131",
+                        "TXZ133",
+                        "TXZ134",
+                        "TXZ135"
+                    ]
+                },
+                "affectedZones": [
+                    "https://api.weather.gov/zones/forecast/TXZ102",
+                    "https://api.weather.gov/zones/forecast/TXZ103",
+                    "https://api.weather.gov/zones/forecast/TXZ104",
+                    "https://api.weather.gov/zones/forecast/TXZ105",
+                    "https://api.weather.gov/zones/forecast/TXZ117",
+                    "https://api.weather.gov/zones/forecast/TXZ118",
+                    "https://api.weather.gov/zones/forecast/TXZ119",
+                    "https://api.weather.gov/zones/forecast/TXZ120",
+                    "https://api.weather.gov/zones/forecast/TXZ121",
+                    "https://api.weather.gov/zones/forecast/TXZ131",
+                    "https://api.weather.gov/zones/forecast/TXZ133",
+                    "https://api.weather.gov/zones/forecast/TXZ134",
+                    "https://api.weather.gov/zones/forecast/TXZ135"
+                ],
+                "references": [],
+                "sent": "2026-09-25T15:50:00-05:00",
+                "effective": "2026-09-25T15:50:00-05:00",
+                "onset": "2026-09-25T15:50:00-05:00",
+                "expires": "2026-09-26T19:00:00-05:00",
+                "ends": null,
+                "status": "Actual",
+                "messageType": "Alert",
+                "category": "Met",
+                "severity": "Unknown",
+                "certainty": "Unknown",
+                "urgency": "Unknown",
+                "event": "Air Quality Alert",
+                "sender": "w-nws.webmaster@noaa.gov",
+                "senderName": "NWS Fort Worth TX",
+                "headline": "Air Quality Alert issued September 25 at 3:50PM CDT by NWS Fort Worth TX",
+                "description": "AQAFWD\n\nThe Texas Commission on Environmental Quality (TCEQ) has issued\nan Ozone Action Day for the Dallas-Fort Worth area for Saturday,\nSeptember 26, 2026.\n\nAtmospheric conditions are expected to be favorable for producing\nhigh levels of ozone air pollution in the Dallas-Fort Worth area\non Saturday. You can help prevent ozone pollution by sharing a\nride, walking, riding a bicycle, taking your lunch to work,\navoiding drive-through lanes, conserving energy, and keeping your\nvehicle properly tuned.\n\nFor more information on ozone:\n\nOzone: The Facts (www.tceq.texas.gov/goto/ozonefacts)\n\nAir North Texas: (www.airnorthtexas.org)\n\nEPA Air Now\n(www.airnow.gov/index.cfm?action.local_state&STATEID=45&TAB=0)\n\nTake care of Texas (www.takecareoftexas.org)\n\nNorth Central Texas Council of Governments Air Quality\n(www.nctcog.org/trans/air/index.asp)",
+                "instruction": null,
+                "response": "Monitor",
+                "note": "Non-Weather Emergency Message. Not sent to IPAWS.",
+                "parameters": {
+                    "AWIPSidentifier": [
+                        "AQAFWD"
+                    ],
+                    "WMOidentifier": [
+                        "AEUS74 KFWD 252050"
+                    ],
+                    "NWSheadline": [
+                        "OZONE ACTION DAY"
+                    ],
+                    "BLOCKCHANNEL": [
+                        "EAS",
+                        "NWEM",
+                        "CMAS"
+                    ]
+                },
+                "scope": "Public",
+                "code": "IPAWSv1.0",
+                "language": "en-US",
+                "web": "http://www.weather.gov",
+                "eventCode": {
+                    "SAME": [
+                        "NWS"
+                    ],
+                    "NationalWeatherService": [
+                        "AQA"
+                    ]
+                }
+            }
+        }
+    ],
+    "title": "Current watches, warnings, and advisories for 32.78 N, 96.8 W",
+    "updated": "2026-09-26T00:34:06+00:00"
+}

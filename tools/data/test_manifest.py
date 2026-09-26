@@ -12,7 +12,7 @@ def test_manifest_covers_cached_datasets() -> None:
         str(path.relative_to(ROOT))
         for directory in (ROOT / "data", ROOT / "testdata/fixtures/public/fleet")
         for path in directory.rglob("*")
-        if path.is_file()
+        if path.is_file() and path.name != "PROVENANCE.md"
     }
     assert entries.keys() == cached
     for relative_path, entry in entries.items():

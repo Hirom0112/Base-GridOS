@@ -88,7 +88,12 @@ def date_range(path: Path) -> str:
 
 def cached_files() -> list[Path]:
     roots = (ROOT / "data", ROOT / "testdata/fixtures/public/fleet")
-    return sorted(path for root in roots for path in root.rglob("*") if path.is_file())
+    return sorted(
+        path
+        for root in roots
+        for path in root.rglob("*")
+        if path.is_file() and path.name != "PROVENANCE.md"
+    )
 
 
 def build_manifest() -> dict[str, object]:
