@@ -511,7 +511,7 @@ Owns: `services/gateway-simulator/`.
   overcurrent standby), and backup-hours estimates at current usage and at
   750 W. An islanded state reports zero grid-service capacity.
   Verify: `go test ./services/gateway-simulator/internal/battery/` passes.
-- `[~]` 1A.3 `[P]` RED: `internal/gateway/store_test.go`: a command is
+- `[x]` 1A.3 `[P]` RED: `internal/gateway/store_test.go`: a command is
   persisted to SQLite before the acknowledgement is returned; a duplicate
   `command_id` is acknowledged idempotently without a second physical effect;
   a lower `generation` than the stored one is rejected with reason
