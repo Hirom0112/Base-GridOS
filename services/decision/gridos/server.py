@@ -9,10 +9,14 @@ from zoneinfo import ZoneInfo
 import grpc
 
 from gridos.fallback.planner import (
+    DeviceSchedule,
     DeviceState,
+    FallbackPlan,
     PlanningInterval,
+    ScheduleInterval,
     plan_fallback,
 )
+from gridos.fallback.replacement import replace_dropped
 from gridos.forecasting.availability import ReliabilityTrait, forecast_availability
 from gridos.forecasting.load import LoadObservation, forecast_load
 from gridos.optimization.model import OptimizedPlan, optimize
@@ -363,6 +367,71 @@ class OptimizationServer:
         outcome = solve_within_budget(self._solver, devices, intervals, budget)
         return _response(request, devices, resolve(outcome, fallback, devices, intervals))
 
+    def Replace(
+        self,
+        wrapper: optimization_pb2.ReplaceRequest,
+        context: grpc.ServicerContext,
+    ) -> optimization_pb2.ReplaceResponse:
+        if not wrapper.HasField("current") or not wrapper.HasField("approved_plan"):
+            context.abort(
+                grpc.StatusCode.INVALID_ARGUMENT, "current state and approved plan required"
+            )
+        request = wrapper.current
+        approved = wrapper.approved_plan
+        envelope = frozenset(wrapper.envelope_device_ids)
+        dropped = frozenset(wrapper.dropped_device_ids)
+        scheduled = {schedule.device_id for schedule in approved.device_schedules}
+        if (
+            not wrapper.idempotency_key
+            or not envelope
+            or not dropped
+            or len(envelope) != len(wrapper.envelope_device_ids)
+            or len(dropped) != len(wrapper.dropped_device_ids)
+            or not dropped <= scheduled
+            or not scheduled <= envelope
+            or approved.event_id != request.event_id
+        ):
+            context.abort(grpc.StatusCode.INVALID_ARGUMENT, "invalid replacement boundary")
+        try:
+            intervals = _planning_intervals(request)
+            devices = _device_states(request)
+            if len({device.device_id for device in devices}) != len(devices):
+                raise ValueError("duplicate current device")
+            if any(
+                len(schedule.intervals) != len(intervals) for schedule in approved.device_schedules
+            ):
+                raise ValueError("approved schedule length does not match current intervals")
+            prior = FallbackPlan(
+                schedules=tuple(
+                    DeviceSchedule(
+                        schedule.device_id,
+                        tuple(
+                            ScheduleInterval(
+                                item.setpoint_kw,
+                                item.setpoint_kw,
+                                item.expected_energy_kwh,
+                            )
+                            for item in schedule.intervals
+                        ),
+                    )
+                    for schedule in approved.device_schedules
+                ),
+                exclusions=(),
+                shortfalls=(),
+            )
+            replacement = replace_dropped(prior, devices, envelope, dropped, intervals)
+            targets = [
+                PlanningInterval(item.requested_kw, interval.duration_hours)
+                for item, interval in zip(replacement.shortfalls, intervals, strict=True)
+            ]
+            if validate_plan(replacement, devices, targets):
+                context.abort(grpc.StatusCode.INTERNAL, "replacement validation failed")
+        except ValueError as error:
+            context.abort(grpc.StatusCode.INVALID_ARGUMENT, str(error))
+        result = _response(request, devices, Decision(replacement, "COHORT_REPLACEMENT"))
+        result.plan.plan_id = f"{approved.plan_id}-replacement-{wrapper.idempotency_key}"
+        return optimization_pb2.ReplaceResponse(replacement_plan=result.plan)
+
 
 def _port(value: str) -> int:
     port = int(value)
@@ -383,11 +452,20 @@ def serve(port: int) -> None:
         request_deserializer=optimization_pb2.ForecastRequest.FromString,
         response_serializer=optimization_pb2.ForecastResponse.SerializeToString,
     )
+    replace_handler = grpc.unary_unary_rpc_method_handler(
+        OptimizationServer().Replace,
+        request_deserializer=optimization_pb2.ReplaceRequest.FromString,
+        response_serializer=optimization_pb2.ReplaceResponse.SerializeToString,
+    )
     server.add_generic_rpc_handlers(
         (
             grpc.method_handlers_generic_handler(
                 "gridos.v1.OptimizationService",
-                {"Optimize": optimize_handler, "Forecast": forecast_handler},
+                {
+                    "Optimize": optimize_handler,
+                    "Forecast": forecast_handler,
+                    "Replace": replace_handler,
+                },
             ),
         )
     )
