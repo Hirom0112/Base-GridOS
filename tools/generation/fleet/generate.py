@@ -1,5 +1,6 @@
 import hashlib
 import json
+import math
 import random
 from pathlib import Path
 
@@ -85,37 +86,37 @@ def generate_fleet(seed: int, size: int) -> bytes:
 
 
 def _austin_cells(seed: int) -> tuple[str, ...]:
-    latitude_min, latitude_max, longitude_min, longitude_max = AUSTIN_BOUNDS
     rng = random.Random(f"{seed}:austin-cells")
-    cells: list[str] = []
-    found: set[str] = set()
-    while len(cells) < AUSTIN_CELL_COUNT:
-        cell = h3.latlng_to_cell(
-            rng.uniform(latitude_min, latitude_max),
-            rng.uniform(longitude_min, longitude_max),
-            7,
-        )
+    downtown = h3.latlng_to_cell(30.27, -97.74, 7)
+    candidates = []
+    for cell in sorted(h3.grid_disk(downtown, 25)):
         latitude, longitude = h3.cell_to_latlng(cell)
-        if cell in found or not (
-            latitude_min <= latitude <= latitude_max and longitude_min <= longitude <= longitude_max
-        ):
+        radius = ((latitude - 30.27) / 0.42) ** 2 + ((longitude + 97.74) / 0.50) ** 2
+        if radius >= 1 or not (30.02 < latitude < 30.83 and -98.22 < longitude < -97.08):
             continue
-        found.add(cell)
-        cells.append(cell)
-    return tuple(cells)
+        weight = math.exp(-2 * radius)
+        candidates.append((rng.random() ** (1 / weight), cell))
+    candidates.sort(reverse=True)
+    return tuple(cell for _, cell in candidates[:AUSTIN_CELL_COUNT])
 
 
 def generate_austin_fleet(seed: int, size: int) -> bytes:
     if size < 0:
         raise ValueError("size must be nonnegative")
     cells = _austin_cells(seed)
+    downtown = h3.latlng_to_cell(30.27, -97.74, 7)
+    rng = random.Random(f"{seed}:austin-sites")
+    weights = [math.exp(-h3.grid_distance(downtown, cell) / 5) for cell in cells]
+    assignments = list(cells[: min(size, len(cells))])
+    assignments.extend(rng.choices(cells, weights=weights, k=size - len(assignments)))
+    rng.shuffle(assignments)
     records = []
     for index in range(size):
         device = _device(seed, index)
         device["weather_zone"] = "SCENT"
         device["load_zone"] = "LZ_AEN"
         device["load_profile_type"] = f"{str(device['load_profile_type']).split('_')[0]}_SCENT"
-        device["h3_cell"] = cells[index % len(cells)]
+        device["h3_cell"] = assignments[index]
         device["cohorts"] = ["SCENT", "LZ_AEN", device["resilience_plan"]]
         records.append(json.dumps(device, sort_keys=True, separators=(",", ":")))
     return "".join(f"{record}\n" for record in records).encode()
