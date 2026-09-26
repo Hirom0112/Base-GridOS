@@ -94,7 +94,7 @@ func TestRuntimeDropsSelectedReceiptAfterDurableCommand(t *testing.T) {
 	handler := newRuntimeCommandHandler(protocol.NewCommandHandler(store, "gateway", "token", func() time.Time { return now }), runtime, func() time.Time { return now })
 	selected := connect.NewRequest(commandRequest(selectedID, now))
 	selected.Header().Set("Authorization", "token")
-	if _, err := handler.SubmitCommand(ctx, selected); connect.CodeOf(err) != connect.CodeUnavailable {
+	if _, err := handler.SubmitCommand(ctx, selected); connect.CodeOf(err) != connect.CodeDeadlineExceeded {
 		t.Fatalf("selected response error=%v", err)
 	}
 	commands, err := store.Commands(ctx)
@@ -133,7 +133,7 @@ func TestRuntimeScheduledFaultFollowsAcceptedCommand(t *testing.T) {
 	selected := connect.NewRequest(commandRequest("a", now))
 	selected.Msg.CommandIntent.EventId = "event-1"
 	selected.Header().Set("Authorization", "token")
-	if _, err := handler.SubmitCommand(ctx, selected); connect.CodeOf(err) != connect.CodeUnavailable {
+	if _, err := handler.SubmitCommand(ctx, selected); connect.CodeOf(err) != connect.CodeDeadlineExceeded {
 		t.Fatalf("selected response error=%v", err)
 	}
 	commands, err := store.Commands(ctx)
