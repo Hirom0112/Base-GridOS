@@ -133,7 +133,7 @@ def plan_fallback(devices: list[DeviceState], intervals: list[PlanningInterval])
         else:
             exclusions.append(Exclusion(device.device_id, reason))
     energies = {device.device_id: device.energy_kwh for device in eligible}
-    scheduled = {device.device_id: [] for device in eligible}
+    scheduled: dict[str, list[ScheduleInterval]] = {device.device_id: [] for device in eligible}
     shortfalls: list[Shortfall] = []
     for interval in intervals:
         ranked = sorted(
