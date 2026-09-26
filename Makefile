@@ -1,4 +1,4 @@
-.PHONY: up down generate test-go test-py test-web test-all hooks ui-mock
+.PHONY: up down generate test-go test-py test-web test-all hooks ui-mock plugins
 
 up:
 	docker compose -f infrastructure/local/compose.yaml up -d --wait
@@ -29,3 +29,12 @@ hooks:
 
 ui-mock:
 	go run ./tools/development/mockapi
+
+plugins:
+	mkdir -p .local/bin
+	GOBIN="$(CURDIR)/.local/bin" go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.11
+	GOBIN="$(CURDIR)/.local/bin" go install connectrpc.com/connect/cmd/protoc-gen-connect-go@v1.21.0
+	pnpm --package=@bufbuild/protoc-gen-es@2.11.0 dlx protoc-gen-es --version
+	uv sync --project services/decision
+	printf '%s\n' '#!/bin/sh' 'exec uv run --offline --project services/decision python -m grpc_tools.protoc "$$@"' > .local/bin/protoc
+	chmod +x .local/bin/protoc

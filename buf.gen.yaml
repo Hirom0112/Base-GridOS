@@ -1,15 +1,48 @@
 version: v2
 plugins:
-  - remote: buf.build/protocolbuffers/go
+  - local: .local/bin/protoc-gen-go
     out: contracts/gen/go
     opt: paths=source_relative
-  - remote: buf.build/connectrpc/go
+  - local: .local/bin/protoc-gen-connect-go
     out: contracts/gen/go
     opt: paths=source_relative
-  - remote: buf.build/protocolbuffers/python
+  - protoc_builtin: python
+    protoc_path: .local/bin/protoc
     out: services/decision/gridos/gen
-  - remote: buf.build/grpc/python
+  - local:
+      - uv
+      - run
+      - --offline
+      - --project
+      - services/decision
+      - python
+      - -c
+      - |
+        import pathlib
+        import sys
+        import grpc_tools
+        from google.protobuf.compiler import plugin_pb2
+        from grpc_tools import _protoc_compiler
+        request = plugin_pb2.CodeGeneratorRequest.FromString(sys.stdin.buffer.read())
+        response = plugin_pb2.CodeGeneratorResponse()
+        response.supported_features = plugin_pb2.CodeGeneratorResponse.FEATURE_PROTO3_OPTIONAL
+        include_paths = [b"contracts", str(pathlib.Path(grpc_tools.__file__).parent / "_proto").encode()]
+        generated = set()
+        for source in request.file_to_generate:
+            for path, content in _protoc_compiler.get_services(source.encode(), include_paths):
+                name = path.decode()
+                if name.startswith("google/") or name in generated:
+                    continue
+                generated.add(name)
+                output = response.file.add()
+                output.name = name
+                output.content = content.decode()
+        sys.stdout.buffer.write(response.SerializeToString())
     out: services/decision/gridos/gen
-  - remote: buf.build/bufbuild/es
+  - local:
+      - pnpm
+      - --package=@bufbuild/protoc-gen-es@2.11.0
+      - dlx
+      - protoc-gen-es
     out: apps/console/src/api/gen
     opt: target=ts
