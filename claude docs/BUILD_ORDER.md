@@ -340,18 +340,18 @@ Owns: `docs/domain/truth-model.md`, `tools/generation/`, `testdata/fleets/`,
 
 Owns: `database/`, `sqlc.yaml`.
 
-- `[~]` 0D.1 `[P]` Migration tool choice reported as an assumption
+- `[x]` 0D.1 `[P]` Migration tool choice reported as an assumption
   (`golang-migrate` SQL files, applied by a Go entry point in Wave 1; this
   wave they are applied with `psql`). `database/migrations/0001_events.sql`:
   `dispatch_requests`, `dispatch_events` (state column constrained to the
   eleven states), `plan_versions` (immutable rows), `input_snapshots`,
   `eligibility_snapshots`. Verify: `make up && for f in database/migrations/*.sql; do psql "$GRIDOS_DATABASE_URL" -v ON_ERROR_STOP=1 -f "$f"; done` succeeds twice (idempotent).
-- `[~]` 0D.2 `[P]` `0002_commands.sql`: `command_intents` (all fields from
+- `[x]` 0D.2 `[P]` `0002_commands.sql`: `command_intents` (all fields from
   0B.4, unique `command_id`, unique `idempotency_key`), `command_outbox`
   (state, attempts, next_attempt_at, published_at), `command_states` with a
   CHECK on the per-command state list from `truth-model.md`,
   `command_acknowledgements`, `uncertainty_intervals`. Verify: same as 0D.1.
-- `[~]` 0D.3 `[P]` `0003_policy.sql`: `reserve_policies` (versioned),
+- `[x]` 0D.3 `[P]` `0003_policy.sql`: `reserve_policies` (versioned),
   `resilience_plans` (effective-dated, consent text + version),
   `travel_flex_windows`, `reserve_overrides`, `pricing_catalog_snapshots`
   (energy plan and battery plan as separate JSONB documents matching 0B.6,

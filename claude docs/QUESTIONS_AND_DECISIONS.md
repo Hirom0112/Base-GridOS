@@ -85,4 +85,10 @@ assumptions reported by workers land here too.
 - **0D.1 (lane D):** migrations are golang-migrate-compatible ordered SQL
   files, applied with psql in Wave 0 and by a Go entry point from Wave 1.
   Accepted; it is what the item already said.
+- **Command state storage (lane D, 0D.2):** `command_states` is an
+  append-only transition log with a trigger blocking UPDATE and DELETE; the
+  current state of a command is its latest row. Accepted: it gives every
+  transition an audit row for free. Wave 1 lane D implements the conditional
+  transition as an insert guarded by the latest row, not an UPDATE.
+  `dispatch_events` stays a mutable row with conditional updates.
 
