@@ -188,6 +188,14 @@ func TestEndEventRetryDoesNotDuplicateZeroCommands(t *testing.T) {
 	require.Equal(t, 2, harness.count(t, "command_intents"))
 }
 
+func TestEndEventAfterDispatchWindow(t *testing.T) {
+	harness := newActivityHarness(t)
+	harness.persist(t)
+	harness.activities.Now = func() time.Time { return harness.input.Request.GetEndTime().AsTime() }
+	require.NoError(t, harness.activities.EndEvent(context.Background(), harness.input))
+	require.Equal(t, 2, harness.count(t, "command_intents"))
+}
+
 func TestEmergencyStopIssuesPerDeviceZeroSetpoints(t *testing.T) {
 	harness := newActivityHarness(t)
 	harness.persist(t)
