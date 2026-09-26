@@ -14,7 +14,7 @@ invents scope: every item traces to a section of the three root specs or to
 reference. If an item and a spec disagree, the spec wins and the item is wrong.
 Any numeric threshold in an item that no spec states (a parameter range, a
 file-size cap, a resolution) is an assumption: the worker reports it in the
-mailbox and the director logs it in `ASSUMPTIONS.md`.
+mailbox and the director logs it in `claude docs/QUESTIONS_AND_DECISIONS.md`.
 
 ---
 
@@ -111,7 +111,7 @@ feature.
    result to `claude docs/gate-reports/wave-<n>.md`. That is the only time
    the full suite runs. Workers run only the fast pre-commit gate and the
    single verify command of the item they are on.
-6. `ASSUMPTIONS.md`, `STUBS.md`, and `BLOCKED.md` at repo root are written
+6. `claude docs/QUESTIONS_AND_DECISIONS.md`, and `STUBS.md` and `BLOCKED.md` at the repo root, are written
    only by the director. A worker reports an assumption, a stub marker, or a
    blocker in its mailbox line (`worker: ASSUMPTION <item> | <text>`,
    `worker: STUB <item> | <marker> | <path>`, `worker: BLOCKED ...`) and the
@@ -120,7 +120,7 @@ feature.
 
 ### Standing items (every wave)
 
-- `[ ]` Director updates `ASSUMPTIONS.md` whenever a verified item reported one.
+- `[ ]` Director updates `claude docs/QUESTIONS_AND_DECISIONS.md` whenever a verified item reported one.
 - `[ ]` Director keeps `STUBS.md` equal to every `STUBBED` or `PENDING-LIVE` marker in the tree.
   Verify: `grep -rn "STUBBED\|PENDING-LIVE" --include=*.go --include=*.py --include=*.ts --include=*.tsx . | wc -l` equals the count of entries in `STUBS.md`.
 - `[ ]` No `any`, no `Any`, no bare `interface{}`, no comments, no
@@ -175,20 +175,20 @@ Every lane starts `[P]`.
 Owns: repo root files (`Makefile`, `AGENTS.md`, `.gitignore`),
 `infrastructure/local/`, `tools/development/`.
 
-- `[ ]` 0A.1 `[P]` Install the missing toolchain: Go 1.23+, `buf`, `bazelisk`
+- `[~]` 0A.1 `[P]` Install the missing toolchain: Go 1.23+, `buf`, `bazelisk`
   (used in Wave 5), `temporal` CLI, `uv` with Python 3.12, `sqlc`. Record
   exact versions in `AGENTS.md`. Verify: `go version && buf --version && bazelisk version && temporal --version && uv python list | grep 3.12 && sqlc version` all print.
-- `[ ]` 0A.2 `[after 0A.1]` Prove the hooks in `tools/development/hooks`
+- `[~]` 0A.2 `[after 0A.1]` Prove the hooks in `tools/development/hooks`
   run green on the installed toolchain: stage a Go, a Python, and a proto
   file that pass, then one of each that breaks a ceiling, and confirm the
   hook accepts the first set and rejects the second. Add the `make hooks`
   target that sets `core.hooksPath`. Verify: both runs behave as stated and `git config core.hooksPath` prints `tools/development/hooks`.
-- `[ ]` 0A.3 `[P]` `infrastructure/local/compose.yaml`: PostgreSQL 16 with a
+- `[~]` 0A.3 `[P]` `infrastructure/local/compose.yaml`: PostgreSQL 16 with a
   disposable volume, Temporal dev server (`temporalio/auto-setup` or the
   `temporal server start-dev` image), and healthchecks for both. No BigQuery,
   no cloud credentials (TECHSTACK "Local and deployed topology").
   Verify: `docker compose -f infrastructure/local/compose.yaml up -d --wait && docker compose -f infrastructure/local/compose.yaml ps` shows both healthy.
-- `[ ]` 0A.4 `[P]` Root `Makefile` with targets `up`, `down`, `generate`
+- `[~]` 0A.4 `[P]` Root `Makefile` with targets `up`, `down`, `generate`
   (runs `buf generate contracts`), `test-go`, `test-py`, `test-web`,
   `test-all` (the once-per-wave full suite, director only), `hooks`,
   `ui-mock` (runs 0F.1's mock server). No `demo` target yet; it arrives
@@ -201,14 +201,14 @@ Owns: repo root files (`Makefile`, `AGENTS.md`, `.gitignore`),
 
 Owns: `contracts/`, `buf.yaml`, `buf.gen.yaml`.
 
-- `[ ]` 0B.1 `[P]` `contracts/buf.yaml` with the `gridos.v1` module, `STANDARD`
+- `[~]` 0B.1 `[P]` `contracts/buf.yaml` with the `gridos.v1` module, `STANDARD`
   lint, and `FILE` breaking rules. `buf.gen.yaml` generating `connect-go` into
   `services/control/internal/gen`, Python `protobuf` + `grpcio` into
   `services/decision/gridos/gen`, and `connect-es` into
   `apps/console/src/api/gen`. All three output directories are gitignored
   (0A.4) and produced by `make generate`; no lane commits them.
   Verify: `buf lint contracts` passes on the empty module.
-- `[ ]` 0B.2 `[P]` `contracts/gridos/v1/device.proto`: `Site`, `Device`,
+- `[~]` 0B.2 `[P]` `contracts/gridos/v1/device.proto`: `Site`, `Device`,
   `Provenance` (`provenance` enum with the five FULL_SPEC §2 values,
   `source_id`, `source_uri`, `observed_at`, `ingested_at`, `schema_version`,
   optional `simulation_seed`), battery parameters with explicit units in field
@@ -219,7 +219,7 @@ Owns: `contracts/`, `buf.yaml`, `buf.gen.yaml`.
   address, never coordinates). `Cohort` with `name`, `algorithm_name`, and
   `load_zone` so a partition is addressable the way market partitions are.
   Verify: `buf lint contracts` passes.
-- `[ ]` 0B.3 `[P]` `telemetry.proto`: `TelemetryObservation` with
+- `[~]` 0B.3 `[P]` `telemetry.proto`: `TelemetryObservation` with
   `source_time`, `receive_time`, `observation_time`, units, sign convention
   enum (AC side, discharge positive), `sequence`, quality flags, measurement
   boundary enum (`BATTERY_TERMINAL`, `METER_NET_EXPORT`,
@@ -235,7 +235,7 @@ Owns: `contracts/`, `buf.yaml`, `buf.gen.yaml`.
   `estimated_backup_hours_at_current_usage` and
   `estimated_backup_hours_at_750_watts` (the reference critical load, see
   0C.1). Verify: `buf lint contracts` passes.
-- `[ ]` 0B.4 `[P]` `dispatch.proto`: `EventRequest`, `DispatchEvent` with the
+- `[~]` 0B.4 `[P]` `dispatch.proto`: `EventRequest`, `DispatchEvent` with the
   eleven-state lifecycle enum from TECHSTACK "Temporal workflows",
   `EligibilitySnapshot` with exclusion reason enum, `ReservePolicy`,
   `CommandIntent` (immutable `command_id`, `idempotency_key`, `device_id`,
@@ -245,14 +245,14 @@ Owns: `contracts/`, `buf.yaml`, `buf.gen.yaml`.
   `EmergencyStop`, and the member-facing `GridEvent` (`begin_time`,
   `end_time`, `event_type`) that explains why a battery did or did not
   participate. Verify: `buf lint contracts` passes.
-- `[ ]` 0B.5 `[P]` `optimization.proto`: `OptimizationRequest`, `DispatchPlan`
+- `[~]` 0B.5 `[P]` `optimization.proto`: `OptimizationRequest`, `DispatchPlan`
   (objective breakdown, constraint margins, exclusions with reasons, fallback
   flag, solver and model versions), `DeviceSchedule`, `ShortfallReport` per
   interval. `verification.proto`: `DeliveryVerification`,
   `UncertaintyInterval` (signed feasible-power bounds with the derivation
   inputs listed in TECHSTACK "Safety and delivery semantics"), event report
   message with every field from FULL_SPEC §5.9. Verify: `buf lint contracts` passes.
-- `[ ]` 0B.6 `[P]` `member_policy.proto` and `pricing.proto`: `ResiliencePlan`
+- `[~]` 0B.6 `[P]` `member_policy.proto` and `pricing.proto`: `ResiliencePlan`
   (effective-dated, consent text and version, market, reserve floor),
   `TravelFlexWindow` (start, end, timezone, temporary reserve, early-return
   action, credit type enum fixed daily / event / annual), `ReserveOverride`
@@ -271,7 +271,7 @@ Owns: `contracts/`, `buf.yaml`, `buf.gen.yaml`.
   `HomeActivityAlert` whose description field is fixed text "energy anomaly
   signal, not a verified intrusion". Then run generation.
   Verify: `buf generate contracts` writes Go, Python, and TS output and `buf lint contracts` passes.
-- `[ ]` 0B.7 `[P]` Breaking-change check against `main` using
+- `[~]` 0B.7 `[P]` Breaking-change check against `main` using
   `buf breaking contracts --against '.git#branch=main'`, documented in
   `contracts/README.md`; lane A adds it to the `Makefile` `generate` target
   on request. Verify: the command exits 0 on a clean tree and exits 1 when a field number is changed in the working tree.
@@ -280,7 +280,7 @@ Owns: `contracts/`, `buf.yaml`, `buf.gen.yaml`.
 Owns: `docs/domain/truth-model.md`, `tools/generation/`, `testdata/fleets/`,
 `testdata/scenarios/` (format only this wave).
 
-- `[ ]` 0C.1 `[P]` `docs/domain/truth-model.md`: event measurement boundary
+- `[~]` 0C.1 `[P]` `docs/domain/truth-model.md`: event measurement boundary
   (default `METER_NET_EXPORT` for the canonical event, `BATTERY_TERMINAL`
   selectable), interval `dt` = 5 minutes, sign convention, energy update
   equation and reserve inequality from `system-understanding.md` "The physical
@@ -296,11 +296,11 @@ Owns: `docs/domain/truth-model.md`, `tools/generation/`, `testdata/fleets/`,
   transition tables. Each open decision from FULL_SPEC §15 that this doc
   resolves is reported as an assumption for the director to log.
   Verify: every state named in TECHSTACK "Temporal workflows" appears in the transition table; at least six `worker: ASSUMPTION 0C.1` lines reach the mailbox.
-- `[ ]` 0C.2 `[P]` RED: `tools/generation/tests/test_fleet_determinism.py`
+- `[~]` 0C.2 `[P]` RED: `tools/generation/tests/test_fleet_determinism.py`
   pins that `generate_fleet(seed=20260926, size=5000)` produces a SHA-256 the
   test hard-codes, that two runs are byte-identical, and that `size=50` is a
   prefix-stable subset. Verify: `uv run pytest tools/generation -k determinism` fails with "module not found".
-- `[ ]` 0C.3 `[P]` GREEN: `tools/generation/fleet/generate.py` producing
+- `[~]` 0C.3 `[P]` GREEN: `tools/generation/fleet/generate.py` producing
   `testdata/fleets/<name>.jsonl` with stable pseudonymous IDs, physically
   plausible battery parameters (usable energy 10 to 40 kWh, power 5 to 12 kW,
   one-way efficiencies 0.92 to 0.97), ERCOT weather-zone assignment across the
@@ -310,20 +310,20 @@ Owns: `docs/domain/truth-model.md`, `tools/generation/`, `testdata/fleets/`,
   cells generated inside the zone polygon. No street addresses, no names
   (FULL_SPEC §8). Every record has `provenance: SIMULATED` and
   `simulation_seed`. Verify: `uv run pytest tools/generation` passes.
-- `[ ]` 0C.4 `[P]` RED: `test_fleet_bounds.py` with Hypothesis: for any seed,
+- `[~]` 0C.4 `[P]` RED: `test_fleet_bounds.py` with Hypothesis: for any seed,
   every device satisfies the parameter ranges, reserve preference is within
   the plan bands, and no two devices share an ID. Verify: fails on the first
   property before GREEN tightens the generator.
-- `[ ]` 0C.5 `[P]` GREEN: generator satisfies 0C.4. Produce the checked-in
+- `[~]` 0C.5 `[P]` GREEN: generator satisfies 0C.4. Produce the checked-in
   fleets `texas-5000.jsonl` and `texas-50.jsonl` (the 50-device fleet is the
   unit-test fleet). Verify: `uv run pytest tools/generation` passes and `wc -l testdata/fleets/texas-5000.jsonl` is 5000.
-- `[ ]` 0C.6 `[P]` Scenario format: `testdata/scenarios/SCHEMA.md` and a
+- `[~]` 0C.6 `[P]` Scenario format: `testdata/scenarios/SCHEMA.md` and a
   pydantic model in `tools/generation/scenario/model.py` for a seeded clock,
   fleet reference, event definition (region, window, target MW, boundary),
   timed injections (the FULL_SPEC §5.8 list as an enum), and expected
   outcomes. RED test loads an invalid scenario and expects a validation error;
   GREEN writes the model. Verify: `uv run pytest tools/generation -k scenario` passes.
-- `[ ]` 0C.7 `[P]` The canonical scenario `testdata/scenarios/heat-event-canonical.yaml`:
+- `[~]` 0C.7 `[P]` The canonical scenario `testdata/scenarios/heat-event-canonical.yaml`:
   5,000-site Texas fleet, severe-weather evening, one region, one event window,
   target MW, the injections named in FULL_SPEC §9 steps 11 and 12. Validates
   against 0C.6. Verify: `uv run python -m tools.generation.scenario validate testdata/scenarios/heat-event-canonical.yaml` prints OK.
@@ -332,33 +332,33 @@ Owns: `docs/domain/truth-model.md`, `tools/generation/`, `testdata/fleets/`,
 
 Owns: `database/`, `sqlc.yaml`.
 
-- `[ ]` 0D.1 `[P]` Migration tool choice reported as an assumption
+- `[~]` 0D.1 `[P]` Migration tool choice reported as an assumption
   (`golang-migrate` SQL files, applied by a Go entry point in Wave 1; this
   wave they are applied with `psql`). `database/migrations/0001_events.sql`:
   `dispatch_requests`, `dispatch_events` (state column constrained to the
   eleven states), `plan_versions` (immutable rows), `input_snapshots`,
   `eligibility_snapshots`. Verify: `make up && for f in database/migrations/*.sql; do psql "$GRIDOS_DATABASE_URL" -v ON_ERROR_STOP=1 -f "$f"; done` succeeds twice (idempotent).
-- `[ ]` 0D.2 `[P]` `0002_commands.sql`: `command_intents` (all fields from
+- `[~]` 0D.2 `[P]` `0002_commands.sql`: `command_intents` (all fields from
   0B.4, unique `command_id`, unique `idempotency_key`), `command_outbox`
   (state, attempts, next_attempt_at, published_at), `command_states` with a
   CHECK on the per-command state list from `truth-model.md`,
   `command_acknowledgements`, `uncertainty_intervals`. Verify: same as 0D.1.
-- `[ ]` 0D.3 `[P]` `0003_policy.sql`: `reserve_policies` (versioned),
+- `[~]` 0D.3 `[P]` `0003_policy.sql`: `reserve_policies` (versioned),
   `resilience_plans` (effective-dated, consent text + version),
   `travel_flex_windows`, `reserve_overrides`, `pricing_catalog_snapshots`
   (energy plan and battery plan as separate JSONB documents matching 0B.6,
   each with its own term and monthly charge), `plan_add_ons`,
   `flexibility_offers`, `reward_ledger` (append-only). Verify: same as 0D.1.
-- `[ ]` 0D.4 `[P]` `0004_audit.sql`: `operator_approvals`, `emergency_stops`,
+- `[~]` 0D.4 `[P]` `0004_audit.sql`: `operator_approvals`, `emergency_stops`,
   `verification_summaries`, `audit_journal` (append-only, trigger blocks
   UPDATE and DELETE), correlation ID columns on every table above.
   Verify: an `UPDATE audit_journal` in psql is rejected by the trigger.
-- `[ ]` 0D.5 `[P]` `database/queries/*.sql` for sqlc: conditional event state
+- `[~]` 0D.5 `[P]` `database/queries/*.sql` for sqlc: conditional event state
   transition (`UPDATE ... WHERE state = $expected RETURNING`), insert intent
   plus outbox in one statement set, claim outbox batch with `FOR UPDATE SKIP
   LOCKED`, upsert acknowledgement, append audit. `sqlc.yaml` targeting
   `services/control/internal/storage/gen`. Verify: `sqlc generate && sqlc vet` succeed.
-- `[ ]` 0D.6 `[P]` `database/seeds/dev.sql` loading `testdata/fleets/texas-50.jsonl`
+- `[~]` 0D.6 `[P]` `database/seeds/dev.sql` loading `testdata/fleets/texas-50.jsonl`
   into a `sites` reference table (structure from 0B.2) for local
   development only. Verify: after seeding, `psql -c "select count(*) from sites"` returns 50.
 
@@ -367,7 +367,7 @@ Owns: `database/`, `sqlc.yaml`.
 Owns: `tools/data/`, `testdata/fixtures/` (except `contracts/`), `docs/data/`
 additions.
 
-- `[ ]` 0E.1 `[P]` `tools/data/manifest.py` and `tools/data/MANIFEST.json`:
+- `[~]` 0E.1 `[P]` `tools/data/manifest.py` and `tools/data/MANIFEST.json`:
   every file in DATASETS §1 to §9 with source URL, provenance, SHA-256, size,
   date range. Provenance values are mapped onto the FULL_SPEC §2 enum
   (`CONFIRMED_ORGANIZER_SANDBOX` becomes `CONFIRMED_SANDBOX`; anything
@@ -375,36 +375,36 @@ additions.
   ingested). RED: a test that checks each listed file exists in `data/` or
   `testdata/fixtures` and matches its checksum; GREEN: manifest generation.
   Verify: `uv run pytest tools/data -k manifest` passes against the current cache.
-- `[ ]` 0E.2 `[P]` RED: `test_ercot_prices.py` pins that normalizing
+- `[~]` 0E.2 `[P]` RED: `test_ercot_prices.py` pins that normalizing
   `dam-spp-2025.csv` yields rows with `provenance=CONFIRMED_PUBLIC`,
   `unit=USD_per_MWh`, UTC and local timestamps, and that the DST repeated-hour
   flag produces two distinct UTC rows for the fall-back hour. GREEN:
   `tools/data/normalize/ercot_prices.py` for DAM and RTM into Parquet under
   `.local/normalized/` (ignored; `data/` stays a raw research cache per
   FULL_SPEC §14). Verify: `uv run pytest tools/data -k ercot` passes.
-- `[ ]` 0E.3 `[P]` RED then GREEN: `ercot_load_profiles.py` turning the
+- `[~]` 0E.3 `[P]` RED then GREEN: `ercot_load_profiles.py` turning the
   103-column backcast rows into long-format 15-minute kWh with profile type,
   weather zone, and DST-aware UTC; rejects rows whose interval count is not
   96 or 100. Verify: `uv run pytest tools/data -k load_profiles` passes.
-- `[ ]` 0E.4 `[P]` RED then GREEN: `outages.py` normalizing
+- `[~]` 0E.4 `[P]` RED then GREEN: `outages.py` normalizing
   `texas_outage_event_data.csv` (754,216 events) with county, utility,
   customers out, duration, and computing a per-county monthly outage rate table.
   Verify: `uv run pytest tools/data -k outages` passes and the rate table has one row per county-month.
-- `[ ]` 0E.5 `[P]` RED then GREEN: `nws.py` parsing the eight NWS GeoJSON
+- `[~]` 0E.5 `[P]` RED then GREEN: `nws.py` parsing the eight NWS GeoJSON
   snapshots into forecast periods and alerts with `issued_at`, `valid_from`,
   `valid_to`, and `value_kind=forecast`. Verify: `uv run pytest tools/data -k nws` passes.
-- `[ ]` 0E.6 `[P]` Quarantine path: any record failing schema, range,
+- `[~]` 0E.6 `[P]` Quarantine path: any record failing schema, range,
   sequence, or freshness validation is written to `.local/quarantine/` with
   the reason (FULL_SPEC §14). RED: a deliberately corrupt row lands in quarantine
   with reason `RANGE`. Verify: `uv run pytest tools/data -k quarantine` passes.
-- `[ ]` 0E.7 `[P]` Cut small fixtures for tests and the offline demo into
+- `[~]` 0E.7 `[P]` Cut small fixtures for tests and the offline demo into
   `testdata/fixtures/public/`: one week of DAM and RTM for `LZ_HOUSTON` and
   `HB_HOUSTON`, one week of all 32 residential profile types (four classes
   across eight weather zones, DATASETS §3), one month of Travis and Harris
   county outage rates, the eight Texas NWS files (forecast and alerts for four
   cities, DATASETS §5), and the ERCOT system load merged file. Each under 500 KB, each with a `PROVENANCE.md`
   sidecar. Verify: `du -sh testdata/fixtures` under 5 MB; `find testdata/fixtures -name PROVENANCE.md | wc -l` equals the number of fixture directories.
-- `[ ]` 0E.8 `[P]` `tools/data/fetch.py` re-downloading every manifest entry
+- `[~]` 0E.8 `[P]` `tools/data/fetch.py` re-downloading every manifest entry
   from its source URL with checksum verification, so the cache is reproducible
   (FULL_SPEC §14). ADAPTED scope: recorded-response test plus one live smoke
   fetch of the smallest file. Verify: `uv run python -m tools.data.fetch --only ercot-system-load --verify` succeeds.
@@ -416,13 +416,13 @@ lane. This lane gives the UI track something to build against from day one.
 
 Owns: `tools/development/mockapi/`, `testdata/fixtures/api/`, `tests/contract/`.
 
-- `[ ]` 0F.1 `[after 0B.6]` `tools/development/mockapi`: a Go Connect server
+- `[~]` 0F.1 `[after 0B.6]` `tools/development/mockapi`: a Go Connect server
   that serves every operator and member method in `gridos.v1` from JSON
   fixture files at `testdata/fixtures/api/<Service>/<Method>.json`, with
   `GRIDOS_AUTH_MODE=local` identities, the six roles, and the
   `site_location` permission, so the console runs with no backend.
   Verify: `go run ./tools/development/mockapi & curl -s -X POST -H 'content-type: application/json' localhost:8080/gridos.v1.FleetService/GetFleetSummary -d '{}'` returns the fixture.
-- `[ ]` 0F.2 `[after 0C.5]` Hand-authored fixtures for the Wave 1 methods
+- `[~]` 0F.2 `[after 0C.5]` Hand-authored fixtures for the Wave 1 methods
   (`GetFleetSummary`, `ListSites`, `CreateEventRequest`, `GetEvent`,
   `ApproveEvent`) derived from the `texas-50` fleet, every aggregate carrying
   timestamp, provenance mix, and freshness, every record `SIMULATED`, plus
@@ -430,12 +430,12 @@ Owns: `tools/development/mockapi/`, `testdata/fixtures/api/`, `tests/contract/`.
   RED: a test validates every fixture against its generated proto type and
   every method in `INDEX.json` against the proto descriptors.
   Verify: `go test ./tools/development/mockapi/ -run Fixtures` passes.
-- `[ ]` 0F.3 `[after 0B.6]` `tests/contract/`: a Go test, a Python test, and
+- `[~]` 0F.3 `[after 0B.6]` `tests/contract/`: a Go test, a Python test, and
   a Vitest test that each round-trip the same `CommandIntent` JSON fixture
   (`testdata/fixtures/contracts/command_intent.json`) through their generated
   types and produce byte-identical canonical JSON.
   Verify: `go test ./tests/contract/... && uv run pytest tests/contract && pnpm --dir apps/console vitest run tests/contract`.
-- `[ ]` 0F.4 `[after 0F.1]` Fixture recording harness `mockapi record`: given
+- `[~]` 0F.4 `[after 0F.1]` Fixture recording harness `mockapi record`: given
   a running control service, calls every method in `INDEX.json` and writes
   the responses back into `testdata/fixtures/api/`, so later waves refresh
   fixtures with one command. Verify: `go test ./tools/development/mockapi/ -run Record` passes against a stub server.
@@ -1353,7 +1353,7 @@ Owns: `README.md`, `docs/operations/` (except `security/`), `AGENTS.md`.
    listed in `STUBS.md`.
 4. **Canonical measurement boundary defaults to meter net export** with the
    battery-terminal boundary selectable. The spec leaves this open (§15); the
-   choice lives in `ASSUMPTIONS.md` and every report names the boundary used.
+   choice lives in `claude docs/QUESTIONS_AND_DECISIONS.md` and every report names the boundary used.
 5. **Phase 6 is excluded.** It needs authorized data the manifest says does
    not exist.
 6. **Layout additions.** TECHSTACK's tree is the target and allows a new
@@ -1368,7 +1368,7 @@ Owns: `README.md`, `docs/operations/` (except `security/`), `AGENTS.md`.
    Python and Go golden fixtures, TECHSTACK "Verification strategy"),
    `tests/load`, `.local/` (ignored local working data so `data/` stays a
    raw cache), root `Makefile` and `sqlc.yaml`, and `claude docs/` for
-   director reports. The director records this list in `ASSUMPTIONS.md` at
+   director reports. The director records this list in `claude docs/QUESTIONS_AND_DECISIONS.md` at
    Gate 0.
 8. **The console is a separate track.** The user runs their own UI agent on
    `apps/console/` from `UI_TRACK.md`. Six backend lanes stay full because
