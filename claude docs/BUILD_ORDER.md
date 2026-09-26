@@ -699,7 +699,8 @@ Owns: `services/control/internal/fleet/`, `services/control/internal/api/`,
 ### Lane 1F — telemetry ingest and vertical-slice end to end
 
 Owns: `services/control/internal/ingest/`, `tests/end-to-end/`, the
-`Makefile` `demo` target, `testdata/fixtures/api/` (recording).
+`Makefile` `demo` and `plugins` targets, `buf.gen.yaml`,
+`testdata/fixtures/api/` (recording).
 
 - `[ ]` 1F.1 `[P]` RED: `ingest_test.go`: the control-side gRPC telemetry
   receive service acknowledges receipt only after a durable write, so the
@@ -723,6 +724,15 @@ Owns: `services/control/internal/ingest/`, `tests/end-to-end/`, the
 - `[ ]` 1F.5 `[after 1F.3]` Duplicate-delivery end to end: publish the same
   `command_id` twice through the outbox; the gateway shows one physical
   effect and storage shows one acknowledgement. Verify: `go test ./tests/end-to-end/ -run DuplicateDelivery` passes.
+
+- `[ ]` 1F.6 `[P]` Local Buf plugins: `buf.gen.yaml` switches every
+  `remote:` plugin to a `local:` binary (`protoc-gen-go`,
+  `protoc-gen-connect-go` via `go install`; `protoc-gen-es` via
+  `pnpm dlx`/a pinned devDependency in `tools/development/`; Python via
+  `grpcio-tools` in `services/decision`), with a `make plugins` target that
+  installs them. Found at Gate 0: the Buf Schema Registry rate-limited
+  remote plugins after repeated regeneration by six agents.
+  Verify: `make plugins && make generate` succeeds with the network to buf.build blocked (`env HTTPS_PROXY=http://127.0.0.1:9 make generate`).
 
 ### Gate 1
 
@@ -1424,12 +1434,12 @@ Owns: `README.md`, `docs/operations/` (except `security/`), `AGENTS.md`.
 | Wave | A | B | C | D | E | F | Total |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | 0 | 5 | 9 | 7 | 6 | 8 | 4 | 39 |
-| 1 | 8 | 7 | 9 | 9 | 6 | 5 | 44 |
+| 1 | 8 | 7 | 9 | 9 | 6 | 6 | 45 |
 | 2 | 5 | 7 | 7 | 6 | 6 | 5 | 36 |
 | 3 | 6 | 8 | 4 | 5 | 4 | 5 | 32 |
 | 4 | 7 | 6 | 4 | 3 | 5 | 5 | 30 |
 | 5 | 3 | 3 | 4 | 6 | 4 | 4 | 24 |
-| | | | | | | | **205** |
+| | | | | | | | **206** |
 
 154 items are fully parallel and 48 wait on one other lane. Plus the five
 standing items applied every wave. The UI track adds 40 items of its own in

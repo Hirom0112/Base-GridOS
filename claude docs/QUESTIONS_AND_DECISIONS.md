@@ -142,4 +142,9 @@ assumptions reported by workers land here too.
   5-second header, 10-second read and write, and 30-second idle timeouts
   (0F.1); fixture recording uses a 10-second timeout and rejects responses
   over 1 MiB (0F.4).
+- **Remote Buf plugins rate-limited at Gate 0:** the Buf Schema Registry
+  returned `resource_exhausted` after the day's regenerations. Gate 0 closes
+  on a retried generate; Wave 1 item 1F.6 moves every plugin to a local
+  binary installed by `make plugins`, so generation never depends on
+  buf.build being reachable or generous.
 
