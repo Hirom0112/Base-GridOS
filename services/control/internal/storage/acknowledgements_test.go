@@ -15,7 +15,7 @@ func TestAcknowledgementDoesNotChangeEventState(t *testing.T) {
 	if err := InsertCommand(context.Background(), pool, command); err != nil {
 		t.Fatal(err)
 	}
-	appendCommandState(t, pool, command.CommandID, "SENT", command.CorrelationID)
+	appendSentCommandState(t, pool, command.CommandID, command.CorrelationID)
 	err := RecordAcknowledgement(context.Background(), pool, Acknowledgement{
 		AcknowledgementID: "acknowledgement-1",
 		CommandID:         command.CommandID,
@@ -47,7 +47,7 @@ func TestAckDeadlineMarksUncertainWithInterval(t *testing.T) {
 	if err := InsertCommand(context.Background(), pool, command); err != nil {
 		t.Fatal(err)
 	}
-	appendCommandState(t, pool, command.CommandID, "SENT", command.CorrelationID)
+	appendSentCommandState(t, pool, command.CommandID, command.CorrelationID)
 	deadline := time.Now().UTC()
 	interval := testFeasiblePowerInterval(command, deadline)
 	changed, err := MarkAcknowledgementUncertain(context.Background(), pool, deadline, deadline.Add(time.Second), interval)
@@ -79,7 +79,7 @@ func TestLateAcceptedAcknowledgementResolvesUncertainCommand(t *testing.T) {
 	if err := InsertCommand(context.Background(), pool, command); err != nil {
 		t.Fatal(err)
 	}
-	appendCommandState(t, pool, command.CommandID, "SENT", command.CorrelationID)
+	appendSentCommandState(t, pool, command.CommandID, command.CorrelationID)
 	deadline := time.Now().UTC()
 	if _, err := MarkAcknowledgementUncertain(context.Background(), pool, deadline, deadline, testFeasiblePowerInterval(command, deadline)); err != nil {
 		t.Fatal(err)
@@ -128,10 +128,10 @@ func TestAcknowledgedCommandIsNotMarkedUncertain(t *testing.T) {
 	}
 }
 
-func appendCommandState(t *testing.T, pool *pgxpool.Pool, commandID, state, correlationID string) {
+func appendSentCommandState(t *testing.T, pool *pgxpool.Pool, commandID, correlationID string) {
 	t.Helper()
 	_, err := pool.Exec(context.Background(), `INSERT INTO command_states
-        (command_id, state, recorded_at, correlation_id) VALUES ($1, $2, now(), $3)`, commandID, state, correlationID)
+		(command_id, state, recorded_at, correlation_id) VALUES ($1, 'SENT', now(), $2)`, commandID, correlationID)
 	if err != nil {
 		t.Fatal(err)
 	}
