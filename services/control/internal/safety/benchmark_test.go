@@ -17,6 +17,17 @@ func BenchmarkValidate5000(b *testing.B) {
 	}
 }
 
+func BenchmarkValidate5000x288(b *testing.B) {
+	plan, state := benchmarkInputs(5000, 288)
+	b.ResetTimer()
+	for range b.N {
+		approval, violations := Validate(plan, state)
+		if !approval.Approved {
+			b.Fatalf("unexpected rejection: %d violations, first=%#v", len(violations), violations[0])
+		}
+	}
+}
+
 func benchmarkInputs(deviceCount, intervals int) (Plan, CanonicalState) {
 	now := time.Date(2026, 9, 26, 18, 0, 0, 0, time.UTC)
 	duration := 5 * time.Minute
