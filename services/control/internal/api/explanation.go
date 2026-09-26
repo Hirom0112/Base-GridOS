@@ -23,13 +23,7 @@ func (service *Service) GetPlanExplanation(ctx context.Context, request *connect
 	if event.GetPlanVersion() != request.Msg.GetPlanVersion() {
 		return nil, storeError(ErrPlanVersion)
 	}
-	plans, ok := service.store.(interface {
-		LoadPlan(context.Context, string, uint64) (*gridosv1.OptimizationRequest, *gridosv1.DispatchPlan, error)
-	})
-	if !ok {
-		return nil, connect.NewError(connect.CodeUnavailable, errors.New("plan store required"))
-	}
-	input, plan, err := plans.LoadPlan(ctx, event.GetEventId(), event.GetPlanVersion())
+	input, plan, err := service.store.LoadPlan(ctx, event.GetEventId(), event.GetPlanVersion())
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}

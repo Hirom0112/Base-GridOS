@@ -57,7 +57,6 @@ type LifecycleStore interface {
 	EventStore
 	StorePlanned(context.Context, string, *gridosv1.OptimizationRequest, *gridosv1.DispatchPlan, time.Time) (*gridosv1.DispatchEvent, error)
 	ValidatePlanned(context.Context, string, uint64, []storage.StoredViolation, time.Time) (*gridosv1.DispatchEvent, error)
-	LoadPlan(context.Context, string, uint64) (*gridosv1.OptimizationRequest, *gridosv1.DispatchPlan, error)
 	Advance(context.Context, string, string, string, string, time.Time) (*gridosv1.DispatchEvent, error)
 	Violations(context.Context, string) ([]storage.StoredViolation, error)
 }
