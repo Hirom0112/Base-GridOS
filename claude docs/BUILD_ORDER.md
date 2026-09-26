@@ -670,7 +670,7 @@ Owns: `services/control/internal/storage/` (including
   transitions, acknowledgements, and expiries against an in-memory reference
   model of the command state machine; the database agrees with the model at
   every step. Verify: `go test ./services/control/internal/storage/ -run Model -rapid.checks=500` passes.
-- `[~]` 1D.9 `[after 1A.7]` `internal/storage/publisher`: claims outbox rows
+- `[x]` 1D.9 `[after 1A.7]` `internal/storage/publisher`: claims outbox rows
   and delivers them over gRPC to the gateway, records acknowledgements, marks
   uncertain on deadline, retries with the same `command_id` (TECHSTACK
   "Transactional command outbox"). Integration test against the real gateway
