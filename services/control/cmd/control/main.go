@@ -10,14 +10,13 @@ import (
 	"syscall"
 	"time"
 
-	"connectrpc.com/connect"
-	"github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1/gridosv1connect"
 	controlapi "github.com/Hirom0112/Base-GridOS/services/control/internal/api"
+	"github.com/Hirom0112/Base-GridOS/services/control/internal/dispatch"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/fleet"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/ingest"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/storage"
-	storagepublisher "github.com/Hirom0112/Base-GridOS/services/control/internal/storage/publisher"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"go.temporal.io/sdk/client"
 )
 
 const (
@@ -61,20 +60,12 @@ func main() {
 	}
 	service := controlapi.NewService(controlapi.NewPostgresEventStore(pool), twin, sites, time.Now)
 	service.SetReportSource(controlapi.NewPostgresReportSource(pool))
-	decisionAddress := environment("GRIDOS_DECISION_ADDR", "http://localhost:50061")
-	gatewayAddress := environment("GRIDOS_GATEWAY_ADDR", "http://localhost:8081")
-	client := h2Client()
-	publisher := storagepublisher.New(storagepublisher.Config{
-		Pool: pool, Client: gridosv1connect.NewCommandServiceClient(client, gatewayAddress, connect.WithGRPC()), AuthorizationToken: telemetryToken,
-		BatchSize: 100, LeaseDuration: 5 * time.Second, AcknowledgementTimeout: 5 * time.Second, Now: time.Now, Interval: uncertainInterval,
-	})
-	events := controlapi.NewPostgresEventStore(pool)
-	service.SetDispatcher(&controlapi.Dispatcher{
-		Events: events, Snapshots: controlapi.NewFleetSnapshotter(twin, sites, time.Now),
-		Optimizer: controlapi.NewConnectOptimizer(gridosv1connect.NewOptimizationServiceClient(client, decisionAddress, connect.WithGRPC())),
-		Safety:    controlapi.IndependentSafetyGate{}, Approval: controlapi.NewStoredApprovalGate(events),
-		Commands: controlapi.NewCommandPipeline(pool, publisher), Now: time.Now,
-	})
+	temporalClient, err := client.Dial(client.Options{HostPort: environment("TEMPORAL_ADDRESS", client.DefaultHostPort)})
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer temporalClient.Close()
+	service.SetWorkflowClient(temporalClient, environment("GRIDOS_TASK_QUEUE", dispatch.TaskQueue))
 	if !service.RuntimeReady() {
 		log.Fatal("control runtime is incomplete")
 	}
@@ -99,24 +90,4 @@ func environment(name, fallback string) string {
 		return fallback
 	}
 	return value
-}
-
-func h2Client() *http.Client {
-	transport := http.DefaultTransport.(*http.Transport).Clone()
-	protocols := new(http.Protocols)
-	protocols.SetUnencryptedHTTP2(true)
-	transport.Protocols = protocols
-	return &http.Client{Transport: transport, Timeout: 10 * time.Second}
-}
-
-func uncertainInterval(command storage.ClaimedCommand, now time.Time) storage.FeasiblePowerInterval {
-	lower := min(0, command.SetpointKW)
-	upper := max(0, command.SetpointKW)
-	return storage.FeasiblePowerInterval{
-		DeviceID: command.DeviceID, IntervalBegin: now, IntervalEnd: command.ExpiresAt,
-		LowerKW: lower, UpperKW: upper, PossiblyAcceptedCommandID: command.CommandID,
-		PossiblyAcceptedSetpointKW: command.SetpointKW, PossiblyAcceptedEffectiveAt: command.EffectiveAt,
-		PossiblyAcceptedExpiresAt: command.ExpiresAt, FreshTelemetryObservedAt: now,
-		DerivedAt: now, CorrelationID: command.CorrelationID,
-	}
 }

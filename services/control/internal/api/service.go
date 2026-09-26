@@ -14,7 +14,11 @@ import (
 	"github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1/gridosv1connect"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/fleet"
 	reporting "github.com/Hirom0112/Base-GridOS/services/control/internal/report"
+	"go.temporal.io/api/enums/v1"
+	"go.temporal.io/api/serviceerror"
+	"go.temporal.io/sdk/client"
 	"google.golang.org/protobuf/types/known/durationpb"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 const (
@@ -24,24 +28,37 @@ const (
 )
 
 type Service struct {
-	store      EventStore
-	twin       *fleet.Twin
-	sites      []*gridosv1.AuthorizedSite
-	now        func() time.Time
-	reports    reporting.Source
-	dispatcher *Dispatcher
+	store           EventStore
+	twin            *fleet.Twin
+	sites           []*gridosv1.AuthorizedSite
+	now             func() time.Time
+	reports         reporting.Source
+	startWorkflow   func(context.Context, string, dispatchWorkflowInput) error
+	approveWorkflow func(context.Context, string, dispatchWorkflowApproval) error
+	launchWorkflow  func(context.Context, string, *gridosv1.LaunchEventRequest) error
 }
 
 func (service *Service) SetReportSource(source reporting.Source) {
 	service.reports = source
 }
 
-func (service *Service) SetDispatcher(dispatcher *Dispatcher) {
-	service.dispatcher = dispatcher
+func (service *Service) SetWorkflowClient(workflows client.Client, taskQueue string) {
+	service.startWorkflow = func(ctx context.Context, eventID string, input dispatchWorkflowInput) error {
+		_, err := workflows.ExecuteWorkflow(ctx, client.StartWorkflowOptions{
+			ID: eventID, TaskQueue: taskQueue, WorkflowIDReusePolicy: enums.WORKFLOW_ID_REUSE_POLICY_REJECT_DUPLICATE,
+		}, "Workflow", input)
+		return err
+	}
+	service.approveWorkflow = func(ctx context.Context, eventID string, approval dispatchWorkflowApproval) error {
+		return workflows.SignalWorkflow(ctx, eventID, "", approveEventSignal, approval)
+	}
+	service.launchWorkflow = func(ctx context.Context, eventID string, launch *gridosv1.LaunchEventRequest) error {
+		return workflows.SignalWorkflow(ctx, eventID, "", launchEventSignal, launch)
+	}
 }
 
 func (service *Service) RuntimeReady() bool {
-	return service.dispatcher != nil && service.reports != nil
+	return service.startWorkflow != nil && service.approveWorkflow != nil && service.launchWorkflow != nil && service.reports != nil
 }
 
 func NewService(store EventStore, twin *fleet.Twin, sites []*gridosv1.AuthorizedSite, now func() time.Time) *Service {
@@ -118,7 +135,8 @@ func (service *Service) ListSites(_ context.Context, request *connect.Request[gr
 		}
 		return connect.NewResponse(&gridosv1.ListSitesResponse{Sites: locations}), nil
 	}
-	return connect.NewResponse(&gridosv1.ListSitesResponse{Sites: aggregateSites(selected, service.now())}), nil
+	now := service.now()
+	return connect.NewResponse(&gridosv1.ListSitesResponse{Sites: aggregateSites(selected, service.twin.Sites(now), now)}), nil
 }
 
 func (service *Service) CreateEventRequest(ctx context.Context, request *connect.Request[gridosv1.CreateEventRequestRequest]) (*connect.Response[gridosv1.CreateEventRequestResponse], error) {
@@ -129,15 +147,17 @@ func (service *Service) CreateEventRequest(ctx context.Context, request *connect
 	if eventRequest == nil || eventRequest.GetRequestId() == "" || eventRequest.GetBeginTime() == nil || eventRequest.GetEndTime() == nil || !eventRequest.GetEndTime().AsTime().After(eventRequest.GetBeginTime().AsTime()) || eventRequest.GetTargetKw() < 0 {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("valid event request required"))
 	}
-	var event *gridosv1.DispatchEvent
-	var err error
-	if service.dispatcher != nil {
-		event, err = service.dispatcher.Plan(ctx, request.Msg)
-	} else {
-		event, err = service.store.Create(ctx, eventRequest, request.Msg.GetIdempotencyKey(), service.now())
-	}
+	event, err := service.store.Create(ctx, eventRequest, request.Msg.GetIdempotencyKey(), service.now())
 	if err != nil {
 		return nil, storeError(err)
+	}
+	if service.startWorkflow == nil {
+		return connect.NewResponse(&gridosv1.CreateEventRequestResponse{Event: event}), nil
+	}
+	err = service.startWorkflow(ctx, event.GetEventId(), dispatchWorkflowInput{EventID: event.GetEventId(), Request: eventRequest})
+	var alreadyStarted *serviceerror.WorkflowExecutionAlreadyStarted
+	if err != nil && !errors.As(err, &alreadyStarted) {
+		return nil, connect.NewError(connect.CodeUnavailable, err)
 	}
 	return connect.NewResponse(&gridosv1.CreateEventRequestResponse{Event: event}), nil
 }
@@ -189,6 +209,12 @@ func (service *Service) ApproveEvent(ctx context.Context, request *connect.Reque
 	if err != nil {
 		return nil, storeError(err)
 	}
+	if service.approveWorkflow != nil {
+		err = service.approveWorkflow(ctx, request.Msg.GetEventId(), dispatchWorkflowApproval{ApprovedBy: request.Msg.GetApprovedBy()})
+		if err != nil {
+			return nil, connect.NewError(connect.CodeUnavailable, err)
+		}
+	}
 	return connect.NewResponse(&gridosv1.ApproveEventResponse{Event: event}), nil
 }
 
@@ -199,48 +225,34 @@ func (service *Service) LaunchEvent(ctx context.Context, request *connect.Reques
 	if request.Msg.GetEventId() == "" || request.Msg.GetPlanVersion() == 0 || request.Msg.GetRequestedBy() == "" || request.Msg.GetRequestedAt() == nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("complete launch request required"))
 	}
-	if service.dispatcher == nil {
-		event, err := service.store.Launch(ctx, request.Msg)
-		if err != nil {
-			return nil, storeError(err)
-		}
-		return connect.NewResponse(&gridosv1.LaunchEventResponse{Event: event}), nil
-	}
-	current, _, currentErr := service.store.Get(ctx, request.Msg.GetEventId())
-	if currentErr != nil {
-		return nil, storeError(currentErr)
-	}
-	if current.GetState() != gridosv1.DispatchEventState_DISPATCH_EVENT_STATE_APPROVED {
-		event, retryErr := service.store.Launch(ctx, request.Msg)
-		if retryErr != nil {
-			return nil, storeError(retryErr)
-		}
-		return connect.NewResponse(&gridosv1.LaunchEventResponse{Event: event}), nil
-	}
-	commands, err := service.dispatcher.PersistApproved(ctx, request.Msg.GetEventId(), request.Msg.GetPlanVersion())
+	current, _, err := service.store.Get(ctx, request.Msg.GetEventId())
 	if err != nil {
 		return nil, storeError(err)
 	}
-	_, err = service.store.Launch(ctx, request.Msg)
-	if err != nil {
-		return nil, storeError(err)
+	if current.GetState() != gridosv1.DispatchEventState_DISPATCH_EVENT_STATE_APPROVED || current.GetPlanVersion() != request.Msg.GetPlanVersion() {
+		return nil, storeError(ErrInvalidState)
 	}
-	store, ok := service.store.(LifecycleStore)
-	if !ok {
-		return nil, connect.NewError(connect.CodeInternal, errors.New("lifecycle store required"))
+	if service.launchWorkflow == nil {
+		return nil, connect.NewError(connect.CodeUnavailable, errors.New("workflow client required"))
 	}
-	_, err = store.Advance(ctx, request.Msg.GetEventId(), "COMMANDS_PERSISTED", "SENT", request.Msg.GetRequestedBy(), service.now())
-	if err != nil {
-		return nil, storeError(err)
-	}
-	if err = service.dispatcher.Publish(ctx, commands); err != nil {
+	if err = service.launchWorkflow(ctx, request.Msg.GetEventId(), request.Msg); err != nil {
 		return nil, connect.NewError(connect.CodeUnavailable, err)
 	}
-	event, err := store.Advance(ctx, request.Msg.GetEventId(), "SENT", "ACKNOWLEDGED_OR_UNCERTAIN", request.Msg.GetRequestedBy(), service.now())
-	if err != nil {
-		return nil, storeError(err)
-	}
-	return connect.NewResponse(&gridosv1.LaunchEventResponse{Event: event}), nil
+	return connect.NewResponse(&gridosv1.LaunchEventResponse{Event: current}), nil
+}
+
+const (
+	approveEventSignal = "approve-event"
+	launchEventSignal  = "launch-event"
+)
+
+type dispatchWorkflowInput struct {
+	EventID string
+	Request *gridosv1.EventRequest
+}
+
+type dispatchWorkflowApproval struct {
+	ApprovedBy string
 }
 
 func authorize(header http.Header, roles ...string) error {
@@ -305,8 +317,27 @@ func eventReport(source reporting.EventReport) *gridosv1.BasicEventReport {
 		exclusions = append(exclusions, &gridosv1.ExclusionReasonGroup{Reason: reason, Count: count})
 	}
 	sort.Slice(exclusions, func(i, j int) bool { return exclusions[i].GetReason() < exclusions[j].GetReason() })
-	return &gridosv1.BasicEventReport{
+	report := &gridosv1.BasicEventReport{
 		RequestedMw: source.RequestedMW, ApprovedMw: source.ApprovedMW, CommandedMw: source.CommandedMW, AcknowledgedMw: source.AcknowledgedMW,
 		Exclusions: exclusions, Provenance: source.Provenance, PolicyVersion: source.Versions.Policy, SolverVersion: source.Versions.Solver, ModelVersion: source.Versions.Model,
 	}
+	if source.Delivered == nil {
+		return report
+	}
+	report.DeliveredMw = source.Delivered.DeliveredMW
+	report.DeliveredMwh = source.Delivered.DeliveredMWh
+	report.TrackingErrorMw = source.Delivered.TrackingErrorMW
+	report.ResponseLatency = durationpb.New(source.Delivered.ResponseLatency)
+	report.Completeness = source.Delivered.Completeness
+	report.RespondedDevices = uint64(source.Delivered.Responded)
+	report.CommandedDevices = uint64(source.Delivered.Commanded)
+	for _, interval := range source.Delivered.UncertainIntervals {
+		uncertain := &gridosv1.UncertainDeliveryInterval{DeviceId: interval.DeviceID, BeginTime: timestamppb.New(interval.Begin), EndTime: timestamppb.New(interval.End)}
+		if interval.Bounds != nil {
+			uncertain.LowerKw = interval.Bounds.LowerKW
+			uncertain.UpperKw = interval.Bounds.UpperKW
+		}
+		report.UncertainIntervals = append(report.UncertainIntervals, uncertain)
+	}
+	return report
 }

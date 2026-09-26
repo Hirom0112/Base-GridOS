@@ -13,8 +13,6 @@ import (
 	"go.temporal.io/sdk/temporal"
 )
 
-const ReconciliationActivitiesStatus = "STUBBED"
-
 type Activities struct {
 	Dispatcher *controlapi.Dispatcher
 	Events     controlapi.LifecycleStore
@@ -53,11 +51,14 @@ func (activities *Activities) ValidatePlan(ctx context.Context, frozen FrozenEve
 	return err
 }
 
-func (activities *Activities) PersistIntents(ctx context.Context, input Input) error {
-	if _, err := activities.Dispatcher.PersistApproved(ctx, input.EventID, input.PlanVersion); err != nil {
+func (activities *Activities) PersistIntents(ctx context.Context, request PersistInput) error {
+	if _, err := activities.Dispatcher.PersistApproved(ctx, request.Input.EventID, request.Input.PlanVersion); err != nil {
 		return err
 	}
-	_, err := activities.Events.Advance(ctx, input.EventID, "APPROVED", "COMMANDS_PERSISTED", "workflow", activities.Now())
+	if request.Launch == nil {
+		return errors.New("launch request required")
+	}
+	_, err := activities.Events.Launch(ctx, request.Launch)
 	return err
 }
 
@@ -82,14 +83,6 @@ func (activities *Activities) TrackAcknowledgements(ctx context.Context, input I
 		return fmt.Errorf("%d commands lack acknowledgement outcomes", unresolved)
 	}
 	_, err = activities.Events.Advance(ctx, input.EventID, "SENT", "ACKNOWLEDGED_OR_UNCERTAIN", "workflow", activities.Now())
-	return err
-}
-
-func (activities *Activities) VerifyDelivery(ctx context.Context, input Input) error {
-	if _, err := activities.Events.Advance(ctx, input.EventID, "ACKNOWLEDGED_OR_UNCERTAIN", "EXECUTING", "workflow", activities.Now()); err != nil {
-		return err
-	}
-	_, err := activities.Events.Advance(ctx, input.EventID, "EXECUTING", "VERIFIED", "workflow", activities.Now())
 	return err
 }
 
@@ -125,11 +118,6 @@ func (activities *Activities) EndEvent(ctx context.Context, input Input) error {
 		}
 	}
 	return activities.Dispatcher.Publish(ctx, nil)
-}
-
-func (activities *Activities) ReconcileLateMessages(ctx context.Context, input Input) error {
-	_, err := activities.Events.Advance(ctx, input.EventID, "VERIFIED", "RECONCILED", "workflow", activities.Now())
-	return err
 }
 
 func (activities *Activities) ProduceReport(ctx context.Context, input Input) error {
@@ -170,14 +158,36 @@ func (activities *Activities) IssueReplacement(ctx context.Context, replacement 
 }
 
 func (activities *Activities) insertZeroCommand(ctx context.Context, eventID, reason string, generation uint64) error {
-	now := activities.Now()
-	command := storage.CommandIntent{
-		CommandID: fmt.Sprintf("%s-%s-%d", eventID, reason, generation), IdempotencyKey: fmt.Sprintf("%s-%s-%d", eventID, reason, generation),
-		DeviceID: "event", EventID: eventID, PlanVersion: int64(generation), Generation: int64(generation),
-		IssuedAt: now, EffectiveAt: now, ExpiresAt: now.Add(time.Minute), CorrelationID: eventID,
-	}
-	if err := storage.InsertCommand(ctx, activities.Pool, command); err != nil {
+	rows, err := activities.Pool.Query(ctx, `SELECT DISTINCT ON (device_id) device_id, plan_version, policy_version, correlation_id
+		FROM command_intents WHERE event_id = $1
+		ORDER BY device_id, generation DESC, issued_at DESC`, eventID)
+	if err != nil {
 		return err
+	}
+	defer rows.Close()
+	now := activities.Now()
+	commands := make([]storage.CommandIntent, 0)
+	for rows.Next() {
+		var command storage.CommandIntent
+		if err = rows.Scan(&command.DeviceID, &command.PlanVersion, &command.PolicyVersion, &command.CorrelationID); err != nil {
+			return err
+		}
+		command.CommandID = fmt.Sprintf("%s-%s-%s-%d", eventID, reason, command.DeviceID, generation)
+		command.IdempotencyKey = command.CommandID
+		command.EventID = eventID
+		command.Generation = int64(generation)
+		command.IssuedAt = now
+		command.EffectiveAt = now
+		command.ExpiresAt = now.Add(time.Minute)
+		commands = append(commands, command)
+	}
+	if err = rows.Err(); err != nil {
+		return err
+	}
+	for _, command := range commands {
+		if err = storage.InsertCommand(ctx, activities.Pool, command); err != nil {
+			return err
+		}
 	}
 	return activities.Dispatcher.Publish(ctx, nil)
 }

@@ -12,6 +12,7 @@ import (
 const (
 	TaskQueue                     = "gridos-dispatch"
 	ApproveEventSignal            = "approve-event"
+	LaunchEventSignal             = "launch-event"
 	EmergencyStopSignal           = "emergency-stop"
 	ReplaceDeviceSignal           = "replace-device"
 	GatewayTransientError         = "GatewayTransient"
@@ -55,6 +56,11 @@ type Input struct {
 	AcknowledgementDeadline time.Time
 	PlanVersion             uint64
 	Request                 *gridosv1.EventRequest
+}
+
+type PersistInput struct {
+	Input  Input
+	Launch *gridosv1.LaunchEventRequest
 }
 
 type Approval struct {
@@ -119,9 +125,10 @@ func Workflow(ctx workflow.Context, input Input) (Result, error) {
 		return result, errors.New("approver required")
 	}
 	result.States = append(result.States, Approved)
-	if err := advance(ctx, PersistIntentsActivity, input, CommandsPersisted, &result); err != nil {
+	if err := persist(ctx, input); err != nil {
 		return result, err
 	}
+	result.States = append(result.States, CommandsPersisted)
 	if err := advance(ctx, PublishCommandsActivity, input, Sent, &result); err != nil {
 		return result, err
 	}
@@ -154,6 +161,18 @@ func Workflow(ctx workflow.Context, input Input) (Result, error) {
 		return result, err
 	}
 	return result, nil
+}
+
+func persist(ctx workflow.Context, input Input) error {
+	if workflow.GetVersion(ctx, "launch-signal", workflow.DefaultVersion, 1) == workflow.DefaultVersion {
+		return run(ctx, PersistIntentsActivity, input)
+	}
+	var launch gridosv1.LaunchEventRequest
+	workflow.GetSignalChannel(ctx, LaunchEventSignal).Receive(ctx, &launch)
+	if launch.GetRequestedBy() == "" || launch.GetPlanVersion() != input.PlanVersion {
+		return errors.New("matching launch required")
+	}
+	return workflow.ExecuteActivity(ctx, PersistIntentsActivity, PersistInput{Input: input, Launch: &launch}).Get(ctx, nil)
 }
 
 func waitForAcknowledgements(ctx workflow.Context, deadline time.Time) error {

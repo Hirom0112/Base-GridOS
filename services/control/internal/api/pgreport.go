@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 
+	"github.com/Hirom0112/Base-GridOS/services/control/internal/reconciliation"
 	reporting "github.com/Hirom0112/Base-GridOS/services/control/internal/report"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -57,6 +58,10 @@ func (source *PostgresReportSource) EventReportData(ctx context.Context, eventID
 		return report, err
 	}
 	report.Provenance = []string{"SIMULATED"}
+	report.Delivered, err = reconciliation.LoadDelivered(ctx, source.pool, eventID)
+	if err != nil {
+		return report, err
+	}
 	return report, nil
 }
 

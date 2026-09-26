@@ -12,6 +12,7 @@ import (
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/safety"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/storage"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -83,18 +84,27 @@ func (pipeline *CommandPipeline) PublishAll(ctx context.Context) error {
 }
 
 type FleetSnapshotter struct {
-	twin  *fleet.Twin
-	sites []*gridosv1.AuthorizedSite
-	now   func() time.Time
+	twin      *fleet.Twin
+	sites     []*gridosv1.AuthorizedSite
+	now       func() time.Time
+	pool      *pgxpool.Pool
+	telemetry *fleet.TelemetryTwin
 }
 
 func NewFleetSnapshotter(twin *fleet.Twin, sites []*gridosv1.AuthorizedSite, now func() time.Time) *FleetSnapshotter {
 	return &FleetSnapshotter{twin: twin, sites: sites, now: now}
 }
 
-func (snapshotter *FleetSnapshotter) Freeze(_ context.Context, event *gridosv1.DispatchEvent, request *gridosv1.EventRequest) (FrozenSnapshot, error) {
+func NewDurableFleetSnapshotter(pool *pgxpool.Pool, twin *fleet.Twin, telemetry *fleet.TelemetryTwin, sites []*gridosv1.AuthorizedSite, now func() time.Time) *FleetSnapshotter {
+	return &FleetSnapshotter{pool: pool, twin: twin, telemetry: telemetry, sites: sites, now: now}
+}
+
+func (snapshotter *FleetSnapshotter) Freeze(ctx context.Context, event *gridosv1.DispatchEvent, request *gridosv1.EventRequest) (FrozenSnapshot, error) {
 	if event == nil || request == nil || request.GetBeginTime() == nil || request.GetEndTime() == nil {
 		return FrozenSnapshot{}, errors.New("event and dispatch window required")
+	}
+	if err := snapshotter.loadTelemetry(ctx); err != nil {
+		return FrozenSnapshot{}, err
 	}
 	now := snapshotter.now()
 	planVersion := event.GetPlanVersion() + 1
@@ -135,6 +145,31 @@ func (snapshotter *FleetSnapshotter) Freeze(_ context.Context, event *gridosv1.D
 		}
 	}
 	return FrozenSnapshot{Optimization: optimization, Canonical: canonical}, nil
+}
+
+func (snapshotter *FleetSnapshotter) loadTelemetry(ctx context.Context) error {
+	if snapshotter.pool == nil || snapshotter.telemetry == nil {
+		return nil
+	}
+	rows, err := snapshotter.pool.Query(ctx, `SELECT DISTINCT ON (actor_id) new_values
+		FROM audit_journal WHERE action = 'TELEMETRY_RECEIVED'
+		ORDER BY actor_id, occurred_at DESC, sequence DESC`)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var values []byte
+		if err = rows.Scan(&values); err != nil {
+			return err
+		}
+		var observation gridosv1.TelemetryObservation
+		if err = protojson.Unmarshal(values, &observation); err != nil {
+			return err
+		}
+		snapshotter.telemetry.Accept(&observation)
+	}
+	return rows.Err()
 }
 
 func boolFloat(value bool) float64 {
