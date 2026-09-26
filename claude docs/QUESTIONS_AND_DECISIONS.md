@@ -95,4 +95,11 @@ assumptions reported by workers land here too.
   exempts lines of the exact form `-- name: Identifier :verb` because sqlc
   reads them as directives; any other SQL comment is still rejected. Same
   category as `//go:` and `#!`.
+- **0C.3 fleet generator (lane C), all accepted for simulated fixtures:**
+  reserve bands RESILIENT 60/70/80 %, BALANCED 30/40/50 %, GRID_FLEX
+  0/10/20 % (FULL_SPEC §15 leaves exact bands to the market catalog);
+  weather-zone geography uses conservative rectangular interiors of the
+  eight ERCOT zones until a licensed polygon source is chosen; H3 resolution
+  7 for fleet cells; automatic backup on two of every three devices with no
+  source distribution claimed.
 
