@@ -234,4 +234,12 @@ assumptions reported by workers land here too.
   with its own subagents under the same AGENTS.md, hooks, ownership, and
   mailbox rules. In Wave 2: Codex runs A, B, F; the director's agents run C,
   D, E. Lane ownership keeps them disjoint; the mailbox is shared.
+- **Standing demo is sacred.** One `make demo` stays up on 28080/25061/28081
+  for the UI track. Test targets and director gate runs use their own
+  directory, ports, and database (`gridos_e2e`), and never run `make down`
+  (which removes the PostgreSQL volume). 2F.7 was rejected for violating
+  this after it wiped the standing stack and its database.
+- **2A.5 (lane A):** the scenario determinism proof lives in
+  `cmd/scenario` rather than the simulator's `tests/` directory. Accepted;
+  the proof is the point, not the path.
 

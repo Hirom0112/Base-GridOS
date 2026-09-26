@@ -846,7 +846,7 @@ Owns: `services/gateway-simulator/internal/failures/`,
 - `[x]` 2A.4 `[P]` RED then GREEN: network outage followed by SQLite replay
   delivers every buffered observation once, in sequence, with original
   `source_time`. Verify: `-run OutageReplay` passes.
-- `[~]` 2A.5 `[P]` Scenario runner flag `--scenario <file>` on the simulator
+- `[x]` 2A.5 `[P]` Scenario runner flag `--scenario <file>` on the simulator
   binary; a run with the same seed twice produces identical telemetry hashes.
   Verify: `go test ./services/gateway-simulator/tests -run ScenarioDeterminism` passes.
 
