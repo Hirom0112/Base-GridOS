@@ -128,3 +128,28 @@ func TestScheduledScopeAffectsTelemetryAcrossActiveEvents(t *testing.T) {
 		t.Fatalf("telemetry affected %d commanded devices and idle=%t", affected, runtime.Affects(string(DroppedMessages), "idle"))
 	}
 }
+
+func TestZeroCommandsEndScheduledFaultEligibility(t *testing.T) {
+	start := time.Date(2026, 8, 12, 18, 0, 0, 0, time.UTC)
+	scenario := Scenario{Seed: 17, Start: start, Tick: time.Minute, Injections: []Injection{
+		{At: start.Add(time.Minute), Kind: DroppedMessages, Scope: Scheduled},
+		{At: start.Add(2 * time.Minute), Kind: DroppedMessages, Scope: Scheduled},
+	}}
+	engine, err := NewEngine(scenario, []Device{{ID: "a", Region: "LZ_AEN"}, {ID: "b", Region: "LZ_AEN"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	runtime := NewRuntime(engine)
+	runtime.RecordCommand(start, "event-a", "a", 1)
+	runtime.RecordCommand(start, "event-b", "b", 1)
+	runtime.Advance(start.Add(time.Minute))
+	if !runtime.Affects(string(DroppedMessages), "a") && !runtime.Affects(string(DroppedMessages), "b") {
+		t.Fatal("fault path did not activate before the end commands")
+	}
+	runtime.RecordCommand(start.Add(90*time.Second), "event-a", "a", 0)
+	runtime.RecordCommand(start.Add(90*time.Second), "event-b", "b", 0)
+	runtime.Advance(start.Add(2 * time.Minute))
+	if runtime.Affects(string(DroppedMessages), "a") || runtime.Affects(string(DroppedMessages), "b") {
+		t.Fatal("ended events remained eligible for a scheduled fault")
+	}
+}
