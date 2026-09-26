@@ -22,6 +22,9 @@ func TestProvenanceOnEveryFleetAggregateAndEvent(t *testing.T) {
 		Site:    &gridosv1.Site{SiteId: "site-1", LoadZone: "LZ_AEN", H3Cell: "87283472bffffff", Provenance: provenance},
 		Devices: []*gridosv1.Device{{DeviceId: "device-1", SiteId: "site-1", Provenance: provenance, BatteryParameters: &gridosv1.BatteryParameters{UsableEnergyKwh: 39.2, MaxDischargeKw: 10}}},
 	}}
+	for _, id := range []string{"site-2", "site-3", "site-4", "site-5"} {
+		sites = append(sites, &gridosv1.AuthorizedSite{Site: &gridosv1.Site{SiteId: id, LoadZone: "LZ_AEN", H3Cell: "87283472bffffff", Provenance: provenance}})
+	}
 	server := httptest.NewServer(NewHandler(NewService(NewMemoryEventStore(), twin, sites, func() time.Time { return now })))
 	defer server.Close()
 	fleetClient := gridosv1connect.NewFleetServiceClient(http.DefaultClient, server.URL)
@@ -56,6 +59,9 @@ func TestProvenanceOnEveryFleetAggregateAndEvent(t *testing.T) {
 	sitesResponse, err := fleetClient.ListSites(context.Background(), sitesRequest)
 	if err != nil {
 		t.Fatal(err)
+	}
+	if len(sitesResponse.Msg.GetSites()) != 1 || sitesResponse.Msg.GetSites()[0].GetAggregate().GetSiteCount() != 5 {
+		t.Fatalf("private aggregate missing: %+v", sitesResponse.Msg.GetSites())
 	}
 	for _, location := range sitesResponse.Msg.GetSites() {
 		assertProvenanceMix(t, location.GetAggregate().GetInstalledMw().GetMetadata())

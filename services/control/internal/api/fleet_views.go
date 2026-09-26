@@ -7,6 +7,7 @@ import (
 	gridosv1 "github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/fleet"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/fleet/geo"
+	h3 "github.com/uber/h3-go/v4"
 )
 
 func installedCapacity(sites []*gridosv1.AuthorizedSite) (float64, float64) {
@@ -125,12 +126,22 @@ func filterSites(sites []*gridosv1.AuthorizedSite, zones []string) []*gridosv1.A
 	return result
 }
 
-func aggregateSites(sites []*gridosv1.AuthorizedSite, states []fleet.SiteState, now time.Time) []*gridosv1.SiteLocation {
+func aggregateSites(sites []*gridosv1.AuthorizedSite, states []fleet.SiteState, now time.Time) ([]*gridosv1.SiteLocation, error) {
+	cells, err := geo.AggregatePrivate(sites, states, nil, now, 7)
+	if err != nil {
+		return nil, err
+	}
 	groups := make(map[string][]*gridosv1.AuthorizedSite)
 	for _, site := range sites {
-		groups[site.GetSite().GetH3Cell()] = append(groups[site.GetSite().GetH3Cell()], site)
+		child := h3.CellFromString(site.GetSite().GetH3Cell())
+		for resolution := 0; resolution <= 7; resolution++ {
+			parent, err := child.Parent(resolution)
+			if err != nil {
+				return nil, err
+			}
+			groups[parent.String()] = append(groups[parent.String()], site)
+		}
 	}
-	cells := geo.Aggregate(sites, states, now)
 	result := make([]*gridosv1.SiteLocation, 0, len(cells))
 	for _, cell := range cells {
 		provenance := siteProvenanceMix(groups[cell.Cell])
@@ -144,7 +155,7 @@ func aggregateSites(sites []*gridosv1.AuthorizedSite, states []fleet.SiteState, 
 		}
 		result = append(result, &gridosv1.SiteLocation{Location: &gridosv1.SiteLocation_Aggregate{Aggregate: aggregate}})
 	}
-	return result
+	return result, nil
 }
 
 func cellOperatingCounts(counts map[fleet.OperatingState]uint64, now time.Time, provenance map[string]int) []*gridosv1.OperatingStateDeviceCount {

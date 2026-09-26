@@ -154,7 +154,11 @@ func (service *Service) ListSites(_ context.Context, request *connect.Request[gr
 		return connect.NewResponse(&gridosv1.ListSitesResponse{Sites: locations}), nil
 	}
 	now := service.now()
-	return connect.NewResponse(&gridosv1.ListSitesResponse{Sites: aggregateSites(selected, service.twin.Sites(now), now)}), nil
+	locations, err := aggregateSites(selected, service.twin.Sites(now), now)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	return connect.NewResponse(&gridosv1.ListSitesResponse{Sites: locations}), nil
 }
 
 func (service *Service) CreateEventRequest(ctx context.Context, request *connect.Request[gridosv1.CreateEventRequestRequest]) (*connect.Response[gridosv1.CreateEventRequestResponse], error) {

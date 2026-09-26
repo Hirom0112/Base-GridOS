@@ -31,7 +31,7 @@ func TestFleetServiceAuthorizationAndLocationPrivacy(t *testing.T) {
 	aggregateRequest := connect.NewRequest(&gridosv1.ListSitesRequest{})
 	aggregateRequest.Header().Set(roleHeader, "operator")
 	aggregate, err := fleetClient.ListSites(context.Background(), aggregateRequest)
-	if err != nil || len(aggregate.Msg.GetSites()) != 1 || aggregate.Msg.GetSites()[0].GetAggregate() == nil {
+	if err != nil || len(aggregate.Msg.GetSites()) != 0 {
 		t.Fatalf("aggregate sites = %#v, %v", aggregate, err)
 	}
 	exactRequest := connect.NewRequest(&gridosv1.ListSitesRequest{RequestExactH3Cells: true})

@@ -1,11 +1,17 @@
 package api
 
 import (
+	"context"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
+	"connectrpc.com/connect"
 	gridosv1 "github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1"
+	"github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1/gridosv1connect"
+	"github.com/Hirom0112/Base-GridOS/services/control/internal/fleet"
 )
 
 func TestListSitesPrivacyMerge(t *testing.T) {
@@ -42,5 +48,18 @@ func TestListSitesPrivacyMerge(t *testing.T) {
 	sites[0].Site.H3Cell = "invalid"
 	if _, err := aggregateSites(sites, nil, time.Unix(100, 0)); err == nil {
 		t.Fatal("invalid H3 cell accepted")
+	}
+}
+
+func TestListSitesRejectsInvalidH3(t *testing.T) {
+	sites := []*gridosv1.AuthorizedSite{{Site: &gridosv1.Site{SiteId: "site-1", H3Cell: "invalid"}}}
+	server := httptest.NewServer(NewHandler(NewService(NewMemoryEventStore(), fleet.NewTwin(time.Minute), sites, time.Now)))
+	defer server.Close()
+	client := gridosv1connect.NewFleetServiceClient(http.DefaultClient, server.URL)
+	request := connect.NewRequest(&gridosv1.ListSitesRequest{})
+	request.Header().Set(roleHeader, "operator")
+	_, err := client.ListSites(context.Background(), request)
+	if connect.CodeOf(err) != connect.CodeInternal {
+		t.Fatalf("invalid stored H3 returned %v, want internal error", err)
 	}
 }
