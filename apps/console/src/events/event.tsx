@@ -10,20 +10,7 @@ import {
 } from "../api/gen/gridos/v1/dispatch_pb";
 import type { BasicEventReport } from "../api/gen/gridos/v1/api_pb";
 import { ApprovalActions } from "../dispatch/approval";
-
-const stateLabels: Record<number, string> = {
-  1: "Requested",
-  2: "Planned",
-  3: "Safety validated",
-  4: "Approved",
-  5: "Commands persisted",
-  6: "Sent",
-  7: "Acknowledged or uncertain",
-  8: "Executing",
-  9: "Telemetry verified",
-  10: "Reconciled",
-  11: "Reported",
-};
+import { EventHistory, eventStateLabels } from "./events-timeline";
 
 function useEvent(eventId: string) {
   const { client, identity } = useSession();
@@ -102,7 +89,7 @@ export function EventView({
           <p className="eyebrow">
             {view === "report" ? "Event accounting" : "Versioned event"}
           </p>
-          <h2>{stateLabels[event.state] ?? "Unknown state"}</h2>
+          <h2>{eventStateLabels[event.state] ?? "Unknown state"}</h2>
         </div>
         <span className="mode-chip">{source}</span>
       </div>
@@ -188,6 +175,7 @@ export function EventView({
         )}
       </section>
       {report && <EventAccounting report={report} />}
+      <EventHistory event={event} />
       {view !== "plan" && (
         <div className="boundary-note">
           Verified delivery, replay, and modeled economics are not supplied by
