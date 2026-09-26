@@ -1,0 +1,107 @@
+syntax = "proto3";
+
+package gridos.v1;
+
+import "google/protobuf/timestamp.proto";
+
+enum TelemetryUnits {
+  TELEMETRY_UNITS_UNSPECIFIED = 0;
+  TELEMETRY_UNITS_KW_PERCENT_VOLTS = 1;
+}
+
+enum SignConvention {
+  SIGN_CONVENTION_UNSPECIFIED = 0;
+  SIGN_CONVENTION_AC_SIDE_DISCHARGE_POSITIVE = 1;
+}
+
+enum TelemetryQualityFlag {
+  TELEMETRY_QUALITY_FLAG_UNSPECIFIED = 0;
+  TELEMETRY_QUALITY_FLAG_VALID = 1;
+  TELEMETRY_QUALITY_FLAG_ESTIMATED = 2;
+  TELEMETRY_QUALITY_FLAG_OUT_OF_ORDER = 3;
+  TELEMETRY_QUALITY_FLAG_CLOCK_SKEW = 4;
+}
+
+enum MeasurementBoundary {
+  MEASUREMENT_BOUNDARY_UNSPECIFIED = 0;
+  MEASUREMENT_BOUNDARY_BATTERY_TERMINAL = 1;
+  MEASUREMENT_BOUNDARY_METER_NET_EXPORT = 2;
+  MEASUREMENT_BOUNDARY_IMPORT_REDUCTION_VS_BASELINE = 3;
+}
+
+enum ValueState {
+  VALUE_STATE_UNSPECIFIED = 0;
+  VALUE_STATE_PRESENT = 1;
+  VALUE_STATE_MISSING = 2;
+  VALUE_STATE_STALE = 3;
+  VALUE_STATE_UNKNOWN = 4;
+  VALUE_STATE_ZERO = 5;
+}
+
+message PowerFlow {
+  double from_grid_kw = 1;
+  double from_storage_kw = 2;
+  double from_solar_kw = 3;
+  double non_solar_to_home_kw = 4;
+  double to_home_kw = 5;
+}
+
+message OnGrid {
+  google.protobuf.Timestamp observed_at = 1;
+  double estimated_backup_hours_at_current_usage = 2;
+  double estimated_backup_hours_at_750_watts = 3;
+}
+
+message OffGridOutage {
+  google.protobuf.Timestamp observed_at = 1;
+  double estimated_backup_hours_at_current_usage = 2;
+  double estimated_backup_hours_at_750_watts = 3;
+}
+
+message OffGridNoHomePower {
+  google.protobuf.Timestamp observed_at = 1;
+  double estimated_backup_hours_at_current_usage = 2;
+  double estimated_backup_hours_at_750_watts = 3;
+}
+
+message OffGridOvercurrent {
+  google.protobuf.Timestamp observed_at = 1;
+  double estimated_backup_hours_at_current_usage = 2;
+  double estimated_backup_hours_at_750_watts = 3;
+  double overcurrent_limit_kw = 4;
+}
+
+message OffGridOvercurrentStandby {
+  google.protobuf.Timestamp observed_at = 1;
+  double estimated_backup_hours_at_current_usage = 2;
+  double estimated_backup_hours_at_750_watts = 3;
+}
+
+message TelemetryUnavailable {
+  google.protobuf.Timestamp observed_at = 1;
+}
+
+message TelemetryObservation {
+  string observation_id = 1;
+  string device_id = 2;
+  google.protobuf.Timestamp source_time = 3;
+  google.protobuf.Timestamp receive_time = 4;
+  google.protobuf.Timestamp observation_time = 5;
+  TelemetryUnits units = 6;
+  SignConvention sign_convention = 7;
+  uint64 sequence = 8;
+  repeated TelemetryQualityFlag quality_flags = 9;
+  MeasurementBoundary measurement_boundary = 10;
+  ValueState value_state = 11;
+  PowerFlow power_flow = 12;
+  double state_of_energy_percent = 13;
+  double grid_voltage_volts = 14;
+  oneof operating_state {
+    OnGrid on_grid = 15;
+    OffGridOutage off_grid_outage = 16;
+    OffGridNoHomePower off_grid_no_home_power = 17;
+    OffGridOvercurrent off_grid_overcurrent = 18;
+    OffGridOvercurrentStandby off_grid_overcurrent_standby = 19;
+    TelemetryUnavailable telemetry_unavailable = 20;
+  }
+}
