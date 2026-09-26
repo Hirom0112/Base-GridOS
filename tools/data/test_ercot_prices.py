@@ -1,7 +1,7 @@
 import csv
 from pathlib import Path
 
-from tools.data.normalize.ercot_prices import normalize_dam
+from normalize.ercot_prices import normalize_dam
 
 
 def test_dam_prices_preserve_fall_back_hours(tmp_path: Path) -> None:
