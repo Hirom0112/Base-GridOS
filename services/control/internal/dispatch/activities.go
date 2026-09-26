@@ -141,9 +141,9 @@ func (activities *Activities) TrackAcknowledgements(ctx context.Context, input I
 }
 
 func (activities *Activities) EndEvent(ctx context.Context, input Input) error {
-	rows, err := activities.Pool.Query(ctx, `SELECT DISTINCT ON (device_id) command_id, device_id, plan_version, generation, expires_at, policy_version, correlation_id
+	rows, err := activities.Pool.Query(ctx, `SELECT DISTINCT ON (device_id) command_id, device_id, plan_version, generation, policy_version, correlation_id
 		FROM command_intents WHERE event_id = $1 AND setpoint_kw <> 0
-		ORDER BY device_id, generation DESC, issued_at DESC`, input.EventID)
+		ORDER BY device_id, generation DESC, issued_at DESC, command_id DESC`, input.EventID)
 	if err != nil {
 		return err
 	}
@@ -152,7 +152,7 @@ func (activities *Activities) EndEvent(ctx context.Context, input Input) error {
 	commands := make([]storage.CommandIntent, 0)
 	for rows.Next() {
 		var command storage.CommandIntent
-		if err = rows.Scan(&command.CommandID, &command.DeviceID, &command.PlanVersion, &command.Generation, &command.ExpiresAt, &command.PolicyVersion, &command.CorrelationID); err != nil {
+		if err = rows.Scan(&command.CommandID, &command.DeviceID, &command.PlanVersion, &command.Generation, &command.PolicyVersion, &command.CorrelationID); err != nil {
 			return err
 		}
 		command.CommandID = fmt.Sprintf("%s-end-%d", command.CommandID, command.Generation+1)
@@ -162,6 +162,7 @@ func (activities *Activities) EndEvent(ctx context.Context, input Input) error {
 		command.SetpointKW = 0
 		command.IssuedAt = now
 		command.EffectiveAt = now
+		command.ExpiresAt = now.Add(time.Minute)
 		commands = append(commands, command)
 	}
 	if err = rows.Err(); err != nil {
