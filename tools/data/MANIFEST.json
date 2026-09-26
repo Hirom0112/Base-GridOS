@@ -1,0 +1,605 @@
+{
+  "files": [
+    {
+      "date_range": "2024-07-01/2024-12-31",
+      "path": "data/illinois/comed_hourly_demand_2024_h2.csv",
+      "provenance": "CONFIRMED_PUBLIC",
+      "sha256": "10fe608e0fb6e62eee10a3db9ce9e35e51df116c79d819a99306b0f33e1577eb",
+      "size_bytes": 312502,
+      "source_url": "https://www.eia.gov/electricity/gridmonitor/"
+    },
+    {
+      "date_range": "2025-01-01/2025-06-30",
+      "path": "data/illinois/comed_hourly_demand_2025_h1.csv",
+      "provenance": "CONFIRMED_PUBLIC",
+      "sha256": "8ce405c7c59aa4bf30d32811ea26c2226cb21e0b8230f6acad8e0cfecf0c26f2",
+      "size_bytes": 307112,
+      "source_url": "https://www.eia.gov/electricity/gridmonitor/"
+    },
+    {
+      "date_range": "2026-01-01/2026-06-30",
+      "path": "data/illinois/comed_hourly_demand_2026_h1.csv",
+      "provenance": "CONFIRMED_PUBLIC",
+      "sha256": "38201f13c27f22d863803a3ce504ff4b18a54aaeb707c2a48209e588e5ae39b5",
+      "size_bytes": 307069,
+      "source_url": "https://www.eia.gov/electricity/gridmonitor/"
+    },
+    {
+      "date_range": "2025-01-01/2025-12-31",
+      "path": "data/illinois/comed_load_forecast_2025.pdf",
+      "provenance": "CONFIRMED_PUBLIC",
+      "sha256": "730a3dc1ae8658371f8c26c841cdc3eb0d338b1bd9636b8c42733d237ced1eed",
+      "size_bytes": 1762285,
+      "source_url": "https://ipa.illinois.gov/"
+    },
+    {
+      "date_range": "2026-01-01/2026-09-25",
+      "path": "data/illinois/comed_load_forecast_2026.pdf",
+      "provenance": "CONFIRMED_PUBLIC",
+      "sha256": "762906116c77a596eb269dfad305bb6bd8b13889fae6cfb9b60f9bd69ac05870",
+      "size_bytes": 1890465,
+      "source_url": "https://ipa.illinois.gov/"
+    },
+    {
+      "date_range": "as published",
+      "path": "data/illinois/comed_ratebook.pdf",
+      "provenance": "CONFIRMED_PUBLIC",
+      "sha256": "0e3f2ee2fcd2658e41312bc50afbda08a5830f8efaf761430c83e09abff65de1",
+      "size_bytes": 13998966,
+      "source_url": "https://azure-na-assets.contentstack.com/v3/assets/blt3ebb3fed6084be2a/blt86ebee5fe6ed02f8/Ratebook.pdf"
+    },
+    {
+      "date_range": "2024-01-01/2024-06-30",
+      "path": "data/illinois/eia930_balance_2024_jan_jun.csv",
+      "provenance": "CONFIRMED_PUBLIC",
+      "sha256": "26768c495c3ba987e29d79df2e40d4e741f9dbcff086f53c12ff774465756a10",
+      "size_bytes": 41742812,
+      "source_url": "https://www.eia.gov/electricity/gridmonitor/sixMonthFiles/EIA930_BALANCE_2024_JAN_JUN.CSV"
+    },
+    {
+      "date_range": "2024-07-01/2024-12-31",
+      "path": "data/illinois/eia930_balance_2024_jul_dec.csv",
+      "provenance": "CONFIRMED_PUBLIC",
+      "sha256": "a602a8e577cfdd2fa3083413eaa4dd8ba7f0d2b26a2986f8f6d22917465ea49f",
+      "size_bytes": 47928993,
+      "source_url": "https://www.eia.gov/electricity/gridmonitor/sixMonthFiles/EIA930_BALANCE_2024_JUL_DEC.CSV"
+    },
+    {
+      "date_range": "2025-01-01/2025-06-30",
+      "path": "data/illinois/eia930_balance_2025_jan_jun.csv",
+      "provenance": "CONFIRMED_PUBLIC",
+      "sha256": "fac4bb991dfa1dab3b4b35300ccab54ac99be13a40ce91954db8ddafb2816242",
+      "size_bytes": 47565054,
+      "source_url": "https://www.eia.gov/electricity/gridmonitor/sixMonthFiles/EIA930_BALANCE_2025_JAN_JUN.CSV"
+    },
+    {
+      "date_range": "2025-07-01/2025-12-31",
+      "path": "data/illinois/eia930_balance_2025_jul_dec.csv",
+      "provenance": "CONFIRMED_PUBLIC",
+      "sha256": "1146158b972439db7c7f4cc7d0491e07644ddbf244d03b8ecb44cb2c833d10f1",
+      "size_bytes": 48256021,
+      "source_url": "https://www.eia.gov/electricity/gridmonitor/sixMonthFiles/EIA930_BALANCE_2025_JUL_DEC.CSV"
+    },
+    {
+      "date_range": "2026-01-01/2026-06-30",
+      "path": "data/illinois/eia930_balance_2026_jan_jun.csv",
+      "provenance": "CONFIRMED_PUBLIC",
+      "sha256": "1b3eaf7b0af08393f4d1593125b0c0f502f93e036d961b7dd6d50fc8e618582f",
+      "size_bytes": 47107225,
+      "source_url": "https://www.eia.gov/electricity/gridmonitor/sixMonthFiles/EIA930_BALANCE_2026_JAN_JUN.CSV"
+    },
+    {
+      "date_range": "2024-07-01/2024-12-31",
+      "path": "data/illinois/eia930_subregion_2024_jul_dec.csv",
+      "provenance": "CONFIRMED_PUBLIC",
+      "sha256": "e757ca8d30dd486f131fc85d746c86aeda2d5567aa2e953051ca4f601a50374c",
+      "size_bytes": 26409065,
+      "source_url": "https://www.eia.gov/electricity/gridmonitor/sixMonthFiles/EIA930_SUBREGION_2024_JUL_DEC.CSV"
+    },
+    {
+      "date_range": "2025-01-01/2025-06-30",
+      "path": "data/illinois/eia930_subregion_2025_jan_jun.csv",
+      "provenance": "CONFIRMED_PUBLIC",
+      "sha256": "c94a6875b05e482c8a7a1b6a73e4c84b0d0359ca3684d285b405fc819e06945b",
+      "size_bytes": 25965562,
+      "source_url": "https://www.eia.gov/electricity/gridmonitor/sixMonthFiles/EIA930_SUBREGION_2025_JAN_JUN.CSV"
+    },
+    {
+      "date_range": "2026-01-01/2026-06-30",
+      "path": "data/illinois/eia930_subregion_2026_jan_jun.csv",
+      "provenance": "CONFIRMED_PUBLIC",
+      "sha256": "a04be4e09a29ef3fffe8eb17ae9ca2097855bd9d78a754d73ae0add1c5651421",
+      "size_bytes": 26892159,
+      "source_url": "https://www.eia.gov/electricity/gridmonitor/sixMonthFiles/EIA930_SUBREGION_2026_JAN_JUN.CSV"
+    },
+    {
+      "date_range": "2018-01-01/2019-01-01",
+      "path": "data/illinois/load-profiles/il-mobile_home.csv",
+      "provenance": "CONFIRMED_PUBLIC",
+      "sha256": "57deb826fe4711a634e44f9bf8cd54fd4f35c850c7d23af244f29c7c215c5f6c",
+      "size_bytes": 26676099,
+      "source_url": "s3://oedi-data-lake/nrel-pds-building-stock/end-use-load-profiles-for-us-building-stock/2021/resstock_tmy3_release_1/timeseries_aggregates/by_state/state=IL/"
+    },
+    {
+      "date_range": "2018-01-01/2019-01-01",
+      "path": "data/illinois/load-profiles/il-multi-family_with_2_-_4_units.csv",
+      "provenance": "CONFIRMED_PUBLIC",
+      "sha256": "f26e8835b42fa8f64c16057cf2df5e6b0ef462698e3f50cafd455bc81f769e5d",
+      "size_bytes": 27974010,
+      "source_url": "s3://oedi-data-lake/nrel-pds-building-stock/end-use-load-profiles-for-us-building-stock/2021/resstock_tmy3_release_1/timeseries_aggregates/by_state/state=IL/"
+    },
+    {
+      "date_range": "2018-01-01/2019-01-01",
+      "path": "data/illinois/load-profiles/il-multi-family_with_5plus_units.csv",
+      "provenance": "CONFIRMED_PUBLIC",
+      "sha256": "15165aaed6f2e56519e2dd16f59a78f0798f053c9ceb44192a3f1a9bb48000ba",
+      "size_bytes": 27840771,
+      "source_url": "s3://oedi-data-lake/nrel-pds-building-stock/end-use-load-profiles-for-us-building-stock/2021/resstock_tmy3_release_1/timeseries_aggregates/by_state/state=IL/"
+    },
+    {
+      "date_range": "2018-01-01/2019-01-01",
+      "path": "data/illinois/load-profiles/il-single-family_attached.csv",
+      "provenance": "CONFIRMED_PUBLIC",
+      "sha256": "fae9ad174888d9f3df50caa54b65bc53d9e493c90520482cdcd3925c4aeacba9",
+      "size_bytes": 26799900,
+      "source_url": "s3://oedi-data-lake/nrel-pds-building-stock/end-use-load-profiles-for-us-building-stock/2021/resstock_tmy3_release_1/timeseries_aggregates/by_state/state=IL/"
+    },
+    {
+      "date_range": "2018-01-01/2019-01-01",
+      "path": "data/illinois/load-profiles/il-single-family_detached.csv",
+      "provenance": "CONFIRMED_PUBLIC",
+      "sha256": "fbabe4be0866d55d40363e8370bd0c31fddce1f9b9b11b49c2b898d9369826fc",
+      "size_bytes": 32497271,
+      "source_url": "s3://oedi-data-lake/nrel-pds-building-stock/end-use-load-profiles-for-us-building-stock/2021/resstock_tmy3_release_1/timeseries_aggregates/by_state/state=IL/"
+    },
+    {
+      "date_range": "2026-01-01/2026-09-25",
+      "path": "data/illinois/pjm-prices/comed_5min_jan2026.json",
+      "provenance": "CONFIRMED_PUBLIC",
+      "sha256": "1855c820de06c512316b069469a09909af1fca4c41af3f47e1b01aa1c47d6e30",
+      "size_bytes": 393298,
+      "source_url": "https://hourlypricing.comed.com/api"
+    },
+    {
+      "date_range": "2026-01-01/2026-09-25",
+      "path": "data/illinois/pjm-prices/comed_5min_jul2026.json",
+      "provenance": "CONFIRMED_PUBLIC",
+      "sha256": "8d4db2f4b102dea87dbc5fa008699a8c5bd05f6820668cc02e747a0a7427ac24",
+      "size_bytes": 387539,
+      "source_url": "https://hourlypricing.comed.com/api"
+    },
+    {
+      "date_range": "capture-specific",
+      "path": "data/illinois/pjm-prices/comed_5min_prices_current.json",
+      "provenance": "CONFIRMED_PUBLIC",
+      "sha256": "e61f250ebcca43ddd63f1f079316953c80967988a8540e2089b8313e36b794fc",
+      "size_bytes": 11622,
+      "source_url": "https://hourlypricing.comed.com/api"
+    },
+    {
+      "date_range": "2025-01-01/2025-12-31",
+      "path": "data/illinois/pjm-prices/comed_5min_sept2025.json",
+      "provenance": "CONFIRMED_PUBLIC",
+      "sha256": "7dadd51eca7ac25d1ef43ccf14fd1be5274a66b350c543ff7a3b1ef72fa5af13",
+      "size_bytes": 378959,
+      "source_url": "https://hourlypricing.comed.com/api"
+    },
+    {
+      "date_range": "2026-01-01/2026-09-25",
+      "path": "data/illinois/pjm-prices/comed_5min_sept2026.json",
+      "provenance": "CONFIRMED_PUBLIC",
+      "sha256": "afe8364929c9b773d6e1257946df7728dcece741b85680e440162190c627515b",
+      "size_bytes": 298411,
+      "source_url": "https://hourlypricing.comed.com/api"
+    },
+    {
+      "date_range": "capture-specific",
+      "path": "data/illinois/pjm-prices/comed_current_hour_avg.json",
+      "provenance": "CONFIRMED_PUBLIC",
+      "sha256": "de1c867779a846a1fdab93021c15b78a2b447820776c85201c3f5478c991a92d",
+      "size_bytes": 46,
+      "source_url": "https://hourlypricing.comed.com/api"
+    },
+    {
+      "date_range": "capture-specific",
+      "path": "data/illinois/pjm-prices/comed_dayahead_prices_today.json",
+      "provenance": "CONFIRMED_PUBLIC",
+      "sha256": "901c0d48bcf90090133c726eaeafa0a51b770920dec62eb612f8d6258849e37a",
+      "size_bytes": 831,
+      "source_url": "https://hourlypricing.comed.com/api"
+    },
+    {
+      "date_range": "2021-01-01/2021-12-31",
+      "path": "data/illinois/pjm-prices/pjm_lmp_da_hr_zones_2021.csv",
+      "provenance": "CONFIRMED_PUBLIC",
+      "sha256": "03a16ec0e535a08c96540f65b96b2669ec2c768dfe0dd4ae424caa44dd14d5ec",
+      "size_bytes": 7184353,
+      "source_url": "https://www.eia.gov/electricity/wholesalemarkets/csv/pjm_lmp_da_hr_zones_2021.csv"
+    },
+    {
+      "date_range": "2022-01-01/2022-12-31",
+      "path": "data/illinois/pjm-prices/pjm_lmp_da_hr_zones_2022.csv",
+      "provenance": "CONFIRMED_PUBLIC",
+      "sha256": "621fded553f4b613a79f0e631db8e5c8cf2ddc0f43749a75ecc17de95e8f1c06",
+      "size_bytes": 7300966,
+      "source_url": "https://www.eia.gov/electricity/wholesalemarkets/csv/pjm_lmp_da_hr_zones_2022.csv"
+    },
+    {
+      "date_range": "2023-01-01/2023-12-31",
+      "path": "data/illinois/pjm-prices/pjm_lmp_da_hr_zones_2023.csv",
+      "provenance": "CONFIRMED_PUBLIC",
+      "sha256": "bc0a2ad2f6602b0fabb5b895ce4d69531442b4bb510506bf3df2aa83a00b6833",
+      "size_bytes": 6296248,
+      "source_url": "https://www.eia.gov/electricity/wholesalemarkets/csv/pjm_lmp_da_hr_zones_2023.csv"
+    },
+    {
+      "date_range": "2024-01-01/2024-12-31",
+      "path": "data/illinois/pjm-prices/pjm_lmp_da_hr_zones_2024.csv",
+      "provenance": "CONFIRMED_PUBLIC",
+      "sha256": "650b9ebc3bf2b681bf287715f20059ae1e0b4c1900434bd3636a2dc0034548db",
+      "size_bytes": 6797624,
+      "source_url": "https://www.eia.gov/electricity/wholesalemarkets/csv/pjm_lmp_da_hr_zones_2024.csv"
+    },
+    {
+      "date_range": "2025-01-01/2025-12-31",
+      "path": "data/illinois/pjm-prices/pjm_lmp_da_hr_zones_2025.csv",
+      "provenance": "CONFIRMED_PUBLIC",
+      "sha256": "bfe967c29cffc25e1d06f4152156aacf6d56cbb24d4b19717839a5012639565e",
+      "size_bytes": 3484901,
+      "source_url": "https://www.eia.gov/electricity/wholesalemarkets/csv/pjm_lmp_da_hr_zones_2025.csv"
+    },
+    {
+      "date_range": "2025-01-01/2025-03-31",
+      "path": "data/illinois/pjm-prices/pjm_lmp_rt_5min_zones_2025Q1.csv",
+      "provenance": "CONFIRMED_PUBLIC",
+      "sha256": "017603a1b1a30a827735d869baa1a0843fc6f317d05aad2067c3ee2bbcee73b8",
+      "size_bytes": 21293358,
+      "source_url": "https://www.eia.gov/electricity/wholesalemarkets/csv/pjm_lmp_rt_5min_zones_2025Q1.csv"
+    },
+    {
+      "date_range": "2025-01-01/2025-06-30",
+      "path": "data/illinois/pjm-prices/pjm_lmp_rt_5min_zones_2025Q2.csv",
+      "provenance": "CONFIRMED_PUBLIC",
+      "sha256": "b4a01154b52ebe5b2dc869819a8dbb411df9c3520a3437f6821469e05bdd7352",
+      "size_bytes": 19399387,
+      "source_url": "https://www.eia.gov/electricity/wholesalemarkets/csv/pjm_lmp_rt_5min_zones_2025Q2.csv"
+    },
+    {
+      "date_range": "2021-01-01/2021-12-31",
+      "path": "data/illinois/pjm-prices/pjm_lmp_rt_hr_zones_2021.csv",
+      "provenance": "CONFIRMED_PUBLIC",
+      "sha256": "9b1513195821cee0d75e9206c0c6d5b25f9a36167602056c8a901457650b6b30",
+      "size_bytes": 7240387,
+      "source_url": "https://www.eia.gov/electricity/wholesalemarkets/csv/pjm_lmp_rt_hr_zones_2021.csv"
+    },
+    {
+      "date_range": "2022-01-01/2022-12-31",
+      "path": "data/illinois/pjm-prices/pjm_lmp_rt_hr_zones_2022.csv",
+      "provenance": "CONFIRMED_PUBLIC",
+      "sha256": "0613c4a20c7c6ffabd7aad1261d65046bb773fa9dc026b982f54cae201d35167",
+      "size_bytes": 7342230,
+      "source_url": "https://www.eia.gov/electricity/wholesalemarkets/csv/pjm_lmp_rt_hr_zones_2022.csv"
+    },
+    {
+      "date_range": "2023-01-01/2023-12-31",
+      "path": "data/illinois/pjm-prices/pjm_lmp_rt_hr_zones_2023.csv",
+      "provenance": "CONFIRMED_PUBLIC",
+      "sha256": "bf23dc1a3c7218e42b35fca4572f8fa20335a8a991d41b7dcbd2099dab5e7028",
+      "size_bytes": 6153398,
+      "source_url": "https://www.eia.gov/electricity/wholesalemarkets/csv/pjm_lmp_rt_hr_zones_2023.csv"
+    },
+    {
+      "date_range": "2024-01-01/2024-12-31",
+      "path": "data/illinois/pjm-prices/pjm_lmp_rt_hr_zones_2024.csv",
+      "provenance": "CONFIRMED_PUBLIC",
+      "sha256": "2bfedff43768d5c54f7e34d189afe7d7e9ca3215c63c223b71a8a16650c2b99c",
+      "size_bytes": 6839792,
+      "source_url": "https://www.eia.gov/electricity/wholesalemarkets/csv/pjm_lmp_rt_hr_zones_2024.csv"
+    },
+    {
+      "date_range": "2025-01-01/2025-12-31",
+      "path": "data/illinois/pjm-prices/pjm_lmp_rt_hr_zones_2025.csv",
+      "provenance": "CONFIRMED_PUBLIC",
+      "sha256": "dca9948f82414146c883a2c7bec9496d6480aa61726901ee8ab45bfc36e9efd8",
+      "size_bytes": 3476623,
+      "source_url": "https://www.eia.gov/electricity/wholesalemarkets/csv/pjm_lmp_rt_hr_zones_2025.csv"
+    },
+    {
+      "date_range": "2024-01-01/2024-06-30",
+      "path": "data/illinois/pjm_hourly_demand_2024_h1.csv",
+      "provenance": "CONFIRMED_PUBLIC",
+      "sha256": "0191c44be4c2203be2c689368328f075900728e6f7d2fc3fa2bd6bd4bded6b4e",
+      "size_bytes": 907810,
+      "source_url": "https://www.eia.gov/electricity/gridmonitor/"
+    },
+    {
+      "date_range": "2024-07-01/2024-12-31",
+      "path": "data/illinois/pjm_hourly_demand_2024_h2.csv",
+      "provenance": "CONFIRMED_PUBLIC",
+      "sha256": "472b661c9c4afbdd9ea0844085946e017ea0d8163841f8188e92604437015914",
+      "size_bytes": 1009298,
+      "source_url": "https://www.eia.gov/electricity/gridmonitor/"
+    },
+    {
+      "date_range": "2025-01-01/2025-06-30",
+      "path": "data/illinois/pjm_hourly_demand_2025_h1.csv",
+      "provenance": "CONFIRMED_PUBLIC",
+      "sha256": "4ff42c8a44ec26dca8c8aa2e5fca37de71d1bff3ede058a3f90882c27fdfff2e",
+      "size_bytes": 995232,
+      "source_url": "https://www.eia.gov/electricity/gridmonitor/"
+    },
+    {
+      "date_range": "2025-07-01/2025-12-31",
+      "path": "data/illinois/pjm_hourly_demand_2025_h2.csv",
+      "provenance": "CONFIRMED_PUBLIC",
+      "sha256": "c7b0342aaa6322634e380645d8242517834a86f827c3943534a6bb6f13586392",
+      "size_bytes": 1011513,
+      "source_url": "https://www.eia.gov/electricity/gridmonitor/"
+    },
+    {
+      "date_range": "2026-01-01/2026-06-30",
+      "path": "data/illinois/pjm_hourly_demand_2026_h1.csv",
+      "provenance": "CONFIRMED_PUBLIC",
+      "sha256": "eeeaa57ab1dcb88b7e5de393dd833abe279a06827c09d0295616a5b4c1bb4358",
+      "size_bytes": 999238,
+      "source_url": "https://www.eia.gov/electricity/gridmonitor/"
+    },
+    {
+      "date_range": "2026-09-25",
+      "path": "data/illinois/weather/chicago_alerts.json",
+      "provenance": "CONFIRMED_PUBLIC",
+      "sha256": "edb9ce14d98fe02278a3e8776770db0634bd9694e9e254e08cba8c45cb1bfe4d",
+      "size_bytes": 229,
+      "source_url": "https://api.weather.gov/"
+    },
+    {
+      "date_range": "2026-09-25",
+      "path": "data/illinois/weather/chicago_forecast.json",
+      "provenance": "CONFIRMED_PUBLIC",
+      "sha256": "398617262420de6931cdb81919a52f2b925aa6b3e6a06b5d3da53ce0bc2d2f6b",
+      "size_bytes": 13087,
+      "source_url": "https://api.weather.gov/"
+    },
+    {
+      "date_range": "2025-01-01/2025-12-31",
+      "path": "data/texas/ercot-prices/DAMLZHBSPP_2025.zip",
+      "provenance": "CONFIRMED_PUBLIC",
+      "sha256": "30df71ebb306bbe8c6cc075598d2e5bd47079b8ab9e0442979f3331353618320",
+      "size_bytes": 2050483,
+      "source_url": "https://www.ercot.com/misapp/GetReports.do?reportTypeId=13060"
+    },
+    {
+      "date_range": "2026-01-01/2026-09-25",
+      "path": "data/texas/ercot-prices/DAMLZHBSPP_2026.zip",
+      "provenance": "CONFIRMED_PUBLIC",
+      "sha256": "c80ed1850974f739227f94013db18a9b16baed8053d8364fe5a179d284ad84f7",
+      "size_bytes": 1467443,
+      "source_url": "https://www.ercot.com/misapp/GetReports.do?reportTypeId=13060"
+    },
+    {
+      "date_range": "2025-01-01/2025-12-31",
+      "path": "data/texas/ercot-prices/RTMLZHBSPP_2025.zip",
+      "provenance": "CONFIRMED_PUBLIC",
+      "sha256": "522a26678575b93bbc7e2c040760eead52c4aae484e0f353c603d5b1a0378faa",
+      "size_bytes": 13969454,
+      "source_url": "https://www.ercot.com/misapp/GetReports.do?reportTypeId=13061"
+    },
+    {
+      "date_range": "2026-01-01/2026-09-25",
+      "path": "data/texas/ercot-prices/RTMLZHBSPP_2026.zip",
+      "provenance": "CONFIRMED_PUBLIC",
+      "sha256": "30a1ecb886a3b28d78c6dd178f399e01b795816c76e929b3c792c2797b992886",
+      "size_bytes": 9802030,
+      "source_url": "https://www.ercot.com/misapp/GetReports.do?reportTypeId=13061"
+    },
+    {
+      "date_range": "2025-01-01/2025-12-31",
+      "path": "data/texas/ercot-prices/dam-spp-2025.csv",
+      "provenance": "CONFIRMED_PUBLIC",
+      "sha256": "0b74a8551a4aee7f295b1e8bd08ea566fffe7543281a299af926001def7f934a",
+      "size_bytes": 4556380,
+      "source_url": "https://www.ercot.com/misapp/GetReports.do?reportTypeId=13060"
+    },
+    {
+      "date_range": "2026-01-01/2026-09-25",
+      "path": "data/texas/ercot-prices/dam-spp-2026.csv",
+      "provenance": "CONFIRMED_PUBLIC",
+      "sha256": "a97ac301279d024d7bff77c0f425ed4f55f8a3684730f248fe9e03630cce5387",
+      "size_bytes": 3268486,
+      "source_url": "https://www.ercot.com/misapp/GetReports.do?reportTypeId=13060"
+    },
+    {
+      "date_range": "2026-09-14/2026-09-24",
+      "path": "data/texas/ercot-prices/ercot-system-load-merged.csv",
+      "provenance": "CONFIRMED_PUBLIC",
+      "sha256": "caa659ef56ca7e78957eed080fc47d0e639ac50c1a56a234ece45543a360a6d2",
+      "size_bytes": 25095,
+      "source_url": "https://www.ercot.com/misapp/GetReports.do?reportTypeId=13101"
+    },
+    {
+      "date_range": "2025-01-01/2025-12-31",
+      "path": "data/texas/ercot-prices/rtm-spp-2025.csv",
+      "provenance": "CONFIRMED_PUBLIC",
+      "sha256": "1818107f50d027306bd64556802441e8e178bbd34baa2c4183a832bb7967deca",
+      "size_bytes": 29738221,
+      "source_url": "https://www.ercot.com/misapp/GetReports.do?reportTypeId=13061"
+    },
+    {
+      "date_range": "2026-01-01/2026-09-25",
+      "path": "data/texas/ercot-prices/rtm-spp-2026.csv",
+      "provenance": "CONFIRMED_PUBLIC",
+      "sha256": "7628b6638966d67b4203bb29452b0f3439c1e705e98d6a2e4fede6c5dcc14b29",
+      "size_bytes": 21338544,
+      "source_url": "https://www.ercot.com/misapp/GetReports.do?reportTypeId=13061"
+    },
+    {
+      "date_range": "2025-01-01/2025-12-31",
+      "path": "data/texas/load-profiles/ERCOT-Backcasted-Load-Profiles-2025.zip",
+      "provenance": "CONFIRMED_PUBLIC",
+      "sha256": "fe2b962f9d88bb813f2dc11cc5006d9b36fc883f30138a540d7ddc33053c577d",
+      "size_bytes": 34838908,
+      "source_url": "https://www.ercot.com/mktinfo/loadprofile/alp"
+    },
+    {
+      "date_range": "2026-01-01/2026-09-25",
+      "path": "data/texas/load-profiles/ERCOT-Backcasted-Load-Profiles-2026.zip",
+      "provenance": "CONFIRMED_PUBLIC",
+      "sha256": "c2abc91bd2ef8505d94c44c6b52d2a4da31c05a46e8e08bc8b88d51c5409a7c7",
+      "size_bytes": 18716254,
+      "source_url": "https://www.ercot.com/mktinfo/loadprofile/alp"
+    },
+    {
+      "date_range": "2025-01-01/2025-12-31",
+      "path": "data/texas/load-profiles/load-profiles-residential-2025.csv",
+      "provenance": "CONFIRMED_PUBLIC",
+      "sha256": "74f938823a252f63b6f02afd19973c8bfae8a06f1fd3ab5c9647a50b2772d698",
+      "size_bytes": 7700119,
+      "source_url": "https://www.ercot.com/mktinfo/loadprofile/alp"
+    },
+    {
+      "date_range": "2026-01-01/2026-09-25",
+      "path": "data/texas/load-profiles/load-profiles-residential-2026.csv",
+      "provenance": "CONFIRMED_PUBLIC",
+      "sha256": "3d0e29ab36f79ca6826dccff9fab576f88f563fb3eb56c4a4c5e0a7f9c1f91da",
+      "size_bytes": 4129619,
+      "source_url": "https://www.ercot.com/mktinfo/loadprofile/alp"
+    },
+    {
+      "date_range": "2021-01-01/2023-12-20",
+      "path": "data/texas/outages/hackathon_outage_data_sample_1000.csv",
+      "provenance": "CONFIRMED_PUBLIC",
+      "sha256": "c0877359431a57ac9fd3fbb3916cfbb649e34382eef2664ba6425c119cae38ba",
+      "size_bytes": 73893,
+      "source_url": "https://storage.googleapis.com/outage_data_export/hackathon_outage_data_sample_1000.csv"
+    },
+    {
+      "date_range": "2021-01-01/2023-12-20",
+      "path": "data/texas/outages/outage_data_sample_1000.csv",
+      "provenance": "CONFIRMED_PUBLIC",
+      "sha256": "5a588ef774b629e1314d0d9d6740e71b6d396fc887f59f740defe7636a25a4e1",
+      "size_bytes": 73888,
+      "source_url": "https://storage.googleapis.com/outage_data_export/outage_data_sample_1000.csv"
+    },
+    {
+      "date_range": "2021-01-01/2023-12-20",
+      "path": "data/texas/outages/texas_outage_event_data.csv",
+      "provenance": "CONFIRMED_PUBLIC",
+      "sha256": "fb70a0e99651c621c0802095a1815d27872162e7dfb6e9586552709516c1198a",
+      "size_bytes": 74862364,
+      "source_url": "https://storage.googleapis.com/outage_data_export/texas_outage_event_data.csv"
+    },
+    {
+      "date_range": "2026-09-25",
+      "path": "data/texas/weather/austin_alerts.json",
+      "provenance": "CONFIRMED_PUBLIC",
+      "sha256": "43439f268752d1a4e5c0b43fe5652735c3afeddc4a4c8985c5a44642ecd0d261",
+      "size_bytes": 229,
+      "source_url": "https://api.weather.gov/"
+    },
+    {
+      "date_range": "2026-09-25",
+      "path": "data/texas/weather/austin_forecast.json",
+      "provenance": "CONFIRMED_PUBLIC",
+      "sha256": "b303d22684f1c8d1ee287a9d11c5684b97159512a7b134dda61e35dd973a052d",
+      "size_bytes": 13837,
+      "source_url": "https://api.weather.gov/"
+    },
+    {
+      "date_range": "2026-09-25",
+      "path": "data/texas/weather/dallas_alerts.json",
+      "provenance": "CONFIRMED_PUBLIC",
+      "sha256": "fab3293c794bd4c2f9a94161c153bc7ccce2d15221e40e75e9540d5ffd9a450a",
+      "size_bytes": 5787,
+      "source_url": "https://api.weather.gov/"
+    },
+    {
+      "date_range": "2026-09-25",
+      "path": "data/texas/weather/dallas_forecast.json",
+      "provenance": "CONFIRMED_PUBLIC",
+      "sha256": "79c3bcfd43db6f200e6bfad8aac454e48e24d949a23d4e08fd77c0ee85f30e4b",
+      "size_bytes": 13910,
+      "source_url": "https://api.weather.gov/"
+    },
+    {
+      "date_range": "2026-09-25",
+      "path": "data/texas/weather/houston_alerts.json",
+      "provenance": "CONFIRMED_PUBLIC",
+      "sha256": "b248d80c314a5ccbf50366a1238fd5c5831af39b7122fc675a16165b5dff808e",
+      "size_bytes": 5025,
+      "source_url": "https://api.weather.gov/"
+    },
+    {
+      "date_range": "2026-09-25",
+      "path": "data/texas/weather/houston_forecast.json",
+      "provenance": "CONFIRMED_PUBLIC",
+      "sha256": "049f230542c1e0a426c47cbb30bd29d995700f1906ae2700e2795d117e5863a3",
+      "size_bytes": 13896,
+      "source_url": "https://api.weather.gov/"
+    },
+    {
+      "date_range": "2026-09-25",
+      "path": "data/texas/weather/san_antonio_alerts.json",
+      "provenance": "CONFIRMED_PUBLIC",
+      "sha256": "a6ac802a89bcd7366811c6e0806e5730cc68b32202e72b37a864e759da7061d5",
+      "size_bytes": 229,
+      "source_url": "https://api.weather.gov/"
+    },
+    {
+      "date_range": "2026-09-25",
+      "path": "data/texas/weather/san_antonio_forecast.json",
+      "provenance": "CONFIRMED_PUBLIC",
+      "sha256": "8d194d4eff33ce90911031b2fe91381b9ca0c691df1a0e80a8907b6710e6e802",
+      "size_bytes": 13771,
+      "source_url": "https://api.weather.gov/"
+    },
+    {
+      "date_range": "as published",
+      "path": "testdata/fixtures/public/fleet/ader_dispatch_scoring.json",
+      "provenance": "CONFIRMED_PUBLIC",
+      "sha256": "a82b6d1c554bcec9582d01467b5a7dd6dec919160fbf767c180ba602d730e48b",
+      "size_bytes": 8627,
+      "source_url": "https://www.basepowercompany.com/blog/aggregated-ders-and-the-capacity-crunch"
+    },
+    {
+      "date_range": "as published",
+      "path": "testdata/fixtures/public/fleet/eia_projections.json",
+      "provenance": "CONFIRMED_PUBLIC",
+      "sha256": "350da54dd209c50b89083564816dc12910c7a65c69a955d688cb9d07f343e636",
+      "size_bytes": 13935,
+      "source_url": "https://www.basepowercompany.com/blog/aggregated-ders-and-the-capacity-crunch"
+    },
+    {
+      "date_range": "as published",
+      "path": "testdata/fixtures/public/fleet/fleet_capacity_monthly.json",
+      "provenance": "CONFIRMED_PUBLIC",
+      "sha256": "763e9890814016ea86d7a84e0e591419a41957b29b8bb8fdbbe314c854f4fa04",
+      "size_bytes": 3621,
+      "source_url": "https://www.basepowercompany.com/blog/aggregated-ders-and-the-capacity-crunch"
+    },
+    {
+      "date_range": "as published",
+      "path": "testdata/fixtures/public/fleet/ptdf_constraint_analysis.json",
+      "provenance": "CONFIRMED_PUBLIC",
+      "sha256": "905a065dae2c8049154b89cce6b550a52d85e7e8e542082ea5c4ecfe00d6781d",
+      "size_bytes": 1641,
+      "source_url": "https://www.basepowercompany.com/blog/aggregated-ders-and-the-capacity-crunch"
+    },
+    {
+      "date_range": "as published",
+      "path": "testdata/fixtures/public/fleet/sced_series.json",
+      "provenance": "CONFIRMED_PUBLIC",
+      "sha256": "da21f5fdf6fa363c43f000e177b438107dcd3bc0ba025e21c16b1640a9170293",
+      "size_bytes": 34805,
+      "source_url": "https://www.basepowercompany.com/blog/aggregated-ders-and-the-capacity-crunch"
+    },
+    {
+      "date_range": "as published",
+      "path": "testdata/fixtures/public/fleet/state_estimator_line_flows.json",
+      "provenance": "CONFIRMED_PUBLIC",
+      "sha256": "e0d649419b1e63de2350506b2bda36b55d74c7d0c8a69cb49dd9904261448d30",
+      "size_bytes": 18821,
+      "source_url": "https://www.basepowercompany.com/blog/aggregated-ders-and-the-capacity-crunch"
+    }
+  ],
+  "schema_version": 1
+}
