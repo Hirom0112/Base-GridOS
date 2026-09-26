@@ -191,4 +191,13 @@ assumptions reported by workers land here too.
   1E.7 (mount ingest, dispatcher, publisher, report; load the fleet) and
   1C.11 (runnable decision server). `make demo` starts the console only if
   the UI track has created it; the vertical-slice test is API-driven.
+- **Phase 1 runtime limits (lane E, 1E.7), accepted:** 5-second decision
+  budget, 100-command publisher batches, 5-second leases and acknowledgement
+  deadlines, 10-second internal RPC client timeout; `make decision` defaults
+  to port 50061 (1C.11). All caller-configurable; none is a spec value.
+- **API lifecycle must be reachable (found by lane F at 1F.3):** wiring a
+  dispatcher that no handler calls is not a control plane. Phase 1 plans and
+  validates synchronously inside `CreateEventRequest`, approval moves
+  VALIDATED to APPROVED, and launch persists and publishes. Temporal takes
+  this over in Wave 2 without changing the states.
 
