@@ -11,7 +11,7 @@ event:
   region: LZ_AEN
   start_at: 2026-08-12T18:00:00-05:00
   end_at: 2026-08-12T20:00:00-05:00
-  target_mw: 20
+  target_mw: 0.5
   boundary: METER_NET_EXPORT
 injections:
   - at: 2026-08-12T18:05:00-05:00
