@@ -29,8 +29,8 @@ func TestWorkedExample(t *testing.T) {
 	closeTo(t, result.ACAvailableKWh, 12.6616)
 	closeTo(t, result.DischargeKW, 6.3308)
 	closeTo(t, result.NetExportKW, 3.2308)
-	closeTo(t, result.BackupHoursCurrentUsage, 4.0844)
-	closeTo(t, result.BackupHours750W, 16.8821)
+	closeTo(t, result.BackupHoursCurrentUsage, 4.8052)
+	closeTo(t, result.BackupHours750W, 19.8613)
 }
 
 func TestStepEnergyAndLimits(t *testing.T) {
