@@ -6,6 +6,7 @@ import "google/protobuf/duration.proto";
 import "google/protobuf/timestamp.proto";
 import "gridos/v1/device.proto";
 import "gridos/v1/dispatch.proto";
+import "gridos/v1/optimization.proto";
 import "gridos/v1/telemetry.proto";
 import "gridos/v1/verification.proto";
 
@@ -150,6 +151,19 @@ message GetEventResponse {
   repeated SafetyViolation safety_violations = 4;
 }
 
+message GetPlanExplanationRequest {
+  string event_id = 1;
+  uint64 plan_version = 2;
+}
+
+message GetPlanExplanationResponse {
+  ObjectiveBreakdown objective_breakdown = 1;
+  double reserve_held_back_kwh = 2;
+  repeated ConstraintMargin constraint_margins = 3;
+  repeated DeviceExclusion exclusions = 4;
+  repeated ShortfallReport shortfalls = 5;
+}
+
 message SafetyViolation {
   string code = 1;
 }
@@ -288,6 +302,7 @@ service FleetService {
 service DispatchService {
   rpc CreateEventRequest(CreateEventRequestRequest) returns (CreateEventRequestResponse);
   rpc GetEvent(GetEventRequest) returns (GetEventResponse);
+  rpc GetPlanExplanation(GetPlanExplanationRequest) returns (GetPlanExplanationResponse);
   rpc ApproveEvent(ApproveEventRequest) returns (ApproveEventResponse);
   rpc LaunchEvent(LaunchEventRequest) returns (LaunchEventResponse);
 }
