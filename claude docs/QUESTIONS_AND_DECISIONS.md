@@ -285,4 +285,10 @@ assumptions reported by workers land here too.
 - **2E.2 (lane E), accepted:** the service holds no incumbent plan (stateless
   per request); a solver that raises, exits, or cannot be shipped to the
   child yields `fallback_reason` SOLVER_FAILED with the failure logged.
+- **2C.6 (lane C), accepted:** the reporting interval is five minutes; the
+  property draws nonnegative grid-service power so the bound against a hold
+  integral is strict; the setpoint in force at any instant is the most
+  recently issued command whose effective time has passed and whose expiry
+  has not; response latency is the longest time any command took to be seen
+  within 0.05 kW of its setpoint.
 

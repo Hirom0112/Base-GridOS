@@ -905,7 +905,7 @@ Owns: `services/control/internal/reconciliation/`,
 - `[x]` 2C.5 `[P]` RED then GREEN: late and duplicated observations update
   reconciliation history by event time without erasing earlier knowledge.
   Verify: `-run Late` passes.
-- `[~]` 2C.6 `[P]` Property test: for random sequences of acks, telemetry,
+- `[x]` 2C.6 `[P]` Property test: for random sequences of acks, telemetry,
   and expiries, reported delivered energy is never greater than the integral
   of the telemetry actually received. Verify: `-run Property -rapid.checks=1000` passes.
 - `[~]` 2C.7 `[after 2B.3]` Reconciliation activities registered with the
