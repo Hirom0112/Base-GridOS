@@ -10,6 +10,8 @@ import (
 	gridosv1 "github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1"
 )
 
+const publisherBatch = 100
+
 func TestMain(m *testing.M) {
 	code := m.Run()
 	removeBinaries()
@@ -17,11 +19,13 @@ func TestMain(m *testing.M) {
 }
 
 func TestHarness(t *testing.T) {
-	stack := startStack(t, "gateway-restart")
 	ctx := context.Background()
-	t.Cleanup(func() { assertDatabaseDropped(t, ctx, stack.databaseName) })
+	var databaseName string
+	t.Cleanup(func() { assertDatabaseDropped(t, ctx, databaseName) })
+	stack := startStack(t, "gateway-restart")
+	databaseName = stack.databaseName
 	now := time.Now().UTC()
-	cohort := stack.cohort(t, 120)
+	cohort := stack.cohort(t, 400)
 	stack.publishTelemetry(t, ctx, cohort, now, 74)
 	stack.assertDispatchable(t, ctx)
 	eventID := fmt.Sprintf("harness-%d", now.UnixNano())
@@ -42,10 +46,12 @@ func TestHarness(t *testing.T) {
 	if len(commands) == 0 {
 		t.Fatal("launch persisted no commands")
 	}
-	for id, state := range commands {
-		if state != "ACKNOWLEDGED" {
-			t.Fatalf("command %s state = %s", id, state)
-		}
+	counts := make(map[string]int)
+	for _, state := range commands {
+		counts[state]++
+	}
+	if counts["ACKNOWLEDGED"] != len(commands) || len(commands) > publisherBatch {
+		t.Fatalf("command states = %v of %d", counts, len(commands))
 	}
 	if retained := stack.gatewayCommands(t, ctx, eventID); retained != len(commands) {
 		t.Fatalf("gateway retained %d of %d commands", retained, len(commands))
