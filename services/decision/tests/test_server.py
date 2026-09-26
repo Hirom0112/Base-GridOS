@@ -85,3 +85,55 @@ def test_server_forecast_transport_timeout_forces_safe_fallback(
     assert response.plan.fallback_used
     assert response.plan.fallback_reason == "FORECAST_TIMEOUT"
     assert response.plan.device_schedules[0].intervals[0].setpoint_kw == 3.0
+
+
+def test_server_replace_uses_current_state_inside_envelope(
+    serve: Callable[[OptimizationServer], optimization_pb2_grpc.OptimizationServiceStub],
+    optimize_request: optimization_pb2.OptimizeRequest,
+) -> None:
+    server = serve(OptimizationServer(solver=plan_fallback))
+    approved = server.Optimize(optimize_request).plan
+    current = optimize_request.request
+    current.devices.add().CopyFrom(current.devices[0])
+    current.devices[1].device_id = "device-b"
+    current.devices[1].energy_kwh = 8.0
+    current.devices.add().CopyFrom(current.devices[0])
+    current.devices[2].device_id = "outside-envelope"
+
+    response = server.Replace(
+        optimization_pb2.ReplaceRequest(
+            current=current,
+            approved_plan=approved,
+            dropped_device_ids=["device-a"],
+            envelope_device_ids=["device-a", "device-b"],
+            idempotency_key="replace-1",
+        )
+    )
+
+    assert [item.device_id for item in response.replacement_plan.device_schedules] == ["device-b"]
+    assert response.replacement_plan.device_schedules[0].intervals[0].setpoint_kw == 3.0
+
+
+def test_server_replace_excludes_stale_candidate(
+    serve: Callable[[OptimizationServer], optimization_pb2_grpc.OptimizationServiceStub],
+    optimize_request: optimization_pb2.OptimizeRequest,
+) -> None:
+    server = serve(OptimizationServer(solver=plan_fallback))
+    approved = server.Optimize(optimize_request).plan
+    current = optimize_request.request
+    current.devices.add().CopyFrom(current.devices[0])
+    current.devices[1].device_id = "device-b"
+    current.devices[1].stale = True
+
+    response = server.Replace(
+        optimization_pb2.ReplaceRequest(
+            current=current,
+            approved_plan=approved,
+            dropped_device_ids=["device-a"],
+            envelope_device_ids=["device-a", "device-b"],
+            idempotency_key="replace-stale",
+        )
+    )
+
+    assert not response.replacement_plan.device_schedules
+    assert response.replacement_plan.shortfalls[0].shortfall_kw == 3.0
