@@ -67,6 +67,7 @@ func TestVerticalSlice(t *testing.T) {
 	if launched.GetState() < gridosv1.DispatchEventState_DISPATCH_EVENT_STATE_SENT {
 		t.Fatalf("launched event state = %s", launched.GetState())
 	}
+	waitForEventState(t, ctx, dispatch, eventID, gridosv1.DispatchEventState_DISPATCH_EVENT_STATE_ACKNOWLEDGED_OR_UNCERTAIN)
 	response := getEvent(t, ctx, dispatch, eventID)
 	report := response.GetReport()
 	if report.GetRequestedMw() <= 0 || report.GetApprovedMw() <= 0 || report.GetCommandedMw() <= 0 || report.GetAcknowledgedMw() <= 0 {
@@ -91,7 +92,7 @@ func TestDuplicateDelivery(t *testing.T) {
 	launchEvent(t, ctx, dispatch, identifier, now)
 	command := commandIntent{
 		CommandID: identifier, IdempotencyKey: identifier, DeviceID: deviceID, EventID: identifier,
-		PlanVersion: 1, Generation: 1, SetpointKW: 1, IssuedAt: now, EffectiveAt: now.Add(-time.Second),
+		PlanVersion: 1, Generation: 3, SetpointKW: 1, IssuedAt: now, EffectiveAt: now.Add(-time.Second),
 		ExpiresAt: now.Add(time.Hour), PolicyVersion: "fleet-file", CorrelationID: identifier,
 	}
 	insertCommand(t, ctx, pool, command)
