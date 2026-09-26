@@ -14,6 +14,9 @@ dist/
 coverage/
 bazel-*
 presentations/system-overview/build/
+/services/control/internal/gen/
+/services/decision/gridos/gen/
+/apps/console/src/api/gen/
 
 # Terraform working state
 .terraform/
