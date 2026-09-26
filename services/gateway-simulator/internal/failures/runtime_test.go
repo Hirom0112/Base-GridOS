@@ -67,11 +67,10 @@ func TestScheduledScopeTargetsCommandedDeviceAcrossRetiming(t *testing.T) {
 		runtime.RecordCommand(start.Add(shift), "event", "b")
 		runtime.RecordCommand(start.Add(shift), "event", "c")
 		runtime.RecordCommand(start.Add(shift), "other", "a")
-		runtime.Advance(at)
+		runtime.RecordCommand(at, "event", "b")
 		if runtime.Affects(string(DroppedMessages), "a") {
 			t.Fatal("other event's device was selected")
 		}
-		runtime.RecordCommand(at, "event", "b")
 		current := ""
 		for _, deviceID := range []string{"b", "c"} {
 			if runtime.Affects(string(DroppedMessages), deviceID) {

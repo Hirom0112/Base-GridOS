@@ -103,27 +103,35 @@ func (engine *Engine) recordCommand(eventID, deviceID string) {
 
 func (engine *Engine) advance(now time.Time, eventID string) []Effect {
 	var effects []Effect
+	commanded := engine.commanded[eventID]
+	if eventID == "" {
+		commanded = make(map[string]struct{})
+		for _, devices := range engine.commanded {
+			for deviceID := range devices {
+				commanded[deviceID] = struct{}{}
+			}
+		}
+	}
 	for engine.next < len(engine.scenario.Injections) {
 		injection := engine.scenario.Injections[engine.next]
 		if injection.At.After(now) {
 			break
 		}
-		if injection.Scope == Scheduled && len(engine.commanded[eventID]) == 0 {
+		if injection.Scope == Scheduled && len(commanded) == 0 {
 			break
 		}
-		effects = append(effects, engine.effect(injection, eventID))
+		effects = append(effects, engine.effect(injection, commanded))
 		engine.next++
 	}
 	return effects
 }
 
-func (engine *Engine) effect(injection Injection, eventID string) Effect {
+func (engine *Engine) effect(injection Injection, commanded map[string]struct{}) Effect {
 	effect := Effect{At: injection.At, Kind: injection.Kind}
 	if globalKind(injection.Kind) {
 		return effect
 	}
 	if injection.Scope == Scheduled {
-		commanded := engine.commanded[eventID]
 		ids := make([]string, 0, len(commanded))
 		for deviceID := range commanded {
 			ids = append(ids, deviceID)
