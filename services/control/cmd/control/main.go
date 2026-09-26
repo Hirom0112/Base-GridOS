@@ -74,7 +74,11 @@ func main() {
 	telemetry := ingest.NewService(storage.NewTelemetryStore(pool), telemetryTwin, time.Now)
 	events := apievents.NewService(apievents.NewPostgresSource(pool, service, sites, time.Now, 30*time.Second), 250*time.Millisecond)
 	mux := http.NewServeMux()
-	mux.Handle("/geo/", apigeo.AssetHandler(os.DirFS("testdata/fixtures/geo")))
+	geoAssets, err := apigeo.AssetHandler(os.DirFS("testdata/fixtures/geo"))
+	if err != nil {
+		log.Fatal(err)
+	}
+	mux.Handle("/geo/", geoAssets)
 	mux.Handle("/", controlapi.NewControlHandler(service, telemetry, telemetryToken, events))
 	server := &http.Server{Addr: address, Handler: mux, ReadHeaderTimeout: 5 * time.Second, IdleTimeout: 30 * time.Second}
 	go func() {

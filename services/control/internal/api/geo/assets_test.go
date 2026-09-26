@@ -10,7 +10,10 @@ import (
 )
 
 func TestOfflineAssets(t *testing.T) {
-	handler := AssetHandler(os.DirFS("../../../../../testdata/fixtures/geo"))
+	handler, err := AssetHandler(os.DirFS("../../../../../testdata/fixtures/geo"))
+	if err != nil {
+		t.Fatal(err)
+	}
 	for _, path := range []string{"style.json", "texas.geojson", "weather-zones.geojson", "load-zones.geojson"} {
 		response := httptest.NewRecorder()
 		handler.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/geo/"+path, nil))
