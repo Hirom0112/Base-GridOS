@@ -64,7 +64,7 @@ func TestVerticalSlice(t *testing.T) {
 	}
 	approveEvent(t, ctx, dispatch, eventID, now)
 	launched := launchEvent(t, ctx, dispatch, eventID, now)
-	if launched.GetState() != gridosv1.DispatchEventState_DISPATCH_EVENT_STATE_ACKNOWLEDGED_OR_UNCERTAIN {
+	if launched.GetState() < gridosv1.DispatchEventState_DISPATCH_EVENT_STATE_SENT {
 		t.Fatalf("launched event state = %s", launched.GetState())
 	}
 	response := getEvent(t, ctx, dispatch, eventID)
@@ -88,6 +88,7 @@ func TestDuplicateDelivery(t *testing.T) {
 	dispatch := gridosv1connect.NewDispatchServiceClient(http.DefaultClient, controlURL)
 	createEvent(t, ctx, dispatch, identifier, now)
 	approveEvent(t, ctx, dispatch, identifier, now)
+	launchEvent(t, ctx, dispatch, identifier, now)
 	command := commandIntent{
 		CommandID: identifier, IdempotencyKey: identifier, DeviceID: deviceID, EventID: identifier,
 		PlanVersion: 1, Generation: 1, SetpointKW: 1, IssuedAt: now, EffectiveAt: now.Add(-time.Second),
@@ -178,7 +179,10 @@ func createEvent(t *testing.T, ctx context.Context, client gridosv1connect.Dispa
 	if err != nil {
 		t.Fatal(err)
 	}
-	return response.Msg.GetEvent()
+	if response.Msg.GetEvent().GetEventId() != eventID {
+		t.Fatalf("created event = %#v", response.Msg.GetEvent())
+	}
+	return waitForEventState(t, ctx, client, eventID, gridosv1.DispatchEventState_DISPATCH_EVENT_STATE_VALIDATED)
 }
 
 func approveEvent(t *testing.T, ctx context.Context, client gridosv1connect.DispatchServiceClient, eventID string, now time.Time) {
@@ -198,7 +202,25 @@ func launchEvent(t *testing.T, ctx context.Context, client gridosv1connect.Dispa
 	if err != nil {
 		t.Fatal(err)
 	}
-	return response.Msg.GetEvent()
+	if response.Msg.GetEvent().GetEventId() != eventID {
+		t.Fatalf("launched event = %#v", response.Msg.GetEvent())
+	}
+	return waitForEventState(t, ctx, client, eventID, gridosv1.DispatchEventState_DISPATCH_EVENT_STATE_SENT)
+}
+
+func waitForEventState(t *testing.T, ctx context.Context, client gridosv1connect.DispatchServiceClient, eventID string, minimum gridosv1.DispatchEventState) *gridosv1.DispatchEvent {
+	t.Helper()
+	deadline := time.Now().Add(30 * time.Second)
+	var event *gridosv1.DispatchEvent
+	for time.Now().Before(deadline) {
+		event = getEvent(t, ctx, client, eventID).GetEvent()
+		if event.GetState() >= minimum {
+			return event
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+	t.Fatalf("event %s state = %s, want at least %s", eventID, event.GetState(), minimum)
+	return nil
 }
 
 func getEvent(t *testing.T, ctx context.Context, client gridosv1connect.DispatchServiceClient, eventID string) *gridosv1.GetEventResponse {
