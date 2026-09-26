@@ -591,7 +591,7 @@ Owns: `services/decision/`, `testdata/golden/`.
   Verify: `uv run --project services/decision mypy gridos` passes and `uv run --project services/decision pytest services/decision/tests/contract` passes.
 - `[x]` 1C.2 `[P]` RED: `tests/test_energy.py` pins the same worked example as
   1A.1 to four decimal places. Verify: fails with ImportError.
-- `[~]` 1C.3 `[P]` GREEN: `gridos/physics/energy.py` with the energy update,
+- `[x]` 1C.3 `[P]` GREEN: `gridos/physics/energy.py` with the energy update,
   reserve inequality, per-interval energy-limited power, and backup-duration
   estimate given a critical-load forecast. Verify: `uv run --project services/decision pytest services/decision -k energy` passes.
 - `[~]` 1C.4 `[P]` RED: `tests/test_fallback.py`: given the 50-device fleet
