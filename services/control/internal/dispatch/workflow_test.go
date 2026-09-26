@@ -15,6 +15,19 @@ import (
 func TestSmoke(t *testing.T) {
 	var suite testsuite.WorkflowTestSuite
 	environment := suite.NewTestWorkflowEnvironment()
+	environment.RegisterActivity(FreezeInputs)
+	environment.RegisterActivity(RequestPlan)
+	environment.RegisterActivity(ValidatePlan)
+	environment.RegisterActivity(PersistIntents)
+	environment.RegisterActivity(PublishCommands)
+	environment.RegisterActivity(TrackAcknowledgements)
+	environment.RegisterActivity(VerifyDelivery)
+	environment.RegisterActivity(EndEvent)
+	environment.RegisterActivity(ReconcileLateMessages)
+	environment.RegisterActivity(ProduceReport)
+	environment.RegisterDelayedCallback(func() {
+		environment.SignalWorkflow(ApproveEventSignal, Approval{ApprovedBy: "operator-1"})
+	}, time.Hour)
 	environment.ExecuteWorkflow(Workflow, Input{EventID: "event-1"})
 
 	require.True(t, environment.IsWorkflowCompleted())
