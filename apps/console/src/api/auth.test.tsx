@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { expect, test } from "vitest";
+import { renderToString } from "react-dom/server";
 import { LocalSession, useSession } from "./auth";
 
 function Identity() {
@@ -11,6 +12,18 @@ function Identity() {
     </span>
   );
 }
+
+test("server-rendered identity controls wait for hydration", () => {
+  const markup = document.createElement("div");
+  markup.innerHTML = renderToString(
+    <LocalSession>
+      <Identity />
+    </LocalSession>,
+  );
+  expect(markup.querySelector("select")).toBeDisabled();
+  expect(markup.querySelector('input[type="checkbox"]')).toBeDisabled();
+  expect(markup).toHaveTextContent("operator: local");
+});
 
 test("local auth exposes the explicit stub and selected role", async () => {
   render(
