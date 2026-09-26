@@ -220,3 +220,8 @@ assumptions reported by workers land here too.
   loosens nothing. Accepted. Any AGENTS.md edit that weakens a rule would be
   reverted by the director.
 
+### Reported by workers during Wave 2
+
+- **2A.1 (lane A):** a device-scoped injection with no explicit scope selects
+  exactly one seeded device until the scenario names a scope. Accepted.
+

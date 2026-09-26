@@ -830,7 +830,7 @@ Implements FULL_SPEC §12 Phase 2 and TECHSTACK step 6.
 Owns: `services/gateway-simulator/internal/failures/`,
 `services/gateway-simulator/cmd/`.
 
-- `[~]` 2A.1 `[P]` RED: `failures/inject_test.go` for each injection in
+- `[x]` 2A.1 `[P]` RED: `failures/inject_test.go` for each injection in
   FULL_SPEC §5.8: offline device, delayed telemetry, dropped message,
   duplicated message, gateway restart, partial region outage, bad forecast
   hook, hot battery, stale state, optimizer timeout (signalled to the decision
