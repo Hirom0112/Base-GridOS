@@ -87,3 +87,22 @@ func TestScheduledScopeTargetsCommandedDeviceAcrossRetiming(t *testing.T) {
 		selected = current
 	}
 }
+
+func TestScheduledScopeAffectsTelemetryForOneCommandedEvent(t *testing.T) {
+	start := time.Date(2026, 8, 12, 18, 0, 0, 0, time.UTC)
+	at := start.Add(time.Minute)
+	scenario := Scenario{Seed: 17, Start: start, Tick: time.Minute, Injections: []Injection{{At: at, Kind: DroppedMessages, Scope: Scheduled}}}
+	engine, err := NewEngine(scenario, []Device{{ID: "scheduled", Region: "LZ_AEN"}, {ID: "idle", Region: "LZ_AEN"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	runtime := NewRuntime(engine)
+	runtime.RecordCommand(start, "event", "scheduled")
+	runtime.Advance(at)
+	if !runtime.Affects(string(DroppedMessages), "scheduled") {
+		t.Fatal("telemetry did not receive the scheduled event's fault")
+	}
+	if runtime.Affects(string(DroppedMessages), "idle") {
+		t.Fatal("telemetry fault selected an idle device")
+	}
+}
