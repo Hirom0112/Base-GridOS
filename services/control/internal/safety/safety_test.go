@@ -209,6 +209,40 @@ func TestReserveOverrideBlocksTravelFlex(t *testing.T) {
 	}
 }
 
+func TestFailClosedOnMissingOrContradictoryState(t *testing.T) {
+	tests := []struct {
+		name   string
+		code   ViolationCode
+		mutate func(*Plan, *CanonicalState)
+	}{
+		{"missing state of charge", MissingStateOfCharge, func(_ *Plan, state *CanonicalState) {
+			device := state.Devices["device-1"]
+			device.EnergyKWh = nil
+			state.Devices["device-1"] = device
+		}},
+		{"missing freshness", MissingFreshness, func(_ *Plan, state *CanonicalState) {
+			device := state.Devices["device-1"]
+			device.TelemetryAt = nil
+			state.Devices["device-1"] = device
+		}},
+		{"energy exceeds capacity", ContradictoryInput, func(plan *Plan, state *CanonicalState) {
+			device := withEnergy(state.Devices["device-1"], 31)
+			state.Devices["device-1"] = device
+			plan.Devices[0].EnergyKWh = []float64{31, 31 - 2.0/0.95/12}
+		}},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			plan, state := validInputs()
+			test.mutate(&plan, &state)
+			approval, violations := Validate(plan, state)
+			if approval.Approved || !violationCodes(violations)[test.code] {
+				t.Fatalf("expected rejection with %s, got %#v and %#v", test.code, approval, violations)
+			}
+		})
+	}
+}
+
 func withEnergy(device DeviceState, energy float64) DeviceState {
 	device.EnergyKWh = &energy
 	return device
