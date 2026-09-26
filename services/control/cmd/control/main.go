@@ -20,6 +20,11 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+const (
+	LOCAL_GATEWAY_CREDENTIAL        = "Bearer local-gateway"
+	LOCAL_GATEWAY_CREDENTIAL_STATUS = "STUBBED"
+)
+
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
@@ -52,7 +57,7 @@ func main() {
 	}
 	telemetryToken := os.Getenv("GRIDOS_GATEWAY_TOKEN")
 	if telemetryToken == "" {
-		telemetryToken = "Bearer local-gateway"
+		telemetryToken = LOCAL_GATEWAY_CREDENTIAL
 	}
 	service := controlapi.NewService(controlapi.NewPostgresEventStore(pool), twin, sites, time.Now)
 	service.SetReportSource(controlapi.NewPostgresReportSource(pool))
@@ -99,7 +104,6 @@ func environment(name, fallback string) string {
 func h2Client() *http.Client {
 	transport := http.DefaultTransport.(*http.Transport).Clone()
 	protocols := new(http.Protocols)
-	protocols.SetHTTP1(true)
 	protocols.SetUnencryptedHTTP2(true)
 	transport.Protocols = protocols
 	return &http.Client{Transport: transport, Timeout: 10 * time.Second}

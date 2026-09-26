@@ -124,7 +124,13 @@ func (service *Service) CreateEventRequest(ctx context.Context, request *connect
 	if eventRequest == nil || eventRequest.GetRequestId() == "" || eventRequest.GetBeginTime() == nil || eventRequest.GetEndTime() == nil || !eventRequest.GetEndTime().AsTime().After(eventRequest.GetBeginTime().AsTime()) || eventRequest.GetTargetKw() < 0 {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("valid event request required"))
 	}
-	event, err := service.store.Create(ctx, eventRequest, request.Msg.GetIdempotencyKey(), service.now())
+	var event *gridosv1.DispatchEvent
+	var err error
+	if service.dispatcher != nil {
+		event, err = service.dispatcher.Plan(ctx, request.Msg)
+	} else {
+		event, err = service.store.Create(ctx, eventRequest, request.Msg.GetIdempotencyKey(), service.now())
+	}
 	if err != nil {
 		return nil, storeError(err)
 	}
@@ -148,6 +154,15 @@ func (service *Service) GetEvent(ctx context.Context, request *connect.Request[g
 	}
 	sort.Slice(groups, func(i, j int) bool { return groups[i].GetReason() < groups[j].GetReason() })
 	response := &gridosv1.GetEventResponse{Event: event, Exclusions: groups}
+	if store, ok := service.store.(LifecycleStore); ok {
+		violations, violationErr := store.Violations(ctx, request.Msg.GetEventId())
+		if violationErr != nil {
+			return nil, connect.NewError(connect.CodeInternal, violationErr)
+		}
+		for _, violation := range violations {
+			response.SafetyViolations = append(response.SafetyViolations, &gridosv1.SafetyViolation{Code: violation.Code})
+		}
+	}
 	if service.reports != nil {
 		report, reportErr := reporting.Build(ctx, service.reports, request.Msg.GetEventId())
 		if reportErr != nil {
@@ -179,7 +194,44 @@ func (service *Service) LaunchEvent(ctx context.Context, request *connect.Reques
 	if request.Msg.GetEventId() == "" || request.Msg.GetPlanVersion() == 0 || request.Msg.GetRequestedBy() == "" || request.Msg.GetRequestedAt() == nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("complete launch request required"))
 	}
-	event, err := service.store.Launch(ctx, request.Msg)
+	if service.dispatcher == nil {
+		event, err := service.store.Launch(ctx, request.Msg)
+		if err != nil {
+			return nil, storeError(err)
+		}
+		return connect.NewResponse(&gridosv1.LaunchEventResponse{Event: event}), nil
+	}
+	current, _, currentErr := service.store.Get(ctx, request.Msg.GetEventId())
+	if currentErr != nil {
+		return nil, storeError(currentErr)
+	}
+	if current.GetState() != gridosv1.DispatchEventState_DISPATCH_EVENT_STATE_APPROVED {
+		event, retryErr := service.store.Launch(ctx, request.Msg)
+		if retryErr != nil {
+			return nil, storeError(retryErr)
+		}
+		return connect.NewResponse(&gridosv1.LaunchEventResponse{Event: event}), nil
+	}
+	commands, err := service.dispatcher.PersistApproved(ctx, request.Msg.GetEventId(), request.Msg.GetPlanVersion())
+	if err != nil {
+		return nil, storeError(err)
+	}
+	_, err = service.store.Launch(ctx, request.Msg)
+	if err != nil {
+		return nil, storeError(err)
+	}
+	store, ok := service.store.(LifecycleStore)
+	if !ok {
+		return nil, connect.NewError(connect.CodeInternal, errors.New("lifecycle store required"))
+	}
+	_, err = store.Advance(ctx, request.Msg.GetEventId(), "COMMANDS_PERSISTED", "SENT", request.Msg.GetRequestedBy(), service.now())
+	if err != nil {
+		return nil, storeError(err)
+	}
+	if err = service.dispatcher.Publish(ctx, commands); err != nil {
+		return nil, connect.NewError(connect.CodeUnavailable, err)
+	}
+	event, err := store.Advance(ctx, request.Msg.GetEventId(), "SENT", "ACKNOWLEDGED_OR_UNCERTAIN", request.Msg.GetRequestedBy(), service.now())
 	if err != nil {
 		return nil, storeError(err)
 	}

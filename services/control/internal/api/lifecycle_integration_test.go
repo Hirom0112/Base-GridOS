@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"fmt"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -107,7 +106,6 @@ func integrationInterval(command storage.ClaimedCommand, now time.Time) storage.
 func apiH2Client() *http.Client {
 	transport := http.DefaultTransport.(*http.Transport).Clone()
 	protocols := new(http.Protocols)
-	protocols.SetHTTP1(true)
 	protocols.SetUnencryptedHTTP2(true)
 	transport.Protocols = protocols
 	return &http.Client{Transport: transport, Timeout: 10 * time.Second}
@@ -165,5 +163,5 @@ func waitForAPI(t *testing.T, address string) {
 		}
 		time.Sleep(25 * time.Millisecond)
 	}
-	t.Fatal(fmt.Sprintf("process did not listen on %s", address))
+	t.Fatalf("process did not listen on %s", address)
 }

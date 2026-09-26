@@ -62,7 +62,7 @@ func Load(path string, twin *Twin, now time.Time) ([]*gridosv1.AuthorizedSite, *
 		device := &gridosv1.Device{DeviceId: record.DeviceID, SiteId: record.SiteID, BatteryParameters: &gridosv1.BatteryParameters{UsableEnergyKwh: record.UsableEnergyKWh, MaxChargeKw: record.MaxChargeKW, MaxDischargeKw: record.MaxDischargeKW, ChargeEfficiency: record.ChargeEfficiency, DischargeEfficiency: record.DischargeEfficiency}, LastSeenAt: timestamppb.New(now), Provenance: provenance}
 		sites = append(sites, &gridosv1.AuthorizedSite{Site: site, Devices: []*gridosv1.Device{device}})
 		devices[record.DeviceID] = DeviceAsset{SiteID: record.SiteID, UsableEnergyKWh: record.UsableEnergyKWh, MaxDischargeKW: record.MaxDischargeKW, ReservePercent: record.ReservePreferencePercent}
-		twin.Accept(SiteState{SiteID: record.SiteID, ObservedAt: now, OperatingState: TelemetryUnavailable, Availability: Offline, Provenance: "simulated"})
+		twin.Accept(SiteState{SiteID: record.SiteID, OperatingState: TelemetryUnavailable, Availability: Offline, Provenance: "simulated"})
 	}
 	if err = scanner.Err(); err != nil {
 		return nil, nil, err

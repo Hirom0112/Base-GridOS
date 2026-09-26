@@ -38,6 +38,29 @@ func (store *PostgresEventStore) Launch(ctx context.Context, request *gridosv1.L
 	return event, eventStoreError(err)
 }
 
+func (store *PostgresEventStore) StorePlanned(ctx context.Context, eventID string, request *gridosv1.OptimizationRequest, plan *gridosv1.DispatchPlan, at time.Time) (*gridosv1.DispatchEvent, error) {
+	event, err := store.store.StorePlanned(ctx, eventID, request, plan, at)
+	return event, eventStoreError(err)
+}
+
+func (store *PostgresEventStore) ValidatePlanned(ctx context.Context, eventID string, planVersion uint64, violations []storage.StoredViolation, at time.Time) (*gridosv1.DispatchEvent, error) {
+	event, err := store.store.ValidatePlanned(ctx, eventID, planVersion, violations, at)
+	return event, eventStoreError(err)
+}
+
+func (store *PostgresEventStore) LoadPlan(ctx context.Context, eventID string, planVersion uint64) (*gridosv1.OptimizationRequest, *gridosv1.DispatchPlan, error) {
+	return store.store.LoadPlan(ctx, eventID, planVersion)
+}
+
+func (store *PostgresEventStore) Advance(ctx context.Context, eventID, expected, next, actor string, at time.Time) (*gridosv1.DispatchEvent, error) {
+	event, err := store.store.Advance(ctx, eventID, expected, next, actor, at)
+	return event, eventStoreError(err)
+}
+
+func (store *PostgresEventStore) Violations(ctx context.Context, eventID string) ([]storage.StoredViolation, error) {
+	return store.store.Violations(ctx, eventID)
+}
+
 func eventStoreError(err error) error {
 	switch {
 	case err == nil:

@@ -53,10 +53,15 @@ func (gate *StoredApprovalGate) Require(ctx context.Context, eventID string, pla
 
 type CommandPipeline struct {
 	pool      *pgxpool.Pool
-	publisher storage.OutboxPublisher
+	publisher commandPublisher
 }
 
-func NewCommandPipeline(pool *pgxpool.Pool, publisher storage.OutboxPublisher) *CommandPipeline {
+type commandPublisher interface {
+	storage.OutboxPublisher
+	PublishBatch(context.Context) error
+}
+
+func NewCommandPipeline(pool *pgxpool.Pool, publisher commandPublisher) *CommandPipeline {
 	return &CommandPipeline{pool: pool, publisher: publisher}
 }
 
@@ -71,6 +76,10 @@ func (pipeline *CommandPipeline) Persist(ctx context.Context, commands []storage
 
 func (pipeline *CommandPipeline) Publish(ctx context.Context, command storage.ClaimedCommand) error {
 	return pipeline.publisher.Publish(ctx, command)
+}
+
+func (pipeline *CommandPipeline) PublishAll(ctx context.Context) error {
+	return pipeline.publisher.PublishBatch(ctx)
 }
 
 type FleetSnapshotter struct {
@@ -88,18 +97,19 @@ func (snapshotter *FleetSnapshotter) Freeze(_ context.Context, event *gridosv1.D
 		return FrozenSnapshot{}, errors.New("event and dispatch window required")
 	}
 	now := snapshotter.now()
+	planVersion := event.GetPlanVersion() + 1
 	states := make(map[string]fleet.SiteState)
 	for _, state := range snapshotter.twin.Sites(now) {
 		states[state.SiteID] = state
 	}
 	optimization := &gridosv1.OptimizationRequest{
-		RequestId: request.GetRequestId(), EventId: event.GetEventId(), PlanVersion: event.GetPlanVersion(), RequestedAt: timestamppb.New(now),
+		RequestId: request.GetRequestId(), EventId: event.GetEventId(), PlanVersion: planVersion, RequestedAt: timestamppb.New(now),
 		CorrelationId: request.GetCorrelationId(), Budget: durationpb.New(5 * time.Second), MeasurementBoundary: request.GetMeasurementBoundary(),
 		Intervals:           []*gridosv1.OptimizationInterval{{BeginTime: request.GetBeginTime(), EndTime: request.GetEndTime(), TargetKw: request.GetTargetKw()}},
 		EligibilitySnapshot: &gridosv1.EligibilitySnapshot{EventId: event.GetEventId(), CapturedAt: timestamppb.New(now), PolicyVersion: "fleet-file"},
 		ReservePolicy:       &gridosv1.ReservePolicy{PolicyVersion: "fleet-file", EffectiveAt: timestamppb.New(now), ExpiresAt: request.GetEndTime()},
 	}
-	canonical := safety.CanonicalState{Now: now, Boundary: safety.MeterNetExport, PolicyVersion: "fleet-file", ExpectedGeneration: int64(event.GetPlanVersion()), Devices: make(map[string]safety.DeviceState)}
+	canonical := safety.CanonicalState{Now: now, Boundary: safety.MeterNetExport, PolicyVersion: "fleet-file", ExpectedGeneration: int64(planVersion), Devices: make(map[string]safety.DeviceState)}
 	for _, site := range snapshotter.sites {
 		state := states[site.GetSite().GetSiteId()]
 		for _, device := range site.GetDevices() {
