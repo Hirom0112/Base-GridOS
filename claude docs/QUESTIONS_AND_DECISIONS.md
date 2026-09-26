@@ -519,3 +519,8 @@ assumptions reported by workers land here too.
   ingested times, schema version, and an optional simulation seed; every
   field is validated at the sink boundary and id collisions are rejected.
   RED 29ac47c, GREEN 35eb238, director re-run ok.
+- **3E.3 (lane 3E), verified:** behind the `bigquery` build tag, a recorded
+  insertAll body fixture, an idempotent retry with the same insertId, and a
+  row-error rejection all pass; the live smoke is skipped unless
+  `GRIDOS_BIGQUERY_LIVE=1` with ADC and a table. Director re-run: three
+  pass, one skip.

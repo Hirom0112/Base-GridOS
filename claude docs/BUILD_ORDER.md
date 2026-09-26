@@ -1226,7 +1226,7 @@ Owns: `services/control/internal/analytics/`.
   dispatch and verification facts, and data-quality facts exported as
   append-only records with the provenance fields from FULL_SPEC §2.
   Verify: `-run Export` passes.
-- `[ ]` 3E.3 `[P]` BigQuery sink integration test guarded by a build tag and a
+- `[x]` 3E.3 `[P]` BigQuery sink integration test guarded by a build tag and a
   recorded-request fixture; one live smoke test documented but skipped without
   credentials. Verify: `go test -tags bigquery ./services/control/internal/analytics/` passes with the fixture.
 - `[ ]` 3E.4 `[P]` Assert the safety gate and command path never import the
