@@ -4,6 +4,11 @@ set -eu
 root=$(git rev-parse --show-toplevel)
 cd "$root"
 
+go_bin=$(go env GOBIN 2>/dev/null || true)
+[ -n "$go_bin" ] || go_bin="$(go env GOPATH 2>/dev/null || true)/bin"
+[ -d "$go_bin" ] && PATH="$go_bin:$PATH"
+export PATH
+
 staged=$(git diff --cached --name-only --diff-filter=ACMR)
 [ -n "$staged" ] || exit 0
 
@@ -62,7 +67,7 @@ fi
 py_files=$(printf '%s\n' "$staged" | grep -E '\.py$' | grep -vE '_pb2(_grpc)?\.py$' || true)
 if [ -n "$py_files" ]; then
   command -v ruff >/dev/null || command -v uv >/dev/null || fail "ruff (or uv) is not installed"
-  RUFF="ruff"; command -v ruff >/dev/null || RUFF="uv run --quiet ruff"
+  RUFF="ruff"; command -v ruff >/dev/null || RUFF="uvx --quiet ruff"
   $RUFF format --check $py_files || fail "ruff format"
   $RUFF check $py_files || fail "ruff check"
   tests=$(printf '%s\n' $py_files | grep -E '(^|/)test_[^/]+\.py$' || true)
