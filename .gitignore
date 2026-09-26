@@ -24,5 +24,8 @@ presentations/system-overview/build/
 # testdata/fixtures/.
 /data/
 
-# Local working data for agents and pipelines (mailbox, normalized data, quarantine)
-/.gridos/
+# Local working data: agent mailbox, normalized data, quarantine, scratch
+/.local/
+
+# Rendered walkthrough media; kept next to the repo, not in it
+/presentations/

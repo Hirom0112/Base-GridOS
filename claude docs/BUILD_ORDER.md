@@ -193,9 +193,9 @@ Owns: repo root files (`Makefile`, `AGENTS.md`, `.gitignore`),
   `test-all` (the once-per-wave full suite, director only), `hooks`,
   `ui-mock` (runs 0F.1's mock server). No `demo` target yet; it arrives
   with the first runnable slice in 1F.3 (TECHSTACK: no placeholders). Add the ignored local
-  working directory `.gridos/` (normalized data, quarantine, analytics sink)
+  working directory `.local/` (normalized data, quarantine, analytics sink)
   and every `buf generate` output directory to `.gitignore`.
-  Verify: `make up` and `make down` succeed; `make -n test-all` lists the three test targets; `git check-ignore .gridos/x` prints the path.
+  Verify: `make up` and `make down` succeed; `make -n test-all` lists the three test targets; `git check-ignore .local/x` prints the path.
 
 ### Lane 0B — contracts
 
@@ -380,7 +380,7 @@ additions.
   `unit=USD_per_MWh`, UTC and local timestamps, and that the DST repeated-hour
   flag produces two distinct UTC rows for the fall-back hour. GREEN:
   `tools/data/normalize/ercot_prices.py` for DAM and RTM into Parquet under
-  `.gridos/normalized/` (ignored; `data/` stays a raw research cache per
+  `.local/normalized/` (ignored; `data/` stays a raw research cache per
   FULL_SPEC §14). Verify: `uv run pytest tools/data -k ercot` passes.
 - `[ ]` 0E.3 `[P]` RED then GREEN: `ercot_load_profiles.py` turning the
   103-column backcast rows into long-format 15-minute kWh with profile type,
@@ -394,7 +394,7 @@ additions.
   snapshots into forecast periods and alerts with `issued_at`, `valid_from`,
   `valid_to`, and `value_kind=forecast`. Verify: `uv run pytest tools/data -k nws` passes.
 - `[ ]` 0E.6 `[P]` Quarantine path: any record failing schema, range,
-  sequence, or freshness validation is written to `.gridos/quarantine/` with
+  sequence, or freshness validation is written to `.local/quarantine/` with
   the reason (FULL_SPEC §14). RED: a deliberately corrupt row lands in quarantine
   with reason `RANGE`. Verify: `uv run pytest tools/data -k quarantine` passes.
 - `[ ]` 0E.7 `[P]` Cut small fixtures for tests and the offline demo into
@@ -994,7 +994,7 @@ Owns: `services/control/internal/dispatch/`, `services/control/internal/api/`,
 Owns: `services/control/internal/analytics/`.
 
 - `[ ]` 3E.1 `[P]` `analytics.Sink` interface with two implementations: a
-  fixture-backed local sink writing newline JSON under `.gridos/analytics/`
+  fixture-backed local sink writing newline JSON under `.local/analytics/`
   (default) and a BigQuery sink enabled only by `GRIDOS_ANALYTICS=bigquery`
   (TECHSTACK "Local and deployed topology"). RED tests use the local sink.
   Verify: `go test ./services/control/internal/analytics/` passes.
@@ -1366,7 +1366,7 @@ Owns: `README.md`, `docs/operations/` (except `security/`), `AGENTS.md`.
    `internal/observability`, `services/decision/gridos/physics` and
    `gridos/economics`, `apps/console/src/member`, `testdata/golden` (shared
    Python and Go golden fixtures, TECHSTACK "Verification strategy"),
-   `tests/load`, `.gridos/` (ignored local working data so `data/` stays a
+   `tests/load`, `.local/` (ignored local working data so `data/` stays a
    raw cache), root `Makefile` and `sqlc.yaml`, and `claude docs/` for
    director reports. The director records this list in `ASSUMPTIONS.md` at
    Gate 0.

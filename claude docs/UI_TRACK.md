@@ -3,7 +3,7 @@
 **Status:** brief and contract for the UI agent that owns the operator console
 **Written:** 2026-09-26
 **Runs alongside:** [`BUILD_ORDER.md`](BUILD_ORDER.md), the six backend lanes
-**Design authority:** [`3d web logs.md`](../3d%20web%20logs.md), section
+**Design authority:** [`docs/design/visual-system.md`](../docs/design/visual-system.md), section
 "Golden system for the GridOS web experience" (lines 13 to 345)
 **Product authority:** [`FULL_SPEC.md`](../FULL_SPEC.md) §3, §5, §9, §10, §11
 
@@ -84,7 +84,7 @@ From the specs:
 - Roles: operator, approver, analyst, partner, service, member. The partner
   view shows aggregates only and never travel or away state (FULL_SPEC §11).
 
-From the golden system in `3d web logs.md`:
+From the golden system in `docs/design/visual-system.md`:
 
 - The 15 golden rules (lines 35 to 101). Read all of them before the first
   component.
@@ -295,7 +295,7 @@ the UI track if the view is wrong, the backend lane if the response is wrong.
 
 ## 8. Communication
 
-The UI agent appends one line to `.gridos/mailbox.log` (ignored by git) for
+The UI agent appends one line to `.local/mailbox.log` (ignored by git) for
 each event, in this form:
 
 ```text
