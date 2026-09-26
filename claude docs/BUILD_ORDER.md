@@ -339,13 +339,13 @@ Owns: `docs/domain/truth-model.md`, `tools/generation/`, `testdata/fleets/`,
 - `[x]` 0C.5 `[P]` GREEN: generator satisfies 0C.4. Produce the checked-in
   fleets `texas-5000.jsonl` and `texas-50.jsonl` (the 50-device fleet is the
   unit-test fleet). Verify: `uv run pytest tools/generation` passes and `wc -l testdata/fleets/texas-5000.jsonl` is 5000.
-- `[~]` 0C.6 `[P]` Scenario format: `testdata/scenarios/SCHEMA.md` and a
+- `[x]` 0C.6 `[P]` Scenario format: `testdata/scenarios/SCHEMA.md` and a
   pydantic model in `tools/generation/scenario/model.py` for a seeded clock,
   fleet reference, event definition (region, window, target MW, boundary),
   timed injections (the FULL_SPEC §5.8 list as an enum), and expected
   outcomes. RED test loads an invalid scenario and expects a validation error;
   GREEN writes the model. Verify: `uv run pytest tools/generation -k scenario` passes.
-- `[~]` 0C.7 `[P]` The canonical scenario `testdata/scenarios/heat-event-canonical.yaml`:
+- `[x]` 0C.7 `[P]` The canonical scenario `testdata/scenarios/heat-event-canonical.yaml`:
   5,000-site Texas fleet, severe-weather evening, one region, one event window,
   target MW, the injections named in FULL_SPEC §9 steps 11 and 12. Validates
   against 0C.6. Verify: `uv run python -m tools.generation.scenario validate testdata/scenarios/heat-event-canonical.yaml` prints OK.
