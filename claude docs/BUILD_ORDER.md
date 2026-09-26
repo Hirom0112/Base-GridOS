@@ -978,6 +978,7 @@ After lane A completes: `services/gateway-simulator/internal/telemetry/` and
 `services/gateway-simulator/cmd/` for the fleet telemetry loop (2F.1).
 For 2F.2: `services/control/internal/storage/telemetry.go` (bulk telemetry
 write, additive) and `services/control/internal/ingest/`.
+For 2F.5: `contracts/gridos/v1/api.proto` (additive `EventsService` only).
 
 - `[x]` 2F.1 `[P]` RED then GREEN: simulator scale. 5,000 simulated devices
   in one process produce telemetry every 5 seconds for 10 minutes with no
@@ -987,15 +988,19 @@ write, additive) and `services/control/internal/ingest/`.
 - `[~]` 2F.2 `[after 1F.2]` RED then GREEN: ingest scale. The control plane
   sustains the 5,000-device stream and twin freshness stays under 5 seconds
   (FULL_SPEC §10). Verify: `go test ./tests/end-to-end/ -run IngestScale -timeout 20m` passes.
-- `[~]` 2F.3 `[after 2C.7]` Record live-event fixtures from a scenario run:
+- `[~]` 2F.3 `[after 2B.7, 2F.5]` Record live-event fixtures from a scenario run:
   `GetEvent` at several lifecycle states, the timeline, and an
   `EmergencyStop` response, into `testdata/fixtures/api/`.
   Verify: `go test ./tools/development/mockapi/ -run Fixtures` passes.
 - `[~]` 2F.4 `[after 2D.4]` Run the UI track's `demo-path` spec against
   `make demo` and record the result in the gate report; route failures to the
   UI track or the owning backend lane. Verify: `pnpm --dir apps/console playwright test demo-path` executed and output saved.
-- `[~]` 2F.5 `[after 2C.7]` `internal/api/events`: `WatchEvent`
-  server-streaming Connect method emitting the event state plus sent,
+- `[~]` 2F.5 `[after 2C.7, 2B.7]` `internal/api/events`: an `EventsService` in
+  `api.proto` (lane F owns it additively) with `GetEventTimeline` (every
+  state transition, retry, and recovery decision from the audit journal with
+  timestamps and reasons), `EmergencyStop` (audited, signals the dispatch
+  workflow, returns "stop requested" and never claims the device heard it),
+  and `WatchEvent`, a server-streaming Connect method emitting the event state plus sent,
   acknowledged, delivered, and uncertain-interval values, both fleet-wide
   and per H3 aggregate, as reconciliation produces them, registered in
   `cmd/control`. The first update after `LaunchEvent` reports `SENT` only
