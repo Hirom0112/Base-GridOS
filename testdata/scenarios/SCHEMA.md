@@ -18,6 +18,7 @@ Scenario files are YAML documents validated by `tools.generation.scenario.model.
 | `injections[].at` | timezone-aware timestamp | Seeded injection time |
 | `injections[].kind` | injection enum | Failure to inject |
 | `injections[].scope` | `fleet` or `scheduled`, default `fleet` | `scheduled` selects a device with an accepted command for the active event using the seed and sorted commanded device IDs |
+| `injections[].region` | nonempty load zone id, optional | For `PARTIAL_REGION_OUTAGE`, select 20 percent of devices in this region; without it, select a seeded region from the fleet |
 | `expected.final_event_state` | `VERIFIED`, `RECONCILED`, or `REPORTED` | Required terminal progress |
 | `expected.reserve_violations` | nonnegative integer | Allowed reserve violations |
 | `expected.allows_shortfall` | boolean | Whether safe shortfall is acceptable |

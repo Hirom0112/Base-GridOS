@@ -46,24 +46,46 @@ func NewEngine(scenario Scenario, devices []Device) (*Engine, error) {
 		seen[device.ID] = struct{}{}
 	}
 	for _, injection := range scenario.Injections {
-		if !validKind(injection.Kind) {
-			return nil, fmt.Errorf("unsupported injection %q", injection.Kind)
-		}
-		if injection.Scope != "" && injection.Scope != Scheduled {
-			return nil, fmt.Errorf("unsupported injection scope %q", injection.Scope)
-		}
-		if injection.Scope == Scheduled && (globalKind(injection.Kind) || injection.Kind == PartialRegionOutage) {
-			return nil, fmt.Errorf("scheduled scope cannot target %q", injection.Kind)
-		}
-		elapsed := injection.At.Sub(scenario.Start)
-		if elapsed < 0 || elapsed%scenario.Tick != 0 {
-			return nil, fmt.Errorf("injection %q is outside the scenario clock", injection.Kind)
+		if err := validateInjection(injection, scenario, devices); err != nil {
+			return nil, err
 		}
 	}
 	sortedDevices := append([]Device(nil), devices...)
 	sort.Slice(sortedDevices, func(i, j int) bool { return sortedDevices[i].ID < sortedDevices[j].ID })
 	sort.SliceStable(scenario.Injections, func(i, j int) bool { return scenario.Injections[i].At.Before(scenario.Injections[j].At) })
 	return &Engine{scenario: scenario, devices: sortedDevices, commanded: make(map[string]map[string]struct{})}, nil
+}
+
+func validateInjection(injection Injection, scenario Scenario, devices []Device) error {
+	if !validKind(injection.Kind) {
+		return fmt.Errorf("unsupported injection %q", injection.Kind)
+	}
+	if injection.Scope != "" && injection.Scope != Scheduled {
+		return fmt.Errorf("unsupported injection scope %q", injection.Scope)
+	}
+	if injection.Scope == Scheduled && (globalKind(injection.Kind) || injection.Kind == PartialRegionOutage) {
+		return fmt.Errorf("scheduled scope cannot target %q", injection.Kind)
+	}
+	if injection.Region != "" && injection.Kind != PartialRegionOutage {
+		return fmt.Errorf("region cannot target %q", injection.Kind)
+	}
+	if injection.Region != "" {
+		found := false
+		for _, device := range devices {
+			if device.Region == injection.Region {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return fmt.Errorf("region %q has no devices", injection.Region)
+		}
+	}
+	elapsed := injection.At.Sub(scenario.Start)
+	if elapsed < 0 || elapsed%scenario.Tick != 0 {
+		return fmt.Errorf("injection %q is outside the scenario clock", injection.Kind)
+	}
+	return nil
 }
 
 func (engine *Engine) Advance(now time.Time) []Effect {
@@ -112,12 +134,16 @@ func (engine *Engine) effect(injection Injection, eventID string) Effect {
 		effect.DeviceIDs = []string{ids[index]}
 		return effect
 	}
-	device := engine.devices[engine.seededIndex(injection, len(engine.devices))]
 	if injection.Kind != PartialRegionOutage {
+		device := engine.devices[engine.seededIndex(injection, len(engine.devices))]
 		effect.DeviceIDs = []string{device.ID}
 		return effect
 	}
-	effect.Region = device.Region
+	effect.Region = injection.Region
+	if effect.Region == "" {
+		device := engine.devices[engine.seededIndex(injection, len(engine.devices))]
+		effect.Region = device.Region
+	}
 	var regional []Device
 	for _, candidate := range engine.devices {
 		if candidate.Region == effect.Region {

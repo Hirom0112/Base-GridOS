@@ -31,9 +31,10 @@ const (
 )
 
 type Injection struct {
-	At    time.Time
-	Kind  Kind
-	Scope Scope
+	At     time.Time
+	Kind   Kind
+	Scope  Scope
+	Region string
 }
 
 type Scenario struct {
@@ -146,16 +147,19 @@ func parseInjectionField(scenario *Scenario, key, value string) error {
 		scenario.Injections = append(scenario.Injections, Injection{At: at})
 		return nil
 	}
-	if key != "kind" && key != "scope" {
+	if key != "kind" && key != "scope" && key != "region" {
 		return nil
 	}
 	if len(scenario.Injections) == 0 {
 		return errors.New("injection kind requires a time")
 	}
 	injection := &scenario.Injections[len(scenario.Injections)-1]
-	if key == "scope" {
+	switch key {
+	case "scope":
 		injection.Scope = Scope(value)
-	} else {
+	case "region":
+		injection.Region = value
+	default:
 		injection.Kind = Kind(value)
 	}
 	return nil

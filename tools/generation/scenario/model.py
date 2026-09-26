@@ -73,6 +73,13 @@ class TimedInjection(BaseModel):
     at: AwareDatetime
     kind: InjectionType
     scope: Literal["fleet", "scheduled"] = "fleet"
+    region: str | None = Field(default=None, min_length=1)
+
+    @model_validator(mode="after")
+    def require_outage_for_region(self) -> Self:
+        if self.region is not None and self.kind != InjectionType.PARTIAL_REGION_OUTAGE:
+            raise ValueError("region requires PARTIAL_REGION_OUTAGE")
+        return self
 
 
 class ExpectedOutcomes(BaseModel):

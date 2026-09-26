@@ -40,9 +40,10 @@ type Scenario struct {
 }
 
 type Injection struct {
-	At    time.Time `yaml:"at"`
-	Kind  string    `yaml:"kind"`
-	Scope string    `yaml:"scope,omitempty"`
+	At     time.Time `yaml:"at"`
+	Kind   string    `yaml:"kind"`
+	Scope  string    `yaml:"scope,omitempty"`
+	Region string    `yaml:"region,omitempty"`
 }
 
 type FleetDevice struct {
