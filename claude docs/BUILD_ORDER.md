@@ -197,7 +197,7 @@ Owns: repo root files (`Makefile`, `AGENTS.md`, `.gitignore`),
   and every `buf generate` output directory to `.gitignore`.
   Verify: `make up` and `make down` succeed; `make -n test-all` lists the three test targets; `git check-ignore .local/x` prints the path.
 
-- `[~]` 0A.5 `[after 0B.9, 0C.3]` Make `test-go` and `test-py` real now that
+- `[x]` 0A.5 `[after 0B.9, 0C.3]` Make `test-go` and `test-py` real now that
   modules exist: a root `go.work` using `contracts/gen/go`, `tests/contract`,
   and `tools/development/mockapi` as they appear, `.gitignore` covering
   `contracts/gen/go/**/*.go` instead of the old `internal/gen` path,
@@ -449,13 +449,13 @@ lane. This lane gives the UI track something to build against from day one.
 Owns: `tools/development/mockapi/`, `testdata/fixtures/api/`,
 `testdata/fixtures/contracts/`, `tests/contract/`.
 
-- `[~]` 0F.1 `[after 0B.8]` `tools/development/mockapi`: a Go Connect server
+- `[x]` 0F.1 `[after 0B.8]` `tools/development/mockapi`: a Go Connect server
   that serves every operator and member method in `gridos.v1` from JSON
   fixture files at `testdata/fixtures/api/<Service>/<Method>.json`, with
   `GRIDOS_AUTH_MODE=local` identities, the six roles, and the
   `site_location` permission, so the console runs with no backend.
   Verify: `go run ./tools/development/mockapi & curl -s -X POST -H 'content-type: application/json' localhost:8080/gridos.v1.FleetService/GetFleetSummary -d '{}'` returns the fixture.
-- `[~]` 0F.2 `[after 0B.8, 0C.5]` Hand-authored fixtures for the Wave 1 methods
+- `[x]` 0F.2 `[after 0B.8, 0C.5]` Hand-authored fixtures for the Wave 1 methods
   (`GetFleetSummary`, `ListSites`, `CreateEventRequest`, `GetEvent`,
   `ApproveEvent`) derived from the `texas-50` fleet, every aggregate carrying
   timestamp, provenance mix, and freshness, every record `SIMULATED`, plus
