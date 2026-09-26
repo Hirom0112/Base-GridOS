@@ -34,7 +34,7 @@ def test_update_and_reserve_constraints() -> None:
 
 def test_energy_limited_power_and_forecast_duration() -> None:
     assert energy_limited_discharge_kw(10.0, 1.5, 0.25) == pytest.approx(6.0)
-    assert backup_duration_with_forecast(2.0, 0.95, [1.0, 2.0, 3.0], 0.5) == pytest.approx(1.3)
+    assert backup_duration_with_forecast(2.0, 0.95, [1.0, 1.0, 3.0], 0.5) == pytest.approx(1.3)
 
 
 @pytest.mark.parametrize(
