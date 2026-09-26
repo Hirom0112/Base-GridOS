@@ -3,6 +3,7 @@ package tests
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
@@ -29,7 +30,7 @@ func TestGatewayProtocol(t *testing.T) {
 			t.Error(err)
 		}
 	})
-	commandPath, commandHandler := gridosv1connect.NewCommandServiceHandler(protocol.NewCommandHandler(store, "gateway-1", func() time.Time { return now }))
+	commandPath, commandHandler := gridosv1connect.NewCommandServiceHandler(protocol.NewCommandHandler(store, "gateway-1", "Bearer test-token", func() time.Time { return now }))
 	commandServer := newGRPCServer(t, commandPath, commandHandler)
 	commandClient := gridosv1connect.NewCommandServiceClient(commandServer.Client(), commandServer.URL, connect.WithGRPC())
 	command := &gridosv1.CommandIntent{
@@ -41,7 +42,9 @@ func TestGatewayProtocol(t *testing.T) {
 		EffectiveAt:    timestamppb.New(now),
 		ExpiresAt:      timestamppb.New(now.Add(time.Hour)),
 	}
-	commandResponse, err := commandClient.SubmitCommand(ctx, connect.NewRequest(&gridosv1.SubmitCommandRequest{CommandIntent: command}))
+	commandRequest := connect.NewRequest(&gridosv1.SubmitCommandRequest{CommandIntent: command})
+	commandRequest.Header().Set("Authorization", "Bearer test-token")
+	commandResponse, err := commandClient.SubmitCommand(ctx, commandRequest)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -51,7 +54,7 @@ func TestGatewayProtocol(t *testing.T) {
 	telemetryService := &telemetryRecorder{now: now}
 	telemetryPath, telemetryHandler := gridosv1connect.NewTelemetryServiceHandler(telemetryService)
 	telemetryServer := newGRPCServer(t, telemetryPath, telemetryHandler)
-	publisher := protocol.NewTelemetryPublisher(gridosv1connect.NewTelemetryServiceClient(telemetryServer.Client(), telemetryServer.URL, connect.WithGRPC()), "gateway-1")
+	publisher := protocol.NewTelemetryPublisher(gridosv1connect.NewTelemetryServiceClient(telemetryServer.Client(), telemetryServer.URL, connect.WithGRPC()), "gateway-1", "Bearer test-token")
 	observation := &gridosv1.TelemetryObservation{ObservationId: "observation-1", DeviceId: "device-1"}
 	if err := publisher.Publish(ctx, observation); err != nil {
 		t.Fatal(err)
@@ -67,6 +70,9 @@ type telemetryRecorder struct {
 }
 
 func (recorder *telemetryRecorder) PublishTelemetry(_ context.Context, request *connect.Request[gridosv1.PublishTelemetryRequest]) (*connect.Response[gridosv1.PublishTelemetryResponse], error) {
+	if request.Header().Get("Authorization") != "Bearer test-token" {
+		return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("authorization required"))
+	}
 	recorder.observations = append(recorder.observations, request.Msg.GetObservations()...)
 	ids := make([]string, 0, len(request.Msg.GetObservations()))
 	for _, observation := range request.Msg.GetObservations() {
