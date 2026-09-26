@@ -1,6 +1,8 @@
 package safety
 
 import (
+	"crypto/sha256"
+	"encoding/json"
 	"math"
 	"time"
 )
@@ -34,6 +36,7 @@ const (
 	PolicyVersionMismatch       ViolationCode = "POLICY_VERSION_MISMATCH"
 	UndeclaredShortfall         ViolationCode = "UNDECLARED_SHORTFALL"
 	RampRate                    ViolationCode = "RAMP_RATE"
+	ReapprovalRequired          ViolationCode = "REAPPROVAL_REQUIRED"
 	MissingStateOfCharge        ViolationCode = "MISSING_STATE_OF_CHARGE"
 	MissingFreshness            ViolationCode = "MISSING_FRESHNESS"
 	ContradictoryInput          ViolationCode = "CONTRADICTORY_INPUT"
@@ -96,7 +99,8 @@ type CanonicalState struct {
 }
 
 type Approval struct {
-	Approved bool
+	Approved    bool
+	InputDigest [32]byte
 }
 
 type Violation struct {
@@ -129,7 +133,29 @@ func Validate(plan Plan, canonical CanonicalState) (Approval, []Violation) {
 			violations = append(violations, Violation{Code: UndeclaredShortfall, Interval: interval})
 		}
 	}
-	return Approval{Approved: len(violations) == 0}, violations
+	if len(violations) != 0 {
+		return Approval{}, violations
+	}
+	canonical.Now = time.Time{}
+	encoded, err := json.Marshal(struct {
+		Plan      Plan
+		Canonical CanonicalState
+	}{plan, canonical})
+	if err != nil {
+		return Approval{}, []Violation{{Code: ContradictoryInput}}
+	}
+	return Approval{Approved: true, InputDigest: sha256.Sum256(encoded)}, nil
+}
+
+func RevalidateApproval(plan Plan, canonical CanonicalState, approved Approval) (Approval, []Violation) {
+	current, violations := Validate(plan, canonical)
+	if !current.Approved {
+		return current, violations
+	}
+	if !approved.Approved || approved.InputDigest != current.InputDigest {
+		return Approval{}, []Violation{{Code: ReapprovalRequired}}
+	}
+	return current, nil
 }
 
 func validateEnvelope(plan Plan, canonical CanonicalState) []Violation {
