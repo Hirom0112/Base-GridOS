@@ -682,6 +682,8 @@ Owns: `services/control/internal/fleet/`, `services/control/internal/api/`,
 `services/control/internal/report/`, `services/control/cmd/control`,
 `contracts/gridos/v1/api.proto` and `contracts/gridos/v1/dispatch.proto`
 (additive only, `buf breaking` is the gate).
+After lane D completes: `services/control/internal/storage/` and
+`database/queries/` additively, for the PostgreSQL event store.
 
 - `[x]` 1E.1 `[P]` RED: `fleet/twin_test.go`: the twin holds the latest
   accepted state per site; a command being issued does not change the twin
