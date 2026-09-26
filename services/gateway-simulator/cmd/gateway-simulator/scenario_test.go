@@ -196,6 +196,6 @@ func TestRuntimeScheduledFaultFollowsAcceptedCommand(t *testing.T) {
 func commandRequest(deviceID string, now time.Time) *gridosv1.SubmitCommandRequest {
 	return &gridosv1.SubmitCommandRequest{CommandIntent: &gridosv1.CommandIntent{
 		CommandId: "command-" + deviceID, IdempotencyKey: "key-" + deviceID, DeviceId: deviceID, Generation: 1,
-		EffectiveAt: timestamppb.New(now), ExpiresAt: timestamppb.New(now.Add(time.Minute)),
+		SetpointKw: 1, EffectiveAt: timestamppb.New(now), ExpiresAt: timestamppb.New(now.Add(time.Minute)),
 	}}
 }

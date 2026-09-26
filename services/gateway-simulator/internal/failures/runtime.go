@@ -22,10 +22,10 @@ func (runtime *Runtime) Advance(now time.Time) {
 	runtime.advance(now, "")
 }
 
-func (runtime *Runtime) RecordCommand(now time.Time, eventID, deviceID string) {
+func (runtime *Runtime) RecordCommand(now time.Time, eventID, deviceID string, setpointKW float64) {
 	runtime.mutex.Lock()
 	defer runtime.mutex.Unlock()
-	runtime.engine.recordCommand(eventID, deviceID)
+	runtime.engine.recordCommand(eventID, deviceID, setpointKW)
 	runtime.advance(now, eventID)
 }
 

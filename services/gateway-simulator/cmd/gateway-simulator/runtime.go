@@ -32,7 +32,7 @@ func (handler *runtimeCommandHandler) SubmitCommand(ctx context.Context, request
 		return nil, err
 	}
 	if response.Msg.GetAcknowledgement().GetReceiptStatus() == gridosv1.CommandReceiptStatus_COMMAND_RECEIPT_STATUS_ACCEPTED && request.Msg.GetCommandIntent().GetEventId() != "" {
-		handler.runtime.RecordCommand(handler.now(), request.Msg.GetCommandIntent().GetEventId(), deviceID)
+		handler.runtime.RecordCommand(handler.now(), request.Msg.GetCommandIntent().GetEventId(), deviceID, request.Msg.GetCommandIntent().GetSetpointKw())
 	}
 	if handler.affected(deviceID, failures.DuplicatedMessages) {
 		if _, err := handler.next.SubmitCommand(ctx, request); err != nil {

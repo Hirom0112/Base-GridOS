@@ -92,8 +92,15 @@ func (engine *Engine) Advance(now time.Time) []Effect {
 	return engine.advance(now, "")
 }
 
-func (engine *Engine) recordCommand(eventID, deviceID string) {
+func (engine *Engine) recordCommand(eventID, deviceID string, setpointKW float64) {
 	devices := engine.commanded[eventID]
+	if setpointKW == 0 {
+		delete(devices, deviceID)
+		if len(devices) == 0 {
+			delete(engine.commanded, eventID)
+		}
+		return
+	}
 	if devices == nil {
 		devices = make(map[string]struct{})
 		engine.commanded[eventID] = devices

@@ -64,10 +64,10 @@ func TestScheduledScopeTargetsCommandedDeviceAcrossRetiming(t *testing.T) {
 			t.Fatal(err)
 		}
 		runtime := NewRuntime(engine)
-		runtime.RecordCommand(start.Add(shift), "event", "b")
-		runtime.RecordCommand(start.Add(shift), "event", "c")
-		runtime.RecordCommand(start.Add(shift), "other", "a")
-		runtime.RecordCommand(at, "event", "b")
+		runtime.RecordCommand(start.Add(shift), "event", "b", 1)
+		runtime.RecordCommand(start.Add(shift), "event", "c", 1)
+		runtime.RecordCommand(start.Add(shift), "other", "a", 1)
+		runtime.RecordCommand(at, "event", "b", 1)
 		if runtime.Affects(string(DroppedMessages), "a") {
 			t.Fatal("other event's device was selected")
 		}
@@ -96,7 +96,7 @@ func TestScheduledScopeAffectsTelemetryForOneCommandedEvent(t *testing.T) {
 		t.Fatal(err)
 	}
 	runtime := NewRuntime(engine)
-	runtime.RecordCommand(start, "event", "scheduled")
+	runtime.RecordCommand(start, "event", "scheduled", 1)
 	runtime.Advance(at)
 	if !runtime.Affects(string(DroppedMessages), "scheduled") {
 		t.Fatal("telemetry did not receive the scheduled event's fault")
@@ -115,8 +115,8 @@ func TestScheduledScopeAffectsTelemetryAcrossActiveEvents(t *testing.T) {
 		t.Fatal(err)
 	}
 	runtime := NewRuntime(engine)
-	runtime.RecordCommand(start, "event-a", "a")
-	runtime.RecordCommand(start, "event-b", "b")
+	runtime.RecordCommand(start, "event-a", "a", 1)
+	runtime.RecordCommand(start, "event-b", "b", 1)
 	runtime.Advance(at)
 	affected := 0
 	for _, deviceID := range []string{"a", "b"} {
