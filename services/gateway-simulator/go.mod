@@ -5,6 +5,13 @@ go 1.25.0
 require modernc.org/sqlite v1.59.0
 
 require (
+	github.com/Hirom0112/Base-GridOS/contracts/gen/go v0.0.0
+	google.golang.org/protobuf v1.36.12
+)
+
+replace github.com/Hirom0112/Base-GridOS/contracts/gen/go => ../../contracts/gen/go
+
+require (
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/mattn/go-isatty v0.0.24 // indirect

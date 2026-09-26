@@ -65,6 +65,10 @@ CREATE INDEX IF NOT EXISTS commands_device_generation ON commands(device_id, gen
 CREATE TABLE IF NOT EXISTS telemetry_buffer (
   observation_id TEXT PRIMARY KEY,
   payload BLOB NOT NULL
+);
+CREATE TABLE IF NOT EXISTS telemetry_sequences (
+  device_id TEXT PRIMARY KEY,
+  sequence INTEGER NOT NULL
 );`)
 	return err
 }
@@ -204,6 +208,17 @@ func (store *Store) BufferObservation(ctx context.Context, observationID string,
 	}
 	_, err := store.db.ExecContext(ctx, `INSERT INTO telemetry_buffer (observation_id, payload) VALUES (?, ?) ON CONFLICT(observation_id) DO NOTHING`, observationID, payload)
 	return err
+}
+
+func (store *Store) NextTelemetrySequence(ctx context.Context, deviceID string) (uint64, error) {
+	if deviceID == "" {
+		return 0, errors.New("device identifier is required")
+	}
+	var sequence uint64
+	err := store.db.QueryRowContext(ctx, `INSERT INTO telemetry_sequences (device_id, sequence) VALUES (?, 1)
+ON CONFLICT(device_id) DO UPDATE SET sequence = sequence + 1
+RETURNING sequence`, deviceID).Scan(&sequence)
+	return sequence, err
 }
 
 func (store *Store) BufferedObservations(ctx context.Context) (observations []BufferedObservation, err error) {
