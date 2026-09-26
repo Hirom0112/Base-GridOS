@@ -675,3 +675,11 @@ assumptions reported by workers land here too.
   additive `training_window_begin`, `training_window_end`, `issued_at`,
   and `horizon`; realized error is produced by the 3A.6 evaluation after the
   event and recorded against the frozen forecast, not carried on the value.
+- **2D.3, 2D.4, 2D.5 verified; lane D complete (2026-09-26):** on the
+  director's machine every Wave 2 integration scenario passes: harness,
+  audit chain, worker termination, gateway restart, Houston partial outage,
+  lost acknowledgement, old-command expiry, network outage replay,
+  measurement gap, and under-reserved exclusion, each in 100 to 110 s
+  inside the one-minute live window. Two earlier failures (old-expiry and
+  outage-replay stuck at REQUESTED) happened while a dozen commits from
+  other lanes were landing in the shared tree and did not reproduce.

@@ -970,12 +970,12 @@ Owns: `testdata/scenarios/`, `tests/integration/`, `tests/end-to-end/`,
   proportionally into the window and the simulator cadence raised; the
   harness states in an ASSUMPTION line how telemetry source_time aligns
   with the wall-clock window. Control never fakes time.)
-- `[~]` 2D.3 `[after 2A.2, 2B.3, 2C.2]` Unskip and pass: `houston-20pct-offline`,
+- `[x]` 2D.3 `[after 2A.2, 2B.3, 2C.2]` Unskip and pass: `houston-20pct-offline`,
   `lost-ack-still-executing`, `old-command-expiry-newer-pending`.
   Verify: `go test ./tests/integration/ -run "Houston|LostAck|OldExpiry"` passes.
-- `[~]` 2D.4 `[after 2A.4, 2B.6]` Unskip and pass: `worker-termination`,
+- `[x]` 2D.4 `[after 2A.4, 2B.6]` Unskip and pass: `worker-termination`,
   `gateway-restart`, `network-outage-sqlite-replay`. Verify: `-run "Worker|GatewayRestart|OutageReplay"` passes.
-- `[~]` 2D.5 `[after 2C.4]` Unskip and pass: `measurement-gap-unknown`,
+- `[x]` 2D.5 `[after 2C.4]` Unskip and pass: `measurement-gap-unknown`,
   `under-reserved-excluded`. Verify: `-run "Gap|UnderReserved"` passes.
 - `[x]` 2D.7 `[P]` Austin fleet footprint: `_austin_cells` in
   `tools/generation/fleet/generate.py` samples a density-weighted urban
