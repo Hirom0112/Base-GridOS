@@ -948,7 +948,7 @@ Owns: `testdata/scenarios/`, `tests/integration/`, `tests/end-to-end/`,
 
 Owns: `services/decision/`, `testdata/golden/`.
 
-- `[~]` 2E.1 `[P]` RED then GREEN: timeout. A request whose budget is exceeded
+- `[x]` 2E.1 `[P]` RED then GREEN: timeout. A request whose budget is exceeded
   returns the fallback plan with `fallback=true` and the timeout reason; the
   solver work runs in a subprocess that is killed on timeout
   (`system-understanding.md` "Reliable execution"). Verify: `uv run --project services/decision pytest services/decision -k timeout` passes.

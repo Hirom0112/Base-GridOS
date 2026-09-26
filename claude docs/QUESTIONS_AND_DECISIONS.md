@@ -277,4 +277,9 @@ assumptions reported by workers land here too.
 - **2C.5 (lane C), accepted:** observations are keyed by device and
   observation time; a second observation at the same time is a duplicate
   and the first value is kept even if the values differ.
+- **2E.1 (lane E), accepted:** solver work runs in a forkserver child (fork
+  is unsafe under the threaded gRPC server); the deterministic fallback is
+  computed in-process before the isolated solver runs, so a slow or unhealthy
+  solver can never become an error; the solver slot defaults to the
+  deterministic planner until 3B supplies HiGHS.
 
