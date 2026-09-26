@@ -1,0 +1,147 @@
+syntax = "proto3";
+
+package gridos.v1;
+
+option go_package = "github.com/Hirom0112/Base-GridOS/services/control/internal/gen/gridos/v1;gridosv1";
+
+import "google/protobuf/timestamp.proto";
+
+message FixedSupplyRate {
+  int64 rate_cents_per_kwh = 1;
+}
+
+message IndexedSupplyRate {
+  string index_name = 1;
+  int64 discount_cents_per_kwh = 2;
+}
+
+message SubscriptionSupplyRate {
+  int64 subscription_cents = 1;
+  double included_kwh = 2;
+}
+
+message TimeOfUseWindow {
+  string start_local_time = 1;
+  string end_local_time = 2;
+  repeated uint32 days_of_week = 3;
+  int64 rate_cents_per_kwh = 4;
+}
+
+message TimeOfUseSupplyRate {
+  repeated TimeOfUseWindow windows = 1;
+}
+
+message PassthroughDelivery {
+  string tariff_name = 1;
+}
+
+message PercentageCreditDelivery {
+  double credit_percent = 1;
+}
+
+message IncludedDelivery {}
+
+message FixedSolarBuyback {
+  int64 rate_cents_per_kwh = 1;
+}
+
+message RealtimeAdderSolarBuyback {
+  int64 adder_cents_per_kwh = 1;
+}
+
+message MatchSupplySolarBuyback {}
+
+message EnergyPlan {
+  oneof supply_rate {
+    FixedSupplyRate fixed_supply_rate = 1;
+    IndexedSupplyRate indexed_supply_rate = 2;
+    SubscriptionSupplyRate subscription_supply_rate = 3;
+    TimeOfUseSupplyRate time_of_use_supply_rate = 4;
+  }
+  oneof delivery {
+    PassthroughDelivery passthrough_delivery = 5;
+    PercentageCreditDelivery percentage_credit_delivery = 6;
+    IncludedDelivery included_delivery = 7;
+  }
+  oneof solar_buyback {
+    FixedSolarBuyback fixed_solar_buyback = 8;
+    RealtimeAdderSolarBuyback realtime_adder_solar_buyback = 9;
+    MatchSupplySolarBuyback match_supply_solar_buyback = 10;
+  }
+  int64 monthly_charge_cents = 11;
+  uint32 term_months = 12;
+  int64 early_termination_fee_cents = 13;
+  double renewable_percentage = 14;
+}
+
+message BatteryEquipment {
+  string hardware_sku = 1;
+  string description = 2;
+  int64 energy_rate_offset_cents_per_kwh = 3;
+}
+
+message PlanAddOn {
+  string name = 1;
+  int64 rate_offset_cents = 2;
+  int64 monthly_fee_cents = 3;
+}
+
+message BatteryPlan {
+  BatteryEquipment equipment = 1;
+  int64 monthly_payment_cents = 2;
+  uint32 term_months = 3;
+  optional PlanAddOn plan_add_on = 4;
+}
+
+message MemberPlan {
+  string member_plan_id = 1;
+  string market = 2;
+  EnergyPlan energy_plan = 3;
+  BatteryPlan battery_plan = 4;
+  int64 flexibility_reward_cents = 5;
+  google.protobuf.Timestamp effective_at = 6;
+  google.protobuf.Timestamp expires_at = 7;
+}
+
+message PricingCatalogSnapshot {
+  string catalog_version = 1;
+  string market = 2;
+  google.protobuf.Timestamp effective_at = 3;
+  google.protobuf.Timestamp expires_at = 4;
+  repeated MemberPlan member_plans = 5;
+}
+
+message FlexibilityOffer {
+  string offer_id = 1;
+  string member_id = 2;
+  string catalog_version = 3;
+  string contract_version = 4;
+  int64 flexibility_reward_cents = 5;
+  string price_text = 6;
+  google.protobuf.Timestamp effective_at = 7;
+  google.protobuf.Timestamp expires_at = 8;
+}
+
+message MarginEstimate {
+  string estimate_id = 1;
+  int64 added_dispatch_or_market_value_cents = 2;
+  int64 avoided_peak_or_capacity_cost_cents = 3;
+  int64 commitment_reliability_value_cents = 4;
+  int64 charging_energy_cost_cents = 5;
+  int64 incremental_degradation_cost_cents = 6;
+  int64 penalty_exposure_cents = 7;
+  int64 member_reward_cents = 8;
+  int64 incremental_support_and_risk_cost_cents = 9;
+  int64 incremental_margin_cents = 10;
+  int64 configured_margin_hurdle_cents = 11;
+  bool clears_margin_hurdle = 12;
+  string model_version = 13;
+}
+
+message HomeActivityAlert {
+  string alert_id = 1;
+  string member_id = 2;
+  string description = 3;
+  google.protobuf.Timestamp observed_at = 4;
+  string consent_version = 5;
+}

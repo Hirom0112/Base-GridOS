@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package gridos.v1;
 
+option go_package = "github.com/Hirom0112/Base-GridOS/services/control/internal/gen/gridos/v1;gridosv1";
+
 import "google/protobuf/duration.proto";
 import "google/protobuf/timestamp.proto";
 import "gridos/v1/device.proto";

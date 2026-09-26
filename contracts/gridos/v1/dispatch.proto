@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package gridos.v1;
 
+option go_package = "github.com/Hirom0112/Base-GridOS/services/control/internal/gen/gridos/v1;gridosv1";
+
 import "google/protobuf/timestamp.proto";
 import "gridos/v1/telemetry.proto";
 
@@ -130,4 +132,16 @@ message GridEvent {
   bool participated = 5;
   ExclusionReason exclusion_reason = 6;
   string participation_explanation = 7;
+}
+
+message SubmitCommandRequest {
+  CommandIntent command_intent = 1;
+}
+
+message SubmitCommandResponse {
+  CommandAcknowledgement acknowledgement = 1;
+}
+
+service CommandService {
+  rpc SubmitCommand(SubmitCommandRequest) returns (SubmitCommandResponse);
 }
