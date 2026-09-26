@@ -8,12 +8,29 @@ from gridos.fallback.planner import (
     DeviceSchedule,
     DeviceState,
     Exclusion,
+    FallbackPlan,
     PlanningInterval,
     ScheduleInterval,
     Shortfall,
     effective_reserve_kwh,
     exclusion_reason,
+    plan_fallback,
 )
+
+
+@dataclass(frozen=True, slots=True)
+class ObjectiveBreakdown:
+    delivered_value: float
+    shortfall_penalty: float
+    cycling_cost: float
+    uncertainty_cost: float
+    total_cost: float
+
+
+@dataclass(frozen=True, slots=True)
+class ConstraintMargins:
+    reserve_kwh: float
+    power_kw: float
 
 
 @dataclass(frozen=True, slots=True)
@@ -21,6 +38,9 @@ class OptimizedPlan:
     schedules: tuple[DeviceSchedule, ...]
     exclusions: tuple[Exclusion, ...]
     shortfalls: tuple[Shortfall, ...]
+    objective: ObjectiveBreakdown
+    margins: ConstraintMargins
+    feasible_fallback: FallbackPlan
     fallback: bool = False
 
 
@@ -85,6 +105,7 @@ def optimize(devices: list[DeviceState], intervals: list[PlanningInterval]) -> O
     if solver.getModelStatus() != highspy.HighsModelStatus.kOptimal:
         raise RuntimeError(f"optimizer status: {solver.getModelStatus()}")
     values = solver.getSolution().col_value
+    by_id = {device.device_id: device for device in eligible}
     schedules: list[DeviceSchedule] = []
     for device_index, device in enumerate(eligible):
         service_limit = max(0.0, device.max_discharge_kw - device.home_load_kw)
@@ -114,4 +135,38 @@ def optimize(devices: list[DeviceState], intervals: list[PlanningInterval]) -> O
                 max(0.0, values[shortfall_indices[interval_index]]),
             )
         )
-    return OptimizedPlan(tuple(schedules), tuple(exclusions), tuple(shortfalls))
+    cycling_cost = sum(
+        item.grid_service_kw for schedule in schedules for item in schedule.intervals
+    )
+    uncertainty_cost = sum(
+        (1.0 - by_id[schedule.device_id].availability_probability) * item.grid_service_kw
+        for schedule in schedules
+        for item in schedule.intervals
+    )
+    shortfall_penalty = 1000.0 * sum(item.shortfall_kw for item in shortfalls)
+    objective = ObjectiveBreakdown(
+        delivered_value=1000.0 * sum(item.expected_kw for item in shortfalls),
+        shortfall_penalty=shortfall_penalty,
+        cycling_cost=cycling_cost,
+        uncertainty_cost=uncertainty_cost,
+        total_cost=shortfall_penalty + cycling_cost + uncertainty_cost,
+    )
+    reserve_margins = [
+        interval.expected_energy_kwh - effective_reserve_kwh(by_id[schedule.device_id])
+        for schedule in schedules
+        for interval in schedule.intervals
+    ]
+    power_margins = [
+        by_id[schedule.device_id].max_discharge_kw - interval.discharge_kw
+        for schedule in schedules
+        for interval in schedule.intervals
+    ]
+    margins = ConstraintMargins(min(reserve_margins, default=0.0), min(power_margins, default=0.0))
+    return OptimizedPlan(
+        tuple(schedules),
+        tuple(exclusions),
+        tuple(shortfalls),
+        objective,
+        margins,
+        plan_fallback(devices, intervals),
+    )
