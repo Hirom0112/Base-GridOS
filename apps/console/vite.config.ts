@@ -6,6 +6,7 @@ import { defineConfig, loadEnv } from "vite";
 export default defineConfig(({ mode }) => {
   const env = { ...loadEnv(mode, process.cwd(), ""), ...process.env };
   return {
+    cacheDir: env.GRIDOS_VITE_CACHE ?? "node_modules/.vite",
     define: {
       "import.meta.env.VITE_GRIDOS_AUTH_MODE": JSON.stringify(
         env.GRIDOS_AUTH_MODE ?? "clerk",

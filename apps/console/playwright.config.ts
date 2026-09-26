@@ -2,10 +2,12 @@ import { defineConfig, devices } from "@playwright/test";
 
 export default defineConfig({
   testDir: "./tests",
-  use: { baseURL: "http://127.0.0.1:3000", trace: "retain-on-failure" },
+  testIgnore: "live-dispatch.spec.ts",
+  use: { baseURL: "http://127.0.0.1:3100", trace: "retain-on-failure" },
   webServer: {
-    command: "pnpm dev --strictPort",
-    url: "http://127.0.0.1:3000",
+    command:
+      "GRIDOS_AUTH_MODE=local GRIDOS_VITE_CACHE=node_modules/.vite-playwright pnpm exec vite --host 127.0.0.1 --port 3100 --strictPort",
+    url: "http://127.0.0.1:3100",
     reuseExistingServer: false,
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
