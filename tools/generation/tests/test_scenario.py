@@ -1,5 +1,6 @@
 from pydantic import ValidationError
 from pytest import raises
+
 from tools.generation.scenario.model import Scenario
 
 VALID_SCENARIO = {
@@ -33,3 +34,17 @@ def test_invalid_scenario_is_rejected() -> None:
     invalid = {**VALID_SCENARIO, "event": {**VALID_SCENARIO["event"], "target_mw": -1}}
     with raises(ValidationError):
         Scenario.model_validate(invalid)
+
+
+def test_scheduled_injection_scope_is_validated() -> None:
+    scheduled = {
+        **VALID_SCENARIO,
+        "injections": [{**VALID_SCENARIO["injections"][0], "scope": "scheduled"}],
+    }
+    assert Scenario.model_validate(scheduled).injections[0].scope == "scheduled"
+    misspelled = {
+        **VALID_SCENARIO,
+        "injections": [{**scheduled["injections"][0], "scpoe": "scheduled"}],
+    }
+    with raises(ValidationError):
+        Scenario.model_validate(misspelled)
