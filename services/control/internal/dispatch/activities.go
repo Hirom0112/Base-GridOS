@@ -141,8 +141,9 @@ func (activities *Activities) TrackAcknowledgements(ctx context.Context, input I
 }
 
 func (activities *Activities) EndEvent(ctx context.Context, input Input) error {
-	rows, err := activities.Pool.Query(ctx, `SELECT command_id, device_id, plan_version, generation, expires_at, policy_version, correlation_id
-		FROM command_intents WHERE event_id = $1 ORDER BY command_id`, input.EventID)
+	rows, err := activities.Pool.Query(ctx, `SELECT DISTINCT ON (device_id) command_id, device_id, plan_version, generation, expires_at, policy_version, correlation_id
+		FROM command_intents WHERE event_id = $1 AND setpoint_kw <> 0
+		ORDER BY device_id, generation DESC, issued_at DESC`, input.EventID)
 	if err != nil {
 		return err
 	}
@@ -167,7 +168,7 @@ func (activities *Activities) EndEvent(ctx context.Context, input Input) error {
 		return err
 	}
 	for _, command := range commands {
-		if err = storage.InsertCommand(ctx, activities.Pool, command); err != nil {
+		if err = storage.InsertZeroCommand(ctx, activities.Pool, command); err != nil {
 			return err
 		}
 	}
@@ -239,7 +240,7 @@ func (activities *Activities) insertZeroCommand(ctx context.Context, eventID, re
 		return err
 	}
 	for _, command := range commands {
-		if err = storage.InsertCommand(ctx, activities.Pool, command); err != nil {
+		if err = storage.InsertZeroCommand(ctx, activities.Pool, command); err != nil {
 			return err
 		}
 	}
