@@ -2,6 +2,7 @@ package dispatch
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -12,6 +13,7 @@ import (
 
 	gridosv1 "github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1"
 	controlapi "github.com/Hirom0112/Base-GridOS/services/control/internal/api"
+	"github.com/Hirom0112/Base-GridOS/services/control/internal/fleet"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/safety"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/storage"
 	"github.com/jackc/pgx/v5"
@@ -83,6 +85,29 @@ func TestFreezeInputsActivity(t *testing.T) {
 	frozen, err := harness.activities.FreezeInputs(context.Background(), harness.input)
 	require.NoError(t, err)
 	require.Equal(t, harness.input.EventID, frozen.Snapshot.Optimization.GetEventId())
+}
+
+func TestFreezeInputsAustinResultStaysBelowTemporalLimit(t *testing.T) {
+	pool := activityDatabase(t)
+	now := time.Now().UTC()
+	twin := fleet.NewTwin(time.Minute)
+	_, file, _, ok := runtime.Caller(0)
+	require.True(t, ok)
+	sites, _, err := fleet.Load(filepath.Join(filepath.Dir(file), "../../../../testdata/fleets/austin-5000.jsonl"), twin, now)
+	require.NoError(t, err)
+	events := controlapi.NewPostgresEventStore(pool)
+	request := &gridosv1.EventRequest{
+		RequestId: "austin-freeze", EventType: "GRID_SERVICE", BeginTime: timestamppb.New(now.Add(time.Minute)), EndTime: timestamppb.New(now.Add(time.Hour)),
+		TargetKw: 1, MeasurementBoundary: gridosv1.MeasurementBoundary_MEASUREMENT_BOUNDARY_METER_NET_EXPORT, LoadZones: []string{"LZ_AEN"}, CorrelationId: "austin-freeze",
+	}
+	_, err = events.Create(context.Background(), request, "create-austin-freeze", now)
+	require.NoError(t, err)
+	activities := &Activities{Dispatcher: &controlapi.Dispatcher{Events: events, Snapshots: controlapi.NewFleetSnapshotter(twin, sites, func() time.Time { return now })}, Events: events, Pool: pool, Now: func() time.Time { return now }}
+	frozen, err := activities.FreezeInputs(context.Background(), Input{EventID: request.GetRequestId(), Request: request})
+	require.NoError(t, err)
+	payload, err := json.Marshal(frozen)
+	require.NoError(t, err)
+	require.Less(t, len(payload), 64*1024)
 }
 
 func TestRequestPlanActivity(t *testing.T) {
