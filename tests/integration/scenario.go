@@ -81,7 +81,10 @@ func (scenario Scenario) retime(now time.Time) Scenario {
 	duration := scenario.duration()
 	for index := range scenario.Injections {
 		offset := scenario.Injections[index].At.Sub(scenario.Event.StartAt)
-		scenario.Injections[index].At = begin.Add(time.Duration(float64(offset) / float64(duration) * float64(time.Minute)))
+		mapped := begin.Add(time.Duration(float64(offset) / float64(duration) * float64(time.Minute)))
+		fromStart := mapped.Sub(now)
+		tick := 5 * time.Second
+		scenario.Injections[index].At = now.Add((fromStart + tick - 1) / tick * tick)
 	}
 	scenario.Clock.StartAt = now
 	scenario.Clock.IntervalSeconds = 5
