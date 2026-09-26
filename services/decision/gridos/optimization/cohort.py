@@ -52,13 +52,11 @@ def disaggregate(
             energy = energies[device.device_id]
             reserve = effective_reserve_kwh(device)
             max_service = max(0.0, device.max_discharge_kw - device.home_load_kw)
-            ratio = device.max_discharge_kw / max_service if max_service else 0.0
-            energy_limit = (
-                (energy - reserve) * device.discharge_efficiency / interval.duration_hours
-            )
-            dispatch = min(remaining, max_service, energy_limit / ratio if ratio else 0.0)
-            dispatch = max(0.0, dispatch)
-            discharge = dispatch * ratio
+            available_power = (
+                energy - reserve
+            ) * device.discharge_efficiency / interval.duration_hours - device.home_load_kw
+            dispatch = max(0.0, min(remaining, max_service, available_power))
+            discharge = dispatch + device.home_load_kw if dispatch > 0.0 else 0.0
             energies[device.device_id] = (
                 energy - discharge * interval.duration_hours / device.discharge_efficiency
             )
