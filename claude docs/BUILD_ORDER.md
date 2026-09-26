@@ -245,7 +245,7 @@ Owns: `contracts/`, `buf.yaml`, `buf.gen.yaml`.
   `EmergencyStop`, and the member-facing `GridEvent` (`begin_time`,
   `end_time`, `event_type`) that explains why a battery did or did not
   participate. Verify: `buf lint contracts` passes.
-- `[~]` 0B.5 `[P]` `optimization.proto`: `OptimizationRequest`, `DispatchPlan`
+- `[x]` 0B.5 `[P]` `optimization.proto`: `OptimizationRequest`, `DispatchPlan`
   (objective breakdown, constraint margins, exclusions with reasons, fallback
   flag, solver and model versions), `DeviceSchedule`, `ShortfallReport` per
   interval. `verification.proto`: `DeliveryVerification`,

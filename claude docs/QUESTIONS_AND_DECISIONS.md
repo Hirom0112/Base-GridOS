@@ -82,4 +82,7 @@ assumptions reported by workers land here too.
   pytest through the nearest `pyproject.toml` above each test file.
 - **AGENTS.md wording:** "RED and GREEN are separate commits" now also says
   a RED commit contains only test files.
+- **0D.1 (lane D):** migrations are golang-migrate-compatible ordered SQL
+  files, applied with psql in Wave 0 and by a Go entry point from Wave 1.
+  Accepted; it is what the item already said.
 
