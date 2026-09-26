@@ -331,7 +331,7 @@ Owns: `docs/domain/truth-model.md`, `tools/generation/`, `testdata/fleets/`,
 - `[x]` 0C.2 `[P]` RED: `tools/generation/tests/test_fleet_determinism.py`
   pins that `generate_fleet(seed=20260926, size=5000)` produces a SHA-256 the
   test hard-codes, that two runs are byte-identical, and that `size=50` is a
-  prefix-stable subset. Verify: `uv run pytest tools/generation -k determinism` fails with "module not found".
+  prefix-stable subset. Verify: `uv run --project tools/generation pytest tools/generation -k determinism` fails with "module not found".
 - `[x]` 0C.3 `[P]` GREEN: `tools/generation/fleet/generate.py` producing
   `testdata/fleets/<name>.jsonl` with stable pseudonymous IDs, physically
   plausible battery parameters (usable energy 10 to 40 kWh, power 5 to 12 kW,
@@ -341,24 +341,24 @@ Owns: `docs/domain/truth-model.md`, `tools/generation/`, `testdata/fleets/`,
   zone, cohort membership, reliability traits, reserve preferences, and H3
   cells generated inside the zone polygon. No street addresses, no names
   (FULL_SPEC §8). Every record has `provenance: SIMULATED` and
-  `simulation_seed`. Verify: `uv run pytest tools/generation` passes.
+  `simulation_seed`. Verify: `uv run --project tools/generation pytest tools/generation` passes.
 - `[x]` 0C.4 `[P]` RED: `test_fleet_bounds.py` with Hypothesis: for any seed,
   every device satisfies the parameter ranges, reserve preference is within
   the plan bands, and no two devices share an ID. Verify: fails on the first
   property before GREEN tightens the generator.
 - `[x]` 0C.5 `[P]` GREEN: generator satisfies 0C.4. Produce the checked-in
   fleets `texas-5000.jsonl` and `texas-50.jsonl` (the 50-device fleet is the
-  unit-test fleet). Verify: `uv run pytest tools/generation` passes and `wc -l testdata/fleets/texas-5000.jsonl` is 5000.
+  unit-test fleet). Verify: `uv run --project tools/generation pytest tools/generation` passes and `wc -l testdata/fleets/texas-5000.jsonl` is 5000.
 - `[x]` 0C.6 `[P]` Scenario format: `testdata/scenarios/SCHEMA.md` and a
   pydantic model in `tools/generation/scenario/model.py` for a seeded clock,
   fleet reference, event definition (region, window, target MW, boundary),
   timed injections (the FULL_SPEC §5.8 list as an enum), and expected
   outcomes. RED test loads an invalid scenario and expects a validation error;
-  GREEN writes the model. Verify: `uv run pytest tools/generation -k scenario` passes.
+  GREEN writes the model. Verify: `uv run --project tools/generation pytest tools/generation -k scenario` passes.
 - `[x]` 0C.7 `[P]` The canonical scenario `testdata/scenarios/heat-event-canonical.yaml`:
   5,000-site Texas fleet, severe-weather evening, one region, one event window,
   target MW, the injections named in FULL_SPEC §9 steps 11 and 12. Validates
-  against 0C.6. Verify: `uv run python -m tools.generation.scenario validate testdata/scenarios/heat-event-canonical.yaml` prints OK.
+  against 0C.6. Verify: `uv run --project tools/generation python -m tools.generation.scenario validate testdata/scenarios/heat-event-canonical.yaml` prints OK.
 
 ### Lane 0D — database schema and queries
 
@@ -406,29 +406,29 @@ additions.
   labelled `INFERRED_NOT_VERIFIED` in the discovery log is refused, not
   ingested). RED: a test that checks each listed file exists in `data/` or
   `testdata/fixtures` and matches its checksum; GREEN: manifest generation.
-  Verify: `uv run pytest tools/data -k manifest` passes against the current cache.
-- `[~]` 0E.2 `[P]` RED: `test_ercot_prices.py` pins that normalizing
+  Verify: `uv run --project tools/data pytest tools/data -k manifest` passes against the current cache.
+- `[x]` 0E.2 `[P]` RED: `test_ercot_prices.py` pins that normalizing
   `dam-spp-2025.csv` yields rows with `provenance=CONFIRMED_PUBLIC`,
   `unit=USD_per_MWh`, UTC and local timestamps, and that the DST repeated-hour
   flag produces two distinct UTC rows for the fall-back hour. GREEN:
   `tools/data/normalize/ercot_prices.py` for DAM and RTM into Parquet under
   `.local/normalized/` (ignored; `data/` stays a raw research cache per
-  FULL_SPEC §14). Verify: `uv run pytest tools/data -k ercot` passes.
-- `[~]` 0E.3 `[P]` RED then GREEN: `ercot_load_profiles.py` turning the
+  FULL_SPEC §14). Verify: `uv run --project tools/data pytest tools/data -k ercot` passes.
+- `[x]` 0E.3 `[P]` RED then GREEN: `ercot_load_profiles.py` turning the
   103-column backcast rows into long-format 15-minute kWh with profile type,
   weather zone, and DST-aware UTC; rejects rows whose interval count is not
-  96 or 100. Verify: `uv run pytest tools/data -k load_profiles` passes.
-- `[~]` 0E.4 `[P]` RED then GREEN: `outages.py` normalizing
+  96 or 100. Verify: `uv run --project tools/data pytest tools/data -k load_profiles` passes.
+- `[x]` 0E.4 `[P]` RED then GREEN: `outages.py` normalizing
   `texas_outage_event_data.csv` (754,216 events) with county, utility,
   customers out, duration, and computing a per-county monthly outage rate table.
-  Verify: `uv run pytest tools/data -k outages` passes and the rate table has one row per county-month.
-- `[~]` 0E.5 `[P]` RED then GREEN: `nws.py` parsing the eight NWS GeoJSON
+  Verify: `uv run --project tools/data pytest tools/data -k outages` passes and the rate table has one row per county-month.
+- `[x]` 0E.5 `[P]` RED then GREEN: `nws.py` parsing the eight NWS GeoJSON
   snapshots into forecast periods and alerts with `issued_at`, `valid_from`,
-  `valid_to`, and `value_kind=forecast`. Verify: `uv run pytest tools/data -k nws` passes.
-- `[~]` 0E.6 `[P]` Quarantine path: any record failing schema, range,
+  `valid_to`, and `value_kind=forecast`. Verify: `uv run --project tools/data pytest tools/data -k nws` passes.
+- `[x]` 0E.6 `[P]` Quarantine path: any record failing schema, range,
   sequence, or freshness validation is written to `.local/quarantine/` with
   the reason (FULL_SPEC §14). RED: a deliberately corrupt row lands in quarantine
-  with reason `RANGE`. Verify: `uv run pytest tools/data -k quarantine` passes.
+  with reason `RANGE`. Verify: `uv run --project tools/data pytest tools/data -k quarantine` passes.
 - `[x]` 0E.7 `[P]` Cut small fixtures for tests and the offline demo into
   `testdata/fixtures/public/`: one week of DAM and RTM for `LZ_HOUSTON` and
   `HB_HOUSTON`, one week of all 32 residential profile types (four classes
@@ -439,7 +439,7 @@ additions.
 - `[x]` 0E.8 `[P]` `tools/data/fetch.py` re-downloading every manifest entry
   from its source URL with checksum verification, so the cache is reproducible
   (FULL_SPEC §14). ADAPTED scope: recorded-response test plus one live smoke
-  fetch of the smallest file. Verify: `uv run python -m tools.data.fetch --only ercot-system-load --verify` succeeds.
+  fetch of the smallest file. Verify: `uv run --project tools/data python -m tools.data.fetch --only ercot-system-load --verify` succeeds.
 
 ### Lane 0F — UI contract, mock API, contract tests
 
@@ -479,7 +479,7 @@ Owns: `tools/development/mockapi/`, `testdata/fixtures/api/`,
 
 - `make up` brings PostgreSQL and Temporal healthy.
 - `buf lint contracts && buf generate contracts` succeed; `tests/contract` round-trip (0F.3) passes in all three languages.
-- `uv run pytest tools` passes (generation and data).
+- `uv run --project tools/generation pytest tools/generation && uv run --project tools/data pytest tools/data` passes (generation and data).
 - All migrations apply twice; `sqlc generate` succeeds.
 - `make ui-mock` serves every Wave 1 fixture (0F.1, 0F.2).
 - UI track: `pnpm --dir apps/console build && lint && test` pass; `demo-path` spec shows 17 red steps (U0.6).
@@ -593,7 +593,7 @@ Owns: `services/decision/`, `testdata/golden/`.
   1A.1 to four decimal places. Verify: fails with ImportError.
 - `[ ]` 1C.3 `[P]` GREEN: `gridos/physics/energy.py` with the energy update,
   reserve inequality, per-interval energy-limited power, and backup-duration
-  estimate given a critical-load forecast. Verify: `uv run pytest services/decision -k energy` passes.
+  estimate given a critical-load forecast. Verify: `uv run --project services/decision pytest services/decision -k energy` passes.
 - `[ ]` 1C.4 `[P]` RED: `tests/test_fallback.py`: given the 50-device fleet
   and a target that only 30 devices can meet, the fallback filters
   ineligible devices, ranks survivors, allocates conservatively, and reports a
@@ -601,22 +601,22 @@ Owns: `services/decision/`, `testdata/golden/`.
   infeasible target never lowers any reserve. Verify: fails.
 - `[ ]` 1C.5 `[P]` GREEN: `gridos/fallback/planner.py` implementing the
   `system-understanding.md` "Forecasts and optimization" fallback with the
-  same hard constraints the solver will use. Verify: `uv run pytest services/decision -k fallback` passes.
+  same hard constraints the solver will use. Verify: `uv run --project services/decision pytest services/decision -k fallback` passes.
 - `[ ]` 1C.6 `[P]` Golden fixtures: `testdata/golden/plans/` with at least
   eight `OptimizationRequest` + expected `DispatchPlan` pairs (feasible,
   infeasible with shortfall, reserve-tight, stale device excluded, zero-percent
   plan with hardware floor, weather override, expired window, duplicate
-  device). A pytest regenerates and diffs them. Verify: `uv run pytest services/decision -k golden` passes and the fixture directory is checked in.
+  device). A pytest regenerates and diffs them. Verify: `uv run --project services/decision pytest services/decision -k golden` passes and the fixture directory is checked in.
 - `[ ]` 1C.7 `[P]` Hypothesis invariants: for random fleets, the fallback
   plan never violates power, energy, or reserve bounds and declared shortfall
-  is never negative. Verify: `uv run pytest services/decision -k hypothesis` passes with `--hypothesis-seed=0`.
+  is never negative. Verify: `uv run --project services/decision pytest services/decision -k hypothesis` passes with `--hypothesis-seed=0`.
 - `[ ]` 1C.8 `[after 0B.6]` gRPC server `gridos/server.py` exposing
   `Optimize(OptimizationRequest) -> DispatchPlan` that runs the fallback (the
   solver arrives in Wave 3), with a hard timeout budget from the request and a
-  `fallback=true` flag in the response. Verify: `uv run pytest services/decision -k server` passes using an in-process gRPC channel.
+  `fallback=true` flag in the response. Verify: `uv run --project services/decision pytest services/decision -k server` passes using an in-process gRPC channel.
 - `[ ]` 1C.9 `[P]` RED then GREEN: `validation/` module that independently
   checks any plan for finite values, vector lengths, and feasibility with
-  explicit tolerances before it leaves the service. Verify: `uv run pytest services/decision -k validation` passes.
+  explicit tolerances before it leaves the service. Verify: `uv run --project services/decision pytest services/decision -k validation` passes.
 
 ### Lane 1D — storage, event state, transactional outbox
 
@@ -731,7 +731,7 @@ Owns: `services/control/internal/ingest/`, `tests/end-to-end/`, the
 - `tests/end-to-end/vertical_slice_test.go` (1F.3) and
   `DuplicateDelivery` (1F.5) pass.
 - Recorded fixtures (1F.4) replace every hand-authored Wave 1 fixture.
-- `go test ./...`, `uv run pytest`, `pnpm test` all green; 1B.7 under 2 s.
+- `go test ./...`, `uv run --project <each> pytest`, `pnpm test` all green; 1B.7 under 2 s.
 - UI track: Playwright demo-path steps 2, 3, 9, 16 green against `make demo`.
 - `claude docs/gate-reports/wave-1.md` written.
 
@@ -866,7 +866,7 @@ Owns: `services/decision/`, `testdata/golden/`.
 - `[ ]` 2E.1 `[P]` RED then GREEN: timeout. A request whose budget is exceeded
   returns the fallback plan with `fallback=true` and the timeout reason; the
   solver work runs in a subprocess that is killed on timeout
-  (`system-understanding.md` "Reliable execution"). Verify: `uv run pytest services/decision -k timeout` passes.
+  (`system-understanding.md` "Reliable execution"). Verify: `uv run --project services/decision pytest services/decision -k timeout` passes.
 - `[ ]` 2E.2 `[P]` RED then GREEN: no incumbent. A request with no prior plan
   and an unhealthy solver still returns a fallback, never an error.
   Verify: `-k no_incumbent` passes.
@@ -882,7 +882,7 @@ Owns: `services/decision/`, `testdata/golden/`.
   (`system-understanding.md`). RED pins a numeric case. Verify: `-k margin` passes.
 - `[ ]` 2E.6 `[P]` Extend `testdata/golden/plans/` with timeout, no-incumbent,
   invalid-vector, and replacement cases for the Wave 3 Go differential run.
-  Verify: `uv run pytest services/decision -k golden` passes.
+  Verify: `uv run --project services/decision pytest services/decision -k golden` passes.
 
 ### Lane 2F — scale, live stream, fixtures
 
@@ -939,7 +939,7 @@ and pre-declares any forecasting dependency in 3B.1.)
   `feature_version`, `model_version`, `issued_at`, `horizon`, and a calibrated
   interval (FULL_SPEC §5.4). Verify: fails.
 - `[ ]` 3A.2 `[P]` GREEN: `forecasting/load.py` similar-day baseline using the
-  normalized ERCOT profiles from 0E.3 assigned by 0C.3. Verify: `uv run pytest services/decision -k load_baseline` passes.
+  normalized ERCOT profiles from 0E.3 assigned by 0C.3. Verify: `uv run --project services/decision pytest services/decision -k load_baseline` passes.
 - `[ ]` 3A.3 `[P]` RED then GREEN: regional load and price forecasts from
   normalized ERCOT system load and DAM/RTM prices (persistence plus
   day-ahead where available), with realized-error evaluation.
@@ -982,7 +982,7 @@ Owns: `services/decision/gridos/optimization/`,
   (FULL_SPEC §5.5). Verify: `-k explain` passes.
 - `[ ]` 3B.6 `[P]` Performance: canonical 5,000-device scenario plans under 10
   seconds, and a forced timeout returns the fallback (FULL_SPEC §10).
-  Verify: `uv run pytest services/decision -k perf_5000 --durations=1` reports under 10 s.
+  Verify: `uv run --project services/decision pytest services/decision -k perf_5000 --durations=1` reports under 10 s.
 - `[ ]` 3B.7 `[P]` Hypothesis invariants over the solver output identical to
   1C.7. Verify: `-k hypothesis_solver` passes.
 - `[ ]` 3B.8 `[after 3B.5]` Server switches to solver-first, fallback on
@@ -1136,7 +1136,7 @@ Owns: `services/decision/` (whole package this wave, including
   worked case with every term, and that the conservative estimate uses the
   low end of value and the high end of every cost. Verify: fails.
 - `[ ]` 4B.2 `[P]` GREEN: `economics/margin.py` producing `MarginEstimate`.
-  Verify: `uv run pytest services/decision -k margin_formula` passes.
+  Verify: `uv run --project services/decision pytest services/decision -k margin_formula` passes.
 - `[ ]` 4B.3 `[P]` RED then GREEN: hurdle gate. Additional flexibility is used
   only when the conservative margin clears the configured hurdle; a negative
   margin produces no additional dispatch (TECHSTACK e2e scenario 15).
