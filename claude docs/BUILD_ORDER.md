@@ -183,7 +183,7 @@ Owns: repo root files (`Makefile`, `AGENTS.md`, `.gitignore`),
   file that pass, then one of each that breaks a ceiling, and confirm the
   hook accepts the first set and rejects the second. Add the `make hooks`
   target that sets `core.hooksPath`. Verify: both runs behave as stated and `git config core.hooksPath` prints `tools/development/hooks`.
-- `[~]` 0A.3 `[P]` `infrastructure/local/compose.yaml`: PostgreSQL 16 with a
+- `[x]` 0A.3 `[P]` `infrastructure/local/compose.yaml`: PostgreSQL 16 with a
   disposable volume, Temporal dev server (`temporalio/auto-setup` or the
   `temporal server start-dev` image), and healthchecks for both. No BigQuery,
   no cloud credentials (TECHSTACK "Local and deployed topology").
