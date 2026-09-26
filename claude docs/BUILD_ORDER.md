@@ -755,7 +755,7 @@ Owns: `services/control/internal/ingest/`, `tests/end-to-end/`, the
 - `[x]` 1F.2 `[after 1D.6, 1E.2]` GREEN: `internal/ingest` writing
   observations through storage and updating the fleet twin.
   Verify: `go test ./services/control/internal/ingest/` passes.
-- `[~]` 1F.3 `[after 1E.7, 1C.11, 1A.7, 1F.2]` `make demo` target (compose,
+- `[x]` 1F.3 `[after 1E.7, 1C.11, 1A.7, 1F.2]` `make demo` target (compose,
   migrate, seed, start gateway simulator with `austin-5000`, decision
   service, control service with `GRIDOS_FLEET=austin-5000`; the console is
   started only if `apps/console/package.json` exists, since the UI track owns

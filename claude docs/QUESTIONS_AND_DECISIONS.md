@@ -202,4 +202,8 @@ assumptions reported by workers land here too.
   validates synchronously inside `CreateEventRequest`, approval moves
   VALIDATED to APPROVED, and launch persists and publishes. Temporal takes
   this over in Wave 2 without changing the states.
+- **Demo stack (lane F, 1F.3), accepted:** `make demo` binds control to
+  28080, gateway to 28081, and decision to 25061 so nothing collides with
+  the mock API on 8080; each service gets up to 30 seconds to listen; the
+  console starts only if `apps/console/package.json` exists.
 
