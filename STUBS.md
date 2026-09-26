@@ -8,4 +8,5 @@ by the director. A marked stub is honest; a silent one is not.
 | `STUBBED` | `tools/development/mockapi/main.go` (`localAuthStatus`) | Local dev identities and roles for the mock API in place of Clerk sessions | An authorized identity provider on the mock, or the mock's retirement |
 | `REPLACED-IN-WAVE-2` | `services/control/internal/api/dispatcher.go` (`DispatcherLifecycle`) | Straight-line Phase 1 dispatcher in place of the Temporal workflow | Item 2B.7 |
 | `STUBBED` | `services/control/cmd/control/main.go` (`LOCAL_GATEWAY_CREDENTIAL_STATUS`) | Default local bearer token for gateway telemetry in place of issued gateway credentials | Wave 5 connector work (5A.1) or an authorized gateway identity |
+| `STUBBED` | `services/control/internal/dispatch/activities.go` (`ReconciliationActivitiesStatus`) | `VerifyDelivery` and `ReconcileLateMessages` perform lifecycle transitions only, without reconciliation math | Item 2C.7 |
 

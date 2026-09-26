@@ -865,10 +865,10 @@ Owns: `services/control/internal/dispatch/`, `services/control/cmd/worker`,
   an `ApproveEvent` signal is required before `COMMANDS_PERSISTED`; an
   `EmergencyStop` signal from any state after `SENT` issues superseding
   zero-setpoint commands with a higher generation. Verify: fails.
-- `[~]` 2B.3 `[P]` GREEN: the workflow and activities (freeze inputs, request
+- `[x]` 2B.3 `[P]` GREEN: the workflow and activities (freeze inputs, request
   plan, validate, wait approval, persist intents, publish, track, verify,
   end, reconcile, report) as listed in FULL_SPEC §5.7. Verify: `-run Lifecycle` passes.
-- `[~]` 2B.4 `[P]` RED then GREEN: retry classes. Transient gateway errors
+- `[x]` 2B.4 `[P]` RED then GREEN: retry classes. Transient gateway errors
   retry with the same command ID; validation failures do not retry; command
   expiry is a durable timer; a device replaced within the approved envelope
   gets a new generation, never a reused one. Verify: `-run Retry` passes.
@@ -1005,7 +1005,7 @@ After lane A completes: `services/gateway-simulator/internal/telemetry/` and
   device counts by operating state, and aggregate metadata.
   Verify: `go test ./services/control/internal/fleet/ -run H3` passes.
 
-- `[~]` 2F.7 `[P]` End-to-end tests and the workspace test target: tests
+- `[x]` 2F.7 `[P]` End-to-end tests and the workspace test target: tests
   under `tests/end-to-end` skip with a clear message when the demo stack is
   not listening, `make test-go` excludes them, and a new `make test-e2e`
   brings the stack up, runs them, and tears it down. Found at Gate 1:
