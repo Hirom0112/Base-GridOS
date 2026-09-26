@@ -101,6 +101,11 @@ func (activities *Activities) RequestPlan(ctx context.Context, frozen FrozenEven
 	planCtx, cancel := context.WithTimeout(ctx, budget+time.Second)
 	defer cancel()
 	plan, err := activities.Dispatcher.RequestPlan(planCtx, controlapi.FrozenSnapshot{Optimization: request})
+	if errors.Is(err, context.DeadlineExceeded) || connect.CodeOf(err) == connect.CodeDeadlineExceeded {
+		if auditErr := activities.recordPlanningDecision(ctx, request, "OPTIMIZATION_TIMEOUT", "TRANSPORT_TIMEOUT"); auditErr != nil {
+			return frozen, errors.Join(err, auditErr)
+		}
+	}
 	if err != nil {
 		return frozen, err
 	}
