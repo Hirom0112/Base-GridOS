@@ -110,6 +110,7 @@ func TestCommandRejections(t *testing.T) {
 	expired.CommandID = "command-3"
 	expired.IdempotencyKey = "expired"
 	expired.Generation = 3
+	expired.EffectiveAt = now.Add(-time.Hour)
 	expired.ExpiresAt = now.Add(-time.Second)
 	ack, err = store.AcceptCommand(ctx, expired, now)
 	if err != nil {
