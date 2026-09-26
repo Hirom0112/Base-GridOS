@@ -141,6 +141,74 @@ func (store *PostgresEventStore) StorePlanned(ctx context.Context, eventID strin
 	return eventFromRow(updated, nil), nil
 }
 
+func (store *PostgresEventStore) StoreReplacement(ctx context.Context, eventID string, previousVersion uint64, current *gridosv1.OptimizationRequest, plan *gridosv1.DispatchPlan, key string, at time.Time) error {
+	if err := validateReplacement(eventID, previousVersion, current, plan, key); err != nil {
+		return err
+	}
+	tx, err := store.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	row, err := storagegen.New(tx).LockControlEvent(ctx, eventID)
+	if err != nil {
+		return err
+	}
+	if row.PlanVersion != int64(previousVersion) || row.State != "EXECUTING" {
+		return ErrEventState
+	}
+	var inputID, eligibilityID string
+	err = tx.QueryRow(ctx, `SELECT input_snapshot_id, eligibility_snapshot_id FROM plan_versions WHERE event_id = $1 AND version = $2`, eventID, previousVersion).Scan(&inputID, &eligibilityID)
+	if err != nil {
+		return err
+	}
+	currentJSON, err := protojson.Marshal(current)
+	if err != nil {
+		return err
+	}
+	planJSON, err := protojson.Marshal(plan)
+	if err != nil {
+		return err
+	}
+	replacementID := fmt.Sprintf("%s-replacement-%d", eventID, plan.GetPlanVersion())
+	_, err = tx.Exec(ctx, `INSERT INTO input_snapshots (snapshot_id, event_id, captured_at, inputs, provenance, correlation_id)
+		VALUES ($1, $2, $3, $4, '{"source":"CURRENT_TELEMETRY"}', $5)`, replacementID, eventID, at, currentJSON, current.GetCorrelationId())
+	if err != nil {
+		return err
+	}
+	_, err = tx.Exec(ctx, `INSERT INTO plan_versions
+		(event_id, version, input_snapshot_id, eligibility_snapshot_id, replacement_snapshot_id, plan, solver_version, model_version, correlation_id, created_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`, eventID, plan.GetPlanVersion(), inputID, eligibilityID, replacementID,
+		planJSON, plan.GetSolverVersion(), plan.GetModelVersion(), current.GetCorrelationId(), at)
+	if err != nil {
+		return err
+	}
+	_, err = tx.Exec(ctx, `UPDATE dispatch_events SET plan_version = $2, updated_at = $3 WHERE event_id = $1`, eventID, plan.GetPlanVersion(), at)
+	if err != nil {
+		return err
+	}
+	values, err := json.Marshal(struct {
+		PlanVersion           uint64 `json:"plan_version"`
+		ReplacementSnapshotID string `json:"replacement_snapshot_id"`
+		IdempotencyKey        string `json:"idempotency_key"`
+	}{plan.GetPlanVersion(), replacementID, key})
+	if err != nil {
+		return err
+	}
+	if err = AppendAudit(ctx, tx, AuditRecord{OccurredAt: at, ActorID: "decision", Action: "REPLACEMENT_PLANNED", ResourceID: eventID, NewValues: values, CorrelationID: current.GetCorrelationId()}); err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
+}
+
+func validateReplacement(eventID string, previousVersion uint64, current *gridosv1.OptimizationRequest, plan *gridosv1.DispatchPlan, key string) error {
+	if eventID == "" || key == "" || previousVersion == 0 || current == nil || plan == nil || current.GetEligibilitySnapshot() == nil ||
+		current.GetEventId() != eventID || plan.GetEventId() != eventID || current.GetPlanVersion() != previousVersion+1 || plan.GetPlanVersion() != current.GetPlanVersion() {
+		return errors.New("complete next-version replacement required")
+	}
+	return nil
+}
+
 func snapshotIDs(eventID string, planVersion uint64) (string, string) {
 	return fmt.Sprintf("%s-input-%d", eventID, planVersion), fmt.Sprintf("%s-eligibility-%d", eventID, planVersion)
 }
