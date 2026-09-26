@@ -872,7 +872,7 @@ Owns: `services/control/internal/dispatch/`, `services/control/cmd/worker`,
   retry with the same command ID; validation failures do not retry; command
   expiry is a durable timer; a device replaced within the approved envelope
   gets a new generation, never a reused one. Verify: `-run Retry` passes.
-- `[~]` 2B.5 `[P]` Replay test: recorded workflow history from 2B.3 replays
+- `[x]` 2B.5 `[P]` Replay test: recorded workflow history from 2B.3 replays
   without nondeterminism errors after the code change in 2B.4. Verify: `go test ./services/control/internal/dispatch/ -run Replay` passes.
 - `[~]` 2B.6 `[after 1D.9]` Worker-kill integration test: start an
   event against the compose Temporal, kill the worker process after `SENT`,
