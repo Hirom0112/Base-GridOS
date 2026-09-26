@@ -17,15 +17,15 @@ import (
 
 type changingSource struct {
 	mu       sync.RWMutex
-	update   *gridosv1.EventUpdate
+	update   *gridosv1.WatchEventResponse
 	timeline []*gridosv1.EventTimelineEntry
 	stop     *gridosv1.EmergencyStopRequest
 }
 
-func (source *changingSource) Snapshot(context.Context, string) (*gridosv1.EventUpdate, error) {
+func (source *changingSource) Snapshot(context.Context, string) (*gridosv1.WatchEventResponse, error) {
 	source.mu.RLock()
 	defer source.mu.RUnlock()
-	return proto.Clone(source.update).(*gridosv1.EventUpdate), nil
+	return proto.Clone(source.update).(*gridosv1.WatchEventResponse), nil
 }
 
 func (source *changingSource) Timeline(context.Context, string) ([]*gridosv1.EventTimelineEntry, error) {
@@ -44,7 +44,7 @@ func (source *changingSource) RequestStop(_ context.Context, request *gridosv1.E
 	}, nil
 }
 
-func (source *changingSource) set(update *gridosv1.EventUpdate) {
+func (source *changingSource) set(update *gridosv1.WatchEventResponse) {
 	source.mu.Lock()
 	defer source.mu.Unlock()
 	source.update = update
@@ -126,12 +126,12 @@ func TestGetEventTimelineReturnsOrderedAuditDecisions(t *testing.T) {
 	}
 }
 
-func eventUpdate(state gridosv1.DispatchEventState, sentMW, acknowledgedMW, deliveredMW float64) *gridosv1.EventUpdate {
+func eventUpdate(state gridosv1.DispatchEventState, sentMW, acknowledgedMW, deliveredMW float64) *gridosv1.WatchEventResponse {
 	power := &gridosv1.EventPowerAggregate{
 		SentMw: sentMW, AcknowledgedMw: acknowledgedMW, DeliveredMw: deliveredMW,
 		UncertaintyIntervals: []*gridosv1.UncertaintyInterval{{DeviceId: "device-1"}},
 	}
-	return &gridosv1.EventUpdate{
+	return &gridosv1.WatchEventResponse{
 		Event: &gridosv1.DispatchEvent{EventId: "event-1", State: state},
 		Fleet: power,
 		H3: []*gridosv1.H3EventPowerAggregate{{

@@ -7,6 +7,7 @@ import "google/protobuf/timestamp.proto";
 import "gridos/v1/device.proto";
 import "gridos/v1/dispatch.proto";
 import "gridos/v1/telemetry.proto";
+import "gridos/v1/verification.proto";
 
 option go_package = "github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1;gridosv1";
 
@@ -205,6 +206,62 @@ message PublishTelemetryResponse {
   google.protobuf.Timestamp durably_received_at = 3;
 }
 
+message EventTimelineEntry {
+  uint64 sequence = 1;
+  google.protobuf.Timestamp occurred_at = 2;
+  string actor_id = 3;
+  string action = 4;
+  DispatchEventState previous_state = 5;
+  DispatchEventState state = 6;
+  string reason = 7;
+}
+
+message GetEventTimelineRequest {
+  string event_id = 1;
+}
+
+message GetEventTimelineResponse {
+  repeated EventTimelineEntry entries = 1;
+}
+
+message EmergencyStopRequest {
+  string event_id = 1;
+  string idempotency_key = 2;
+  string requested_by = 3;
+  string reason = 4;
+  google.protobuf.Timestamp requested_at = 5;
+  string correlation_id = 6;
+}
+
+message EmergencyStopResponse {
+  EmergencyStop emergency_stop = 1;
+  bool stop_requested = 2;
+}
+
+message EventPowerAggregate {
+  double sent_mw = 1;
+  double acknowledged_mw = 2;
+  double delivered_mw = 3;
+  repeated UncertaintyInterval uncertainty_intervals = 4;
+}
+
+message H3EventPowerAggregate {
+  string h3_cell = 1;
+  EventPowerAggregate power = 2;
+  AggregateMetadata metadata = 3;
+}
+
+message WatchEventResponse {
+  DispatchEvent event = 1;
+  EventPowerAggregate fleet = 2;
+  repeated H3EventPowerAggregate h3 = 3;
+  google.protobuf.Timestamp observed_at = 4;
+}
+
+message WatchEventRequest {
+  string event_id = 1;
+}
+
 service FleetService {
   rpc GetFleetSummary(GetFleetSummaryRequest) returns (GetFleetSummaryResponse);
   rpc ListSites(ListSitesRequest) returns (ListSitesResponse);
@@ -219,4 +276,10 @@ service DispatchService {
 
 service TelemetryService {
   rpc PublishTelemetry(PublishTelemetryRequest) returns (PublishTelemetryResponse);
+}
+
+service EventsService {
+  rpc GetEventTimeline(GetEventTimelineRequest) returns (GetEventTimelineResponse);
+  rpc EmergencyStop(EmergencyStopRequest) returns (EmergencyStopResponse);
+  rpc WatchEvent(WatchEventRequest) returns (stream WatchEventResponse);
 }
