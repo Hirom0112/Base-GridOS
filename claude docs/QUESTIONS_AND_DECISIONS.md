@@ -312,4 +312,23 @@ assumptions reported by workers land here too.
   availability probability times setpoint toward the target; shortfall is
   target minus expected; `feasible_kw` carries the expected value, never the
   nameplate sum; probability zero is an UNAVAILABLE exclusion.
+- **2C.7 (lane C), accepted:** delivery is measured at `METER_NET_EXPORT` as
+  minus `from_grid_kw` and at `BATTERY_TERMINAL` as `from_storage_kw`;
+  `IMPORT_REDUCTION_VS_BASELINE` is rejected until a baseline exists; only
+  PRESENT observations with a power flow count; the window ends at
+  min(event end, now); baseline method recorded as MEASURED_AT_BOUNDARY.
+- **2E.6 (lane E), accepted:** the four new golden fixtures are rendered by
+  the real decision path; the eight existing fixtures each gained exactly
+  one `fallback_reason` line, disclosed and consistent.
+- **Hook false positive fixed by the director:** a Python continuation line
+  beginning with `* ` was read as a block-comment line. The star rule now
+  applies only to Go, TypeScript, JavaScript, and proto; comment rules for
+  `#`, `//`, `/*`, and `--` are unchanged. Tested: formatted Python
+  continuation accepted, Go block comment rejected, SQL comment rejected.
+- **Routed to lane B with 2B.7:** register `reconciliation.Activities` in
+  `cmd/worker` and delete the STUBBED `VerifyDelivery` and
+  `ReconcileLateMessages` (workflow resolves activities by name); surface
+  `report.Delivered` through `pgreport.go` and additive report proto fields;
+  fix `insertZeroCommand`, which writes command rows under device ID
+  "event" and so appears to reconciliation as an unmeasured pseudo-device.
 

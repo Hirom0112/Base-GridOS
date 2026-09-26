@@ -908,7 +908,7 @@ Owns: `services/control/internal/reconciliation/`,
 - `[x]` 2C.6 `[P]` Property test: for random sequences of acks, telemetry,
   and expiries, reported delivered energy is never greater than the integral
   of the telemetry actually received. Verify: `-run Property -rapid.checks=1000` passes.
-- `[~]` 2C.7 `[after 2B.3]` Reconciliation activities registered with the
+- `[x]` 2C.7 `[after 2B.3]` Reconciliation activities registered with the
   workflow; `internal/report` from 1E.6 now includes delivered MW/MWh,
   tracking error, response latency, and uncertain intervals (FULL_SPEC §5.9).
   Verify: `go test ./services/control/internal/report/ -run Delivered` passes.
@@ -965,7 +965,7 @@ Owns: `services/decision/`, `testdata/golden/`.
 - `[x]` 2E.5 `[P]` Uncertainty margins: availability probability reduces
   counted capacity; `confidence × nameplate` is never presented as guaranteed
   (`system-understanding.md`). RED pins a numeric case. Verify: `-k margin` passes.
-- `[~]` 2E.6 `[P]` Extend `testdata/golden/plans/` with timeout, no-incumbent,
+- `[x]` 2E.6 `[P]` Extend `testdata/golden/plans/` with timeout, no-incumbent,
   invalid-vector, and replacement cases for the Wave 3 Go differential run.
   Verify: `uv run --project services/decision pytest services/decision -k golden` passes.
 

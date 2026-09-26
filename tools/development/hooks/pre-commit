@@ -31,10 +31,13 @@ done
 if [ -n "$code_files" ]; then
   added=$(git diff --cached -U0 -- $code_files | grep -E '^\+[^+]' | sed 's/^+//' || true)
 
+  cstyle=$(git diff --cached -U0 -- $(printf '%s\n' $code_files | grep -E '\.(go|ts|tsx|js|mjs|proto)$') 2>/dev/null | grep -E '^\+[^+]' | sed 's/^+//' || true)
+  starred=$(printf '%s\n' "$cstyle" | grep -E '^[[:space:]]*\*[[:space:]]' || true)
   comments=$(printf '%s\n' "$added" \
-    | grep -E '^[[:space:]]*(//|#|/\*|\*[[:space:]]|--[[:space:]]|--$|\{/\*)' \
+    | grep -E '^[[:space:]]*(//|#|/\*|--[[:space:]]|--$|\{/\*)' \
     | grep -vE '^[[:space:]]*(//go:|#!|// Code generated|#[[:space:]]*-\*-|/// <reference)' \
     | grep -vE '^[[:space:]]*-- name: [A-Za-z][A-Za-z0-9_]* :(one|many|exec|execresult|execrows|execlastid|batchexec|batchmany|batchone|copyfrom)[[:space:]]*$' || true)
+  comments=$(printf '%s\n' "$comments" "$starred" | grep -v '^$' || true)
   [ -z "$comments" ] || fail "added comment lines (rename or restructure instead):
 $comments"
 
