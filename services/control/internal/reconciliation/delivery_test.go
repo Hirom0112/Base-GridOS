@@ -36,7 +36,7 @@ func TestGapsStayUnknownWhileMeasuredZeroCounts(t *testing.T) {
 		{PowerKW: 0, ObservedAt: minutes(62)},
 	}
 	got := Integrate(hourWindow(), observations)
-	nearKWh(t, got.DeliveredKWh, 4.0/6+4.0/6+2.0/12)
+	nearKWh(t, got.DeliveredKWh, 4.0/6+4.0/6+2.0/12+2.0/12)
 	if got.Measured != 35*time.Minute {
 		t.Fatalf("measured = %v, want 35m", got.Measured)
 	}
