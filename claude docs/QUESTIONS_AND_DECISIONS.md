@@ -456,3 +456,12 @@ assumptions reported by workers land here too.
   benchmark) and 3E (analytics sink) own paths disjoint from the open Wave 2
   work, so they start now. 3D and 3F wait for Gate 2 because they own
   `internal/dispatch/`, `tests/integration/`, and `tests/end-to-end/`.
+- **Integration scenario retiming (lane D, 2D.2 follow-up), accepted:**
+  the harness rewrites each scenario at run time: the event begins ten
+  seconds after stack setup and lasts one minute, injections keep their
+  fraction of the original window, and the simulator clock starts at the
+  same wall-clock instant with a five-second interval at a five-second
+  cadence. Telemetry `source_time` and event time therefore share one real
+  clock; the control service and worker see no altered time. The checked-in
+  scenario files keep their two-hour product windows. Commits f9d57f7 (RED)
+  and 1118d77 (GREEN); director re-run ok in 0.4 s.
