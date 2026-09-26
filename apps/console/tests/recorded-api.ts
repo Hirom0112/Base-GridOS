@@ -11,7 +11,27 @@ export async function recordedApi(page: Page) {
     const body = await readFile(
       resolve(process.cwd(), `../../testdata/fixtures/api/${path}.json`),
       "utf8",
-    );
+    ).catch((error: unknown) => {
+      if (
+        path === "EventsService/GetEventTimeline" &&
+        error instanceof Error &&
+        "code" in error &&
+        error.code === "ENOENT"
+      )
+        return null;
+      throw error;
+    });
+    if (body === null) {
+      await route.fulfill({
+        status: 501,
+        contentType: "application/json",
+        body: JSON.stringify({
+          code: "unimplemented",
+          message: "Audit recording not available",
+        }),
+      });
+      return;
+    }
     await route.fulfill({ contentType: "application/json", body });
   });
 }

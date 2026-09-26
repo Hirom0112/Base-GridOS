@@ -11,7 +11,8 @@ import {
 } from "../api/gen/gridos/v1/dispatch_pb";
 import type { BasicEventReport } from "../api/gen/gridos/v1/api_pb";
 import { ApprovalActions } from "../dispatch/approval";
-import { EventHistory, eventStateLabels } from "./events-timeline";
+import { eventStateLabels } from "./events-timeline";
+import { AuditTimeline } from "./audit-timeline";
 
 const pendingStates: Partial<Record<DispatchEventState, string>> = {
   [DispatchEventState.REQUESTED]:
@@ -178,7 +179,7 @@ export function EventView({
         )}
       </section>
       {report && <EventAccounting report={report} />}
-      <EventHistory event={event} />
+      <AuditTimeline event={event} />
       {view !== "plan" && (
         <div className="boundary-note">
           Verified delivery, replay, and modeled economics are not supplied by

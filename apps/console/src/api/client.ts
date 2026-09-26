@@ -2,7 +2,11 @@ import { createClient, ConnectError, Code } from "@connectrpc/connect";
 import { createConnectTransport } from "@connectrpc/connect-web";
 import { QueryClient } from "@tanstack/react-query";
 import { z } from "zod";
-import { DispatchService, FleetService } from "./gen/gridos/v1/api_pb";
+import {
+  DispatchService,
+  FleetService,
+  EventsService,
+} from "./gen/gridos/v1/api_pb";
 
 export const roleSchema = z.enum([
   "operator",
@@ -48,6 +52,7 @@ export function createConsoleClient(
   return {
     fleet: createClient(FleetService, transport),
     dispatch: createClient(DispatchService, transport),
+    events: createClient(EventsService, transport),
   };
 }
 
