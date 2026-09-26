@@ -65,7 +65,7 @@ func InsertCommand(ctx context.Context, pool *pgxpool.Pool, command CommandInten
 	}
 	_, err = tx.Exec(ctx, `INSERT INTO command_states
         (command_id, state, recorded_at, correlation_id)
-        VALUES ($1, 'PERSISTED', $2, $3)`, command.CommandID, command.IssuedAt, command.CorrelationID)
+		VALUES ($1, 'PERSISTED', clock_timestamp(), $2)`, command.CommandID, command.CorrelationID)
 	if err != nil {
 		return err
 	}
