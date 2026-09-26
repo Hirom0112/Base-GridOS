@@ -77,6 +77,15 @@ func TestPostgresEventStorePersistsApprovalLaunchAndExclusions(t *testing.T) {
 	if approvals != 1 || actions != 2 {
 		t.Fatalf("approval/audit rows = %d/%d", approvals, actions)
 	}
+	var previousState, nextState string
+	if err = pool.QueryRow(context.Background(), `SELECT previous_values->>'state', new_values->>'state'
+		FROM audit_journal WHERE resource_id = $1 AND action = 'EVENT_STATE_TRANSITIONED'
+		ORDER BY sequence DESC LIMIT 1`, event.GetEventId()).Scan(&previousState, &nextState); err != nil {
+		t.Fatal(err)
+	}
+	if previousState != "APPROVED" || nextState != "COMMANDS_PERSISTED" {
+		t.Fatalf("launch transition = %s -> %s", previousState, nextState)
+	}
 }
 
 func TestPostgresEventStoreRejectsWrongPlanVersion(t *testing.T) {

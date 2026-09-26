@@ -72,6 +72,30 @@ func TestAckDeadlineMarksUncertainWithInterval(t *testing.T) {
 	}
 }
 
+func TestLateAcceptedAcknowledgementResolvesUncertainCommand(t *testing.T) {
+	pool := testDatabase(t)
+	insertPlan(t, pool, "event-late-ack")
+	command := testCommand("late-ack", "event-late-ack")
+	if err := InsertCommand(context.Background(), pool, command); err != nil {
+		t.Fatal(err)
+	}
+	appendCommandState(t, pool, command.CommandID, "SENT", command.CorrelationID)
+	deadline := time.Now().UTC()
+	if _, err := MarkAcknowledgementUncertain(context.Background(), pool, deadline, deadline, testFeasiblePowerInterval(command, deadline)); err != nil {
+		t.Fatal(err)
+	}
+	if err := RecordAcknowledgement(context.Background(), pool, Acknowledgement{
+		AcknowledgementID: "late-acknowledgement", CommandID: command.CommandID,
+		IdempotencyKey: command.IdempotencyKey, ReceiptStatus: "ACCEPTED",
+		ReceivedAt: deadline.Add(time.Second), GatewayID: "gateway-1", CorrelationID: command.CorrelationID,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if state := latestCommandState(t, pool, command.CommandID); state != "ACKNOWLEDGED" {
+		t.Fatalf("command state = %s, want ACKNOWLEDGED", state)
+	}
+}
+
 func TestAcknowledgedCommandIsNotMarkedUncertain(t *testing.T) {
 	pool := testDatabase(t)
 	insertPlan(t, pool, "event-ack-before-deadline")

@@ -85,31 +85,36 @@ func TestPublisherMarksDeadlineUncertain(t *testing.T) {
 	pool := publisherDatabase(t)
 	now := time.Now().UTC()
 	command := publisherCommand("deadline-command", now)
+	following := publisherCommand("following-command", now)
 	seedPublisherCommand(t, pool, command)
-	service := &recordingCommandService{waitForDeadline: true, now: now}
+	if err := storage.InsertCommand(context.Background(), pool, following); err != nil {
+		t.Fatal(err)
+	}
+	service := &recordingCommandService{deadlineCommandID: command.CommandID, now: now}
 	server := commandServer(t, service)
 	publisher := New(Config{
 		Pool:                   pool,
 		Client:                 gridosv1connect.NewCommandServiceClient(server.Client(), server.URL, connect.WithGRPC()),
 		AuthorizationToken:     "Bearer publisher-test",
-		BatchSize:              1,
+		BatchSize:              2,
 		LeaseDuration:          time.Second,
 		AcknowledgementTimeout: 10 * time.Millisecond,
 		Now:                    func() time.Time { return now },
 		Interval:               intervalFor,
 	})
-	if err := publisher.PublishBatch(context.Background()); !errors.Is(err, context.DeadlineExceeded) {
-		t.Fatalf("error = %v, want deadline exceeded", err)
+	if err := publisher.PublishBatch(context.Background()); err != nil {
+		t.Fatal(err)
 	}
 	assertPublisherState(t, pool, command.CommandID, "UNCERTAIN", "PUBLISHING")
+	assertPublisherState(t, pool, following.CommandID, "ACKNOWLEDGED", "PUBLISHED")
 }
 
 type recordingCommandService struct {
-	mu              sync.Mutex
-	commandIDs      []string
-	failFirst       bool
-	waitForDeadline bool
-	now             time.Time
+	mu                sync.Mutex
+	commandIDs        []string
+	failFirst         bool
+	deadlineCommandID string
+	now               time.Time
 }
 
 func (service *recordingCommandService) SubmitCommand(ctx context.Context, request *connect.Request[gridosv1.SubmitCommandRequest]) (*connect.Response[gridosv1.SubmitCommandResponse], error) {
@@ -117,7 +122,7 @@ func (service *recordingCommandService) SubmitCommand(ctx context.Context, reque
 	service.commandIDs = append(service.commandIDs, request.Msg.GetCommandIntent().GetCommandId())
 	attempt := len(service.commandIDs)
 	service.mu.Unlock()
-	if service.waitForDeadline {
+	if request.Msg.GetCommandIntent().GetCommandId() == service.deadlineCommandID {
 		<-ctx.Done()
 		return nil, ctx.Err()
 	}
