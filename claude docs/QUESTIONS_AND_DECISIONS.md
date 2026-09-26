@@ -185,4 +185,10 @@ assumptions reported by workers land here too.
   supplies the load. Also: generated Python gets `.pyi` stubs from the
   protoc `pyi` builtin so strict mypy can see the contract types without
   suppressions.
+- **Binaries were not wired (found by lane F at 1F.3):** each Wave 1 piece
+  was built and tested in isolation but `cmd/control` mounted only the API
+  over an empty site list, and the decision server had no entrypoint. Opened
+  1E.7 (mount ingest, dispatcher, publisher, report; load the fleet) and
+  1C.11 (runnable decision server). `make demo` starts the console only if
+  the UI track has created it; the vertical-slice test is API-driven.
 

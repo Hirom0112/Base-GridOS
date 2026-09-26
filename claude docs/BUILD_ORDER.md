@@ -624,6 +624,10 @@ Owns: `services/decision/`, `testdata/golden/`,
   `telemetry_observed_at`, and `load_zone`. `DispatchPlan` gains
   `fallback_reason`. Found at 1C.8: no RPC existed and the request could
   not carry physical state. Verify: `buf lint contracts && buf breaking contracts --against '.git#branch=main,subdir=contracts' && make generate` and `grep -c '^service OptimizationService' contracts/gridos/v1/optimization.proto` prints 1.
+- `[~]` 1C.11 `[P]` Runnable decision entrypoint: `python -m gridos.server
+  --port <n>` serving `OptimizationService`, plus `make decision` running it
+  through `uv run --project services/decision`. Found at 1F.3: the server
+  existed only under test. Verify: `uv run --project services/decision python -m gridos.server --port 50061 &` then a Python client `Optimize` call returns a plan with `fallback_used` true.
 - `[x]` 1C.8 `[after 1C.10]` gRPC server `gridos/server.py` exposing
   `Optimize(OptimizationRequest) -> DispatchPlan` that runs the fallback (the
   solver arrives in Wave 3), with a hard timeout budget from the request and a
@@ -723,6 +727,18 @@ After lane D completes: `services/control/internal/storage/` and
   (requested, approved, commanded, acknowledged MW; devices excluded by
   reason; provenance and versions) assembled from storage.
   Verify: `go test ./services/control/internal/report/` passes.
+- `[~]` 1E.7 `[P]` Make `cmd/control` the real control plane: mount the
+  `TelemetryService` from `internal/ingest`, the dispatcher from 1E.5 with a
+  gRPC client to the decision service (`GRIDOS_DECISION_ADDR`) and the safety
+  gate, the publisher from 1D.9 with the gateway address
+  (`GRIDOS_GATEWAY_ADDR`), and the report from 1E.6 behind `GetEvent`; load
+  the fleet file named by `GRIDOS_FLEET` (default
+  `testdata/fleets/austin-5000.jsonl`) into the twin and the authorized site
+  list so `ListSites` returns its H3 cells; delete the stale untracked
+  `services/control/internal/gen/`. Found at 1F.3: the binary served the API
+  over nil sites and mounted none of the other services.
+  Verify: `GRIDOS_FLEET=testdata/fleets/austin-5000.jsonl go run ./services/control/cmd/control` starts, and `curl` to `ListSites` returns at least 200 cells while `PublishTelemetry` on the same port returns a durable receipt.
+
 ### Lane 1F — telemetry ingest and vertical-slice end to end
 
 Owns: `services/control/internal/ingest/`, `tests/end-to-end/`, the
@@ -739,10 +755,12 @@ Owns: `services/control/internal/ingest/`, `tests/end-to-end/`, the
 - `[x]` 1F.2 `[after 1D.6, 1E.2]` GREEN: `internal/ingest` writing
   observations through storage and updating the fleet twin.
   Verify: `go test ./services/control/internal/ingest/` passes.
-- `[~]` 1F.3 `[after 1E.5, 1A.7, 1F.2]` `make demo` target (compose, migrate,
-  seed `texas-50`, start gateway simulator, decision service, control
-  service, console) and `tests/end-to-end/vertical_slice_test.go` driving
-  the whole Phase 1 path through the API: create event, fallback plan,
+- `[~]` 1F.3 `[after 1E.7, 1C.11, 1A.7, 1F.2]` `make demo` target (compose,
+  migrate, seed, start gateway simulator with `austin-5000`, decision
+  service, control service with `GRIDOS_FLEET=austin-5000`; the console is
+  started only if `apps/console/package.json` exists, since the UI track owns
+  it) and `tests/end-to-end/vertical_slice_test.go` driving the whole Phase 1
+  path through the API alone: create event, fallback plan,
   safety approved, operator approval recorded, intents persisted before any
   network send, gateway acknowledges, telemetry ingested, basic report
   contains provenance and versions. Verify: `make demo` comes up and `go test ./tests/end-to-end/ -run VerticalSlice` passes.
@@ -1486,12 +1504,12 @@ Owns: `README.md`, `docs/operations/` (except `security/`), `AGENTS.md`.
 | Wave | A | B | C | D | E | F | Total |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | 0 | 5 | 9 | 7 | 6 | 8 | 4 | 39 |
-| 1 | 8 | 7 | 10 | 9 | 6 | 7 | 47 |
+| 1 | 8 | 7 | 11 | 9 | 7 | 7 | 49 |
 | 2 | 5 | 7 | 7 | 6 | 6 | 6 | 37 |
 | 3 | 6 | 8 | 4 | 5 | 4 | 5 | 32 |
 | 4 | 7 | 6 | 4 | 3 | 5 | 5 | 30 |
 | 5 | 3 | 3 | 4 | 6 | 4 | 4 | 24 |
-| | | | | | | | **209** |
+| | | | | | | | **211** |
 
 154 items are fully parallel and 48 wait on one other lane. Plus the five
 standing items applied every wave. The UI track adds 40 items of its own in
