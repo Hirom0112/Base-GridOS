@@ -357,27 +357,6 @@ func (activities *Activities) ExpireCommands(ctx context.Context, command Emerge
 	return activities.insertZeroCommand(ctx, command.EventID, "expiry", command.Generation)
 }
 
-func (activities *Activities) IssueReplacement(ctx context.Context, replacement ReplacementCommand) error {
-	var command storage.CommandIntent
-	err := activities.Pool.QueryRow(ctx, `SELECT plan_version, setpoint_kw, effective_at, expires_at, policy_version, correlation_id
-		FROM command_intents WHERE event_id = $1 ORDER BY generation DESC, command_id LIMIT 1`, replacement.EventID).Scan(
-		&command.PlanVersion, &command.SetpointKW, &command.EffectiveAt, &command.ExpiresAt, &command.PolicyVersion, &command.CorrelationID,
-	)
-	if err != nil {
-		return err
-	}
-	command.CommandID = fmt.Sprintf("%s-%s-%d", replacement.EventID, replacement.DeviceID, replacement.Generation)
-	command.IdempotencyKey = command.CommandID
-	command.DeviceID = replacement.DeviceID
-	command.EventID = replacement.EventID
-	command.Generation = int64(replacement.Generation)
-	command.IssuedAt = activities.Now()
-	if err = storage.InsertCommand(ctx, activities.Pool, command); err != nil {
-		return err
-	}
-	return activities.Dispatcher.Publish(ctx, nil)
-}
-
 func (activities *Activities) insertZeroCommand(ctx context.Context, eventID, reason string, generation uint64) error {
 	rows, err := activities.Pool.Query(ctx, `SELECT DISTINCT ON (device_id) device_id, plan_version, policy_version, correlation_id
 		FROM command_intents WHERE event_id = $1

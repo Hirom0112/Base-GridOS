@@ -32,7 +32,8 @@ func (snapshotter activitySnapshotter) Freeze(context.Context, *gridosv1.Dispatc
 }
 
 type activityOptimizer struct {
-	plan *gridosv1.DispatchPlan
+	plan            *gridosv1.DispatchPlan
+	replacementPlan *gridosv1.DispatchPlan
 }
 
 func (optimizer activityOptimizer) Optimize(context.Context, *gridosv1.OptimizationRequest) (*gridosv1.DispatchPlan, error) {
@@ -44,7 +45,7 @@ func (activityOptimizer) Forecast(context.Context, *gridosv1.ForecastRequest) (*
 }
 
 func (optimizer activityOptimizer) Replace(context.Context, *gridosv1.ReplaceRequest) (*gridosv1.ReplaceResponse, error) {
-	return &gridosv1.ReplaceResponse{ReplacementPlan: optimizer.plan}, nil
+	return &gridosv1.ReplaceResponse{ReplacementPlan: optimizer.replacementPlan}, nil
 }
 
 type activitySafety struct{}
@@ -234,12 +235,8 @@ func (harness *activityHarness) advance(t *testing.T, expected, next string) {
 func TestIssueReplacementActivity(t *testing.T) {
 	harness := newActivityHarness(t)
 	harness.persist(t)
-	require.NoError(t, harness.activities.IssueReplacement(context.Background(), ReplacementCommand{EventID: "event-1", DeviceID: "device-2", Generation: 2}))
-	var deviceID string
-	var generation int64
-	require.NoError(t, harness.pool.QueryRow(context.Background(), "SELECT device_id, generation FROM command_intents ORDER BY generation DESC LIMIT 1").Scan(&deviceID, &generation))
-	require.Equal(t, "device-2", deviceID)
-	require.Equal(t, int64(2), generation)
+	require.Error(t, harness.activities.IssueReplacement(context.Background(), ReplacementCommand{EventID: "event-1", Request: harness.input.Request, DroppedDeviceIDs: []string{"device-1"}, EnvelopeDeviceIDs: []string{"device-1", "device-2"}, Generation: 2}))
+	require.Equal(t, 1, harness.count(t, "command_intents"))
 }
 
 func newActivityHarness(t *testing.T) *activityHarness {

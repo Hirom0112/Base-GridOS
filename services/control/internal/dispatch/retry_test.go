@@ -68,10 +68,10 @@ func TestRetryReplacementUsesNewGeneration(t *testing.T) {
 	input := Input{EventID: "event-1", Generation: 7}
 	mockLifecycle(environment, input, TrackAcknowledgementsActivity)
 	environment.OnActivity(TrackAcknowledgementsActivity, mock.Anything, input).Return(nil).Run(func(mock.Arguments) {
-		environment.SignalWorkflow(ReplaceDeviceSignal, Replacement{DeviceID: "device-2"})
+		environment.SignalWorkflow(ReplaceDeviceSignal, Replacement{DroppedDeviceIDs: []string{"device-1"}, EnvelopeDeviceIDs: []string{"device-1", "device-2"}})
 	}).Once()
 	environment.OnActivity(IssueReplacementActivity, mock.Anything, ReplacementCommand{
-		EventID: "event-1", DeviceID: "device-2", Generation: 8,
+		EventID: "event-1", Request: input.Request, DroppedDeviceIDs: []string{"device-1"}, EnvelopeDeviceIDs: []string{"device-1", "device-2"}, Generation: 8,
 	}).Return(nil).Once()
 	approve(environment)
 

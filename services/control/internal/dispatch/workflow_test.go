@@ -39,14 +39,14 @@ func TestWindowProcessesSignalsDuringMeasurement(t *testing.T) {
 	input := Input{EventID: "window-signals", Generation: 4, Request: &gridosv1.EventRequest{BeginTime: timestamppb.New(begin), EndTime: timestamppb.New(begin.Add(10 * time.Minute))}}
 	mockWorkflowActivities(environment, input)
 	environment.OnActivity(IssueEmergencyStopActivity, mock.Anything, EmergencyCommand{EventID: input.EventID, Generation: 5, SetpointKW: 0}).Return(nil).Once()
-	environment.OnActivity(IssueReplacementActivity, mock.Anything, ReplacementCommand{EventID: input.EventID, DeviceID: "replacement-1", Generation: 6}).Return(nil).Once()
+	environment.OnActivity(IssueReplacementActivity, mock.Anything, ReplacementCommand{EventID: input.EventID, Request: input.Request, DroppedDeviceIDs: []string{"device-1"}, EnvelopeDeviceIDs: []string{"device-1", "replacement-1"}, Generation: 6}).Return(nil).Once()
 	environment.RegisterDelayedCallback(func() {
 		environment.SignalWorkflow(ApproveEventSignal, Approval{ApprovedBy: "operator-1"})
 		environment.SignalWorkflow(LaunchEventSignal, persistArgument(input).Launch)
 	}, time.Millisecond)
 	environment.RegisterDelayedCallback(func() {
 		environment.SignalWorkflow(EmergencyStopSignal, EmergencyStop{RequestedBy: "operator-1"})
-		environment.SignalWorkflow(ReplaceDeviceSignal, Replacement{DeviceID: "replacement-1"})
+		environment.SignalWorkflow(ReplaceDeviceSignal, Replacement{DroppedDeviceIDs: []string{"device-1"}, EnvelopeDeviceIDs: []string{"device-1", "replacement-1"}})
 	}, 15*time.Minute)
 	environment.ExecuteWorkflow(Workflow, input)
 	require.NoError(t, environment.GetWorkflowError())

@@ -80,13 +80,16 @@ type EmergencyCommand struct {
 }
 
 type Replacement struct {
-	DeviceID string
+	DroppedDeviceIDs  []string
+	EnvelopeDeviceIDs []string
 }
 
 type ReplacementCommand struct {
-	EventID    string
-	DeviceID   string
-	Generation uint64
+	EventID           string
+	Request           *gridosv1.EventRequest
+	DroppedDeviceIDs  []string
+	EnvelopeDeviceIDs []string
+	Generation        uint64
 }
 
 type Result struct {
@@ -163,7 +166,7 @@ func Workflow(ctx workflow.Context, input Input) (Result, error) {
 			return result, err
 		}
 		result.States = append(result.States, step.states...)
-		if err := handleControlSignals(ctx, emergency, replacements, input.EventID, &nextGeneration); err != nil {
+		if err := handleControlSignals(ctx, emergency, replacements, input, &nextGeneration); err != nil {
 			return result, err
 		}
 	}
@@ -183,7 +186,7 @@ func runWindow(ctx workflow.Context, input Input, emergency, replacements workfl
 	if !end.After(begin) {
 		return errors.New("event window end must follow begin")
 	}
-	if err := waitWithControl(ctx, begin, emergency, replacements, input.EventID, generation); err != nil {
+	if err := waitWithControl(ctx, begin, emergency, replacements, input, generation); err != nil {
 		return err
 	}
 	if err := run(ctx, VerifyDeliveryActivity, input); err != nil {
@@ -194,13 +197,13 @@ func runWindow(ctx workflow.Context, input Input, emergency, replacements workfl
 		if intervalEnd.After(end) {
 			intervalEnd = end
 		}
-		if err := waitWithControl(ctx, intervalEnd, emergency, replacements, input.EventID, generation); err != nil {
+		if err := waitWithControl(ctx, intervalEnd, emergency, replacements, input, generation); err != nil {
 			return err
 		}
 		if err := run(ctx, VerifyDeliveryActivity, input); err != nil {
 			return err
 		}
-		if err := handleControlSignals(ctx, emergency, replacements, input.EventID, generation); err != nil {
+		if err := handleControlSignals(ctx, emergency, replacements, input, generation); err != nil {
 			return err
 		}
 		if !intervalEnd.Before(end) {
@@ -211,7 +214,7 @@ func runWindow(ctx workflow.Context, input Input, emergency, replacements workfl
 	if err := run(ctx, EndEventActivity, input); err != nil {
 		return err
 	}
-	if err := waitWithControl(ctx, end.Add(30*time.Second), emergency, replacements, input.EventID, generation); err != nil {
+	if err := waitWithControl(ctx, end.Add(30*time.Second), emergency, replacements, input, generation); err != nil {
 		return err
 	}
 	if err := advance(ctx, ReconcileLateMessagesActivity, input, Reconciled, result); err != nil {
@@ -223,7 +226,7 @@ func runWindow(ctx workflow.Context, input Input, emergency, replacements workfl
 	return expire(ctx, input, *generation)
 }
 
-func waitWithControl(ctx workflow.Context, until time.Time, emergency, replacements workflow.ReceiveChannel, eventID string, generation *uint64) error {
+func waitWithControl(ctx workflow.Context, until time.Time, emergency, replacements workflow.ReceiveChannel, input Input, generation *uint64) error {
 	for workflow.Now(ctx).Before(until) {
 		selector := workflow.NewSelector(ctx)
 		selector.AddFuture(workflow.NewTimer(ctx, until.Sub(workflow.Now(ctx))), func(workflow.Future) {})
@@ -243,22 +246,22 @@ func waitWithControl(ctx workflow.Context, until time.Time, emergency, replaceme
 			if stop.RequestedBy == "" {
 				return errors.New("emergency stop requester required")
 			}
-			if err := workflow.ExecuteActivity(ctx, IssueEmergencyStopActivity, EmergencyCommand{EventID: eventID, Generation: *generation, SetpointKW: 0}).Get(ctx, nil); err != nil {
+			if err := workflow.ExecuteActivity(ctx, IssueEmergencyStopActivity, EmergencyCommand{EventID: input.EventID, Generation: *generation, SetpointKW: 0}).Get(ctx, nil); err != nil {
 				return err
 			}
 			*generation++
 		}
 		if replaced {
-			if replacement.DeviceID == "" {
-				return errors.New("replacement device required")
+			if len(replacement.DroppedDeviceIDs) == 0 || len(replacement.EnvelopeDeviceIDs) == 0 {
+				return errors.New("replacement dropped devices and envelope required")
 			}
-			if err := workflow.ExecuteActivity(ctx, IssueReplacementActivity, ReplacementCommand{EventID: eventID, DeviceID: replacement.DeviceID, Generation: *generation}).Get(ctx, nil); err != nil {
+			if err := workflow.ExecuteActivity(ctx, IssueReplacementActivity, ReplacementCommand{EventID: input.EventID, Request: input.Request, DroppedDeviceIDs: replacement.DroppedDeviceIDs, EnvelopeDeviceIDs: replacement.EnvelopeDeviceIDs, Generation: *generation}).Get(ctx, nil); err != nil {
 				return err
 			}
 			*generation++
 		}
 	}
-	return handleControlSignals(ctx, emergency, replacements, eventID, generation)
+	return handleControlSignals(ctx, emergency, replacements, input, generation)
 }
 
 func persist(ctx workflow.Context, input Input) error {
@@ -311,13 +314,13 @@ func run(ctx workflow.Context, activity string, input Input) error {
 	return workflow.ExecuteActivity(ctx, activity, input).Get(ctx, nil)
 }
 
-func handleControlSignals(ctx workflow.Context, emergency, replacements workflow.ReceiveChannel, eventID string, generation *uint64) error {
+func handleControlSignals(ctx workflow.Context, emergency, replacements workflow.ReceiveChannel, input Input, generation *uint64) error {
 	var stop EmergencyStop
 	if emergency.ReceiveAsync(&stop) {
 		if stop.RequestedBy == "" {
 			return errors.New("emergency stop requester required")
 		}
-		command := EmergencyCommand{EventID: eventID, Generation: *generation, SetpointKW: 0}
+		command := EmergencyCommand{EventID: input.EventID, Generation: *generation, SetpointKW: 0}
 		if err := workflow.ExecuteActivity(ctx, IssueEmergencyStopActivity, command).Get(ctx, nil); err != nil {
 			return err
 		}
@@ -325,10 +328,10 @@ func handleControlSignals(ctx workflow.Context, emergency, replacements workflow
 	}
 	var replacement Replacement
 	if replacements.ReceiveAsync(&replacement) {
-		if replacement.DeviceID == "" {
-			return errors.New("replacement device required")
+		if len(replacement.DroppedDeviceIDs) == 0 || len(replacement.EnvelopeDeviceIDs) == 0 {
+			return errors.New("replacement dropped devices and envelope required")
 		}
-		command := ReplacementCommand{EventID: eventID, DeviceID: replacement.DeviceID, Generation: *generation}
+		command := ReplacementCommand{EventID: input.EventID, Request: input.Request, DroppedDeviceIDs: replacement.DroppedDeviceIDs, EnvelopeDeviceIDs: replacement.EnvelopeDeviceIDs, Generation: *generation}
 		if err := workflow.ExecuteActivity(ctx, IssueReplacementActivity, command).Get(ctx, nil); err != nil {
 			return err
 		}
