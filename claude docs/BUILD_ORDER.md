@@ -995,6 +995,8 @@ For 2F.2: `services/control/internal/storage/telemetry.go` (bulk telemetry
 write, additive) and `services/control/internal/ingest/`.
 For 2F.5 and 2F.6: `contracts/gridos/v1/api.proto` additively (`EventsService`,
 `H3SiteAggregate` fields) and `services/control/internal/api/fleet_views.go`.
+For 2F.5 per-cell delivery: an additive `DeliveredByCell` in
+`services/control/internal/reconciliation/` and its storage query.
 
 - `[x]` 2F.1 `[P]` RED then GREEN: simulator scale. 5,000 simulated devices
   in one process produce telemetry every 5 seconds for 10 minutes with no
