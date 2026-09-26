@@ -102,4 +102,12 @@ assumptions reported by workers land here too.
   eight ERCOT zones until a licensed polygon source is chosen; H3 resolution
   7 for fleet cells; automatic backup on two of every three devices with no
   source distribution claimed.
+- **Python projects, revised:** lane C created `tools/generation/pyproject.toml`
+  with its own lock before the shared-project note arrived. One project per
+  Python package is cleaner than a shared one, so that stands: lane E creates
+  `tools/data/pyproject.toml`, and `services/decision` gets its own in 1C.1.
+  Item 0A.5's `test-py` runs pytest through each project it finds.
+- **0C.4 (lane C):** simulated batteries are limited to a one-hour C-rate,
+  so charge and discharge power in kW never exceed usable energy in kWh.
+  Accepted as a plausibility bound for fixtures.
 

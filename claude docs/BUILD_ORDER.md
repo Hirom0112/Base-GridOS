@@ -308,7 +308,7 @@ Owns: `docs/domain/truth-model.md`, `tools/generation/`, `testdata/fleets/`,
   pins that `generate_fleet(seed=20260926, size=5000)` produces a SHA-256 the
   test hard-codes, that two runs are byte-identical, and that `size=50` is a
   prefix-stable subset. Verify: `uv run pytest tools/generation -k determinism` fails with "module not found".
-- `[~]` 0C.3 `[P]` GREEN: `tools/generation/fleet/generate.py` producing
+- `[x]` 0C.3 `[P]` GREEN: `tools/generation/fleet/generate.py` producing
   `testdata/fleets/<name>.jsonl` with stable pseudonymous IDs, physically
   plausible battery parameters (usable energy 10 to 40 kWh, power 5 to 12 kW,
   one-way efficiencies 0.92 to 0.97), ERCOT weather-zone assignment across the
@@ -318,11 +318,11 @@ Owns: `docs/domain/truth-model.md`, `tools/generation/`, `testdata/fleets/`,
   cells generated inside the zone polygon. No street addresses, no names
   (FULL_SPEC §8). Every record has `provenance: SIMULATED` and
   `simulation_seed`. Verify: `uv run pytest tools/generation` passes.
-- `[~]` 0C.4 `[P]` RED: `test_fleet_bounds.py` with Hypothesis: for any seed,
+- `[x]` 0C.4 `[P]` RED: `test_fleet_bounds.py` with Hypothesis: for any seed,
   every device satisfies the parameter ranges, reserve preference is within
   the plan bands, and no two devices share an ID. Verify: fails on the first
   property before GREEN tightens the generator.
-- `[~]` 0C.5 `[P]` GREEN: generator satisfies 0C.4. Produce the checked-in
+- `[x]` 0C.5 `[P]` GREEN: generator satisfies 0C.4. Produce the checked-in
   fleets `texas-5000.jsonl` and `texas-50.jsonl` (the 50-device fleet is the
   unit-test fleet). Verify: `uv run pytest tools/generation` passes and `wc -l testdata/fleets/texas-5000.jsonl` is 5000.
 - `[~]` 0C.6 `[P]` Scenario format: `testdata/scenarios/SCHEMA.md` and a
@@ -361,7 +361,7 @@ Owns: `database/`, `sqlc.yaml`.
   `verification_summaries`, `audit_journal` (append-only, trigger blocks
   UPDATE and DELETE), correlation ID columns on every table above.
   Verify: an `UPDATE audit_journal` in psql is rejected by the trigger.
-- `[~]` 0D.5 `[P]` `database/queries/*.sql` for sqlc: conditional event state
+- `[x]` 0D.5 `[P]` `database/queries/*.sql` for sqlc: conditional event state
   transition (`UPDATE ... WHERE state = $expected RETURNING`), insert intent
   plus outbox in one statement set, claim outbox batch with `FOR UPDATE SKIP
   LOCKED`, upsert acknowledgement, append audit. `sqlc.yaml` targeting
