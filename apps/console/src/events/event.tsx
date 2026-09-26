@@ -13,6 +13,7 @@ import type { BasicEventReport } from "../api/gen/gridos/v1/api_pb";
 import { ApprovalActions } from "../dispatch/approval";
 import { eventStateLabels } from "./events-timeline";
 import { AuditTimeline } from "./audit-timeline";
+import { EmergencyStopControl } from "./emergency-stop";
 
 const pendingStates: Partial<Record<DispatchEventState, string>> = {
   [DispatchEventState.REQUESTED]:
@@ -47,9 +48,7 @@ function useEvent(eventId: string) {
     }
     const { key: idempotencyKey, at: timestamp } = intent;
     const actor =
-      identity.mode === "local"
-        ? `local-${identity.role}`
-        : "authenticated-session";
+      identity.mode === "local" ? `local-${identity.role}` : identity.userId;
     if (action === "approve")
       await client.dispatch.approveEvent({
         eventId,
@@ -121,6 +120,9 @@ export function EventView({
         </Link>
       </div>
       <PendingEvent state={event.state} violations={safetyViolations} />
+      {view === "execution" && (
+        <EmergencyStopControl key={eventId} eventId={eventId} />
+      )}
       {safetyViolations.length > 0 && (
         <div className="error-notice">
           <h3>Safety gate rejected the plan</h3>

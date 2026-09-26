@@ -19,7 +19,12 @@ export const roleSchema = z.enum([
 export type Role = z.infer<typeof roleSchema>;
 export type Identity =
   | { mode: "local"; role: Role; permissions: "site_location"[] }
-  | { mode: "clerk"; role: Role; getToken: () => Promise<string | null> };
+  | {
+      mode: "clerk";
+      role: Role;
+      userId: string;
+      getToken: () => Promise<string | null>;
+    };
 
 export function createConsoleClient(
   baseUrl: string,

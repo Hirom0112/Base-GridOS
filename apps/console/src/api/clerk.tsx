@@ -21,8 +21,11 @@ function SignedSession({ children }: { children: ReactNode }) {
   const { user } = useUser();
   const role = roleSchema.safeParse(user?.publicMetadata.role);
   const identity = useMemo<Identity | null>(
-    () => (role.success ? { mode: "clerk", role: role.data, getToken } : null),
-    [role.success, role.data, getToken],
+    () =>
+      role.success && user?.id
+        ? { mode: "clerk", role: role.data, userId: user.id, getToken }
+        : null,
+    [role.success, role.data, user?.id, getToken],
   );
   if (!isLoaded) return <main className="auth-gate">Loading session…</main>;
   if (!isSignedIn)

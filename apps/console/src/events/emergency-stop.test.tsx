@@ -12,7 +12,9 @@ vi.mock("../api/auth", () => ({ useSession: () => session }));
 beforeEach(() => {
   session.identity.role = "operator";
   session.client.events.emergencyStop.mockReset();
-  HTMLDialogElement.prototype.showModal = vi.fn();
+  HTMLDialogElement.prototype.showModal = function () {
+    this.open = true;
+  };
 });
 
 test("a stop needs confirmation and remains requested after receipt", async () => {

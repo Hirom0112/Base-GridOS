@@ -12,6 +12,33 @@
   padding: 14px 18px;
   margin-top: 22px;
 }
+.stop-control {
+  border: 1px solid var(--attention);
+  border-radius: 10px;
+  padding: 18px;
+  margin-top: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  font-size: 14px;
+}
+.stop-control p {
+  color: var(--paper-1);
+  margin-top: 8px;
+  line-height: 1.6;
+}
+.stop-control small {
+  display: block;
+  margin-top: 12px;
+  overflow-wrap: anywhere;
+}
+.stop-button {
+  border: 1px solid var(--attention);
+  background: var(--ink-2);
+  color: var(--paper-0);
+}
 .event-history h3 {
   margin-top: 6px;
 }
