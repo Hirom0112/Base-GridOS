@@ -28,6 +28,9 @@ def fleets(draw: st.DrawFn) -> tuple[list[DeviceState], list[PlanningInterval]]:
                 max_discharge_kw=draw(st.floats(min_value=0.0, max_value=20.0, allow_nan=False)),
                 discharge_efficiency=draw(st.floats(min_value=0.8, max_value=1.0, allow_nan=False)),
                 home_load_kw=draw(st.floats(min_value=0.0, max_value=3.0, allow_nan=False)),
+                availability_probability=draw(
+                    st.floats(min_value=0.0, max_value=1.0, allow_nan=False)
+                ),
             )
         )
     intervals = [
@@ -49,6 +52,9 @@ def test_hypothesis_fallback_preserves_hard_bounds(
     plan = plan_fallback(devices, intervals)
 
     assert all(shortfall.shortfall_kw >= 0.0 for shortfall in plan.shortfalls)
+    assert all(
+        shortfall.expected_kw <= shortfall.allocated_kw + 1e-9 for shortfall in plan.shortfalls
+    )
     for schedule in plan.schedules:
         device = by_id[schedule.device_id]
         previous_energy = device.energy_kwh
