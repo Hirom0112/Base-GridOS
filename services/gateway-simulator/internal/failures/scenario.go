@@ -12,6 +12,10 @@ import (
 
 type Kind string
 
+type Scope string
+
+const Scheduled Scope = "scheduled"
+
 const (
 	OfflineDevices      Kind = "OFFLINE_DEVICES"
 	DelayedGateway      Kind = "DELAYED_GATEWAY"
@@ -27,8 +31,9 @@ const (
 )
 
 type Injection struct {
-	At   time.Time
-	Kind Kind
+	At    time.Time
+	Kind  Kind
+	Scope Scope
 }
 
 type Scenario struct {
@@ -141,12 +146,17 @@ func parseInjectionField(scenario *Scenario, key, value string) error {
 		scenario.Injections = append(scenario.Injections, Injection{At: at})
 		return nil
 	}
-	if key != "kind" {
+	if key != "kind" && key != "scope" {
 		return nil
 	}
 	if len(scenario.Injections) == 0 {
 		return errors.New("injection kind requires a time")
 	}
-	scenario.Injections[len(scenario.Injections)-1].Kind = Kind(value)
+	injection := &scenario.Injections[len(scenario.Injections)-1]
+	if key == "scope" {
+		injection.Scope = Scope(value)
+	} else {
+		injection.Kind = Kind(value)
+	}
 	return nil
 }

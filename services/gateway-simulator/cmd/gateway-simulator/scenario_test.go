@@ -111,6 +111,43 @@ func TestRuntimeDropsSelectedReceiptAfterDurableCommand(t *testing.T) {
 	}
 }
 
+func TestRuntimeScheduledFaultFollowsAcceptedCommand(t *testing.T) {
+	ctx := context.Background()
+	store, err := gateway.Open(ctx, filepath.Join(t.TempDir(), "gateway.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if err := store.Close(); err != nil {
+			t.Error(err)
+		}
+	})
+	now := time.Now().UTC()
+	scenario := failures.Scenario{Seed: 2, Start: now, Tick: time.Second, Injections: []failures.Injection{{At: now, Kind: failures.DroppedMessages, Scope: failures.Scheduled}}}
+	engine, err := failures.NewEngine(scenario, []failures.Device{{ID: "a", Region: "LZ_AEN"}, {ID: "b", Region: "LZ_AEN"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	runtime := failures.NewRuntime(engine)
+	handler := newRuntimeCommandHandler(protocol.NewCommandHandler(store, "gateway", "token", func() time.Time { return now }), runtime, func() time.Time { return now })
+	selected := connect.NewRequest(commandRequest("a", now))
+	selected.Msg.CommandIntent.EventId = "event-1"
+	selected.Header().Set("Authorization", "token")
+	if _, err := handler.SubmitCommand(ctx, selected); connect.CodeOf(err) != connect.CodeUnavailable {
+		t.Fatalf("selected response error=%v", err)
+	}
+	commands, err := store.Commands(ctx)
+	if err != nil || len(commands) != 1 || commands[0].DeviceID != "a" {
+		t.Fatalf("stored commands=%+v, error=%v", commands, err)
+	}
+	healthy := connect.NewRequest(commandRequest("b", now))
+	healthy.Msg.CommandIntent.EventId = "other-event"
+	healthy.Header().Set("Authorization", "token")
+	if _, err := handler.SubmitCommand(ctx, healthy); err != nil {
+		t.Fatalf("other event was affected: %v", err)
+	}
+}
+
 func commandRequest(deviceID string, now time.Time) *gridosv1.SubmitCommandRequest {
 	return &gridosv1.SubmitCommandRequest{CommandIntent: &gridosv1.CommandIntent{
 		CommandId: "command-" + deviceID, IdempotencyKey: "key-" + deviceID, DeviceId: deviceID, Generation: 1,

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"strings"
 	"time"
 )
 
@@ -24,9 +25,10 @@ type Effect struct {
 }
 
 type Engine struct {
-	scenario Scenario
-	devices  []Device
-	next     int
+	scenario  Scenario
+	devices   []Device
+	commanded map[string]map[string]struct{}
+	next      int
 }
 
 func NewEngine(scenario Scenario, devices []Device) (*Engine, error) {
@@ -47,6 +49,12 @@ func NewEngine(scenario Scenario, devices []Device) (*Engine, error) {
 		if !validKind(injection.Kind) {
 			return nil, fmt.Errorf("unsupported injection %q", injection.Kind)
 		}
+		if injection.Scope != "" && injection.Scope != Scheduled {
+			return nil, fmt.Errorf("unsupported injection scope %q", injection.Scope)
+		}
+		if injection.Scope == Scheduled && (globalKind(injection.Kind) || injection.Kind == PartialRegionOutage) {
+			return nil, fmt.Errorf("scheduled scope cannot target %q", injection.Kind)
+		}
 		elapsed := injection.At.Sub(scenario.Start)
 		if elapsed < 0 || elapsed%scenario.Tick != 0 {
 			return nil, fmt.Errorf("injection %q is outside the scenario clock", injection.Kind)
@@ -55,25 +63,53 @@ func NewEngine(scenario Scenario, devices []Device) (*Engine, error) {
 	sortedDevices := append([]Device(nil), devices...)
 	sort.Slice(sortedDevices, func(i, j int) bool { return sortedDevices[i].ID < sortedDevices[j].ID })
 	sort.SliceStable(scenario.Injections, func(i, j int) bool { return scenario.Injections[i].At.Before(scenario.Injections[j].At) })
-	return &Engine{scenario: scenario, devices: sortedDevices}, nil
+	return &Engine{scenario: scenario, devices: sortedDevices, commanded: make(map[string]map[string]struct{})}, nil
 }
 
 func (engine *Engine) Advance(now time.Time) []Effect {
+	return engine.advance(now, "")
+}
+
+func (engine *Engine) recordCommand(eventID, deviceID string) {
+	devices := engine.commanded[eventID]
+	if devices == nil {
+		devices = make(map[string]struct{})
+		engine.commanded[eventID] = devices
+	}
+	devices[deviceID] = struct{}{}
+}
+
+func (engine *Engine) advance(now time.Time, eventID string) []Effect {
 	var effects []Effect
 	for engine.next < len(engine.scenario.Injections) {
 		injection := engine.scenario.Injections[engine.next]
 		if injection.At.After(now) {
 			break
 		}
-		effects = append(effects, engine.effect(injection))
+		if injection.Scope == Scheduled && len(engine.commanded[eventID]) == 0 {
+			break
+		}
+		effects = append(effects, engine.effect(injection, eventID))
 		engine.next++
 	}
 	return effects
 }
 
-func (engine *Engine) effect(injection Injection) Effect {
+func (engine *Engine) effect(injection Injection, eventID string) Effect {
 	effect := Effect{At: injection.At, Kind: injection.Kind}
 	if globalKind(injection.Kind) {
+		return effect
+	}
+	if injection.Scope == Scheduled {
+		commanded := engine.commanded[eventID]
+		ids := make([]string, 0, len(commanded))
+		for deviceID := range commanded {
+			ids = append(ids, deviceID)
+		}
+		sort.Strings(ids)
+		digest := sha256.Sum256([]byte(fmt.Sprintf("%d|%s", engine.scenario.Seed, strings.Join(ids, "\x00"))))
+		index := binary.BigEndian.Uint64(digest[:8]) % uint64(len(ids))
+		effect.DeviceIDs = []string{ids[index]}
 		return effect
 	}
 	device := engine.devices[engine.seededIndex(injection, len(engine.devices))]
