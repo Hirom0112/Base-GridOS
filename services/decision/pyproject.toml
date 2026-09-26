@@ -17,11 +17,19 @@ dev = [
   "mypy>=1.18.0",
   "pytest>=8.4.0",
   "ruff>=0.13.0",
+  "types-grpcio>=1.0.0",
+  "types-protobuf>=6.30.0",
 ]
 
 [tool.mypy]
 strict = true
 exclude = ["gridos/gen"]
+mypy_path = ["gridos/gen"]
+
+[[tool.mypy.overrides]]
+module = ["gridos.v1.*"]
+follow_imports = "silent"
+follow_imports_for_stubs = true
 
 [tool.pytest.ini_options]
 pythonpath = ["."]

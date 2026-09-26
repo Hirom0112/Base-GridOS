@@ -9,12 +9,12 @@ from gridos.fallback.planner import (
     PlanningInterval,
     plan_fallback,
 )
-from gridos.v1 import dispatch_pb2, optimization_pb2, optimization_pb2_grpc, telemetry_pb2
+from gridos.v1 import dispatch_pb2, optimization_pb2, telemetry_pb2
 from gridos.validation.plan import validate_plan
 
 
 def _duration_seconds(request: optimization_pb2.OptimizationRequest) -> float:
-    budget = request.budget.seconds + request.budget.nanos / 1_000_000_000
+    budget = float(request.budget.seconds + request.budget.nanos / 1_000_000_000)
     if not isfinite(budget) or budget <= 0.0:
         raise ValueError("budget must be positive")
     return budget
@@ -55,7 +55,7 @@ def _device_states(request: optimization_pb2.OptimizationRequest) -> list[Device
     ]
 
 
-def _exclusion_reason(reason: str) -> int:
+def _exclusion_reason(reason: str) -> dispatch_pb2.ExclusionReason:
     return {
         "RESERVE": dispatch_pb2.EXCLUSION_REASON_RESERVE,
         "STALE_TELEMETRY": dispatch_pb2.EXCLUSION_REASON_STALE_TELEMETRY,
@@ -111,7 +111,7 @@ def _response(
     return response
 
 
-class OptimizationServer(optimization_pb2_grpc.OptimizationServiceServicer):
+class OptimizationServer:
     def Optimize(
         self,
         wrapper: optimization_pb2.OptimizeRequest,
