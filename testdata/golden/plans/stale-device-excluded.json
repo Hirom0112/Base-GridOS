@@ -43,6 +43,7 @@
       }
     ],
     "fallback": true,
+    "fallback_reason": "DETERMINISTIC_FALLBACK",
     "schedules": [
       {
         "device_id": "device-b",

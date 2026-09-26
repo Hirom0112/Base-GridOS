@@ -20,7 +20,7 @@
       {
         "availability_probability": 1.0,
         "available": true,
-        "device_id": "device-a",
+        "device_id": "device-b",
         "discharge_efficiency": 0.95,
         "dynamic_override_percent": 0.0,
         "energy_kwh": 8.0,
@@ -36,14 +36,9 @@
     ]
   },
   "expected_dispatch_plan": {
-    "exclusions": [
-      {
-        "device_id": "device-a",
-        "reason": "DUPLICATE_DEVICE"
-      }
-    ],
+    "exclusions": [],
     "fallback": true,
-    "fallback_reason": "DETERMINISTIC_FALLBACK",
+    "fallback_reason": "SOLVER_FAILED",
     "schedules": [
       {
         "device_id": "device-a",
@@ -69,9 +64,9 @@
     "approved": true,
     "violation_families": []
   },
-  "name": "duplicate-device",
+  "name": "no-incumbent",
   "optimization_request": {
-    "event_id": "event-duplicate-device",
+    "event_id": "event-no-incumbent",
     "intervals": [
       {
         "duration_hours": 0.25,
@@ -80,6 +75,7 @@
     ],
     "plan_version": 1,
     "policy_context": "BASE",
-    "request_id": "request-duplicate-device"
-  }
+    "request_id": "request-no-incumbent"
+  },
+  "solver_outcome": "SOLVER_FAILED"
 }

@@ -38,6 +38,7 @@
   "expected_dispatch_plan": {
     "exclusions": [],
     "fallback": true,
+    "fallback_reason": "DETERMINISTIC_FALLBACK",
     "schedules": [
       {
         "device_id": "device-a",

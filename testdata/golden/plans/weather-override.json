@@ -27,6 +27,7 @@
       }
     ],
     "fallback": true,
+    "fallback_reason": "DETERMINISTIC_FALLBACK",
     "schedules": [],
     "shortfalls": [
       {

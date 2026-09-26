@@ -1,0 +1,140 @@
+{
+  "canonical_state": {
+    "devices": [
+      {
+        "availability_probability": 1.0,
+        "available": true,
+        "device_id": "device-a",
+        "discharge_efficiency": 0.95,
+        "dynamic_override_percent": 0.0,
+        "energy_kwh": 8.0,
+        "hardware_floor_percent": 10.0,
+        "home_load_kw": 1.0,
+        "maintenance": false,
+        "max_discharge_kw": 4.0,
+        "operating_state": "ON_GRID",
+        "reserve_percent": 20.0,
+        "stale": true,
+        "usable_energy_kwh": 10.0
+      },
+      {
+        "availability_probability": 1.0,
+        "available": true,
+        "device_id": "device-b",
+        "discharge_efficiency": 0.95,
+        "dynamic_override_percent": 0.0,
+        "energy_kwh": 8.0,
+        "hardware_floor_percent": 10.0,
+        "home_load_kw": 1.0,
+        "maintenance": false,
+        "max_discharge_kw": 5.0,
+        "operating_state": "ON_GRID",
+        "reserve_percent": 20.0,
+        "stale": false,
+        "usable_energy_kwh": 10.0
+      },
+      {
+        "availability_probability": 1.0,
+        "available": true,
+        "device_id": "device-c",
+        "discharge_efficiency": 0.95,
+        "dynamic_override_percent": 0.0,
+        "energy_kwh": 8.0,
+        "hardware_floor_percent": 10.0,
+        "home_load_kw": 1.0,
+        "maintenance": false,
+        "max_discharge_kw": 3.0,
+        "operating_state": "ON_GRID",
+        "reserve_percent": 20.0,
+        "stale": false,
+        "usable_energy_kwh": 10.0
+      }
+    ]
+  },
+  "expected_dispatch_plan": {
+    "exclusions": [],
+    "fallback": true,
+    "fallback_reason": "DETERMINISTIC_FALLBACK",
+    "schedules": [
+      {
+        "device_id": "device-c",
+        "intervals": [
+          {
+            "discharge_kw": 3.0,
+            "expected_energy_kwh": 7.2105263157894735,
+            "grid_service_kw": 2.0
+          }
+        ]
+      }
+    ],
+    "shortfalls": [
+      {
+        "allocated_kw": 2.0,
+        "expected_kw": 2.0,
+        "requested_kw": 3.0,
+        "shortfall_kw": 1.0
+      }
+    ]
+  },
+  "expected_validation": {
+    "approved": true,
+    "violation_families": []
+  },
+  "name": "replacement",
+  "optimization_request": {
+    "event_id": "event-replacement",
+    "intervals": [
+      {
+        "duration_hours": 0.25,
+        "target_kw": 3.0
+      }
+    ],
+    "plan_version": 1,
+    "policy_context": "BASE",
+    "request_id": "request-replacement"
+  },
+  "replacement": {
+    "approved_plan": {
+      "exclusions": [],
+      "fallback": true,
+      "schedules": [
+        {
+          "device_id": "device-b",
+          "intervals": [
+            {
+              "discharge_kw": 5.0,
+              "expected_energy_kwh": 6.684210526315789,
+              "grid_service_kw": 4.0
+            }
+          ]
+        },
+        {
+          "device_id": "device-a",
+          "intervals": [
+            {
+              "discharge_kw": 4.0,
+              "expected_energy_kwh": 6.947368421052632,
+              "grid_service_kw": 3.0
+            }
+          ]
+        }
+      ],
+      "shortfalls": [
+        {
+          "allocated_kw": 7.0,
+          "expected_kw": 7.0,
+          "requested_kw": 7.0,
+          "shortfall_kw": 0.0
+        }
+      ]
+    },
+    "dropped": [
+      "device-a"
+    ],
+    "envelope": [
+      "device-a",
+      "device-b",
+      "device-c"
+    ]
+  }
+}
