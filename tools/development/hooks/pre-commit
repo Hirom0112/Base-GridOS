@@ -62,7 +62,7 @@ if [ -n "$go_files" ]; then
   pairs=$(mktemp)
   for f in $go_files; do
     dir=$(dirname "$f")
-    mod=$(cd "$dir" && go list -m -f '{{.Dir}}' 2>/dev/null) || fail "$dir is not inside a Go module"
+    mod=$(cd "$dir" && go list -f '{{.Module.Dir}}' . 2>/dev/null) || fail "$dir is not inside a Go module"
     printf '%s %s\n' "$mod" "$root/$dir" >> "$pairs"
   done
   for mod in $(cut -d' ' -f1 "$pairs" | sort -u); do
