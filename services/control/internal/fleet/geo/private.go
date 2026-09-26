@@ -114,7 +114,7 @@ func privateCell(sites []privateSite, id h3.Cell, now time.Time) Cell {
 			cell.Freshness = max(cell.Freshness, max(now.Sub(site.state.ObservedAt), 0))
 		}
 		switch {
-		case energyKWh <= 0:
+		case energyKWh <= 0 || site.state.ObservedAt.IsZero():
 			cell.SOCUnknownCount++
 		case site.state.EnergyKWh/energyKWh < 0.3:
 			cell.SOCLowCount++
