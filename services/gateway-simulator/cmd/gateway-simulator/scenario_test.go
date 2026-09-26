@@ -31,3 +31,26 @@ func TestScenarioFlagConfiguresFleetAndClock(t *testing.T) {
 		t.Fatalf("scenario start=%s want=%s", configuration.scenarioStart, want)
 	}
 }
+
+func TestCadenceOverridesScenarioTickWithoutChangingLogicalClock(t *testing.T) {
+	directory := t.TempDir()
+	fleetPath := filepath.Join(directory, "fleet.jsonl")
+	if err := os.WriteFile(fleetPath, []byte("{\"device_id\":\"a\"}\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	scenarioPath := filepath.Join(directory, "scenario.yaml")
+	payload := fmt.Sprintf("name: cadence\nclock:\n  seed: 41\n  start_at: 2026-08-12T16:00:00-05:00\n  interval_seconds: 300\nfleet:\n  path: %s\n  size: 1\ninjections: []\n", fleetPath)
+	if err := os.WriteFile(scenarioPath, []byte(payload), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	configuration, err := parseConfig([]string{"--scenario", scenarioPath, "--gateway-id", "gateway-1", "--cadence", "25ms"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if configuration.telemetryCadence != 25*time.Millisecond {
+		t.Fatalf("cadence=%s", configuration.telemetryCadence)
+	}
+	if configuration.scenarioTick != 5*time.Minute {
+		t.Fatalf("scenario tick=%s", configuration.scenarioTick)
+	}
+}
