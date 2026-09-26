@@ -1,0 +1,1 @@
+{"commandId":"cmd_sim_0001", "idempotencyKey":"idem_sim_0001", "deviceId":"device_bf95b2c3b700fe5bbac6", "eventId":"event_sim_0001", "planVersion":"3", "generation":"2", "setpointKw":4.25, "issuedAt":"2026-08-12T22:55:00Z", "effectiveAt":"2026-08-12T23:00:00Z", "expiresAt":"2026-08-12T23:05:00Z", "policyVersion":"policy_sim_2026_08", "correlationId":"corr_sim_0001"}
