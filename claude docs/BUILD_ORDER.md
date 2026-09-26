@@ -575,7 +575,7 @@ Owns: `services/control/internal/safety/`.
   `testdata/golden/plans/`: every Python-approved plan is Go-approved and
   every Python-flagged plan is Go-rejected with the same violation family.
   Verify: `go test ./services/control/internal/safety/ -run Golden` passes.
-- `[~]` 1B.7 `[P]` Benchmark: validation of a 5,000-device, 24-interval plan
+- `[x]` 1B.7 `[P]` Benchmark: validation of a 5,000-device, 24-interval plan
   under 2 seconds (FULL_SPEC §10). Verify: `go test ./services/control/internal/safety/ -bench Validate5000 -benchtime 3x` reports under 2 s per op.
 
 ### Lane 1C — decision service: energy math and deterministic fallback
