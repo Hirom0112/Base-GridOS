@@ -64,6 +64,13 @@ message DispatchEvent {
   google.protobuf.Timestamp updated_at = 6;
   string correlation_id = 7;
   Provenance provenance = 8;
+  EventLaunch launch = 9;
+}
+
+message EventLaunch {
+  string requested_by = 1;
+  google.protobuf.Timestamp requested_at = 2;
+  uint64 plan_version = 3;
 }
 
 message DeviceExclusion {

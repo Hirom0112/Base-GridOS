@@ -139,6 +139,12 @@ message GetEventRequest {
 
 message GetEventResponse {
   DispatchEvent event = 1;
+  repeated ExclusionReasonGroup exclusions = 2;
+}
+
+message ExclusionReasonGroup {
+  ExclusionReason reason = 1;
+  uint64 count = 2;
 }
 
 message ApproveEventRequest {
@@ -150,6 +156,18 @@ message ApproveEventRequest {
 }
 
 message ApproveEventResponse {
+  DispatchEvent event = 1;
+}
+
+message LaunchEventRequest {
+  string event_id = 1;
+  uint64 plan_version = 2;
+  string idempotency_key = 3;
+  string requested_by = 4;
+  google.protobuf.Timestamp requested_at = 5;
+}
+
+message LaunchEventResponse {
   DispatchEvent event = 1;
 }
 
@@ -173,6 +191,7 @@ service DispatchService {
   rpc CreateEventRequest(CreateEventRequestRequest) returns (CreateEventRequestResponse);
   rpc GetEvent(GetEventRequest) returns (GetEventResponse);
   rpc ApproveEvent(ApproveEventRequest) returns (ApproveEventResponse);
+  rpc LaunchEvent(LaunchEventRequest) returns (LaunchEventResponse);
 }
 
 service TelemetryService {
