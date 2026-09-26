@@ -46,6 +46,7 @@ type launchValues struct {
 
 type idempotencyValues struct {
 	IdempotencyKey string `json:"idempotency_key"`
+	Provenance     string `json:"provenance"`
 }
 
 type storedExclusion struct {
@@ -105,7 +106,7 @@ func (store *PostgresEventStore) Create(ctx context.Context, request *gridosv1.E
 	if err != nil {
 		return nil, err
 	}
-	values, err := json.Marshal(idempotencyValues{IdempotencyKey: key})
+	values, err := json.Marshal(idempotencyValues{IdempotencyKey: key, Provenance: "SIMULATED"})
 	if err != nil {
 		return nil, err
 	}
@@ -278,7 +279,17 @@ func eventFromRow(row storagegen.DispatchEvent, launch *gridosv1.EventLaunch) *g
 	return &gridosv1.DispatchEvent{
 		EventId: row.EventID, RequestId: row.RequestID, State: state, PlanVersion: uint64(row.PlanVersion),
 		CreatedAt: timestamppb.New(row.CreatedAt.Time), UpdatedAt: timestamppb.New(row.UpdatedAt.Time),
-		CorrelationId: row.CorrelationID, Launch: launch,
+		CorrelationId: row.CorrelationID, Provenance: simulatedProvenance(row.CreatedAt.Time), Launch: launch,
+	}
+}
+
+func simulatedProvenance(at time.Time) *gridosv1.Provenance {
+	return &gridosv1.Provenance{
+		Provenance:    gridosv1.DataProvenance_DATA_PROVENANCE_SIMULATED,
+		SourceId:      "fleet-file",
+		ObservedAt:    timestamppb.New(at),
+		IngestedAt:    timestamppb.New(at),
+		SchemaVersion: "1",
 	}
 }
 

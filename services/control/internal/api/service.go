@@ -84,16 +84,21 @@ func (service *Service) GetFleetSummary(_ context.Context, request *connect.Requ
 	aggregate := service.twin.Aggregate(now)
 	states := service.twin.Sites(now)
 	installedMW, installedMWh := installedCapacity(service.sites)
+	provenance := siteProvenanceMix(service.sites)
+	dispatchableProvenance := aggregate.DispatchableMW.ProvenanceMix
+	if len(dispatchableProvenance) == 0 {
+		dispatchableProvenance = provenance
+	}
 	summary := &gridosv1.FleetSummary{
-		InstalledMw:                 quantity(installedMW, now, 0, nil),
-		InstalledMwh:                quantity(installedMWh, now, 0, nil),
-		DispatchableNowMw:           quantity(aggregate.DispatchableMW.Value, now, aggregate.DispatchableMW.Freshness, aggregate.DispatchableMW.ProvenanceMix),
-		ForecastDispatchableMw:      quantity(aggregate.DispatchableMW.Value, now, aggregate.DispatchableMW.Freshness, aggregate.DispatchableMW.ProvenanceMix),
-		ReservedForBackupMwh:        quantity(max(installedMWh-aggregate.DispatchableMWh.Value, 0), now, aggregate.DispatchableMWh.Freshness, aggregate.DispatchableMWh.ProvenanceMix),
-		OperatingStateCounts:        operatingCounts(states, now),
-		AvailabilityStateCounts:     availabilityCounts(states, now),
-		CommunicationsHealthCounts:  healthCounts(states, now),
-		AcknowledgementHealthCounts: healthCounts(states, now),
+		InstalledMw:                 quantity(installedMW, now, 0, provenance),
+		InstalledMwh:                quantity(installedMWh, now, 0, provenance),
+		DispatchableNowMw:           quantity(aggregate.DispatchableMW.Value, now, aggregate.DispatchableMW.Freshness, dispatchableProvenance),
+		ForecastDispatchableMw:      quantity(aggregate.DispatchableMW.Value, now, aggregate.DispatchableMW.Freshness, dispatchableProvenance),
+		ReservedForBackupMwh:        quantity(max(installedMWh-aggregate.DispatchableMWh.Value, 0), now, aggregate.DispatchableMWh.Freshness, provenance),
+		OperatingStateCounts:        operatingCounts(states, now, provenance),
+		AvailabilityStateCounts:     availabilityCounts(states, now, provenance),
+		CommunicationsHealthCounts:  healthCounts(states, now, provenance),
+		AcknowledgementHealthCounts: healthCounts(states, now, provenance),
 	}
 	return connect.NewResponse(&gridosv1.GetFleetSummaryResponse{Summary: summary}), nil
 }

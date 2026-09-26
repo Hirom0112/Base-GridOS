@@ -82,6 +82,7 @@ func (store *MemoryEventStore) Create(_ context.Context, request *gridosv1.Event
 		CreatedAt:     timestamp(now),
 		UpdatedAt:     timestamp(now),
 		CorrelationId: request.GetCorrelationId(),
+		Provenance:    simulatedProvenance(now),
 	}
 	store.events[event.GetEventId()] = event
 	store.idempotency["create:"+key] = event
@@ -167,4 +168,14 @@ func cloneExclusions(source map[gridosv1.ExclusionReason]uint64) map[gridosv1.Ex
 
 func timestamp(value time.Time) *timestamppb.Timestamp {
 	return timestamppb.New(value)
+}
+
+func simulatedProvenance(at time.Time) *gridosv1.Provenance {
+	return &gridosv1.Provenance{
+		Provenance:    gridosv1.DataProvenance_DATA_PROVENANCE_SIMULATED,
+		SourceId:      "fleet-file",
+		ObservedAt:    timestamp(at),
+		IngestedAt:    timestamp(at),
+		SchemaVersion: "1",
+	}
 }
