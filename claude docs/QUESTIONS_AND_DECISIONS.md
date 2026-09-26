@@ -256,4 +256,9 @@ assumptions reported by workers land here too.
   measurement gap as `DROPPED_MESSAGES` because the schema has no dedicated
   kinds; shortfall is disallowed for worker termination, gateway restart, and
   the outage replay because those faults must not lose delivery.
+- **2C.3 (lane C), accepted:** telemetry proves execution when an
+  observation at or after the possibly accepted effective time is within
+  0.05 kW of its setpoint; telemetry never proves rejection (only durable
+  receiver state does); a possibly operating device counts at its interval
+  upper bound and an expired one at zero.
 

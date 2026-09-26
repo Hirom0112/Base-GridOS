@@ -893,7 +893,7 @@ Owns: `services/control/internal/reconciliation/`,
   semantics"); the interval's upper bound is never below the possibly-executing
   setpoint. Verify: fails.
 - `[x]` 2C.2 `[P]` GREEN: `internal/reconciliation/uncertain.go`. Verify: `-run Uncertain` passes.
-- `[~]` 2C.3 `[P]` RED then GREEN: capacity is not reallocated over an
+- `[x]` 2C.3 `[P]` RED then GREEN: capacity is not reallocated over an
   uncertain device until its command expiry passes or fresh telemetry proves
   its state (TECHSTACK e2e scenario 4 and "Safety and delivery semantics":
   the system does not blindly replace capacity that may still be operating).
