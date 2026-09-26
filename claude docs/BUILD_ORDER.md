@@ -1239,7 +1239,7 @@ Owns: `services/control/internal/replay/`, `services/control/cmd/replay`,
 `services/control/internal/api/replay/`, `tests/end-to-end/`,
 `testdata/fixtures/api/`.
 
-- `[ ]` 3F.1 `[P]` RED then GREEN: replay manifest written per event: seed,
+- `[x]` 3F.1 `[P]` RED then GREEN: replay manifest written per event: seed,
   fleet file hash, scenario hash, input snapshot IDs, solver and fallback
   versions, code version (FULL_SPEC §4 invariant 9).
   Verify: `go test ./services/control/internal/replay/ -run Manifest` passes.

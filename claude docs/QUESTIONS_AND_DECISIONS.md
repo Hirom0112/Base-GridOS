@@ -508,3 +508,9 @@ assumptions reported by workers land here too.
   Default Credentials through `golang.org/x/oauth2/google` (one go.mod
   line), a 10 s client timeout, and three bounded retries on 429 and 5xx.
   Row-level insert errors fail the write. Director re-run ok.
+- **3F.1 (lane 3F), verified:** one JSON manifest per event under a local
+  directory, written to a temp file, fsynced, and hard-linked into place so
+  it can never be overwritten; a second create with identical content is
+  idempotent and different content is an error. Fleet and scenario bytes
+  are SHA-256 hashed at creation. RED c58c988, GREEN 5c6b038, director
+  re-run ok.
