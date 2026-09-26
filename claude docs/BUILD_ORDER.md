@@ -639,7 +639,7 @@ Owns: `services/control/internal/storage/` (including
   `ErrIllegalTransition`; a conditional update with a stale expected state
   affects zero rows; every transition appends an `audit_journal` row.
   Verify: fails.
-- `[~]` 1D.4 `[P]` GREEN: `internal/storage/events.go`. Verify: `go test ./services/control/internal/storage/ -run Event` passes.
+- `[x]` 1D.4 `[P]` GREEN: `internal/storage/events.go`. Verify: `go test ./services/control/internal/storage/ -run Event` passes.
 - `[~]` 1D.5 `[P]` RED: `outbox_test.go`: inserting a command intent and its
   outbox row is one transaction (a forced failure after the intent insert
   leaves neither row); claiming a batch uses `SKIP LOCKED` so two claimers
