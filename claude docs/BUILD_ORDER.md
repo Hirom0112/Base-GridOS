@@ -175,7 +175,7 @@ Every lane starts `[P]`.
 Owns: repo root files (`Makefile`, `AGENTS.md`, `.gitignore`),
 `infrastructure/local/`, `tools/development/`.
 
-- `[~]` 0A.1 `[P]` Install the missing toolchain: Go 1.23+, `buf`, `bazelisk`
+- `[x]` 0A.1 `[P]` Install the missing toolchain: Go 1.23+, `buf`, `bazelisk`
   (used in Wave 5), `temporal` CLI, `uv` with Python 3.12, `sqlc`. Record
   exact versions in `AGENTS.md`. Verify: `go version && buf --version && bazelisk version && temporal --version && uv python list | grep 3.12 && sqlc version` all print.
 - `[~]` 0A.2 `[after 0A.1]` Prove the hooks in `tools/development/hooks`
@@ -201,14 +201,14 @@ Owns: repo root files (`Makefile`, `AGENTS.md`, `.gitignore`),
 
 Owns: `contracts/`, `buf.yaml`, `buf.gen.yaml`.
 
-- `[~]` 0B.1 `[P]` `contracts/buf.yaml` with the `gridos.v1` module, `STANDARD`
+- `[x]` 0B.1 `[P]` `contracts/buf.yaml` with the `gridos.v1` module, `STANDARD`
   lint, and `FILE` breaking rules. `buf.gen.yaml` generating `connect-go` into
   `services/control/internal/gen`, Python `protobuf` + `grpcio` into
   `services/decision/gridos/gen`, and `connect-es` into
   `apps/console/src/api/gen`. All three output directories are gitignored
   (0A.4) and produced by `make generate`; no lane commits them.
   Verify: `buf lint contracts` passes on the empty module.
-- `[~]` 0B.2 `[P]` `contracts/gridos/v1/device.proto`: `Site`, `Device`,
+- `[x]` 0B.2 `[P]` `contracts/gridos/v1/device.proto`: `Site`, `Device`,
   `Provenance` (`provenance` enum with the five FULL_SPEC §2 values,
   `source_id`, `source_uri`, `observed_at`, `ingested_at`, `schema_version`,
   optional `simulation_seed`), battery parameters with explicit units in field
@@ -219,7 +219,7 @@ Owns: `contracts/`, `buf.yaml`, `buf.gen.yaml`.
   address, never coordinates). `Cohort` with `name`, `algorithm_name`, and
   `load_zone` so a partition is addressable the way market partitions are.
   Verify: `buf lint contracts` passes.
-- `[~]` 0B.3 `[P]` `telemetry.proto`: `TelemetryObservation` with
+- `[x]` 0B.3 `[P]` `telemetry.proto`: `TelemetryObservation` with
   `source_time`, `receive_time`, `observation_time`, units, sign convention
   enum (AC side, discharge positive), `sequence`, quality flags, measurement
   boundary enum (`BATTERY_TERMINAL`, `METER_NET_EXPORT`,
@@ -280,7 +280,7 @@ Owns: `contracts/`, `buf.yaml`, `buf.gen.yaml`.
 Owns: `docs/domain/truth-model.md`, `tools/generation/`, `testdata/fleets/`,
 `testdata/scenarios/` (format only this wave).
 
-- `[~]` 0C.1 `[P]` `docs/domain/truth-model.md`: event measurement boundary
+- `[x]` 0C.1 `[P]` `docs/domain/truth-model.md`: event measurement boundary
   (default `METER_NET_EXPORT` for the canonical event, `BATTERY_TERMINAL`
   selectable), interval `dt` = 5 minutes, sign convention, energy update
   equation and reserve inequality from `system-understanding.md` "The physical

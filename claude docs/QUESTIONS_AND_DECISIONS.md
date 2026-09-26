@@ -54,3 +54,19 @@ assumptions reported by workers land here too.
 - **Q:** Local auth for the offline demo? **D:** `GRIDOS_AUTH_MODE=local`
   with a dev identity, marked STUBBED, because the judged path may not call
   Clerk over the network.
+
+### Reported by workers during Wave 0
+
+- **0C.1 (FULL_SPEC §15 gaps, all accepted):** canonical events measure at
+  `METER_NET_EXPORT` with `BATTERY_TERMINAL` selectable; planning and
+  reporting use five-minute intervals; reports keep signed error, absolute
+  error, completeness, and uncertainty instead of a binary tolerance; backup
+  duration is reported at current usage and at 750 W; command expiry enforces
+  a zero grid-service setpoint; expired commands are never revived after a
+  reconnect; cancellation is a new command with a new ID and a higher
+  generation.
+- **Pre-commit hook edit by lane A:** the hook now prepends the Go bin
+  directory to PATH so `golangci-lint` installed with `go install` is found.
+  Accepted: it adds tool discovery and removes no check. Any hook edit that
+  removes or loosens a check would be rejected.
+
