@@ -19,7 +19,7 @@ from gridos.fallback.replacement import replace_dropped
 from gridos.forecasting.serve import forecast_response
 from gridos.optimization.model import OptimizedPlan, optimize
 from gridos.solver.bounded import Decision, Planner, resolve, solve_within_budget
-from gridos.v1 import dispatch_pb2, optimization_pb2, telemetry_pb2
+from gridos.v1 import device_pb2, dispatch_pb2, optimization_pb2, telemetry_pb2
 from gridos.validation.plan import validate_plan
 
 
@@ -48,6 +48,11 @@ def _device_states(request: optimization_pb2.OptimizationRequest) -> list[Device
         or request.margin_hurdle < 0
     ):
         raise ValueError("margin bounds must be finite and hurdle nonnegative")
+    margin = (
+        Decimal(str(request.conservative_margin))
+        if request.conservative_margin != 0
+        else _conservative_public_margin(request)
+    )
     eligible_ids = set(request.eligibility_snapshot.eligible_device_ids)
     known_ids = {device.device_id for device in request.devices}
     forecast_availability_by_id: dict[str, float] = {}
@@ -70,7 +75,7 @@ def _device_states(request: optimization_pb2.OptimizationRequest) -> list[Device
             device_id=device.device_id,
             usable_energy_kwh=device.usable_energy_kwh,
             energy_kwh=device.energy_kwh,
-            reserve_percent=_selected_reserve_kwh(request, device)
+            reserve_percent=_selected_reserve_kwh(request, device, margin)
             / device.usable_energy_kwh
             * 100.0
             if device.usable_energy_kwh > 0.0
@@ -93,7 +98,9 @@ def _device_states(request: optimization_pb2.OptimizationRequest) -> list[Device
 
 
 def _selected_reserve_kwh(
-    request: optimization_pb2.OptimizationRequest, device: optimization_pb2.DeviceState
+    request: optimization_pb2.OptimizationRequest,
+    device: optimization_pb2.DeviceState,
+    margin: Decimal,
 ) -> float:
     base = (
         device.base_reserve_kwh
@@ -115,7 +122,7 @@ def _selected_reserve_kwh(
         selected -= float(
             eligible_additional_capacity(
                 available,
-                Decimal(str(request.conservative_margin)),
+                margin,
                 Decimal(str(request.margin_hurdle)),
             )
         )
@@ -125,6 +132,45 @@ def _selected_reserve_kwh(
     ):
         raise ValueError("effective reserve does not match margin-gated reserve")
     return selected
+
+
+def _conservative_public_margin(request: optimization_pb2.OptimizationRequest) -> Decimal:
+    intervals = {(item.begin_time.seconds, item.begin_time.nanos) for item in request.intervals}
+    prices: dict[tuple[str, int, int], Decimal] = {}
+    for forecast in request.forecast.regional_prices:
+        value = forecast.price_per_mwh
+        begin = (forecast.interval_begin_time.seconds, forecast.interval_begin_time.nanos)
+        if (
+            begin not in intervals
+            or not forecast.load_zone
+            or not value.model_version
+            or value.value_kind != "confirmed_public_forward"
+            or value.provenance != device_pb2.DATA_PROVENANCE_CONFIRMED_PUBLIC
+        ):
+            continue
+        if not all(isfinite(number) for number in (value.lower, value.value, value.upper)):
+            raise ValueError("public price forecast must be finite")
+        if not value.lower <= value.value <= value.upper:
+            raise ValueError("public price forecast bounds must be ordered")
+        key = (forecast.load_zone, *begin)
+        lower = Decimal(str(value.lower))
+        prices[key] = min(prices.get(key, lower), lower)
+    margin = Decimal(0)
+    for device in request.devices:
+        if not device.HasField("travel_flex_reserve_kwh") or not device.HasField(
+            "base_reserve_kwh"
+        ):
+            continue
+        zone_prices = [lower for (zone, _, _), lower in prices.items() if zone == device.load_zone]
+        if not zone_prices:
+            continue
+        lower = min(zone_prices)
+        if lower < 0:
+            incremental_kwh = Decimal(str(device.base_reserve_kwh)) - Decimal(
+                str(device.travel_flex_reserve_kwh)
+            )
+            margin += lower * incremental_kwh * Decimal(str(device.discharge_efficiency)) / 1000
+    return margin
 
 
 def _exclusion_reason(reason: str) -> dispatch_pb2.ExclusionReason:
