@@ -165,9 +165,13 @@ def _margin_explanation(
     else:
         dispatch.source = "UNAVAILABLE"
         dispatch.unavailable = True
+    explanation.terms.add(
+        name="AVOIDED_PEAK_COST", low=0, high=0, source="ABSENT_PEAK_AVOIDANCE_CONTRACT"
+    )
+    explanation.terms.add(
+        name="COMMITMENT_RELIABILITY_VALUE", low=0, high=0, source="ABSENT_COMMITMENT_CONTRACT"
+    )
     for name in (
-        "AVOIDED_PEAK_COST",
-        "COMMITMENT_RELIABILITY_VALUE",
         "CHARGING_ENERGY",
         "INCREMENTAL_DEGRADATION",
         "PENALTY_EXPOSURE",
