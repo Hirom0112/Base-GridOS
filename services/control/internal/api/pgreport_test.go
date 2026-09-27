@@ -94,6 +94,32 @@ func TestLiveReportUsesFrozenForecastAndStoredDelivery(t *testing.T) {
 	require.True(t, hasLiveReportGap(oldData.DataGaps, "baseline_confidence_unavailable"))
 }
 
+func TestLiveReportOmitsNegativeAccountingEnergy(t *testing.T) {
+	pool := apiTestDatabase(t)
+	seedAPIEvent(t, pool)
+	ctx := context.Background()
+	source := NewPostgresReportSource(pool)
+	for index, deliveredMWh := range []float64{0.001, -0.001} {
+		values, err := json.Marshal(report.Delivered{DeliveredMWh: deliveredMWh, DeliveredMW: deliveredMWh})
+		require.NoError(t, err)
+		_, err = pool.Exec(ctx, `INSERT INTO audit_journal (occurred_at, actor_id, action, resource_type, resource_id, new_values, correlation_id)
+			VALUES ($1, 'reconciliation', 'DELIVERY_VERIFIED', 'event', 'event-restart', $2, 'restart')`, time.Now().UTC().Add(time.Duration(index)*time.Second), values)
+		require.NoError(t, err)
+		data, err := source.EventReportData(ctx, "event-restart")
+		require.NoError(t, err)
+		require.Equal(t, deliveredMWh, data.Delivered.DeliveredMWh)
+		if index == 0 {
+			require.NotNil(t, data.Energy)
+			require.Equal(t, deliveredMWh, data.Energy.DeliveredMWh)
+			continue
+		}
+		require.Nil(t, data.Energy)
+		require.True(t, hasLiveReportGap(data.DataGaps, "delivered_energy_unavailable"))
+		_, err = report.Build(ctx, source, "event-restart")
+		require.NoError(t, err)
+	}
+}
+
 func TestLiveReportRewardsAndMarginUseStoredEvidence(t *testing.T) {
 	pool := apiTestDatabase(t)
 	seedAPIEvent(t, pool)
