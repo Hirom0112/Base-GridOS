@@ -22,6 +22,8 @@ type Metrics struct {
 	uncertainCommands  prometheus.Gauge
 }
 
+var ProcessMetrics = NewMetrics()
+
 func NewMetrics() *Metrics {
 	m := &Metrics{
 		registry: prometheus.NewRegistry(),
@@ -66,7 +68,7 @@ func (m *Metrics) Handler() http.Handler {
 
 func (m *Metrics) RecordCommand(state string) error {
 	switch state {
-	case "PENDING", "SENT", "ACKNOWLEDGED", "UNCERTAIN", "EXECUTING", "DELIVERED", "EXPIRED", "REJECTED", "CANCELLED":
+	case "PERSISTED", "PENDING", "SENT", "ACKNOWLEDGED", "UNCERTAIN", "EXECUTING", "COMPLETED", "DELIVERED", "EXPIRED", "REJECTED", "CANCELLED":
 		m.commands.WithLabelValues(state).Inc()
 		return nil
 	default:
