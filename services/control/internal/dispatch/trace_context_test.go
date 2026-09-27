@@ -7,6 +7,8 @@ import (
 	gridosv1 "github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/observability"
 	"github.com/stretchr/testify/require"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 )
 
 type traceCaptureOptimizer struct {
@@ -43,4 +45,26 @@ func TestPlanningActivitiesSeedDecisionTraceContext(t *testing.T) {
 	want := [2]string{"correlation-1", "event-1"}
 	require.Equal(t, want, optimizer.identities["Forecast"])
 	require.Equal(t, want, optimizer.identities["Optimize"])
+}
+
+func TestFreezeInputsActivitySpanUsesDurableCorrelation(t *testing.T) {
+	harness := newActivityHarness(t)
+	exporter := tracetest.NewInMemoryExporter()
+	provider := observability.NewTracerProvider(exporter)
+	previous := otel.GetTracerProvider()
+	otel.SetTracerProvider(provider)
+	t.Cleanup(func() {
+		_ = provider.Shutdown(context.Background())
+		otel.SetTracerProvider(previous)
+	})
+	harness.freeze(t)
+	require.NoError(t, provider.ForceFlush(context.Background()))
+	spans := exporter.GetSpans()
+	require.NotEmpty(t, spans)
+	values := map[string]string{}
+	for _, item := range spans[0].Attributes {
+		values[string(item.Key)] = item.Value.AsString()
+	}
+	require.Equal(t, "correlation-1", values["correlation_id"])
+	require.Equal(t, "event-1", values["workflow_id"])
 }
