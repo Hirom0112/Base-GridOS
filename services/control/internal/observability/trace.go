@@ -30,12 +30,14 @@ func WithTraceIDs(ctx context.Context, correlationID, workflowID string) (contex
 
 func WithActivityTraceIDs(ctx context.Context, correlationID, eventID string) context.Context {
 	identity := traceIdentity{correlationID: correlationID, workflowID: eventID}
-	if !safeIdentifier(eventID) {
+	validEvent := safeIdentifier(eventID)
+	validCorrelation := safeIdentifier(correlationID)
+	if !validEvent || !validCorrelation {
 		digest := sha256.Sum256([]byte(eventID))
 		identity.workflowID = "event-" + hex.EncodeToString(digest[:16])
 		identity.derived = true
 	}
-	if !safeIdentifier(correlationID) {
+	if !validCorrelation {
 		identity.correlationID = identity.workflowID
 		identity.fallback = true
 	}
