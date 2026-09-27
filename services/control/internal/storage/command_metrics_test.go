@@ -58,3 +58,36 @@ func TestTransitionCommandRecordsCommittedStateOnce(t *testing.T) {
 		t.Fatalf("repeated SENT count = %v, want %v", got, before+1)
 	}
 }
+
+func TestInsertCommandRecordsPersistedStateOnlyOnce(t *testing.T) {
+	pool := testDatabase(t)
+	insertPlan(t, pool, "event-metric-insert")
+	before := commandMetricValue(t, "PERSISTED")
+	command := testCommand("metric-insert", "event-metric-insert")
+	if err := InsertCommand(context.Background(), pool, command); err != nil {
+		t.Fatal(err)
+	}
+	if got := commandMetricValue(t, "PERSISTED"); got != before+1 {
+		t.Fatalf("insert count = %v, want %v", got, before+1)
+	}
+	if err := InsertCommand(context.Background(), pool, command); err == nil {
+		t.Fatal("duplicate command inserted")
+	}
+	if got := commandMetricValue(t, "PERSISTED"); got != before+1 {
+		t.Fatalf("failed insert count = %v, want %v", got, before+1)
+	}
+	zero := testCommand("metric-zero", "event-metric-insert")
+	zero.SetpointKW = 0
+	if err := InsertZeroCommand(context.Background(), pool, zero); err != nil {
+		t.Fatal(err)
+	}
+	if got := commandMetricValue(t, "PERSISTED"); got != before+2 {
+		t.Fatalf("zero insert count = %v, want %v", got, before+2)
+	}
+	if err := InsertZeroCommand(context.Background(), pool, zero); err != nil {
+		t.Fatal(err)
+	}
+	if got := commandMetricValue(t, "PERSISTED"); got != before+2 {
+		t.Fatalf("retried zero insert count = %v, want %v", got, before+2)
+	}
+}
