@@ -2177,7 +2177,7 @@ weather loader test is ok here. The live clause (a WEATHER override row on
 the demo) is checked at the rebuild that follows the running steps 11/12
 proof.
 
-## 2026-09-27 09:45Z — Demo proof: four kinds within eight minutes, RETRY absent
+## 2026-09-27 09:42Z — Demo proof: four kinds within eight minutes, RETRY absent
 
 live-proof-1790501468 on the rebuilt demo showed MISSING_TELEMETRY,
 UNCERTAIN_COMMAND, REPLACEMENT_PLANNED, STALE_CAPACITY_REMOVED and
