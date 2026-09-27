@@ -13,7 +13,7 @@ async function createPlan(page: Page) {
     .getByRole("link", { name: "Plan a dispatch", exact: true })
     .click();
   const start = Math.ceil((Date.now() + 60000) / 60000) * 60000;
-  const end = start + 600000;
+  const end = start + 300000;
   await page.getByLabel("Operating region").selectOption("LZ_AEN");
   await page
     .getByLabel("Start time")
