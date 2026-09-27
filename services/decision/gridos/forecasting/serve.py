@@ -1,4 +1,5 @@
 import csv
+import os
 from datetime import UTC, datetime, timedelta
 from math import isfinite
 from pathlib import Path
@@ -10,13 +11,17 @@ from gridos.forecasting.availability import ReliabilityTrait, forecast_availabil
 from gridos.forecasting.load import LoadObservation, forecast_load
 from gridos.v1 import device_pb2, optimization_pb2
 
-_PUBLIC = Path(__file__).resolve().parents[4] / "testdata/fixtures/public"
 _CENTRAL = ZoneInfo("America/Chicago")
 _TRAITS: dict[str, ReliabilityTrait] = {"HIGH": "HIGH", "MEDIUM": "MEDIUM", "LOW": "LOW"}
 
 
+def _public_root() -> Path:
+    default = Path(__file__).resolve().parents[4] / "testdata/fixtures/public"
+    return Path(os.environ.get("GRIDOS_PUBLIC_FIXTURES_DIR", str(default)))
+
+
 def _site_load_history(profile: str) -> list[LoadObservation]:
-    path = _PUBLIC / "load-profiles/residential-week.csv"
+    path = _public_root() / "load-profiles/residential-week.csv"
     if not path.exists():
         return []
     observations: list[LoadObservation] = []
@@ -59,7 +64,7 @@ def _site_load_at(
 
 
 def _day_ahead_prices() -> dict[tuple[str, datetime], float]:
-    path = _PUBLIC / "ercot-prices/dam-spp-week.csv"
+    path = _public_root() / "ercot-prices/dam-spp-week.csv"
     if not path.exists():
         return {}
     prices: dict[tuple[str, datetime], float] = {}
