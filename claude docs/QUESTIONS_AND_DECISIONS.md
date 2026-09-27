@@ -1764,3 +1764,12 @@ provenance note updated). The standing demo serves `GetMarketContext` for
 settlement point LZ_AEN and weather zone SOUTH_C with CONFIRMED_PUBLIC
 provenance and labelled geography without a restart, since the samples
 are read per request. Marked done.
+
+## 2026-09-27 07:58Z — Demo rebuilt on the 4C.6 tree
+
+Rebuilt with the step-up key on 4777fb6 (explanation evidence 43fe91d
+included). Enforcement probe denied without an assertion, the console's
+live approval proof passed (1 passed 8.3s), telemetry lag 13 s. A first
+mock-signer restart raced the make target's PID sweep and lost the port
+(bind: address already in use); the second start after `demo ready`
+holds :8080. Rule kept: start the signer only after `demo ready`.
