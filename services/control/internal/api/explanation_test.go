@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -10,6 +11,7 @@ import (
 	"connectrpc.com/connect"
 	gridosv1 "github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1"
 	"github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1/gridosv1connect"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -72,5 +74,70 @@ func TestGetPlanExplanation(t *testing.T) {
 	_, err = client.GetPlanExplanation(context.Background(), request)
 	if connect.CodeOf(err) != connect.CodeFailedPrecondition {
 		t.Fatalf("stale version code = %v", connect.CodeOf(err))
+	}
+}
+
+func TestGetPlanExplanationFrozenEvidence(t *testing.T) {
+	now := time.Date(2026, 9, 26, 12, 0, 0, 0, time.UTC)
+	events := NewMemoryEventStore()
+	events.Put(&gridosv1.DispatchEvent{EventId: "event-frozen", PlanVersion: 3})
+	store := explanationStore{
+		EventStore: events,
+		request: &gridosv1.OptimizationRequest{Forecast: &gridosv1.ForecastResponse{SiteLoads: []*gridosv1.ForecastSiteLoad{{
+			SiteId: "site-1", IntervalBeginTime: timestamppb.New(now), LoadKwh: &gridosv1.ForecastValue{
+				Value: 2, Lower: 1, Upper: 3, ValueKind: "modeled_estimate", Provenance: gridosv1.DataProvenance_DATA_PROVENANCE_SIMULATED,
+				IssuedAt: timestamppb.New(now.Add(-time.Hour)), ModelVersion: "load-v1",
+			},
+		}}}, Devices: []*gridosv1.DeviceState{{DeviceId: "a", EffectiveReserveKwh: 8}}},
+		plan: &gridosv1.DispatchPlan{EventId: "event-frozen", PlanVersion: 3,
+			FallbackUsed: true, FallbackReason: "solver timeout",
+			DeviceSchedules: []*gridosv1.DeviceSchedule{{DeviceId: "a", Intervals: []*gridosv1.DeviceScheduleInterval{{
+				BeginTime: timestamppb.New(now), EndTime: timestamppb.New(now.Add(5 * time.Minute)), SetpointKw: 3,
+			}}}},
+		},
+	}
+	request := connect.NewRequest(&gridosv1.GetPlanExplanationRequest{EventId: "event-frozen", PlanVersion: 3})
+	request.Header().Set(roleHeader, "analyst")
+	response, err := NewService(store, nil, nil, func() time.Time { return now }).GetPlanExplanation(context.Background(), request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if response.Msg.GetReserveHeldBackKwh() != 8 {
+		t.Fatalf("frozen input not loaded: %#v", response.Msg)
+	}
+	encoded, err := protojson.Marshal(response.Msg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var evidence struct {
+		SiteLoads []struct {
+			SiteID            string `json:"siteId"`
+			IntervalBeginTime string `json:"intervalBeginTime"`
+			LoadKwh           struct {
+				Value      float64 `json:"value"`
+				ValueKind  string  `json:"valueKind"`
+				Provenance string  `json:"provenance"`
+				IssuedAt   string  `json:"issuedAt"`
+			} `json:"loadKwh"`
+		} `json:"siteLoads"`
+		SiteLoadUnits   string `json:"siteLoadUnits"`
+		FallbackUsed    bool   `json:"fallbackUsed"`
+		FallbackReason  string `json:"fallbackReason"`
+		DeviceSchedules []struct {
+			DeviceID string `json:"deviceId"`
+		} `json:"deviceSchedules"`
+	}
+	if err := json.Unmarshal(encoded, &evidence); err != nil {
+		t.Fatal(err)
+	}
+	if len(evidence.SiteLoads) != 1 {
+		t.Fatalf("frozen site loads = %s", encoded)
+	}
+	load := evidence.SiteLoads[0]
+	if load.SiteID != "site-1" || load.IntervalBeginTime == "" || load.LoadKwh.Value != 2 || load.LoadKwh.ValueKind != "modeled_estimate" || load.LoadKwh.Provenance != "DATA_PROVENANCE_SIMULATED" || load.LoadKwh.IssuedAt == "" || evidence.SiteLoadUnits != "kWh" {
+		t.Fatalf("frozen forecast = %s", encoded)
+	}
+	if !evidence.FallbackUsed || evidence.FallbackReason != "solver timeout" || len(evidence.DeviceSchedules) != 1 || evidence.DeviceSchedules[0].DeviceID != "a" {
+		t.Fatalf("frozen plan = %s", encoded)
 	}
 }
