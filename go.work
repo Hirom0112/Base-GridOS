@@ -7,5 +7,6 @@ use (
 	./tests/contract
 	./tests/end-to-end
 	./tests/integration
+	./tests/load
 	./tools/development/mockapi
 )
