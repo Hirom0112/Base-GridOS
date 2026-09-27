@@ -1858,3 +1858,16 @@ lag 19 s. The mock signer again needed a second start after `demo ready`
 (the first start collided with the outgoing signer before the make target's
 PID sweep reached it), so the standing procedure is: rebuild, wait for
 `demo ready`, then start the signer and confirm :8080 answers.
+
+## 2026-09-27 09:05Z — 4C.8 verified
+
+Explanation tests ok (0.521s) and mockapi Fixtures ok (0.823s) here; RED
+e1711d7 and 588af0f stage tests only. The fixture recorded from the demo on
+ee87bce carries 5,000 frozen site loads and 5,000 device availabilities
+with modeled provenance, one stored schedule, and zero regional prices and
+outage risks with two explicit unavailable sources (the frozen forecast
+found no usable LZ_AEN price series or outage risk for that site at plan
+time), which the console shows as the gap it is. Marked done. Note for
+later: the recorded explanation fixture is 4.55 MB, larger than the
+"small samples" rule intends; trimming the recorded fleet for fixtures is a
+candidate follow-up, not a blocker.
