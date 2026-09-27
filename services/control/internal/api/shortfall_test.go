@@ -50,7 +50,7 @@ func TestStoredDeliveryShortfallUsesVerificationCoverage(t *testing.T) {
 	}
 }
 
-func TestStoredPlannedShortfallUsesSelectedPlanVersion(t *testing.T) {
+func TestStoredPlannedShortfallUsesApprovedPlanVersion(t *testing.T) {
 	pool := apiTestDatabase(t)
 	_, err := pool.Exec(context.Background(), `INSERT INTO dispatch_requests
 		(request_id, event_type, begin_time, end_time, target_kw, measurement_boundary, load_zones, correlation_id)
@@ -62,8 +62,12 @@ func TestStoredPlannedShortfallUsesSelectedPlanVersion(t *testing.T) {
 		INSERT INTO eligibility_snapshots (snapshot_id, event_id, captured_at, eligible_device_ids, exclusions, policy_version, correlation_id)
 		VALUES ('eligibility-plan-shortfall', 'event-plan-shortfall', now(), ARRAY[]::text[], '[]', 'policy-plan-shortfall', 'plan-shortfall');
 		INSERT INTO plan_versions (event_id, version, input_snapshot_id, eligibility_snapshot_id, plan, solver_version, model_version, correlation_id)
-		VALUES ('event-plan-shortfall', 2, 'input-plan-shortfall', 'eligibility-plan-shortfall',
-		'{"eventId":"event-plan-shortfall","planVersion":"2","shortfalls":[{"intervalBeginTime":"2026-09-27T10:00:00Z","intervalEndTime":"2026-09-27T10:05:00Z","requestedKw":1000,"feasibleKw":800,"shortfallKw":200,"reasons":["RESERVE"]}]}', 'solver-plan-shortfall', 'model-plan-shortfall', 'plan-shortfall')`)
+		VALUES ('event-plan-shortfall', 1, 'input-plan-shortfall', 'eligibility-plan-shortfall',
+		'{"eventId":"event-plan-shortfall","planVersion":"1","shortfalls":[{"intervalBeginTime":"2026-09-27T10:00:00Z","intervalEndTime":"2026-09-27T10:05:00Z","requestedKw":1000,"feasibleKw":800,"shortfallKw":200,"reasons":["RESERVE"]}]}', 'solver-approved', 'model-approved', 'plan-shortfall'),
+		('event-plan-shortfall', 2, 'input-plan-shortfall', 'eligibility-plan-shortfall',
+		'{"eventId":"event-plan-shortfall","planVersion":"2","shortfalls":[{"intervalBeginTime":"2026-09-27T10:00:00Z","intervalEndTime":"2026-09-27T10:05:00Z","requestedKw":1000,"feasibleKw":500,"shortfallKw":500,"reasons":["REPLACEMENT"]}]}', 'solver-current', 'model-current', 'plan-shortfall');
+		INSERT INTO operator_approvals (approval_id, event_id, plan_version, decision, decided_by, decided_at, rationale, correlation_id)
+		VALUES ('approval-plan-shortfall', 'event-plan-shortfall', 1, 'APPROVED', 'operator', now(), 'Approved initial plan', 'plan-shortfall')`)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -71,7 +75,7 @@ func TestStoredPlannedShortfallUsesSelectedPlanVersion(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if report.Versions.Solver != "solver-plan-shortfall" {
+	if report.Versions.Solver != "solver-current" {
 		t.Fatal("selected plan control missing")
 	}
 	encoded, err := json.Marshal(report)
