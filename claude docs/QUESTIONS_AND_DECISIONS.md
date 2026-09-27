@@ -1192,3 +1192,9 @@ assumptions reported by workers land here too.
   cohort earns a fixed 100-cent event credit per rewarded member on
   accepted commands, with the stored report's reward total equal to the
   ledger (112 s on the director's machine).
+- **4C.5 (lane 4C via the 4A agent), verified:** geo cells and drill-down
+  nodes carry as_of, freshness, and the aggregate metadata (provenance
+  mix, record count); the recorder sends the indexed permission header and
+  the ten geo fixtures were recaptured from an isolated stack with real
+  telemetry. Director: contracts clean, geo and mockapi packages ok,
+  fixture inspected.

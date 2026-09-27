@@ -1446,7 +1446,7 @@ Owns: `services/control/internal/fleet/geo/`,
 - `[x]` 4C.4 `[P]` RED then GREEN: no geo response ever carries a street
   address or a real member home; a test scans every geo response type for
   address-like fields. Verify: `go test ./services/control/internal/api/geo/ -run NoAddress` passes.
-- `[ ]` 4C.5 `[after 4C.2]` Geo cells carry time. `ListCells` and
+- `[x]` 4C.5 `[after 4C.2]` Geo cells carry time. `ListCells` and
   `Drilldown` responses carry as_of, freshness, and the aggregate metadata
   (provenance mix, record count) the fleet views already carry, so the
   console can label the map honestly. Additive in `geo.proto`. Verify: `go test ./services/control/internal/api/geo/ -run CellMetadata` passes and the recorded fixtures are refreshed.
