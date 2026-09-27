@@ -2,6 +2,7 @@ import { useState, type FormEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { z } from "zod";
 import { useSession } from "../api/auth";
+import { AnomalyAlerts } from "./anomaly-alert";
 import { MemberStatus } from "./member-status";
 import "../events/report.css";
 import "./member.css";
@@ -73,6 +74,9 @@ export function MemberHome() {
           memberId={household.memberId}
           siteId={household.siteId}
         />
+      )}
+      {household && (
+        <AnomalyAlerts key={household.memberId} memberId={household.memberId} />
       )}
     </main>
   );
