@@ -1,0 +1,32 @@
+.regional-context {
+  font-size: 14px;
+  line-height: 1.6;
+}
+.regional-context details {
+  margin-top: 20px;
+}
+.regional-context summary {
+  cursor: pointer;
+}
+.regional-context h4 {
+  margin-block: 24px 10px;
+  font-size: 16px;
+}
+.regional-context .table-scroll {
+  overflow: auto;
+}
+.regional-context table {
+  width: 100%;
+  min-width: 640px;
+  border-collapse: collapse;
+  text-align: left;
+}
+.regional-context th,
+.regional-context td {
+  padding: 12px;
+  border-bottom: 1px solid var(--ink-3);
+  vertical-align: top;
+}
+.regional-context li {
+  margin-block: 16px;
+}

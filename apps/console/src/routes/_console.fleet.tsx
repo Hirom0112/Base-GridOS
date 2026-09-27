@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { RegionalContext } from "../context/regional";
 import { FleetMetrics, useFleet } from "../fleet/fleet";
 
 export const Route = createFileRoute("/_console/fleet")({
@@ -7,5 +8,10 @@ export const Route = createFileRoute("/_console/fleet")({
 
 function FleetPage() {
   const { summary } = useFleet();
-  return <FleetMetrics summary={summary.data?.summary} />;
+  return (
+    <>
+      <FleetMetrics summary={summary.data?.summary} />
+      <RegionalContext />
+    </>
+  );
 }

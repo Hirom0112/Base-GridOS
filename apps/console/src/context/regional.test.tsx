@@ -37,7 +37,7 @@ test("Austin forecasts preserve the interval, source and observation age", () =>
     screen.getAllByText(/2026-09-26T00:10:31.000Z/).length,
   ).toBeGreaterThan(0);
   expect(
-    screen.getAllByText(/89894s old at observation/).length,
+    screen.getAllByText(/89894\.935393s old at observation/).length,
   ).toBeGreaterThan(0);
   expect(
     screen.getByText("No weather alerts returned by the source."),

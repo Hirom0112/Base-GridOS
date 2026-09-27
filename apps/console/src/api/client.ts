@@ -4,6 +4,7 @@ import { QueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { stepUpAuthorization } from "./step-up";
 import {
+  ContextService,
   DispatchService,
   FleetService,
   EventsService,
@@ -57,6 +58,7 @@ export function createConsoleClient(
     ],
   });
   return {
+    context: createClient(ContextService, transport),
     fleet: createClient(FleetService, transport),
     dispatch: createClient(DispatchService, transport),
     events: createClient(EventsService, transport),
