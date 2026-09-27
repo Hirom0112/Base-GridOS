@@ -78,14 +78,8 @@ func applyModelOperation(ctx context.Context, pool *pgxpool.Pool, command Comman
 }
 
 func modelNextState(state, operation string) string {
-	transitions := map[string]map[string]string{
-		"PERSISTED":    {"SEND": "SENT", "EXPIRE": "EXPIRED", "REJECT": "REJECTED"},
-		"SENT":         {"ACK": "ACKNOWLEDGED", "UNCERTAIN": "UNCERTAIN", "EXPIRE": "EXPIRED", "REJECT": "REJECTED"},
-		"ACKNOWLEDGED": {"EXECUTE": "EXECUTING", "CANCEL": "CANCELLED", "EXPIRE": "EXPIRED", "REJECT": "REJECTED"},
-		"UNCERTAIN":    {"EXECUTE": "EXECUTING", "CANCEL": "CANCELLED", "EXPIRE": "EXPIRED", "REJECT": "REJECTED"},
-		"EXECUTING":    {"COMPLETE": "COMPLETED", "CANCEL": "CANCELLED", "EXPIRE": "EXPIRED", "REJECT": "REJECTED"},
-	}
-	if next, ok := transitions[state][operation]; ok {
+	next := modelOperationState(operation)
+	if _, ok := commandTransitions[state][next]; ok {
 		return next
 	}
 	return state
@@ -93,7 +87,7 @@ func modelNextState(state, operation string) string {
 
 func modelOperationState(operation string) string {
 	states := map[string]string{
-		"SEND": "SENT", "EXECUTE": "EXECUTING", "REJECT": "REJECTED",
+		"SEND": "SENT", "ACK": "ACKNOWLEDGED", "UNCERTAIN": "UNCERTAIN", "EXECUTE": "EXECUTING", "REJECT": "REJECTED",
 		"CANCEL": "CANCELLED", "EXPIRE": "EXPIRED", "COMPLETE": "COMPLETED",
 	}
 	return states[operation]
