@@ -41,7 +41,10 @@ const powerSchema = z
   .refine((power) => power.deliveredState !== 5 || power.deliveredMw === 0);
 
 const updateSchema = z.object({
-  event: z.object({ eventId: z.string().min(1) }),
+  event: z.object({
+    eventId: z.string().min(1),
+    state: z.number().int().min(0).max(11),
+  }),
   observedAt: evidenceSchema.shape.timestamp,
   fleet: powerSchema,
   h3: z
@@ -60,6 +63,7 @@ const updateSchema = z.object({
 
 export type EventSample = {
   h3: H3EventPowerAggregate[];
+  state: number;
   time: number;
   order: bigint;
   sent: number;
@@ -87,6 +91,7 @@ export function reduceEventSamples(
     throw new Error("Zero delivery state has a nonzero measurement");
   const next = {
     h3: update.h3,
+    state: parsed.event.state,
     time:
       Number(parsed.observedAt.seconds) * 1000 +
       parsed.observedAt.nanos / 1000000,
@@ -103,16 +108,17 @@ export function reduceEventSamples(
   ];
 }
 
-export function LiveEvent({ eventId }: { eventId: string }) {
+export function useEventStream(eventId: string | undefined) {
   const { client, identity } = useSession();
   const allowed = ["operator", "approver", "analyst", "service"].includes(
     identity.role,
   );
   const query = useQuery({
     queryKey: ["event-stream", eventId, identity.role],
-    enabled: allowed,
+    enabled: allowed && Boolean(eventId),
     queryFn: experimental_streamedQuery({
       streamFn: async function* ({ signal }) {
+        if (!eventId) throw new Error("Event ID required");
         while (!signal.aborted) {
           try {
             yield* client.events.watchEvent(
@@ -134,9 +140,14 @@ export function LiveEvent({ eventId }: { eventId: string }) {
       refetchMode: "append",
       initialValue: [] as EventSample[],
       reducer: (samples, update) =>
-        reduceEventSamples(samples, update, eventId),
+        reduceEventSamples(samples, update, eventId ?? ""),
     }),
   });
+  return { query, allowed };
+}
+
+export function LiveEvent({ eventId }: { eventId: string }) {
+  const { query, allowed } = useEventStream(eventId);
   if (!allowed)
     return (
       <p className="boundary-note">

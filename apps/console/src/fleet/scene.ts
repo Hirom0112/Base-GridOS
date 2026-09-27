@@ -1,7 +1,10 @@
 import { cellToBoundary, cellToLatLng, isValidCell } from "h3-js";
 import { z } from "zod";
 import { evidenceSchema } from "../api/Provenance";
-import type { H3SiteAggregate } from "../api/gen/gridos/v1/api_pb";
+import type {
+  H3EventPowerAggregate,
+  H3SiteAggregate,
+} from "../api/gen/gridos/v1/api_pb";
 
 const cellSchema = z.object({
   h3Cell: z.string().refine(isValidCell),
@@ -30,6 +33,8 @@ export function projectCells(input: H3SiteAggregate[]) {
   const maximum = Math.max(...cells.map((cell) => Number(cell.siteCount)));
   return cells.map((cell, index) => ({
     id: cell.h3Cell,
+    color: 0xa6b9ae,
+    value: cell.installedMw.value as number | null,
     position: project(positions[index] ?? center),
     boundary: cellToBoundary(cell.h3Cell).map(project),
     footprint: Math.sqrt(Number(cell.siteCount) / maximum) * 0.9,
@@ -38,3 +43,36 @@ export function projectCells(input: H3SiteAggregate[]) {
 }
 
 export type GridCell = ReturnType<typeof projectCells>[number];
+
+export type ResponseMeasure = "sent" | "acknowledged" | "delivered";
+
+export function projectResponse(
+  cells: GridCell[],
+  response: { state: number; h3: H3EventPowerAggregate[] },
+  measure: ResponseMeasure,
+): GridCell[] {
+  const colors = {
+    sent: 0xf0f7f2,
+    acknowledged: 0x6db8ff,
+    delivered: 0x66f2a4,
+  };
+  const readings = new Map(
+    response.h3.map((cell) => [cell.h3Cell, cell.power]),
+  );
+  return cells.map((cell) => {
+    const power = readings.get(cell.id);
+    let value: number | null = null;
+    if (response.state >= 6 && power) {
+      if (measure === "sent") value = power.sentMw;
+      if (measure === "acknowledged") value = power.acknowledgedMw;
+      if (measure === "delivered" && [1, 5].includes(power.deliveredState))
+        value = power.deliveredMw;
+    }
+    return {
+      ...cell,
+      value,
+      height: value === null ? 0 : Math.abs(value) * 18,
+      color: value === null ? 0x66736c : colors[measure],
+    };
+  });
+}
