@@ -84,3 +84,31 @@ func violationCodesAPI(violations []safety.Violation) map[safety.ViolationCode]b
 	}
 	return codes
 }
+
+func TestReserveSelectionPersistsWithPlanVersion(t *testing.T) {
+	pool := apiTestDatabase(t)
+	ctx := context.Background()
+	now := time.Now().UTC()
+	begin, end := now.Add(time.Minute), now.Add(time.Hour+time.Minute)
+	store := NewPostgresEventStore(pool)
+	event, err := store.Create(ctx, &gridosv1.EventRequest{
+		RequestId: "reserve-selection-event", EventType: "GRID_SERVICE", BeginTime: timestamppb.New(begin), EndTime: timestamppb.New(end),
+		TargetKw: 1, MeasurementBoundary: gridosv1.MeasurementBoundary_MEASUREMENT_BOUNDARY_METER_NET_EXPORT,
+		LoadZones: []string{"LZ_AEN"}, CorrelationId: "reserve-selection",
+	}, "create-reserve-selection", now)
+	require.NoError(t, err)
+	request := &gridosv1.OptimizationRequest{EventId: event.GetEventId(), PlanVersion: 1, CorrelationId: "reserve-selection",
+		ReservePolicy:       &gridosv1.ReservePolicy{PolicyVersion: "policy-1"},
+		EligibilitySnapshot: &gridosv1.EligibilitySnapshot{EligibleDeviceIds: []string{"device-1"}}}
+	plan := &gridosv1.DispatchPlan{EventId: event.GetEventId(), PlanVersion: 1, DeviceSchedules: []*gridosv1.DeviceSchedule{{
+		DeviceId: "device-1", ReserveSelection: gridosv1.ReserveSelection_RESERVE_SELECTION_TRAVEL_FLEX, SelectedReserveKwh: 6,
+		Intervals: []*gridosv1.DeviceScheduleInterval{{BeginTime: timestamppb.New(begin), EndTime: timestamppb.New(end), SetpointKw: 1.9, ExpectedEnergyKwh: 7}},
+	}}}
+	_, err = store.StorePlanned(ctx, event.GetEventId(), request, plan, now)
+	require.NoError(t, err)
+	_, loaded, err := store.LoadPlan(ctx, event.GetEventId(), 1)
+	require.NoError(t, err)
+	require.Equal(t, uint64(1), loaded.GetPlanVersion())
+	require.Equal(t, gridosv1.ReserveSelection_RESERVE_SELECTION_TRAVEL_FLEX, loaded.GetDeviceSchedules()[0].GetReserveSelection())
+	require.Equal(t, 6.0, loaded.GetDeviceSchedules()[0].GetSelectedReserveKwh())
+}
