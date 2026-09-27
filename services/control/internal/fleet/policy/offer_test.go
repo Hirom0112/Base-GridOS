@@ -22,7 +22,7 @@ func TestOfferPersistsExactPresentedPlanTermsOnce(t *testing.T) {
 	require.Equal(t, int64(500), presented.FlexibilityRewardCents)
 	retried, err := store.PresentOffer(ctx, offer)
 	require.NoError(t, err)
-	require.Equal(t, presented, retried)
+	require.True(t, sameOffer(*presented, *retried))
 	offer.PriceText = "Changed price"
 	_, err = store.PresentOffer(ctx, offer)
 	require.Error(t, err)
