@@ -5,6 +5,7 @@ package gridos.v1;
 import "google/protobuf/timestamp.proto";
 import "gridos/v1/api.proto";
 import "gridos/v1/dispatch.proto";
+import "gridos/v1/pricing.proto";
 
 option go_package = "github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1;gridosv1";
 
@@ -208,6 +209,14 @@ message GetMemberStatusResponse {
   google.protobuf.Timestamp observed_at = 11;
 }
 
+message ListHomeActivityAlertsRequest {
+  string member_id = 1;
+}
+
+message ListHomeActivityAlertsResponse {
+  repeated HomeActivityAlert alerts = 1;
+}
+
 service MemberService {
   rpc PresentOffer(PresentOfferRequest) returns (PresentOfferResponse);
   rpc SelectResiliencePlan(SelectResiliencePlanRequest) returns (SelectResiliencePlanResponse);
@@ -217,4 +226,5 @@ service MemberService {
   rpc ScheduleAway(ScheduleAwayRequest) returns (ScheduleAwayResponse);
   rpc EndAway(EndAwayRequest) returns (EndAwayResponse);
   rpc GetMemberStatus(GetMemberStatusRequest) returns (GetMemberStatusResponse);
+  rpc ListHomeActivityAlerts(ListHomeActivityAlertsRequest) returns (ListHomeActivityAlertsResponse);
 }
