@@ -804,3 +804,8 @@ assumptions reported by workers land here too.
   (CONFIRMED_PUBLIC from the file, DERIVED from the outage row itself),
   source as-of time, and age, and reject missing or future-dated sources.
   Director: context package tests pass.
+- **4B.5 (lane 4B), verified:** the bill-and-value simulator takes
+  normalized public prices and profiles plus explicit cost assumptions over
+  a backtest window and returns member savings and company margin as
+  SIMULATED values with source lineage; no measured savings are claimed.
+  Director: test passes, mypy clean over 27 files.

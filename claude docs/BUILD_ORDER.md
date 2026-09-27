@@ -1364,7 +1364,7 @@ Owns: `services/decision/` (whole package this wave, including
 - `[x]` 4B.4 `[P]` RED then GREEN: market-specific rewards. A market with no
   membership fee produces a fixed reward, not a fee waiver (TECHSTACK e2e
   scenario 16). Verify: `-k no_fee_market` passes.
-- `[ ]` 4B.5 `[P]` Bill-and-value simulator: expected member savings and
+- `[x]` 4B.5 `[P]` Bill-and-value simulator: expected member savings and
   company margin over a backtest window from normalized public prices and
   profiles, every output labelled `SIMULATED` or `DERIVED` (DATASETS §15).
   Verify: `-k bill_simulator` passes.
