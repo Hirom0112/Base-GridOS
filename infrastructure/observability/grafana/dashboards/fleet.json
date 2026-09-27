@@ -6,7 +6,7 @@
   "refresh": "5s",
   "time": {"from": "now-6h", "to": "now"},
   "panels": [
-    {"id": 1, "title": "Telemetry freshness", "type": "timeseries", "datasource": {"type": "prometheus", "uid": "gridos-prometheus"}, "targets": [{"expr": "gridos_telemetry_freshness_seconds", "refId": "A"}], "gridPos": {"h": 9, "w": 12, "x": 0, "y": 0}},
-    {"id": 2, "title": "Stale telemetry share", "type": "timeseries", "datasource": {"type": "prometheus", "uid": "gridos-prometheus"}, "targets": [{"expr": "gridos_telemetry_stale_devices / clamp_min(gridos_telemetry_devices, 1)", "refId": "A"}], "gridPos": {"h": 9, "w": 12, "x": 12, "y": 0}}
+    {"id": 1, "title": "Telemetry freshness", "type": "timeseries", "datasource": {"type": "prometheus", "uid": "gridos-prometheus"}, "targets": [{"expr": "max(gridos_telemetry_freshness_seconds)", "refId": "A"}], "gridPos": {"h": 9, "w": 12, "x": 0, "y": 0}},
+    {"id": 2, "title": "Stale telemetry share", "type": "timeseries", "datasource": {"type": "prometheus", "uid": "gridos-prometheus"}, "targets": [{"expr": "sum(gridos_telemetry_stale_devices) / clamp_min(sum(gridos_telemetry_devices), 1)", "refId": "A"}], "gridPos": {"h": 9, "w": 12, "x": 12, "y": 0}}
   ]
 }

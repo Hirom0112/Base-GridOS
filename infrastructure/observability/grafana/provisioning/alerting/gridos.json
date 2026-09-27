@@ -153,7 +153,7 @@
                 "to": 0
               },
               "model": {
-                "expr": "gridos_uncertain_commands",
+                "expr": "sum(gridos_uncertain_commands)",
                 "instant": true,
                 "refId": "A"
               }
@@ -217,7 +217,7 @@
                 "to": 0
               },
               "model": {
-                "expr": "gridos_telemetry_stale_devices / clamp_min(gridos_telemetry_devices, 1)",
+                "expr": "sum(gridos_telemetry_stale_devices) / clamp_min(sum(gridos_telemetry_devices), 1)",
                 "instant": true,
                 "refId": "A"
               }

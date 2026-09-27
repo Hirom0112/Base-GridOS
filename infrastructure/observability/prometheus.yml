@@ -2,6 +2,23 @@ global:
   scrape_interval: 15s
 
 scrape_configs:
-  - job_name: gridos
+  - job_name: gridos-control
     static_configs:
       - targets: ["host.docker.internal:9464"]
+        labels:
+          process: control
+  - job_name: gridos-worker
+    static_configs:
+      - targets: ["host.docker.internal:9465"]
+        labels:
+          process: worker
+  - job_name: gridos-gateway
+    static_configs:
+      - targets: ["host.docker.internal:9466"]
+        labels:
+          process: gateway
+  - job_name: gridos-decision
+    static_configs:
+      - targets: ["host.docker.internal:9467"]
+        labels:
+          process: decision
