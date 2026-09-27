@@ -1598,3 +1598,20 @@ gateway fault after the per-kind selection and next_command changes, and
 the canonical case passed twice earlier, so the fault window is timing
 sensitive. Root owns the fix; the gate reruns groups 2 and 3, then
 `make test-go` and the Bazel line, before the report is written.
+
+## 2026-09-27 05:45Z — Gate 5 fault selection: one rule, armed until the next command
+
+Root proposed keeping the legacy seed-plus-commanded-id selection for
+faults on separate ticks and offsetting only same-tick collisions, plus
+re-anchoring the canonical fault schedule. Decision: no dual selection rule.
+The tick-bound `next_command` scope is the actual defect: it expires after
+one gateway tick, so any jitter between the fault time and the next
+publication leaves nothing delayed. `next_command` now stays armed from its
+fault time until the first nonzero command arrives, applies to that one
+command, and disarms. Both scenarios that mean "the next command is
+delayed or dropped" use it (canonical DELAYED_GATEWAY, old-expiry
+DROPPED_MESSAGES at the point where the newer generation is issued);
+`scheduled` keeps the per-kind hash for faults that mean "a device already
+commanded goes dark". Proof: three consecutive isolated runs of each
+scenario green, posted with their last lines, before the gate reruns
+groups 2 and 3.
