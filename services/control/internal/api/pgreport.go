@@ -79,9 +79,8 @@ func (source *PostgresReportSource) EventReportData(ctx context.Context, eventID
 	if err != nil {
 		return report, err
 	}
-	report.Energy = &reporting.EnergyTotals{}
-	if report.Delivered != nil {
-		report.Energy.DeliveredMWh = report.Delivered.DeliveredMWh
+	if report.Delivered != nil && finiteLiveReport(report.Delivered.DeliveredMWh) && report.Delivered.DeliveredMWh >= 0 {
+		report.Energy = &reporting.EnergyTotals{DeliveredMWh: report.Delivered.DeliveredMWh}
 	} else {
 		addLiveReportGap(&report, begin, end, "delivered_energy_unavailable")
 	}
