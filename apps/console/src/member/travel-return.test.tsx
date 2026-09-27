@@ -14,6 +14,27 @@ const session = vi.hoisted(() => ({
 }));
 vi.mock("../api/auth", () => ({ useSession: () => session }));
 
+test("future windows cannot request an early return", () => {
+  const window = create(ScheduledTravelFlexWindowSchema, {
+    windowId: "future-window",
+    consentVersion: "original-consent",
+    earlyReturnAction: 1,
+    startTime: timestampFromDate(new Date("2090-01-01")),
+    endTime: timestampFromDate(new Date("2100-01-01")),
+  });
+  render(
+    <TravelReturn memberId="member-1" window={window} onConfirmed={vi.fn()} />,
+  );
+  expect(
+    screen.getByText(
+      "Early return is available while this travel window is active.",
+    ),
+  ).toBeVisible();
+  expect(
+    screen.queryByRole("button", { name: "Confirm early return" }),
+  ).not.toBeInTheDocument();
+});
+
 test("early return confirms the stored action and reuses the historical consent and intent", async () => {
   const window = create(ScheduledTravelFlexWindowSchema, {
     windowId: "window-1",
