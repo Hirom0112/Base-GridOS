@@ -3,6 +3,8 @@ package storage
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
 	"sync"
 	"testing"
 	"time"
@@ -99,6 +101,34 @@ func TestDeviceGenerationAcrossEvents(t *testing.T) {
 	}
 	if lastGeneration != 3 {
 		t.Fatalf("retry consumed generation: %d", lastGeneration)
+	}
+}
+
+func TestDeviceGenerationMigrationReapply(t *testing.T) {
+	pool := testDatabase(t)
+	insertPlan(t, pool, "generation-migration")
+	ctx := context.Background()
+	command := testCommand("generation-migration", "generation-migration")
+	if err := InsertCommand(ctx, pool, command); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx, `UPDATE device_command_generations SET last_generation = 4 WHERE device_id = $1`, command.DeviceID); err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join("..", "..", "..", "..", "database", "migrations", "0017_device_command_generations.sql")
+	contents, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx, string(contents)); err != nil {
+		t.Fatalf("reapply device generation migration: %v", err)
+	}
+	var last int64
+	if err := pool.QueryRow(ctx, `SELECT last_generation FROM device_command_generations WHERE device_id = $1`, command.DeviceID).Scan(&last); err != nil {
+		t.Fatal(err)
+	}
+	if last != 4 {
+		t.Fatalf("reapply lowered durable generation to %d", last)
 	}
 }
 
