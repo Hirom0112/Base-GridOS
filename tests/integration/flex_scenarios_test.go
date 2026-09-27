@@ -20,6 +20,7 @@ type scenarioReport struct {
 	EventID                    string
 	PlanVersion                uint64
 	ReserveViolationsPrevented uint64
+	MemberRewardsCents         *int64
 	Versions                   struct{ Policy string }
 	DataGaps                   []struct{ Reason string }
 	Margin                     *struct {
