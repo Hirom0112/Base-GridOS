@@ -1,0 +1,90 @@
+.plan-explanation {
+  margin-block: 28px;
+  font-size: 14px;
+}
+.explanation-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 20px;
+  padding-block: 20px;
+  border-block: 1px solid var(--ink-3);
+}
+.event-panel .explanation-heading h3 {
+  font-size: 22px;
+  margin-top: 6px;
+}
+.explanation-heading strong {
+  display: block;
+  font-size: 22px;
+  font-weight: 450;
+  margin-top: 6px;
+}
+.plan-explanation p,
+.explanation-heading span {
+  color: var(--paper-1);
+  line-height: 1.6;
+}
+.plan-explanation .explanation-note {
+  color: var(--paper-2);
+  font-size: 12px;
+  margin-block: 16px;
+}
+.plan-explanation section {
+  margin-block: 24px;
+}
+.event-panel .plan-explanation section h3 {
+  font-size: 16px;
+  margin-bottom: 8px;
+}
+.explanation-scroll {
+  overflow: auto;
+  margin-top: 14px;
+}
+.plan-explanation table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 12px;
+}
+.plan-explanation th,
+.plan-explanation td {
+  padding: 12px 16px 12px 0;
+  border-bottom: 1px solid var(--ink-3);
+  vertical-align: top;
+}
+.plan-explanation th {
+  font-weight: 500;
+}
+.plan-explanation thead {
+  color: var(--paper-2);
+}
+.plan-explanation td,
+.plan-explanation time {
+  color: var(--paper-1);
+}
+.plan-explanation time {
+  display: block;
+  white-space: nowrap;
+  font-weight: 400;
+}
+.objective-evidence {
+  border-block: 1px solid var(--ink-3);
+  padding-block: 16px;
+}
+.objective-evidence summary {
+  cursor: pointer;
+}
+.objective-evidence p {
+  margin-top: 16px;
+}
+.objective-evidence dl > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  padding-block: 10px;
+}
+.objective-evidence dd {
+  margin: 0;
+}

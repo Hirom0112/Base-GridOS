@@ -11,6 +11,7 @@ import {
 } from "../api/gen/gridos/v1/dispatch_pb";
 import type { BasicEventReport } from "../api/gen/gridos/v1/api_pb";
 import { ApprovalActions } from "../dispatch/approval";
+import { PlanExplanation } from "../dispatch/explanation";
 import { eventStateLabels } from "./events-timeline";
 import { AuditTimeline } from "./audit-timeline";
 import { EmergencyStopControl } from "./emergency-stop";
@@ -162,11 +163,14 @@ export function EventView({
         </div>
       </div>
       {view === "plan" && (
-        <ApprovalActions
-          event={event}
-          role={identity.role}
-          onConfirm={confirm}
-        />
+        <>
+          <PlanExplanation eventId={eventId} planVersion={event.planVersion} />
+          <ApprovalActions
+            event={event}
+            role={identity.role}
+            onConfirm={confirm}
+          />
+        </>
       )}
       <section className="exclusions">
         <h3>Exclusions by reason</h3>
