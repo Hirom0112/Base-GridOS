@@ -1806,3 +1806,14 @@ It returns intent, latest durable state and receipt per command, and the
 event's interval verification summaries as a separate MEASURED aggregate,
 so the console shows "verified at the boundary for the interval" rather
 than a per-device claim. Illegal states stay unrepresentable.
+
+## 2026-09-27 08:20Z — 4E.8 verified
+
+`go test ./services/control/internal/api/events/ -run Commands -count=1 -v`
+here: TestListEventCommandsFromDurableRows, TestListEventCommandsAuthorization
+and TestListEventCommandsContract PASS (ok 0.760s). RED 3e2a8ee stages tests
+only; GREEN c86347c adds ListEventCommands with per-command intent, latest
+durable state, receipt and expiry, and separate MEASURED verification
+intervals; no per-command verified flag. Marked done. The demo binary
+predates it; one rebuild follows 4E.9 so both RPCs land in a single
+restart.
