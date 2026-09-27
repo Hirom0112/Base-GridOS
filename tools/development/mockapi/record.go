@@ -209,13 +209,19 @@ func recordStepUpAssertion(methodName string, body json.RawMessage) (string, err
 	if err := json.Unmarshal(body, &input); err != nil {
 		return "", err
 	}
-	version, err := strconv.ParseUint(string(input.PlanVersion), 10, 64)
-	if err != nil || input.EventID == "" {
-		return "", fmt.Errorf("%s requires eventId and planVersion", methodName)
-	}
 	action, subject := "APPROVE_EVENT", input.ApprovedBy
+	var version uint64
 	if methodName == "gridos.v1.DispatchService.EmergencyStop" {
 		action, subject = "EMERGENCY_STOP", input.RequestedBy
+	} else {
+		parsed, err := strconv.ParseUint(string(input.PlanVersion), 10, 64)
+		if err != nil || parsed == 0 {
+			return "", fmt.Errorf("%s requires a positive planVersion", methodName)
+		}
+		version = parsed
+	}
+	if input.EventID == "" {
+		return "", fmt.Errorf("%s requires eventId", methodName)
 	}
 	if subject == "" {
 		return "", fmt.Errorf("%s requires an actor", methodName)
