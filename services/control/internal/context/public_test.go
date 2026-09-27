@@ -14,27 +14,52 @@ func TestLoadPublicContextProvenanceFreshness(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(snapshot.DayAheadPrices) == 0 || len(snapshot.RealTimePrices) == 0 || len(snapshot.SystemLoads) == 0 || len(snapshot.OutageRates) == 0 || len(snapshot.Forecasts) == 0 || len(snapshot.Alerts) == 0 {
-		t.Fatal("public context source missing")
+	for _, count := range []int{len(snapshot.DayAheadPrices), len(snapshot.RealTimePrices), len(snapshot.SystemLoads), len(snapshot.OutageRates), len(snapshot.Forecasts), len(snapshot.Alerts)} {
+		if count == 0 {
+			t.Fatal("public context source missing")
+		}
 	}
 	price := snapshot.DayAheadPrices[0]
-	if price.SettlementPoint != "HB_HOUSTON" || price.USDPerMWh != 22.87 || price.Source.Provenance != "CONFIRMED_PUBLIC" || price.Source.AsOf.IsZero() || price.Source.Age <= 0 {
+	assertSource(t, price.Source, "CONFIRMED_PUBLIC")
+	if price.SettlementPoint != "HB_HOUSTON" || price.USDPerMWh != 22.87 {
 		t.Fatalf("day-ahead price = %#v", price)
 	}
 	load := snapshot.SystemLoads[0]
-	if load.Zone != "COAST" || load.MW != 16306.45 || load.Source.Provenance != "CONFIRMED_PUBLIC" || load.Source.Age <= 0 {
+	assertSource(t, load.Source, "CONFIRMED_PUBLIC")
+	if load.Zone != "COAST" || load.MW != 16306.45 {
 		t.Fatalf("system load = %#v", load)
 	}
 	outage := snapshot.OutageRates[0]
-	if outage.County != "Travis" || math.Abs(outage.Rate-0.037664286849066676) > 1e-12 || outage.Source.Provenance != "DERIVED" || outage.Source.Age <= 0 {
+	assertSource(t, outage.Source, "DERIVED")
+	if outage.County != "Travis" || math.Abs(outage.Rate-0.037664286849066676) > 1e-12 {
 		t.Fatalf("outage rate = %#v", outage)
 	}
 	forecast := snapshot.Forecasts[0]
-	if forecast.City != "austin" || forecast.Source.Provenance != "CONFIRMED_PUBLIC" || forecast.Source.Age <= 0 || forecast.Start.IsZero() || forecast.End.IsZero() {
+	assertSource(t, forecast.Source, "CONFIRMED_PUBLIC")
+	if forecast.City != "austin" || forecast.Start.IsZero() || forecast.End.IsZero() {
 		t.Fatalf("weather forecast = %#v", forecast)
 	}
 	alert := snapshot.Alerts[0]
-	if alert.City != "dallas" || alert.Event == "" || alert.Source.Provenance != "CONFIRMED_PUBLIC" || alert.Source.Age <= 0 {
+	assertSource(t, alert.Source, "CONFIRMED_PUBLIC")
+	if alert.City != "dallas" || alert.Event == "" {
 		t.Fatalf("weather alert = %#v", alert)
+	}
+}
+
+func assertSource(t *testing.T, actual Source, provenance string) {
+	t.Helper()
+	if actual.Provenance != provenance || actual.AsOf.IsZero() || actual.Age <= 0 {
+		t.Fatalf("public source = %#v", actual)
+	}
+}
+
+func TestLoadPublicRejectsMissingAndFutureSources(t *testing.T) {
+	now := time.Date(2026, 9, 26, 18, 0, 0, 0, time.UTC)
+	if _, err := LoadPublic(t.TempDir(), now); err == nil {
+		t.Fatal("missing public source accepted")
+	}
+	root := filepath.Join("..", "..", "..", "..", "testdata", "fixtures", "public")
+	if _, err := LoadPublic(root, time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)); err == nil {
+		t.Fatal("future public source accepted")
 	}
 }
