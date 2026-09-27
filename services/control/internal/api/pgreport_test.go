@@ -64,6 +64,67 @@ func TestLiveReportUsesFrozenForecastAndStoredDelivery(t *testing.T) {
 	require.True(t, hasLiveReportGap(oldData.DataGaps, "baseline_confidence_unavailable"))
 }
 
+func TestLiveReportRewardsAndMarginUseStoredEvidence(t *testing.T) {
+	pool := apiTestDatabase(t)
+	seedAPIEvent(t, pool)
+	ctx := context.Background()
+	plan := &gridosv1.DispatchPlan{MarginExplanation: &gridosv1.MarginExplanation{
+		ConservativeMargin: -3.25, MarginHurdle: 1,
+		Terms: []*gridosv1.MarginTerm{{Name: "DISPATCH_VALUE", Low: -3.25, High: -3.25, Source: "FROZEN_PUBLIC_PRICE"}, {Name: "MEMBER_REWARD", Low: 0, High: 0, Source: "FROZEN_OFFER"}},
+	}}
+	encoded, err := protojson.Marshal(plan)
+	require.NoError(t, err)
+	_, err = pool.Exec(ctx, `INSERT INTO plan_versions
+		(event_id, version, input_snapshot_id, eligibility_snapshot_id, plan, solver_version, model_version, correlation_id)
+		VALUES ('event-restart', 4, 'input-restart', 'eligibility-restart', $1, 'solver-report', 'model-report', 'report')`, encoded)
+	require.NoError(t, err)
+	_, err = pool.Exec(ctx, `UPDATE dispatch_events SET plan_version = 4 WHERE event_id = 'event-restart'`)
+	require.NoError(t, err)
+	source := NewPostgresReportSource(pool)
+	before, err := source.EventReportData(ctx, "event-restart")
+	require.NoError(t, err)
+	require.Nil(t, before.MemberRewardsCents)
+	require.True(t, hasLiveReportGap(before.DataGaps, "reward_unposted"))
+	require.NotNil(t, before.Margin)
+	require.Equal(t, -3.25, before.Margin.ValueUSD)
+	require.False(t, hasLiveReportGap(before.DataGaps, "margin_unavailable"))
+	_, err = pool.Exec(ctx, `INSERT INTO pricing_catalog_snapshots
+		(catalog_version, member_plan_id, market, energy_plan, energy_term_months, energy_monthly_charge_cents,
+		battery_plan, battery_term_months, battery_monthly_charge_cents, flexibility_reward_cents,
+		effective_at, correlation_id)
+		VALUES ('catalog-report', 'plan-report', 'TX', '{}', 0, 0, '{}', 0, 0, 725, now(), 'report')`)
+	require.NoError(t, err)
+	_, err = pool.Exec(ctx, `INSERT INTO flexibility_offers
+		(offer_id, member_id, catalog_version, contract_version, flexibility_reward_cents, price_text,
+		effective_at, expires_at, correlation_id, member_plan_id, market, offer_type, consent_text, consent_version,
+		energy_monthly_charge_cents, battery_monthly_charge_cents)
+		VALUES ('offer-report', 'member-report', 'catalog-report', 'contract-report', 725, 'Fixed event reward',
+		now(), now() + interval '1 day', 'report', 'plan-report', 'TX', 'PLAN', 'I agree', 'v1', 0, 0)`)
+	require.NoError(t, err)
+	_, err = pool.Exec(ctx, `INSERT INTO reward_ledger
+		(entry_id, member_id, event_id, offer_id, amount_cents, entry_type, recorded_at, correlation_id)
+		VALUES ('reward-report', 'member-report', 'event-restart', 'offer-report', 725, 'EARNED', now(), 'report')`)
+	require.NoError(t, err)
+	after, err := source.EventReportData(ctx, "event-restart")
+	require.NoError(t, err)
+	require.NotNil(t, after.MemberRewardsCents)
+	require.Equal(t, int64(725), *after.MemberRewardsCents)
+	require.False(t, hasLiveReportGap(after.DataGaps, "reward_unposted"))
+	plan.MarginExplanation.Terms[1].Unavailable = true
+	encoded, err = protojson.Marshal(plan)
+	require.NoError(t, err)
+	_, err = pool.Exec(ctx, `INSERT INTO plan_versions
+		(event_id, version, input_snapshot_id, eligibility_snapshot_id, plan, solver_version, model_version, correlation_id)
+		VALUES ('event-restart', 5, 'input-restart', 'eligibility-restart', $1, 'solver-report', 'model-report', 'report')`, encoded)
+	require.NoError(t, err)
+	_, err = pool.Exec(ctx, `UPDATE dispatch_events SET plan_version = 5 WHERE event_id = 'event-restart'`)
+	require.NoError(t, err)
+	unknown, err := source.EventReportData(ctx, "event-restart")
+	require.NoError(t, err)
+	require.Nil(t, unknown.Margin)
+	require.True(t, hasLiveReportGap(unknown.DataGaps, "margin_unavailable"))
+}
+
 func hasLiveReportGap(gaps []report.DataGap, reason string) bool {
 	for _, gap := range gaps {
 		if gap.Reason == reason && gap.End.After(gap.Begin) {
