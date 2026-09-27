@@ -121,7 +121,7 @@ func (verifier *Verifier) accept(ctx context.Context, assertion Assertion, canon
 		return errors.New("step-up assertion was already used")
 	}
 	if err = storage.AppendAudit(ctx, tx, storage.AuditRecord{OccurredAt: now, ActorID: assertion.Subject,
-		Action: "STEP_UP_ACCEPTED", ResourceID: assertion.EventID, NewValues: canonical, CorrelationID: assertion.Nonce}); err != nil {
+		Action: "STEP_UP_ACCEPTED", ResourceID: assertion.EventID, NewValues: canonical, CorrelationID: assertion.EventID}); err != nil {
 		return err
 	}
 	return tx.Commit(ctx)
