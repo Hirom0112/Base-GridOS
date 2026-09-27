@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"sort"
 	"strings"
 	"time"
@@ -159,8 +160,14 @@ func (source *PostgresSource) Timeline(ctx context.Context, eventID string) ([]*
 		if err = rows.Scan(&sequence, &occurredAt, &actorID, &action, &previousValues, &newValues); err != nil {
 			return nil, err
 		}
-		previous := auditValues(previousValues)
-		next := auditValues(newValues)
+		previous, err := auditValues(previousValues)
+		if err != nil {
+			return nil, err
+		}
+		next, err := auditValues(newValues)
+		if err != nil {
+			return nil, err
+		}
 		entries = append(entries, &gridosv1.EventTimelineEntry{
 			Sequence: sequence, OccurredAt: timestamppb.New(occurredAt), ActorId: actorID, Action: action,
 			PreviousState: eventState(previous.State), State: eventState(next.State), Reason: next.Reason,
@@ -177,10 +184,15 @@ type transitionValues struct {
 	Reason string `json:"reason"`
 }
 
-func auditValues(values []byte) transitionValues {
+func auditValues(values []byte) (transitionValues, error) {
 	var decoded transitionValues
-	_ = json.Unmarshal(values, &decoded)
-	return decoded
+	if values == nil {
+		return decoded, nil
+	}
+	if err := json.Unmarshal(values, &decoded); err != nil {
+		return decoded, fmt.Errorf("audit values: %w", err)
+	}
+	return decoded, nil
 }
 
 func eventState(value string) gridosv1.DispatchEventState {
