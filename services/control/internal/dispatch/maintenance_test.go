@@ -34,6 +34,18 @@ func TestRiskOverridesRunsOneBoundedEvaluation(t *testing.T) {
 	environment.AssertExpectations(t)
 }
 
+func TestRiskOverridesEvaluatesAwayAnomalies(t *testing.T) {
+	var suite testsuite.WorkflowTestSuite
+	environment := suite.NewTestWorkflowEnvironment()
+	environment.RegisterActivityWithOptions(func(context.Context, time.Time) error { return nil }, activity.RegisterOptions{Name: RiskOverridesActivity})
+	environment.RegisterActivityWithOptions(func(context.Context, time.Time) error { return nil }, activity.RegisterOptions{Name: "EvaluateRiskAnomalies"})
+	environment.OnActivity(RiskOverridesActivity, mock.Anything, mock.Anything).Return(nil).Once()
+	environment.OnActivity("EvaluateRiskAnomalies", mock.Anything, mock.Anything).Return(nil).Once()
+	environment.ExecuteWorkflow(RiskOverrides)
+	require.NoError(t, environment.GetWorkflowError())
+	environment.AssertExpectations(t)
+}
+
 func TestTelemetryMaintenanceSurfacesPruneFailure(t *testing.T) {
 	var suite testsuite.WorkflowTestSuite
 	environment := suite.NewTestWorkflowEnvironment()
