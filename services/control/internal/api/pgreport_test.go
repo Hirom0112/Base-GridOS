@@ -72,6 +72,9 @@ func TestLiveReportRewardsAndMarginUseStoredEvidence(t *testing.T) {
 		ConservativeMargin: -3.25, MarginHurdle: 1,
 		Terms: []*gridosv1.MarginTerm{{Name: "DISPATCH_VALUE", Low: -3.25, High: -3.25, Source: "FROZEN_PUBLIC_PRICE"}, {Name: "MEMBER_REWARD", Low: 0, High: 0, Source: "FROZEN_OFFER"}},
 	}}
+	for _, name := range []string{"AVOIDED_PEAK_COST", "COMMITMENT_RELIABILITY_VALUE", "CHARGING_ENERGY", "INCREMENTAL_DEGRADATION", "PENALTY_EXPOSURE", "SUPPORT_AND_RISK_COST"} {
+		plan.MarginExplanation.Terms = append(plan.MarginExplanation.Terms, &gridosv1.MarginTerm{Name: name, Source: "FROZEN_TEST_TERMS"})
+	}
 	encoded, err := protojson.Marshal(plan)
 	require.NoError(t, err)
 	_, err = pool.Exec(ctx, `INSERT INTO plan_versions
@@ -123,6 +126,19 @@ func TestLiveReportRewardsAndMarginUseStoredEvidence(t *testing.T) {
 	require.NoError(t, err)
 	require.Nil(t, unknown.Margin)
 	require.True(t, hasLiveReportGap(unknown.DataGaps, "margin_unavailable"))
+	plan.MarginExplanation.Terms = plan.MarginExplanation.Terms[:1]
+	encoded, err = protojson.Marshal(plan)
+	require.NoError(t, err)
+	_, err = pool.Exec(ctx, `INSERT INTO plan_versions
+		(event_id, version, input_snapshot_id, eligibility_snapshot_id, plan, solver_version, model_version, correlation_id)
+		VALUES ('event-restart', 6, 'input-restart', 'eligibility-restart', $1, 'solver-report', 'model-report', 'report')`, encoded)
+	require.NoError(t, err)
+	_, err = pool.Exec(ctx, `UPDATE dispatch_events SET plan_version = 6 WHERE event_id = 'event-restart'`)
+	require.NoError(t, err)
+	incomplete, err := source.EventReportData(ctx, "event-restart")
+	require.NoError(t, err)
+	require.Nil(t, incomplete.Margin)
+	require.True(t, hasLiveReportGap(incomplete.DataGaps, "margin_unavailable"))
 }
 
 func hasLiveReportGap(gaps []report.DataGap, reason string) bool {
