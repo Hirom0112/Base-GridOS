@@ -1226,3 +1226,13 @@ assumptions reported by workers land here too.
   standard is an operator procedure against the running system with the
   confirming query, the action, the recovered state, and the observed
   output pasted, with the test cited only as proof.
+- **Gate 4 window and machine load (2026-09-27):** the first Gate 4 group
+  lost its fifth scenario to a control process that hung 520 s while
+  PostgreSQL stalled; at that moment the load average was 91 with the
+  Docker virtual machine at 360 percent, a three-hour-old orphan gateway
+  from an abandoned integration stack at 51 percent, plus lane stacks and
+  a Bazel test. The director killed the orphan (load fell to 31 within a
+  minute) and declared a gate window: until it closes no lane starts an
+  integration stack, load test, or Bazel test; unit tests and commits
+  continue. The orphan sweep now also matches processes under the
+  temporary stack directories, which the earlier pattern missed.
