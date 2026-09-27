@@ -45,7 +45,10 @@ async function reviewFrozenPlan(page: Page, eventId: string) {
     await expect(
       page.getByRole("heading", { name: "Safety validated" }),
     ).toBeVisible();
-    const manifest = page.getByRole("region", { name: "Frozen plan inputs" });
+    const manifest = page.getByRole("region", {
+      name: "Frozen plan inputs",
+      exact: true,
+    });
     await expect(manifest).toContainText("Input snapshot");
     await expect(manifest).toContainText("Eligibility snapshot");
     await expect(manifest).not.toContainText(/pending|unavailable/i);
@@ -53,21 +56,28 @@ async function reviewFrozenPlan(page: Page, eventId: string) {
   });
   await test.step("04 Inspect household consumption and availability with explicit source gaps", async () => {
     await expect(
-      page.getByRole("region", { name: "Forecast intervals" }),
+      page.getByRole("region", { name: "Forecast intervals", exact: true }),
     ).toContainText("5000 sites");
     await expect(
-      page.getByRole("region", { name: "Frozen device availability" }),
+      page.getByRole("region", {
+        name: "Frozen device availability",
+        exact: true,
+      }),
     ).toContainText("5000");
     await expect(
-      page.getByRole("region", { name: "Frozen outage risk" }),
+      page.getByRole("region", { name: "Frozen outage risk", exact: true }),
     ).toBeVisible();
     await expect(
-      page.getByRole("region", { name: "Unavailable forecast sources" }),
+      page.getByRole("region", {
+        name: "Unavailable forecast sources",
+        exact: true,
+      }),
     ).toBeVisible();
   });
   await test.step("05 Optimizer proposes a reserve-preserving plan", async () => {
     const explanation = page.getByRole("region", {
       name: "Optimization explanation",
+      exact: true,
     });
     await expect(explanation).toContainText("Reserve held back");
     await expect(explanation).toContainText(/\d[\d,.]* kWh/);
@@ -82,7 +92,7 @@ async function reviewFrozenPlan(page: Page, eventId: string) {
       page.getByRole("heading", { name: "Exclusions by reason" }),
     ).toBeVisible();
     await expect(
-      page.getByRole("region", { name: "Constraint margins" }),
+      page.getByRole("region", { name: "Constraint margins", exact: true }),
     ).toContainText("RESERVE");
     await page
       .getByText("Modeled objective · inspect the value and costs")
@@ -121,6 +131,7 @@ async function reviewFrozenPlan(page: Page, eventId: string) {
     await page.getByLabel("Find reserve device").fill(weather.deviceId);
     const reserve = page.getByRole("region", {
       name: "Household reserve basis",
+      exact: true,
     });
     await expect(reserve).toContainText("WEATHER");
     await expect(reserve).toContainText(weather.overrideSourceId);
@@ -130,6 +141,7 @@ async function reviewFrozenPlan(page: Page, eventId: string) {
     await page.getByLabel("Find Travel Flex window").fill(binding.windowId);
     const travel = page.getByRole("region", {
       name: "Travel Flex eligibility",
+      exact: true,
     });
     await expect(travel).toContainText(`${binding.creditCents} cents`);
     await expect(travel).toContainText(binding.consentVersion);
@@ -169,7 +181,10 @@ async function approveAndLaunch(page: Page) {
 
 async function verifyExecution(page: Page, end: number) {
   await test.step("10 Inspect persisted commands and gateway receipts", async () => {
-    const commands = page.getByRole("region", { name: "Command fan-out" });
+    const commands = page.getByRole("region", {
+      name: "Command fan-out",
+      exact: true,
+    });
     await expect(commands).toContainText(
       /SENT|ACKNOWLEDGED|UNCERTAIN|EXECUTING|COMPLETED/,
       { timeout: 15000 },
@@ -181,7 +196,10 @@ async function verifyExecution(page: Page, end: number) {
     ).not.toHaveCount(0);
   });
   await test.step("11 Observe offline telemetry and an uncertain gateway command", async () => {
-    const failures = page.getByRole("region", { name: "Recorded failures" });
+    const failures = page.getByRole("region", {
+      name: "Recorded failures",
+      exact: true,
+    });
     await expect(failures).toContainText(/MISSING[_ ]TELEMETRY/, {
       timeout: 180000,
     });
@@ -190,7 +208,10 @@ async function verifyExecution(page: Page, end: number) {
     });
   });
   await test.step("12 Inspect retry, stale-capacity removal and rebalancing", async () => {
-    const recovery = page.getByRole("region", { name: "Recovery decisions" });
+    const recovery = page.getByRole("region", {
+      name: "Recovery decisions",
+      exact: true,
+    });
     await expect(recovery).toContainText(/RETRY/, { timeout: 60000 });
     await expect(recovery).toContainText(/REBALANCED[_ ]COMMAND/, {
       timeout: 60000,
@@ -202,6 +223,7 @@ async function verifyExecution(page: Page, end: number) {
   await test.step("13 Separate sent intent, acknowledgement and measured delivery", async () => {
     const response = page.getByRole("region", {
       name: "Measured event response",
+      exact: true,
     });
     await expect
       .poll(async () =>
@@ -226,6 +248,7 @@ async function verifyExecution(page: Page, end: number) {
   await test.step("14 Check measured margins against the protected household reserve", async () => {
     const reserve = page.getByRole("region", {
       name: "Reserve protection evidence",
+      exact: true,
     });
     await expect(reserve).toContainText(
       /[1-9]\d* of [1-9]\d* devices observed · MEASURED/,
@@ -244,10 +267,10 @@ async function verifyExecution(page: Page, end: number) {
       })
       .toBeGreaterThanOrEqual(end);
     await expect(
-      page.getByRole("region", { name: "Safe return evidence" }),
+      page.getByRole("region", { name: "Safe return evidence", exact: true }),
     ).toContainText(/[1-9]\d* zero-setpoint intents/, { timeout: 60000 });
     await expect(
-      page.getByRole("region", { name: "Safe return evidence" }),
+      page.getByRole("region", { name: "Safe return evidence", exact: true }),
     ).toContainText("do not confirm the fleet has stopped");
   });
 }
@@ -308,7 +331,10 @@ async function verifyReplay(page: Page) {
     .getByLabel("Replay time", { exact: true })
     .innerText();
   await expect(
-    page.getByRole("region", { name: "Historical geography clock" }),
+    page.getByRole("region", {
+      name: "Historical geography clock",
+      exact: true,
+    }),
   ).toContainText(finalTime);
   await slider.fill("0");
   await expect(page.getByLabel("Replay time", { exact: true })).not.toHaveText(
@@ -323,7 +349,10 @@ test("seventeen-step severe-weather operating loop against the live demo", async
   await page.goto("/fleet");
   await expect(page.getByRole("combobox", { name: "Demo role" })).toBeEnabled();
   await test.step("01 Inspect Austin markets, weather, outage history and fleet readiness", async () => {
-    const context = page.getByRole("region", { name: "Austin conditions" });
+    const context = page.getByRole("region", {
+      name: "Austin conditions",
+      exact: true,
+    });
     await expect(context).toBeVisible();
     await context
       .getByText("Inspect Austin markets · LZ_AEN and SOUTH_C")
