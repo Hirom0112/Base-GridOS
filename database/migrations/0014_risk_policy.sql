@@ -37,4 +37,19 @@ CREATE TABLE IF NOT EXISTS gateway_device_sources (
 
 CREATE INDEX IF NOT EXISTS gateway_device_sources_gateway_idx ON gateway_device_sources (gateway_id);
 
+CREATE TABLE IF NOT EXISTS risk_policy_evaluations (
+    site_id text NOT NULL,
+    evaluated_at timestamptz NOT NULL,
+    member_id text,
+    policy_version text NOT NULL REFERENCES risk_policy(version),
+    signals jsonb NOT NULL,
+    decisions jsonb NOT NULL,
+    PRIMARY KEY (site_id, evaluated_at)
+);
+
+DROP TRIGGER IF EXISTS risk_policy_evaluations_append_only ON risk_policy_evaluations;
+CREATE TRIGGER risk_policy_evaluations_append_only
+BEFORE UPDATE OR DELETE ON risk_policy_evaluations
+FOR EACH ROW EXECUTE FUNCTION reject_row_mutation();
+
 COMMIT;
