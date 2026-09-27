@@ -3,10 +3,13 @@ package analytics
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
+
+	"golang.org/x/oauth2/google/externalaccount"
 )
 
 func TestBigQuerySinkSendsIdempotentInsert(t *testing.T) {
@@ -84,5 +87,30 @@ func TestECSTaskCredentialsConfigure(t *testing.T) {
 	t.Setenv("GRIDOS_BIGQUERY_TABLE", "observations")
 	if _, err := NewSink(context.Background()); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestECSTaskCredentialsRotate(t *testing.T) {
+	requests := 0
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		requests++
+		if request.URL.Path != "/v2/credentials/task" {
+			t.Errorf("credential path = %q", request.URL.Path)
+		}
+		_, _ = fmt.Fprintf(writer, `{"AccessKeyId":"temporary-%d","SecretAccessKey":"secret","Token":"session","Expiration":"2030-01-01T00:00:00Z"}`, requests)
+	}))
+	defer server.Close()
+	supplier := ecsTaskCredentials{client: server.Client(), endpoint: server.URL + "/v2/credentials/task", region: "us-east-1"}
+	for count := 1; count <= 2; count++ {
+		credentials, err := supplier.AwsSecurityCredentials(context.Background(), externalaccount.SupplierOptions{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if credentials.AccessKeyID != fmt.Sprintf("temporary-%d", count) || credentials.SessionToken != "session" {
+			t.Fatalf("credential call %d = %+v", count, credentials)
+		}
+	}
+	if requests != 2 {
+		t.Fatalf("rotating task credentials fetched %d times", requests)
 	}
 }

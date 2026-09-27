@@ -10,10 +10,13 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path"
+	"strings"
 	"time"
 
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
+	"golang.org/x/oauth2/google/externalaccount"
 )
 
 type BigQuerySink struct {
@@ -39,26 +42,91 @@ func NewSink(ctx context.Context) (Sink, error) {
 	case "", "local":
 		return NewLocalSink(".local/analytics"), nil
 	case "bigquery":
-		credentials, err := google.FindDefaultCredentials(ctx, "https://www.googleapis.com/auth/bigquery.insertdata")
+		tokenSource, defaultProject, err := bigQueryTokenSource(ctx)
 		if err != nil {
 			return nil, err
 		}
 		project := os.Getenv("GRIDOS_BIGQUERY_PROJECT")
 		if project == "" {
-			project = credentials.ProjectID
+			project = defaultProject
 		}
 		dataset := os.Getenv("GRIDOS_BIGQUERY_DATASET")
 		table := os.Getenv("GRIDOS_BIGQUERY_TABLE")
 		if project == "" || dataset == "" || table == "" {
 			return nil, errors.New("BigQuery project, dataset, and table are required")
 		}
-		client := oauth2.NewClient(ctx, credentials.TokenSource)
+		client := oauth2.NewClient(ctx, tokenSource)
 		client.Timeout = 10 * time.Second
 		endpoint := fmt.Sprintf("https://bigquery.googleapis.com/bigquery/v2/projects/%s/datasets/%s/tables/%s/insertAll", url.PathEscape(project), url.PathEscape(dataset), url.PathEscape(table))
 		return NewBigQuerySink(client, endpoint), nil
 	default:
 		return nil, errors.New("unknown analytics sink")
 	}
+}
+
+type ecsTaskCredentials struct {
+	client   *http.Client
+	endpoint string
+	region   string
+}
+
+func (source ecsTaskCredentials) AwsRegion(context.Context, externalaccount.SupplierOptions) (string, error) {
+	return source.region, nil
+}
+
+func (source ecsTaskCredentials) AwsSecurityCredentials(ctx context.Context, _ externalaccount.SupplierOptions) (*externalaccount.AwsSecurityCredentials, error) {
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, source.endpoint, nil)
+	if err != nil {
+		return nil, err
+	}
+	response, err := source.client.Do(request)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = response.Body.Close() }()
+	if response.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("ECS task credentials returned HTTP %d", response.StatusCode)
+	}
+	var temporary struct {
+		AccessKeyID     string    `json:"AccessKeyId"`
+		SecretAccessKey string    `json:"SecretAccessKey"`
+		Token           string    `json:"Token"`
+		Expiration      time.Time `json:"Expiration"`
+	}
+	if err := json.NewDecoder(io.LimitReader(response.Body, 1<<16)).Decode(&temporary); err != nil {
+		return nil, err
+	}
+	if temporary.AccessKeyID == "" || temporary.SecretAccessKey == "" || temporary.Token == "" || !temporary.Expiration.After(time.Now().Add(time.Minute)) {
+		return nil, errors.New("ECS task credentials are missing or expired")
+	}
+	return &externalaccount.AwsSecurityCredentials{AccessKeyID: temporary.AccessKeyID, SecretAccessKey: temporary.SecretAccessKey, SessionToken: temporary.Token}, nil
+}
+
+func bigQueryTokenSource(ctx context.Context) (oauth2.TokenSource, string, error) {
+	relative := os.Getenv("AWS_CONTAINER_CREDENTIALS_RELATIVE_URI")
+	if relative == "" {
+		credentials, err := google.FindDefaultCredentials(ctx, "https://www.googleapis.com/auth/bigquery.insertdata")
+		if err != nil {
+			return nil, "", err
+		}
+		return credentials.TokenSource, credentials.ProjectID, nil
+	}
+	region := os.Getenv("AWS_REGION")
+	if region == "" {
+		region = os.Getenv("AWS_DEFAULT_REGION")
+	}
+	audience := os.Getenv("GRIDOS_WIF_AUDIENCE")
+	account := os.Getenv("GRIDOS_WIF_SERVICE_ACCOUNT")
+	if !strings.HasPrefix(relative, "/v2/credentials/") || path.Clean(relative) != relative || strings.ContainsAny(relative, "?#") || region == "" || audience == "" || account == "" {
+		return nil, "", errors.New("ECS federation configuration is incomplete")
+	}
+	source := ecsTaskCredentials{client: &http.Client{Timeout: 5 * time.Second}, endpoint: "http://169.254.170.2" + relative, region: region}
+	tokenSource, err := externalaccount.NewTokenSource(ctx, externalaccount.Config{
+		Audience: audience, SubjectTokenType: "urn:ietf:params:aws:token-type:aws4_request",
+		ServiceAccountImpersonationURL: "https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/" + url.PathEscape(account) + ":generateAccessToken",
+		Scopes:                         []string{"https://www.googleapis.com/auth/bigquery.insertdata"}, AwsSecurityCredentialsSupplier: source,
+	})
+	return tokenSource, "", err
 }
 
 func (sink *BigQuerySink) Write(ctx context.Context, record Record) error {
