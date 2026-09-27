@@ -762,3 +762,11 @@ assumptions reported by workers land here too.
   positive control proving private site, device, travel, and away strings
   planted in the source never reach the JSON. Director: report package ok,
   seven tests.
+- **3D.5 (lane 3D), verified; lane 3D complete:** on the director's
+  machine the canonical 5,000-device heat event passes in 111 s,
+  infeasible-target-shortfall in 110 s, and optimizer-timeout-fallback in
+  102 s, the last through the decision server's startup solver budget knob
+  so HiGHS deterministically times out and the validated fallback is served
+  with PLAN_FALLBACK_SELECTED. Two earlier failures came from an
+  uncommitted partition migration in the shared tree, since replaced by a
+  declarative migration.

@@ -1223,7 +1223,7 @@ Owns: `services/control/internal/dispatch/`, `services/control/internal/api/`,
 - `[x]` 3D.4 `[P]` Reject-then-approve path: the API can validate an
   intentionally unsafe alternative and return machine-readable violations
   without creating commands (FULL_SPEC §9 step 8). Verify: `-run UnsafeAlternative` passes.
-- `[ ]` 3D.5 `[after 3D.2]` Scenarios `optimizer-timeout-fallback` and
+- `[x]` 3D.5 `[after 3D.2]` Scenarios `optimizer-timeout-fallback` and
   `infeasible-target-shortfall` added to `tests/integration`, and
   `heat-event-canonical` (TECHSTACK e2e scenario 1) unskipped now that the
   solver plans 5,000 sites inside its budget. All three passing.
