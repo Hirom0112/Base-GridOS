@@ -8,6 +8,8 @@ import { RegionalForecasts } from "./regional-forecast";
 import { UnsafeAlternative } from "./unsafe-alternative";
 import { ForecastEvidence, FallbackEvidence } from "./forecast";
 
+import { HouseholdReserveBasis, TravelFlexEvidence } from "./reserve-basis";
+
 const timeSchema = evidenceSchema.shape.timestamp;
 const explanationSchema = z.object({
   reserveHeldBackKwh: z.number().nonnegative(),
@@ -156,8 +158,9 @@ export function ExplanationEvidence({
         </div>
       </header>
       <p className="explanation-note">
-        Values belong to the selected event and plan version. Explanation issue
-        time and provenance are not supplied by this response.
+        Values belong to the selected event and plan version. Frozen records
+        show their own issue time and provenance; aggregate objective and
+        constraint source metadata are not supplied.
       </p>
       <section aria-label="Constraint margins">
         <h3>Constraint margins</h3>
@@ -248,6 +251,8 @@ export function ExplanationEvidence({
           <p>No interval feasibility returned.</p>
         )}
       </section>
+      <HouseholdReserveBasis evidence={explanation.evidence} />
+      <TravelFlexEvidence evidence={explanation.evidence} />
       <ForecastEvidence evidence={explanation.evidence} />
       <FallbackEvidence evidence={explanation.evidence} />
       <RegionalForecasts evidence={explanation.evidence} />
