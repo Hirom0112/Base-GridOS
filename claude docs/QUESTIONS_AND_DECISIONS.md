@@ -967,3 +967,12 @@ assumptions reported by workers land here too.
   4E.6 reads snapshots that do not exist yet. Assigned to lane 4E ahead of
   the versioned path: the event returns with an empty basic report and no
   error, and the live full report lists plan_unavailable as a gap.
+- **5C.2 (lane 5C), verified:** fleet, dispatch, and failure-recovery
+  dashboards with a Prometheus datasource provision in the local compose
+  project, Grafana on host port 33000 so the console keeps 3000; the
+  dispatch board plots command states, acknowledgement latency, safety
+  rejections, and solver time from named metrics. Condition recorded for
+  5C.1: the services emit exactly those metric names
+  (gridos_commands_total, gridos_ack_latency_seconds, gridos_safety_rejections_total,
+  gridos_solver_duration_seconds) so the boards are live, not decorative.
+  Director: three dashboards return 200 on 33000.

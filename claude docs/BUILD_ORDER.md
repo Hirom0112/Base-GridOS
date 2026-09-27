@@ -1570,8 +1570,8 @@ the init call, `services/control/go.mod` (Wave 5 owner).
   telemetry freshness, safety rejections, solver time, fallback rate. The
   observability packages are `[P]`; only the `cmd/` edits wait for 5E.2.
   Verify: `curl localhost:9464/metrics | grep gridos_` lists each metric.
-- `[ ]` 5C.2 `[P]` Grafana dashboards provisioned in compose for fleet,
-  dispatch, and failure recovery. Verify: `curl localhost:3000/api/dashboards/uid/gridos-dispatch` returns 200.
+- `[x]` 5C.2 `[P]` Grafana dashboards provisioned in compose for fleet,
+  dispatch, and failure recovery. Verify: `curl localhost:33000/api/dashboards/uid/gridos-dispatch` returns 200 (Grafana on 33000; the console owns 3000).
 - `[ ]` 5C.3 `[P]` RED then GREEN: log, trace, and analytics scrubbers; a test
   emits a record containing a site ID, command credential, and travel window
   and asserts none reach the exporter (FULL_SPEC §11). Verify: `go test ./services/control/... -run Scrub` passes.
