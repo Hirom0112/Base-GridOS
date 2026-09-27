@@ -46,7 +46,9 @@ func (activities *Activities) IssueReplacement(ctx context.Context, replacement 
 	if len(plan.GetDeviceSchedules()) > 0 {
 		snapshot.Canonical.ExpectedGeneration = int64(replacement.Generation)
 		if err = activities.Dispatcher.Safety.Validate(plan, snapshot.Canonical); err != nil {
-			return err
+			if err = quantifyRejectedReplacement(plan, approved, replacement.DroppedDeviceIDs, current.GetIntervals()); err != nil {
+				return err
+			}
 		}
 	}
 	commands, err := replacementCommands(replacement, current, plan, key, now)
@@ -57,6 +59,37 @@ func (activities *Activities) IssueReplacement(ctx context.Context, replacement 
 		return err
 	}
 	return activities.publishCommands(ctx, commands)
+}
+
+func quantifyRejectedReplacement(plan, approved *gridosv1.DispatchPlan, dropped []string, intervals []*gridosv1.OptimizationInterval) error {
+	if len(intervals) == 0 {
+		return errors.New("replacement intervals required for shortfall")
+	}
+	droppedIDs := make(map[string]bool, len(dropped))
+	for _, id := range dropped {
+		droppedIDs[id] = true
+	}
+	shortfalls := make([]*gridosv1.ShortfallReport, len(intervals))
+	for index, interval := range intervals {
+		shortfalls[index] = &gridosv1.ShortfallReport{IntervalBeginTime: interval.GetBeginTime(), IntervalEndTime: interval.GetEndTime(), Reasons: []string{"SAFETY_REJECTED"}}
+	}
+	for _, schedule := range approved.GetDeviceSchedules() {
+		if !droppedIDs[schedule.GetDeviceId()] {
+			continue
+		}
+		if len(schedule.GetIntervals()) != len(intervals) {
+			return errors.New("approved replacement interval count changed")
+		}
+		for index, item := range schedule.GetIntervals() {
+			shortfalls[index].RequestedKw += item.GetSetpointKw()
+			shortfalls[index].ShortfallKw += item.GetSetpointKw()
+		}
+	}
+	plan.DeviceSchedules = nil
+	plan.Shortfalls = shortfalls
+	plan.FallbackUsed = true
+	plan.FallbackReason = "SAFETY_REJECTED"
+	return nil
 }
 
 func (activities *Activities) loadStoredReplacement(ctx context.Context, eventID, key string) (*gridosv1.OptimizationRequest, *gridosv1.DispatchPlan, error) {

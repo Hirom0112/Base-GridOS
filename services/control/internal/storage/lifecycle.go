@@ -198,6 +198,11 @@ func (store *PostgresEventStore) StoreReplacement(ctx context.Context, eventID s
 	if err = AppendAudit(ctx, tx, AuditRecord{OccurredAt: at, ActorID: "decision", Action: "REPLACEMENT_PLANNED", ResourceID: eventID, NewValues: values, CorrelationID: current.GetCorrelationId()}); err != nil {
 		return err
 	}
+	if plan.GetFallbackReason() == "SAFETY_REJECTED" {
+		if err = AppendAudit(ctx, tx, AuditRecord{OccurredAt: at, ActorID: "safety", Action: "REPLACEMENT_SAFETY_REJECTED", ResourceID: eventID, NewValues: values, CorrelationID: current.GetCorrelationId()}); err != nil {
+			return err
+		}
+	}
 	return tx.Commit(ctx)
 }
 
