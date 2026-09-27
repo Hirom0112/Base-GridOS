@@ -1576,7 +1576,7 @@ Owns: `infrastructure/observability/`, `infrastructure/local/`,
 `services/gateway-simulator/internal/observability/`, every `cmd/` main for
 the init call, `services/control/go.mod` (Wave 5 owner).
 
-- `[ ]` 5C.1 `[after 5E.2]` OpenTelemetry traces in Go and Python with
+- `[x]` 5C.1 `[after 5E.2]` OpenTelemetry traces in Go and Python with
   correlation and workflow IDs on every span, initialised from each `cmd/`
   main; Prometheus metrics for commands by state, acknowledgement latency,
   telemetry freshness, safety rejections, solver time, fallback rate. The

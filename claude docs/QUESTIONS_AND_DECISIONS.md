@@ -1146,3 +1146,11 @@ assumptions reported by workers land here too.
   key; in local auth mode the console obtains the assertion from the
   STUBBED mock identity endpoint, which signs server-side; production
   replaces that with identity-provider assertions.
+- **5C.1 (lane 5C), verified on the demo; lane 5C complete:** control,
+  worker, gateway, and decision expose process-local registries on 9464
+  to 9467, state gauges are database-backed and event counters
+  process-local, spans carry correlation and workflow ids through the
+  scrubbed exporter, and the boards and alert rules query exactly the
+  emitted names. On the demo the telemetry device and freshness gauges,
+  gateway up, and the solver duration histogram all carry real values
+  after one planned event.
