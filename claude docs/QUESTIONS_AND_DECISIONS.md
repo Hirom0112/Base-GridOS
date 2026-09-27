@@ -2213,3 +2213,16 @@ the anchor's cadence slot. Focused failures tests ok (0.433s) here; root
 posted three consecutive isolated canonical passes (121.3 s, 117.3 s,
 118.4 s). The demo is rebuilt on this tree together with 5F.5 and the
 proof is rerun for all five kinds plus the WEATHER override row.
+
+## 2026-09-27 09:56Z — Partner report coverage folded into 4E.10
+
+The console found the partner projection copies delivered power and
+energy even when reconciliation completeness is zero and carries no
+coverage, so a reader cannot tell absent measurement from a measured
+zero. Decision: 4E.10 also makes the partner projection omit delivery
+fields at zero coverage and carry coverage, with a positive control for a
+measured zero. Demo rebuilt on 4d54e57 (retry seed fix, weather
+assembly): all listeners up, public context dir wired to control and
+worker, telemetry lag 8 s, signer 200, worker log clean; proof event
+live-proof-1790502698 launched at 09:52Z with the WEATHER row poll
+alongside.

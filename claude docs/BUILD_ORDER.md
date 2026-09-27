@@ -1641,8 +1641,12 @@ Owns: `tests/integration/`, `testdata/scenarios/`, `tests/end-to-end/`,
   `delivery_shortfall` per interval as requested energy minus MEASURED
   delivered energy with the measurement coverage of that interval, in kWh,
   reported as unknown where coverage is absent (never zero). Tracking error
-  stays what it is. Verify: `go test ./services/control/internal/api/report/ -run Shortfall`
-  passes and the recorded report fixture carries both.
+  stays what it is. The partner projection omits delivered power and energy
+  when measurement coverage is zero and carries the coverage it does have,
+  with a positive control proving a measured zero still appears. Verify:
+  `go test ./services/control/internal/api/report/ -run Shortfall` and
+  `go test ./services/control/internal/report/ -run PartnerCoverage` pass and
+  the recorded report fixture carries both shortfalls.
 - `[x]` 4F.1 `[after 4A.7, 4B.6]` Scenario files and `tests/integration`
   cases for TECHSTACK e2e scenarios 12 to 17: `travel-flex-lifecycle`
   (activation, automatic expiry, early-return cancellation),
