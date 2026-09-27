@@ -2002,3 +2002,16 @@ catalog value. Offers tests ok (1.166s) here. Demo rebuilt: telemetry lag
 7 s, publish failures 0, buffered rows 0, enforcement denied without an
 assertion, worker log clean. The console reruns its member proof against
 it.
+
+## 2026-09-27 08:44Z — 4B.10 plan re-selection (found by the console's live retry)
+
+The console's second live member run selected the Balanced plan the same
+member had chosen in the first run and got FAILED_PRECONDITION with the
+raw text of a unique-key violation on `(member_id, policy_version)`. Two
+defects: a member cannot return to a plan they held before, and a database
+error string reached the client. Decision: 4B.10 replaces the unique key
+with a constraint allowing one current plan plus history, makes a new
+selection supersede the current one with an audit row, treats selecting the
+already-current plan with a new idempotency key as a no-op that returns the
+current plan, and maps rejections to domain reasons. Root, RED/GREEN in
+separate commits, migration with rollback.

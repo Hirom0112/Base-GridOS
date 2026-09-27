@@ -1481,6 +1481,14 @@ Owns: `services/control/internal/fleet/geo/`,
   scheduled Travel Flex and away windows; `PresentOffer` and the console use
   those terms instead of caller-supplied ones. Verify: `go test
   ./services/control/internal/api/member/ -run Offers` passes.
+- `[ ]` 4B.10 `[after 4B.9]` Plan re-selection. A member may select a plan they
+  held before: `SelectResiliencePlan` supersedes the current plan with an
+  effective-dated row and an audit entry, selecting the plan that is already
+  current with a new idempotency key returns that plan without error, and
+  the `(member_id, policy_version)` unique key is replaced by a constraint
+  that allows one current plan and a full history (migration with
+  rollback). Rejections carry a domain reason, never SQLSTATE text. Verify:
+  `go test ./services/control/internal/fleet/policy/ -run Reselect` passes.
 - `[x]` 4C.1 `[P]` RED then GREEN: server-side H3 aggregation of sites at
   resolutions 5 through 7 (the fleet carries resolution-7 cells; 8 is unavailable, never derived) with counts, capacity, SOC bands, connectivity, and
   active dispatch per cell; cells with fewer than 5 sites are merged upward
