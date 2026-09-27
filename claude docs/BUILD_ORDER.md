@@ -1317,7 +1317,7 @@ Owns: `services/control/internal/fleet/policy/`,
   automatically, early return cancels it and restores the safer reserve; a
   fixed daily, event, or annual credit is recorded, never a per-kWh discount by
   default. Verify: `-run TravelFlex` passes.
-- `[ ]` 4A.4 `[P]` RED then GREEN: dynamic overrides. Severe weather, outage
+- `[x]` 4A.4 `[P]` RED then GREEN: dynamic overrides. Severe weather, outage
   risk, stale telemetry, device alarms, or loss of communications raise the
   effective reserve immediately and are recorded as `ReserveOverride` rows
   (FULL_SPEC §4 invariant 11). Verify: `-run Override` passes.
@@ -1346,6 +1346,17 @@ Owns: `services/control/internal/fleet/policy/`,
   retention window, keep the audit journal for state transitions only, with
   a migration and rollback. Owns `services/control/internal/storage/`
   additively for this. Verify: `go test ./services/control/internal/storage/ -run Retention` passes and the IngestScale test stays green.
+- `[ ]` 4A.10 `[after 4A.4, 4D.3]` Risk signal bridge. Nothing invokes
+  `ApplyOverride` automatically. A singleton Temporal workflow
+  `RiskOverrides` (same shape as telemetry maintenance) runs every five
+  minutes and, per site, applies: WEATHER when an NWS alert is active in the
+  site's weather zone; OUTAGE_RISK when the county-hour probability exceeds
+  the threshold; STALE_TELEMETRY when the latest observation is older than
+  the freshness limit; ALARM when the operating state reports one;
+  COMMUNICATIONS when a gateway has published nothing for two cadences.
+  Thresholds and the raised floor per reason live in a versioned
+  `risk_policy` row (migration with rollback), never constants; evidence is
+  the source record id and as-of. Verify: `go test ./services/control/internal/fleet/policy/ -run RiskBridge` passes and on the demo a forced stale device shows a STALE_TELEMETRY override row within five minutes.
 
 ### Lane 4B — incremental margin evaluator
 

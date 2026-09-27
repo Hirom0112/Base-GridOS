@@ -902,3 +902,9 @@ assumptions reported by workers land here too.
   drill-down over a synthetic hierarchy labelled SIMULATED at every node,
   with the address scan covering its responses. Director: contracts lint
   and breaking clean, geo packages ok, control builds.
+- **4A.4 (lane 4A), verified:** typed risk overrides (weather, outage
+  risk, health, stale telemetry, alarm, communications) need evidence and
+  a higher floor, apply at their effective time, expire, survive plan
+  changes, reject a changed idempotent payload, and write one audit row;
+  migration 0011 adds the communications reason. Director: override tests
+  pass, 0011 re-applies. The automatic caller is new item 4A.10.
