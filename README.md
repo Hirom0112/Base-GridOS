@@ -12,7 +12,7 @@ margin remains positive.
 
 Install Go, `uv`, `pnpm`, Docker Compose, the PostgreSQL client, `buf`, and
 `sqlc` as listed in [`AGENTS.md`](AGENTS.md). From a clean checkout, keep
-ports 5432, 7233, 9090, 3000, 33000, 25061, 28080–28081, and 9464–9467
+ports 5432, 7233, 3000, 25061, 28080–28081, and 9464–9467
 free, then run:
 
 ```sh
