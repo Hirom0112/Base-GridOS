@@ -1617,7 +1617,7 @@ Owns: `infrastructure/aws/`.
   gateway simulator for staging), RDS PostgreSQL, Temporal (managed or
   self-hosted behind a variable), ALB, secrets in AWS Secrets Manager.
   Verify: `terraform -chdir=infrastructure/aws init -backend=false && terraform -chdir=infrastructure/aws validate`.
-- `[ ]` 5D.2 `[P]` Workload Identity Federation for BigQuery with no stored
+- `[x]` 5D.2 `[P]` Workload Identity Federation for BigQuery with no stored
   long-lived key (TECHSTACK "Warehouse identity"). Verify: `grep -rn "private_key" infrastructure/aws` prints nothing.
 - `[ ]` 5D.3 `[P]` Container images for each service built by Bazel or Docker
   with pinned base images. Verify: `docker build -f services/control/Dockerfile .` succeeds for each service.

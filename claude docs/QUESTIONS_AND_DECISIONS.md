@@ -1241,3 +1241,10 @@ assumptions reported by workers land here too.
   pinned local plugins, so a fresh checkout builds without a host step;
   generated trees are excluded from the build context. Verified by
   building from a clean archive of HEAD.
+- **5D.2 (lane 5D), verified:** workload identity federation pool and
+  provider, worker-role-only impersonation, and the dataset grant are in
+  Terraform (validate succeeds); the analytics sink obtains rotating ECS
+  task-role credentials from the container endpoint with no static key;
+  the scrubbed sink moved into the analytics package so safety and the
+  publisher no longer reach analytics transitively. Director: analytics
+  and isolation tests pass, no key material in the configuration.
