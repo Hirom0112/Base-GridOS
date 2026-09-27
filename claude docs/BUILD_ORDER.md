@@ -1462,6 +1462,12 @@ Owns: `services/decision/` (whole package this wave, including
 Owns: `services/control/internal/fleet/geo/`,
 `services/control/internal/api/geo/`, `testdata/fixtures/geo/`.
 
+- `[ ]` 4B.9 `[after 4B.6]` Member catalog read. `ListMemberOffers` returns the
+  current pricing catalog's plans and Travel Flex terms for a member with the
+  pricing, reward, and consent versions they would bind, plus the member's
+  scheduled Travel Flex and away windows; `PresentOffer` and the console use
+  those terms instead of caller-supplied ones. Verify: `go test
+  ./services/control/internal/api/member/ -run Offers` passes.
 - `[x]` 4C.1 `[P]` RED then GREEN: server-side H3 aggregation of sites at
   resolutions 5 through 7 (the fleet carries resolution-7 cells; 8 is unavailable, never derived) with counts, capacity, SOC bands, connectivity, and
   active dispatch per cell; cells with fewer than 5 sites are merged upward
@@ -1495,6 +1501,10 @@ Owns: `services/control/internal/context/`, `services/control/internal/api/conte
   and `MODELED` value kind; the 3F.3 fixture is refreshed from the demo.
   Verify: `go test ./services/control/internal/api/ -run Explanation` passes
   and the recorded fixture carries at least one interval.
+- `[ ]` 4C.7 `[after 4C.5]` `ListCells` accepts `as_of` like `Drilldown`, serving
+  the H3 layer at a historical instant from the retained telemetry so replay
+  scrubbing moves power and geography together. Verify: `go test
+  ./services/control/internal/api/geo/ -run AsOf` passes.
 - `[x]` 4D.1 `[P]` RED then GREEN: reference loaders for normalized ERCOT
   prices, system load, outage rates, and NWS forecasts and alerts from
   `testdata/fixtures/public` (offline default) with provenance and freshness

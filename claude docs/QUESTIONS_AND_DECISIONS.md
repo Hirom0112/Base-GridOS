@@ -1683,3 +1683,15 @@ zone) and 4C.6 (frozen forecast intervals in the explanation), both root
 after the gate window. Until they land the console shows exactly what the
 API returns with its geography label and states the mismatch as missing
 evidence, and supplies its own window candidates to ListDispatchWindows.
+
+## 2026-09-27 06:48Z — Member catalog read and historical H3 layer
+
+The console lane found MemberService has no read of available offers or
+current Travel Flex windows (PresentOffer takes caller-supplied terms) and
+ReplayEvent carries audit updates but no historical fleet samples.
+Decisions: 4B.9 adds ListMemberOffers backed by the stored pricing catalog
+snapshots and the member's scheduled windows, so terms are never invented
+by a client; 4C.7 gives ListCells the same `as_of` Drilldown already has,
+so the replay scrub can drive the geography from retained telemetry. Both
+root after the gate window. Until then the console shows member status,
+fixed-wording alerts, and Drilldown at `as_of` for the scrubbed position.
