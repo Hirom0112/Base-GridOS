@@ -6,7 +6,10 @@ import (
 	"testing"
 	"time"
 
+	gridosv1 "github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1"
+	"github.com/Hirom0112/Base-GridOS/services/control/internal/storage"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 func TestRiskBridgeUsesVersionedThresholdsAndEvidence(t *testing.T) {
@@ -41,6 +44,46 @@ func TestRiskBridgeUsesVersionedThresholdsAndEvidence(t *testing.T) {
 		Gateway:   &RiskGateway{EvidenceID: "recent", LastPublishedAt: now.Add(-10 * time.Second)},
 	})
 	require.Empty(t, quiet)
+}
+
+func TestRiskBridgeAppliesStaleOnlyWithConsentedPlan(t *testing.T) {
+	pool := policyDatabase(t)
+	ctx := context.Background()
+	now := time.Now().UTC().Truncate(time.Second)
+	seedPolicyCatalog(t, pool, now.Add(-48*time.Hour))
+	_, err := pool.Exec(ctx, `INSERT INTO risk_policy(version,effective_at,expires_at,outage_probability_threshold,
+		telemetry_freshness_seconds,gateway_cadence_seconds,weather_floor_percent,outage_floor_percent,
+		stale_floor_percent,alarm_floor_percent,communications_floor_percent,health_floor_percent,provenance)
+		VALUES ('risk-test',$1,$2,0.01,30,15,60,60,40,100,40,100,'{"provenance":"SIMULATED"}')`, now.Add(-time.Hour), now.Add(time.Hour))
+	require.NoError(t, err)
+	_, err = pool.Exec(ctx, `INSERT INTO member_sites(site_id,member_id,bound_at,source,provenance)
+		VALUES ('site-consented','member-consented',$1,'SIMULATED','{"provenance":"SIMULATED"}'),
+		('site-no-plan','member-no-plan',$1,'SIMULATED','{"provenance":"SIMULATED"}')`, now.Add(-time.Hour))
+	require.NoError(t, err)
+	_, err = selectWithOffer(t, New(pool), Selection{ID: "risk-selection", MemberID: "member-consented",
+		Market: "TX", CatalogVersion: "catalog-v2", MemberPlanID: "plan-cedar", PolicyVersion: "policy-v2",
+		ConsentText: "I consent", ConsentVersion: "v1", ExplanationShown: "Backup reserve",
+		EffectiveAt: now.Add(-time.Minute), CorrelationID: "risk-selection"})
+	require.NoError(t, err)
+	telemetry := storage.NewTelemetryStoreAt(pool, func() time.Time { return now })
+	sites := []*gridosv1.AuthorizedSite{
+		{Site: &gridosv1.Site{SiteId: "site-consented", WeatherZone: "SCENT"}, Devices: []*gridosv1.Device{{DeviceId: "device-consented"}}},
+		{Site: &gridosv1.Site{SiteId: "site-no-plan", WeatherZone: "SCENT"}, Devices: []*gridosv1.Device{{DeviceId: "device-no-plan"}}},
+	}
+	for _, deviceID := range []string{"device-consented", "device-no-plan"} {
+		_, err = telemetry.Write(ctx, "gateway-1", []*gridosv1.TelemetryObservation{{ObservationId: deviceID + ":observation",
+			DeviceId: deviceID, Sequence: 1, ObservationTime: timestamppb.New(now.Add(-time.Minute)),
+			OperatingState: &gridosv1.TelemetryObservation_OnGrid{OnGrid: &gridosv1.OnGrid{ObservedAt: timestamppb.New(now.Add(-time.Minute))}}}})
+		require.NoError(t, err)
+	}
+	require.NoError(t, NewRiskBridge(pool, sites, "").Evaluate(ctx, now))
+	var count int
+	require.NoError(t, pool.QueryRow(ctx, `SELECT count(*) FROM reserve_overrides WHERE member_id = 'member-consented' AND reason = 'STALE_TELEMETRY' AND reserve_floor_percent = 40`).Scan(&count))
+	require.Equal(t, 1, count)
+	require.NoError(t, pool.QueryRow(ctx, `SELECT count(*) FROM reserve_overrides WHERE member_id = 'member-no-plan'`).Scan(&count))
+	require.Zero(t, count)
+	require.NoError(t, pool.QueryRow(ctx, `SELECT count(*) FROM risk_policy_evaluations WHERE evaluated_at = $1`, now).Scan(&count))
+	require.Equal(t, 2, count)
 }
 
 func TestRiskBridgeMigrationReapplies(t *testing.T) {
