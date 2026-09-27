@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from decimal import Decimal
+from typing import Literal
 
 
 @dataclass(frozen=True, slots=True)
@@ -30,6 +31,12 @@ class MarginComponents:
 class MarginEstimate:
     conservative: Decimal
     optimistic: Decimal
+
+
+@dataclass(frozen=True, slots=True)
+class MemberReward:
+    kind: Literal["FIXED_CREDIT", "FEE_WAIVER"]
+    amount: Decimal
 
 
 def estimate_margin(components: MarginComponents) -> MarginEstimate:
@@ -63,3 +70,15 @@ def eligible_additional_capacity(
     if estimate.conservative <= hurdle:
         return Decimal(0)
     return capacity_kw
+
+
+def market_reward(membership_fee: Decimal, fixed_credit: Decimal) -> MemberReward:
+    if not membership_fee.is_finite() or membership_fee < 0:
+        raise ValueError("membership fee must be finite and nonnegative")
+    if not fixed_credit.is_finite() or fixed_credit < 0:
+        raise ValueError("fixed credit must be finite and nonnegative")
+    if membership_fee > 0:
+        return MemberReward("FEE_WAIVER", membership_fee)
+    if fixed_credit == 0:
+        raise ValueError("no-fee market requires a fixed credit")
+    return MemberReward("FIXED_CREDIT", fixed_credit)
