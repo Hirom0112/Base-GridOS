@@ -70,6 +70,60 @@ func TestRewardPostingRequiresAcceptedNonzeroCommandAndPaysExpiredConsent(t *tes
 	require.Equal(t, int64(500), amount)
 }
 
+func TestRewardPostingAddsFixedEventTravelCreditOnlyForFullWindow(t *testing.T) {
+	pool := policyDatabase(t)
+	ctx := context.Background()
+	begin := time.Now().UTC().Truncate(time.Second)
+	end := begin.Add(30 * time.Minute)
+	seedRewardPostingEvent(t, pool, begin, end)
+	store := New(pool)
+	for _, member := range []string{"one", "two"} {
+		_, err := selectWithOffer(t, store, Selection{ID: "reward-selection-" + member,
+			MemberID: "member-" + member, Market: "TX", CatalogVersion: "catalog-v1",
+			MemberPlanID: "plan-cedar", PolicyVersion: "policy-v1", ConsentText: "I consent",
+			ConsentVersion: "v1", ExplanationShown: "Backup reserve", EffectiveAt: begin.Add(-2 * time.Hour),
+			CorrelationID: "reward-event"})
+		require.NoError(t, err)
+	}
+	for _, window := range []TravelFlex{
+		{ID: "full-window", MemberID: "member-one", Start: begin.Add(-time.Minute), End: end.Add(time.Minute), CreditCents: 300},
+		{ID: "partial-window", MemberID: "member-two", Start: begin.Add(time.Minute), End: end.Add(time.Minute), CreditCents: 400},
+	} {
+		window.Timezone = "UTC"
+		window.TemporaryReservePercent = 20
+		window.EarlyReturnAction = RestorePlanReserve
+		window.CreditType = FixedEvent
+		window.ConsentText = "I accept fixed event credit"
+		window.ConsentVersion = "v1"
+		window.PolicyVersion = "policy-v1"
+		window.CorrelationID = "reward-event"
+		_, err := scheduleWithOffer(t, store, window)
+		require.NoError(t, err)
+	}
+	_, err := pool.Exec(ctx, `INSERT INTO command_intents
+		(command_id,idempotency_key,device_id,event_id,plan_version,generation,setpoint_kw,issued_at,effective_at,
+		expires_at,policy_version,correlation_id)
+		VALUES ('live-two-command','live-two-command','device-two','reward-event',1,0,1,$1,$2,$3,'policy-v1','reward-event')`, begin.Add(-time.Minute), begin, end)
+	require.NoError(t, err)
+	_, err = pool.Exec(ctx, `INSERT INTO command_acknowledgements
+		(acknowledgement_id,command_id,idempotency_key,receipt_status,received_at,gateway_id,correlation_id)
+		VALUES ('live-ack','live-command','live-ack','ACCEPTED',$1,'gateway','reward-event'),
+		('live-two-ack','live-two-command','live-two-ack','ACCEPTED',$1,'gateway','reward-event')`, begin)
+	require.NoError(t, err)
+	posted, err := store.PostEventRewards(ctx, "reward-event", end)
+	require.NoError(t, err)
+	require.Equal(t, 3, posted)
+	var rows int
+	var total int64
+	require.NoError(t, pool.QueryRow(ctx, `SELECT count(*),coalesce(sum(amount_cents),0)::bigint
+		FROM reward_ledger WHERE event_id = 'reward-event'`).Scan(&rows, &total))
+	require.Equal(t, 3, rows)
+	require.Equal(t, int64(1300), total)
+	var partial int
+	require.NoError(t, pool.QueryRow(ctx, `SELECT count(*) FROM reward_ledger WHERE offer_id = 'partial-window:offer'`).Scan(&partial))
+	require.Zero(t, partial)
+}
+
 func seedRewardPostingEvent(t *testing.T, pool *pgxpool.Pool, begin, end time.Time) {
 	t.Helper()
 	ctx := context.Background()
