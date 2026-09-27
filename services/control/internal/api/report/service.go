@@ -73,22 +73,19 @@ func (service *Service) CompareEventReports(ctx context.Context, request *connec
 	}
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
-	first, err := core.Build(ctx, service.source, request.Msg.GetEventIdA())
-	if errors.Is(err, pgx.ErrNoRows) {
+	first, err := core.BuildPublished(ctx, service.source, request.Msg.GetEventIdA(), request.Msg.PlanVersionA)
+	if errors.Is(err, core.ErrNotPublished) || errors.Is(err, pgx.ErrNoRows) {
 		return nil, connect.NewError(connect.CodeNotFound, err)
 	}
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
-	second, err := core.Build(ctx, service.source, request.Msg.GetEventIdB())
-	if errors.Is(err, pgx.ErrNoRows) {
+	second, err := core.BuildPublished(ctx, service.source, request.Msg.GetEventIdB(), request.Msg.PlanVersionB)
+	if errors.Is(err, core.ErrNotPublished) || errors.Is(err, pgx.ErrNoRows) {
 		return nil, connect.NewError(connect.CodeNotFound, err)
 	}
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
-	}
-	if request.Msg.PlanVersionA != nil && first.PlanVersion != request.Msg.GetPlanVersionA() || request.Msg.PlanVersionB != nil && second.PlanVersion != request.Msg.GetPlanVersionB() {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("requested report version is unavailable"))
 	}
 	response := &gridosv1.CompareEventReportsResponse{}
 	for _, difference := range core.Compare(first, second) {

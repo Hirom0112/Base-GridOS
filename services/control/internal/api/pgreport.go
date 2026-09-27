@@ -28,6 +28,10 @@ func (source *PostgresReportSource) StoredReport(ctx context.Context, eventID st
 	return storage.LoadPublishedReport(ctx, source.pool, eventID)
 }
 
+func (source *PostgresReportSource) StoredReportVersion(ctx context.Context, eventID string, version uint64) (*reporting.EventReport, error) {
+	return storage.LoadPublishedReportVersion(ctx, source.pool, eventID, version)
+}
+
 func (source *PostgresReportSource) EventReportData(ctx context.Context, eventID string) (reporting.StoredEvent, error) {
 	var report reporting.StoredEvent
 	var approved bool
