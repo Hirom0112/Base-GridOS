@@ -2,6 +2,7 @@ package contract_test
 
 import (
 	"bytes"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"testing"
@@ -16,6 +17,11 @@ func TestCommandIntentCanonicalJSON(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	var formatted bytes.Buffer
+	if err := json.Indent(&formatted, fixture, "", "  "); err != nil {
+		t.Fatal(err)
+	}
+	fixture = formatted.Bytes()
 	message := &gridosv1.CommandIntent{}
 	if err := (protojson.UnmarshalOptions{DiscardUnknown: false}).Unmarshal(fixture, message); err != nil {
 		t.Fatal(err)
@@ -23,6 +29,9 @@ func TestCommandIntentCanonicalJSON(t *testing.T) {
 	canonical, err := (protojson.MarshalOptions{}).Marshal(message)
 	if err != nil {
 		t.Fatal(err)
+	}
+	if !json.Valid(fixture) || !json.Valid(canonical) {
+		t.Fatal("fixture or generated command intent is not valid JSON")
 	}
 	canonical = append(canonical, '\n')
 	if !bytes.Equal(fixture, canonical) {
