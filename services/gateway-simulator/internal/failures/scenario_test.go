@@ -7,6 +7,25 @@ import (
 	"time"
 )
 
+func TestCanonicalRetryFaultIsOneShotBeforeRecoveryFaults(t *testing.T) {
+	scenario, err := LoadScenario(filepath.Join("..", "..", "..", "..", "testdata", "scenarios", "heat-event-canonical.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var retry, offline, delayed bool
+	for _, injection := range scenario.Injections {
+		retry = retry || injection.Kind == OfflineDevices && injection.Scope == NextCommand && injection.At.Equal(scenario.EventStart)
+		offline = offline || injection.Kind == OfflineDevices && injection.Scope == Scheduled && injection.At.After(scenario.EventStart)
+		delayed = delayed || injection.Kind == DelayedGateway && injection.Scope == NextCommand && injection.At.After(scenario.EventStart)
+	}
+	if !offline || !delayed {
+		t.Fatal("canonical recovery injections missing")
+	}
+	if !retry {
+		t.Fatal("canonical event lacks a deterministic one-shot retry fault")
+	}
+}
+
 func TestScenarioFileDrivesClockedInjections(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "scenario.yaml")
 	payload := []byte("name: clocked\nclock:\n  seed: 41\n  start_at: 2026-08-12T16:00:00-05:00\n  interval_seconds: 300\nfleet:\n  path: fleet.jsonl\n  size: 2\ninjections:\n  - at: 2026-08-12T16:05:00-05:00\n    kind: DELAYED_GATEWAY\n")
