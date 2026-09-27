@@ -18,6 +18,7 @@ import { EmergencyStopControl } from "./emergency-stop";
 import { ReportComparison } from "./comparison";
 import { EventReplay } from "./replay";
 import { EventReport } from "./report";
+import { EventCommands } from "./commands";
 import { LiveEvent } from "./events-live";
 
 const pendingStates: Partial<Record<DispatchEventState, string>> = {
@@ -143,6 +144,7 @@ export function EventView({
         <>
           <EmergencyStopControl key={eventId} eventId={eventId} />
           <LiveEvent key={`live-${eventId}`} eventId={eventId} />
+          <EventCommands key={`commands-${eventId}`} eventId={eventId} />
         </>
       )}
       {safetyViolations.length > 0 && (
