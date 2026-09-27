@@ -39,6 +39,13 @@ export function MemberHome() {
     setError("");
     setHousehold(result.data);
   }
+  if (identity.mode !== "local")
+    return (
+      <main className="auth-gate">
+        <h1>Home energy</h1>
+        <p>Your household connection is not available for this session.</p>
+      </main>
+    );
   return (
     <div className="console member-shell" data-theme="light">
       <main className="member-home">
@@ -49,11 +56,7 @@ export function MemberHome() {
         <form className="report-comparison" onSubmit={open}>
           <label>
             Member ID
-            <input
-              name="memberId"
-              defaultValue={identity.mode === "local" ? identity.memberId : ""}
-              required
-            />
+            <input name="memberId" defaultValue={identity.memberId} required />
           </label>
           <label>
             Site ID
