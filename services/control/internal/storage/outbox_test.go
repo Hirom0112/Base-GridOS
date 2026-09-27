@@ -187,9 +187,6 @@ func TestDeviceGenerationStopBypassesPending(t *testing.T) {
 		t.Fatal(err)
 	}
 	claim := OutboxClaim{AvailableAt: first.IssuedAt.Add(time.Second), LeaseUntil: first.IssuedAt.Add(time.Minute), BatchSize: 1}
-	if _, err := ClaimOutbox(ctx, pool, claim); err != nil {
-		t.Fatal(err)
-	}
 	claimed, err := ClaimOutbox(ctx, pool, claim)
 	if err != nil {
 		t.Fatal(err)
