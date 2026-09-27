@@ -355,10 +355,11 @@ func (activities *Activities) EndEvent(ctx context.Context, input Input) error {
 }
 
 func (activities *Activities) ProduceReport(ctx context.Context, input Input) error {
-	if _, err := reporting.Build(ctx, activities.Reports, input.EventID); err != nil {
+	complete, err := reporting.Build(ctx, activities.Reports, input.EventID)
+	if err != nil {
 		return err
 	}
-	_, err := activities.Events.Advance(ctx, input.EventID, "RECONCILED", "REPORTED", "workflow", activities.Now())
+	_, err = storage.StorePublishedReport(ctx, activities.Pool, complete, activities.Now())
 	return err
 }
 

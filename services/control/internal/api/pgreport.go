@@ -7,6 +7,7 @@ import (
 
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/reconciliation"
 	reporting "github.com/Hirom0112/Base-GridOS/services/control/internal/report"
+	"github.com/Hirom0112/Base-GridOS/services/control/internal/storage"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -19,16 +20,22 @@ func NewPostgresReportSource(pool *pgxpool.Pool) *PostgresReportSource {
 	return &PostgresReportSource{pool: pool}
 }
 
+func (source *PostgresReportSource) StoredReport(ctx context.Context, eventID string) (*reporting.EventReport, error) {
+	return storage.LoadPublishedReport(ctx, source.pool, eventID)
+}
+
 func (source *PostgresReportSource) EventReportData(ctx context.Context, eventID string) (reporting.StoredEvent, error) {
 	var report reporting.StoredEvent
 	var approved bool
-	err := source.pool.QueryRow(ctx, `SELECT request.target_kw / 1000.0,
+	var planVersion int64
+	err := source.pool.QueryRow(ctx, `SELECT request.target_kw / 1000.0, event.plan_version,
         EXISTS (SELECT 1 FROM operator_approvals WHERE event_id = event.event_id AND decision = 'APPROVED')
         FROM dispatch_events AS event JOIN dispatch_requests AS request USING (request_id)
-        WHERE event.event_id = $1`, eventID).Scan(&report.RequestedMW, &approved)
+		WHERE event.event_id = $1`, eventID).Scan(&report.RequestedMW, &planVersion, &approved)
 	if err != nil {
 		return report, err
 	}
+	report.PlanVersion = uint64(planVersion)
 	if approved {
 		report.ApprovedMW = report.RequestedMW
 	}
