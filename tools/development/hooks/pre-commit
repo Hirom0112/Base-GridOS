@@ -17,6 +17,9 @@ fail() {
   exit 1
 }
 
+command -v gitleaks >/dev/null || fail "gitleaks is not installed"
+gitleaks protect --staged --redact --no-banner || fail "gitleaks staged secrets"
+
 code_files=$(printf '%s\n' "$staged" | grep -E '\.(go|py|ts|tsx|js|mjs|sql|proto)$' | grep -vE '(^|/)gen/|_pb2\.py$|\.pb\.go$|connect\.go$' || true)
 
 tests_only=1
