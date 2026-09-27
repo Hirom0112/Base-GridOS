@@ -37,6 +37,14 @@
     "report_review": [
       "gridos.v1.ReportService.GetEventReport",
       "gridos.v1.ReportService.CompareEventReports"
+    ],
+    "member_portal": [
+      "gridos.v1.MemberService.GetMemberStatus",
+      "gridos.v1.MemberService.PresentOffer",
+      "gridos.v1.MemberService.SelectResiliencePlan",
+      "gridos.v1.MemberService.ScheduleTravelFlex",
+      "gridos.v1.MemberService.EndTravelFlexEarly",
+      "gridos.v1.MemberService.ListHomeActivityAlerts"
     ]
   },
   "requests": {
@@ -457,6 +465,90 @@
         "planVersionA": "1",
         "planVersionB": "1"
       }
+    },
+    "gridos.v1.MemberService.GetMemberStatus": {
+      "role": "member",
+      "body": {
+        "memberId": "member-9d5ecb7e1fda8fcce5d0",
+        "siteId": "site_9d5ecb7e1fda8fcce5d0"
+      },
+      "memberId": "member-9d5ecb7e1fda8fcce5d0"
+    },
+    "gridos.v1.MemberService.PresentOffer": {
+      "role": "member",
+      "body": {
+        "memberId": "member-9d5ecb7e1fda8fcce5d0",
+        "idempotencyKey": "offer-member-plan",
+        "kind": "MEMBER_OFFER_KIND_PLAN",
+        "market": "TX",
+        "catalogVersion": "catalog-member-fixture",
+        "memberPlanId": "plan-cedar",
+        "contractVersion": "contract-member-v1",
+        "priceText": "Energy $19.99, battery $15.00 monthly; $5.00 flexibility reward",
+        "consentText": "I accept Cedar terms",
+        "consentVersion": "consent-member-v1",
+        "effectiveAt": "2026-09-27T01:49:19Z",
+        "expiresAt": "2026-09-28T01:50:19Z",
+        "correlationId": "member-fixture"
+      },
+      "memberId": "member-9d5ecb7e1fda8fcce5d0"
+    },
+    "gridos.v1.MemberService.SelectResiliencePlan": {
+      "role": "member",
+      "body": {
+        "memberId": "member-9d5ecb7e1fda8fcce5d0",
+        "idempotencyKey": "select-member-plan",
+        "offerId": "offer-member-plan",
+        "market": "TX",
+        "catalogVersion": "catalog-member-fixture",
+        "memberPlanId": "plan-cedar",
+        "policyVersion": "policy-member-v1",
+        "consentText": "I accept Cedar terms",
+        "consentVersion": "consent-member-v1",
+        "explanationShown": "65 percent backup reserve and fixed flexibility reward",
+        "effectiveAt": "2026-09-27T01:51:00Z",
+        "correlationId": "member-fixture"
+      },
+      "memberId": "member-9d5ecb7e1fda8fcce5d0"
+    },
+    "gridos.v1.MemberService.ScheduleTravelFlex": {
+      "role": "member",
+      "body": {
+        "memberId": "member-9d5ecb7e1fda8fcce5d0",
+        "idempotencyKey": "window-member-flex",
+        "offerId": "offer-member-flex",
+        "startTime": "2026-09-27T01:56:00Z",
+        "endTime": "2026-09-27T03:56:00Z",
+        "timezone": "UTC",
+        "temporaryReservePercent": 20,
+        "earlyReturnAction": "MEMBER_EARLY_RETURN_ACTION_RESTORE_PLAN_RESERVE",
+        "creditType": "MEMBER_CREDIT_TYPE_FIXED_EVENT",
+        "fixedCreditCents": "1200",
+        "consentText": "I accept Travel Flex credit and reserve",
+        "consentVersion": "consent-flex-v1",
+        "policyVersion": "policy-member-v1",
+        "correlationId": "member-fixture"
+      },
+      "memberId": "member-9d5ecb7e1fda8fcce5d0"
+    },
+    "gridos.v1.MemberService.EndTravelFlexEarly": {
+      "role": "member",
+      "body": {
+        "memberId": "member-9d5ecb7e1fda8fcce5d0",
+        "idempotencyKey": "return-member-flex",
+        "windowId": "window-member-flex",
+        "returnedAt": "2026-09-27T02:26:00Z",
+        "consentVersion": "consent-flex-v1",
+        "correlationId": "member-fixture"
+      },
+      "memberId": "member-9d5ecb7e1fda8fcce5d0"
+    },
+    "gridos.v1.MemberService.ListHomeActivityAlerts": {
+      "role": "member",
+      "body": {
+        "memberId": "member-9d5ecb7e1fda8fcce5d0"
+      },
+      "memberId": "member-9d5ecb7e1fda8fcce5d0"
     }
   },
   "variants": {
@@ -526,6 +618,80 @@
         "body": {
           "eventId": "event-report-b"
         }
+      }
+    },
+    "gridos.v1.MemberService.GetMemberStatus": {
+      "on_grid": {
+        "role": "member",
+        "body": {
+          "memberId": "member-9d5ecb7e1fda8fcce5d0",
+          "siteId": "site_9d5ecb7e1fda8fcce5d0"
+        },
+        "memberId": "member-9d5ecb7e1fda8fcce5d0"
+      },
+      "off_grid_outage": {
+        "role": "member",
+        "body": {
+          "memberId": "member-9d5ecb7e1fda8fcce5d0",
+          "siteId": "site_9d5ecb7e1fda8fcce5d0"
+        },
+        "memberId": "member-9d5ecb7e1fda8fcce5d0"
+      },
+      "off_grid_no_home_power": {
+        "role": "member",
+        "body": {
+          "memberId": "member-9d5ecb7e1fda8fcce5d0",
+          "siteId": "site_9d5ecb7e1fda8fcce5d0"
+        },
+        "memberId": "member-9d5ecb7e1fda8fcce5d0"
+      },
+      "off_grid_overcurrent": {
+        "role": "member",
+        "body": {
+          "memberId": "member-9d5ecb7e1fda8fcce5d0",
+          "siteId": "site_9d5ecb7e1fda8fcce5d0"
+        },
+        "memberId": "member-9d5ecb7e1fda8fcce5d0"
+      },
+      "off_grid_overcurrent_standby": {
+        "role": "member",
+        "body": {
+          "memberId": "member-9d5ecb7e1fda8fcce5d0",
+          "siteId": "site_9d5ecb7e1fda8fcce5d0"
+        },
+        "memberId": "member-9d5ecb7e1fda8fcce5d0"
+      },
+      "telemetry_unavailable": {
+        "role": "member",
+        "body": {
+          "memberId": "member-9d5ecb7e1fda8fcce5d0",
+          "siteId": "site_9d5ecb7e1fda8fcce5d0"
+        },
+        "memberId": "member-9d5ecb7e1fda8fcce5d0"
+      }
+    },
+    "gridos.v1.MemberService.PresentOffer": {
+      "travel_flex": {
+        "role": "member",
+        "body": {
+          "memberId": "member-9d5ecb7e1fda8fcce5d0",
+          "idempotencyKey": "offer-member-flex",
+          "kind": "MEMBER_OFFER_KIND_TRAVEL_FLEX",
+          "market": "TX",
+          "catalogVersion": "catalog-member-fixture",
+          "memberPlanId": "plan-cedar",
+          "contractVersion": "contract-flex-v1",
+          "priceText": "Fixed $12 event credit",
+          "consentText": "I accept Travel Flex credit and reserve",
+          "consentVersion": "consent-flex-v1",
+          "effectiveAt": "2026-09-27T01:50:00Z",
+          "expiresAt": "2026-09-28T01:51:00Z",
+          "temporaryReservePercent": 20,
+          "creditType": "MEMBER_CREDIT_TYPE_FIXED_EVENT",
+          "fixedCreditCents": "1200",
+          "correlationId": "member-fixture"
+        },
+        "memberId": "member-9d5ecb7e1fda8fcce5d0"
       }
     }
   }
