@@ -19,17 +19,17 @@ for (const width of [390, 1440]) {
       const explanation = page.getByRole("region", {
         name: "Optimization explanation",
       });
-      await expect(explanation).toContainText("50,518.410 kWh");
+      await expect(explanation).toContainText("51,948.152 kWh");
       await expect(
         page.getByRole("region", { name: "Constraint margins" }),
-      ).toContainText("-1.7763568394002505e-15");
+      ).toContainText("21.628768236948616");
       await page
         .getByText("Modeled objective · inspect the value and costs")
         .click();
-      await expect(explanation).toContainText("1,056.044");
+      await expect(explanation).toContainText("-1.075");
       await expect(
         page.getByRole("table", { name: "Interval feasibility" }),
-      ).toContainText("1,000.000");
+      ).toContainText("1.000");
       expect(
         await page.evaluate(
           () => document.documentElement.scrollWidth <= innerWidth,

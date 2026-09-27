@@ -4,6 +4,7 @@ import { useSession } from "../api/auth";
 import { evidenceSchema } from "../api/Provenance";
 import type { GetPlanExplanationResponse } from "../api/gen/gridos/v1/api_pb";
 import "./explanation.css";
+import { UnsafeAlternative } from "./unsafe-alternative";
 import { ForecastEvidence, FallbackEvidence } from "./forecast";
 
 const timeSchema = evidenceSchema.shape.timestamp;
@@ -81,9 +82,11 @@ const quantity = new Intl.NumberFormat("en-US", {
 export function PlanExplanation({
   eventId,
   planVersion,
+  state,
 }: {
   eventId: string;
   planVersion: bigint;
+  state: number;
 }) {
   const { client, identity } = useSession();
   const query = useQuery({
@@ -104,7 +107,18 @@ export function PlanExplanation({
         <button onClick={() => void query.refetch()}>Retry explanation</button>
       </div>
     );
-  return <ExplanationEvidence explanation={query.data} />;
+  return (
+    <>
+      <ExplanationEvidence explanation={query.data} />
+      <UnsafeAlternative
+        key={`${eventId}:${planVersion}:${identity.role}`}
+        eventId={eventId}
+        planVersion={planVersion}
+        state={state}
+        explanation={query.data}
+      />
+    </>
+  );
 }
 
 export function ExplanationEvidence({

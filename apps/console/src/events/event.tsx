@@ -181,7 +181,11 @@ export function EventView({
       </div>
       {view === "plan" && (
         <>
-          <PlanExplanation eventId={eventId} planVersion={event.planVersion} />
+          <PlanExplanation
+            eventId={eventId}
+            planVersion={event.planVersion}
+            state={event.state}
+          />
           <ApprovalActions
             event={event}
             role={identity.role}
