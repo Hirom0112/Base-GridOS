@@ -26,9 +26,10 @@ export function TravelReturn({
   const [error, setError] = useState("");
   const intent = useRef<EndTravelFlexEarlyRequest | null>(null);
   const pending = useRef(false);
-  const action = { 1: "Restore my plan reserve", 2: "Restore maximum reserve" }[
-    window.earlyReturnAction
-  ];
+  const action = new Map([
+    [1, "Restore my plan reserve"],
+    [2, "Restore maximum reserve"],
+  ]).get(window.earlyReturnAction);
   async function end() {
     if (
       pending.current ||

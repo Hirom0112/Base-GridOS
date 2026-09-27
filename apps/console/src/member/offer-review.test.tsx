@@ -37,6 +37,7 @@ test("reviews exact terms and preserves the recorded offer intent across retries
   session.client.member.presentOffer.mockResolvedValueOnce({
     offer: create(MemberOfferSchema, {
       ...terms,
+      $typeName: undefined,
       memberId: "member-1",
       offerId: "offer-1",
     }),
@@ -61,6 +62,7 @@ test("a foreign offer receipt never unlocks consent", async () => {
   session.client.member.presentOffer.mockResolvedValueOnce({
     offer: create(MemberOfferSchema, {
       ...terms,
+      $typeName: undefined,
       memberId: "another-member",
       offerId: "offer-1",
     }),

@@ -45,7 +45,7 @@ export function OfferReview({
             "These terms are not currently effective. Refresh offers.",
           );
         intent.current = create(PresentOfferRequestSchema, {
-          ...terms,
+          ...offerTerms.parse(terms),
           memberId,
           idempotencyKey: crypto.randomUUID(),
           correlationId: crypto.randomUUID(),

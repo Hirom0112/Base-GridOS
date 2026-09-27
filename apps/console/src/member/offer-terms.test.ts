@@ -30,6 +30,7 @@ test("accepts complete stored terms and their matching presented offer", () => {
   expect(offerTerms.parse(source).policyVersion).toBe("policy-2");
   const receipt = create(MemberOfferSchema, {
     ...source,
+    $typeName: undefined,
     memberId: "member-1",
     offerId: "offer-1",
   });

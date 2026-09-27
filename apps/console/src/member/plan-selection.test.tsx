@@ -6,6 +6,7 @@ import { beforeEach, expect, test, vi } from "vitest";
 import {
   MemberOfferTermsSchema,
   SelectedMemberPlanSchema,
+  type SelectResiliencePlanRequest,
 } from "../api/gen/gridos/v1/member_pb";
 import { PlanSelection } from "./plan-selection";
 
@@ -33,9 +34,10 @@ test("selection requires consent and retries the same intent after an uncertain 
     new Error("Connection lost"),
   );
   session.client.member.selectResiliencePlan.mockImplementationOnce(
-    async (request) => ({
+    async (request: SelectResiliencePlanRequest) => ({
       plan: create(SelectedMemberPlanSchema, {
         ...terms,
+        $typeName: undefined,
         offerId: "offer-1",
         selectionId: "selection-1",
         termsKnown: true,
@@ -78,6 +80,7 @@ test("a mismatched receipt cannot confirm a selection", async () => {
   session.client.member.selectResiliencePlan.mockResolvedValue({
     plan: create(SelectedMemberPlanSchema, {
       ...terms,
+      $typeName: undefined,
       offerId: "other",
       selectionId: "selection-1",
       termsKnown: true,
