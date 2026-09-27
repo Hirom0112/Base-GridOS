@@ -42,6 +42,12 @@ type ModeledEconomics struct {
 	ValueKind          string
 }
 
+type ModeledMargin struct {
+	ValueUSD  float64
+	HurdleUSD float64
+	ValueKind string
+}
+
 type DataGap struct {
 	Begin  time.Time
 	End    time.Time
@@ -85,6 +91,8 @@ type StoredEvent struct {
 	Measurement                *Measurement
 	ReserveViolationsPrevented uint64
 	Economics                  *ModeledEconomics
+	MemberRewardsCents         *int64
+	Margin                     *ModeledMargin
 	DataGaps                   []DataGap
 	Assumptions                []string
 }
@@ -112,6 +120,8 @@ type EventReport struct {
 	Measurement                *Measurement
 	ReserveViolationsPrevented uint64
 	Economics                  *ModeledEconomics
+	MemberRewardsCents         *int64
+	Margin                     *ModeledMargin
 	DataGaps                   []DataGap
 	Assumptions                []string
 }
@@ -167,6 +177,15 @@ func Build(ctx context.Context, source Source, eventID string) (EventReport, err
 		economics.ValueKind = "modeled_estimate"
 		report.Economics = &economics
 	}
+	if stored.MemberRewardsCents != nil {
+		rewards := *stored.MemberRewardsCents
+		report.MemberRewardsCents = &rewards
+	}
+	if stored.Margin != nil {
+		margin := *stored.Margin
+		margin.ValueKind = "modeled_estimate"
+		report.Margin = &margin
+	}
 	return report, nil
 }
 
@@ -207,6 +226,14 @@ func cloneReport(report EventReport) EventReport {
 		economics := *report.Economics
 		clone.Economics = &economics
 	}
+	if report.MemberRewardsCents != nil {
+		rewards := *report.MemberRewardsCents
+		clone.MemberRewardsCents = &rewards
+	}
+	if report.Margin != nil {
+		margin := *report.Margin
+		clone.Margin = &margin
+	}
 	return clone
 }
 
@@ -220,16 +247,26 @@ func validateAccounting(stored StoredEvent) error {
 			return errors.New("report measurement is incomplete or invalid")
 		}
 	}
+	if err := validateFinancial(stored); err != nil {
+		return err
+	}
+	for _, gap := range stored.DataGaps {
+		if gap.Reason == "" || gap.Begin.IsZero() || !gap.End.After(gap.Begin) {
+			return errors.New("report data gap is invalid")
+		}
+	}
+	return nil
+}
+
+func validateFinancial(stored StoredEvent) error {
 	if stored.Economics != nil {
 		economics := stored.Economics
 		if !finite(economics.GrossValueUSD) || !finiteNonnegative(economics.DegradationCostUSD, economics.PenaltyExposureUSD) || !finite(economics.GrossValueUSD-economics.DegradationCostUSD-economics.PenaltyExposureUSD) {
 			return errors.New("report modeled economics must be finite")
 		}
 	}
-	for _, gap := range stored.DataGaps {
-		if gap.Reason == "" || gap.Begin.IsZero() || !gap.End.After(gap.Begin) {
-			return errors.New("report data gap is invalid")
-		}
+	if stored.Margin != nil && (!finite(stored.Margin.ValueUSD) || !finiteNonnegative(stored.Margin.HurdleUSD)) {
+		return errors.New("report conservative margin must be finite with a nonnegative hurdle")
 	}
 	return nil
 }

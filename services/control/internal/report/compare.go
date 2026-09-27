@@ -83,6 +83,13 @@ func comparisonValues(report EventReport) map[string]string {
 		float("economics.penalty_exposure_usd", report.Economics.PenaltyExposureUSD)
 		float("economics.net_value_usd", report.Economics.NetValueUSD)
 	}
+	if report.MemberRewardsCents != nil {
+		signed("member_rewards_cents", *report.MemberRewardsCents)
+	}
+	if report.Margin != nil {
+		float("margin.value_usd", report.Margin.ValueUSD)
+		float("margin.hurdle_usd", report.Margin.HurdleUSD)
+	}
 	values["versions.policy"] = report.Versions.Policy
 	values["versions.solver"] = report.Versions.Solver
 	values["versions.model"] = report.Versions.Model
