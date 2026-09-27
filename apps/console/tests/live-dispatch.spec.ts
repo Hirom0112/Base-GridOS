@@ -214,6 +214,18 @@ test("live forecasts, unsafe validation, report and replay preserve planning evi
   await expect(forecasts).toContainText("MODELED");
   await expect(forecasts.getByRole("table")).toContainText("kWh");
   await expect(forecasts.getByRole("table")).toContainText("DERIVED");
+  const availability = page.getByRole("region", {
+    name: "Frozen device availability",
+    exact: true,
+  });
+  await expect(availability).toContainText("modeled_estimate");
+  await expect(availability).toContainText("DERIVED");
+  await expect(
+    page.getByRole("region", { name: "Unavailable forecast sources" }),
+  ).toContainText("regional_price:LZ_AEN");
+  await expect(
+    page.getByRole("region", { name: "Dispatch window ranking" }),
+  ).toContainText("Frozen outage probabilities unavailable");
   await expect(
     page.getByRole("region", { name: "Solver fallback" }),
   ).toContainText(/No fallback recorded|Fallback used/);
