@@ -57,7 +57,17 @@ def optimize_request() -> optimization_pb2.OptimizeRequest:
                     discharge_efficiency=0.95,
                     availability_probability=1.0,
                     load_zone="LZ_AEN",
+                    site_id="site-a",
                 )
             ],
+            forecast=optimization_pb2.ForecastResponse(
+                site_loads=[
+                    optimization_pb2.ForecastSiteLoad(
+                        site_id="site-a",
+                        interval_begin_time=begin,
+                        load_kwh=optimization_pb2.ForecastValue(value=0.0),
+                    )
+                ]
+            ),
         )
     )
