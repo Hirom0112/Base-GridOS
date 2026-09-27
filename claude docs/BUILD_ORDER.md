@@ -1504,7 +1504,7 @@ Owns: `services/control/internal/context/`, `services/control/internal/api/conte
   the 3F.3 fixture is refreshed from the demo.
   Verify: `go test ./services/control/internal/api/ -run Explanation` passes
   and the recorded fixture carries at least one interval.
-- `[ ]` 4C.7 `[after 4C.5]` `ListCells` and `Drilldown` accept a request `as_of`
+- `[x]` 4C.7 `[after 4C.5]` `ListCells` and `Drilldown` accept a request `as_of`
   and serve the H3 layer at that historical instant from the retained
   telemetry, so replay scrubbing moves power and geography together (today
   both sample the service clock). Verify: `go test
