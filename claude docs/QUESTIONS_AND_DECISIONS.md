@@ -1740,3 +1740,16 @@ done. The gate window closes; root's queue (4D.8, 4C.6, 4E.8, 4E.9, 4B.9,
 approval and emergency stop are enforced end to end. Open after this:
 3F.5, 4F.5 and 5F.2 (the console's 17-step demo path) plus the six console
 support items.
+
+## 2026-09-27 07:40Z — Demo rebuilt with step-up enforcement; sweep mistake
+
+The demo was rebuilt on 604cee0 with GRIDOS_STEP_UP_KEY exported to the make
+invocation (control and worker inherit it; the mock signer runs with the
+same key from `.local/demo/step-up.key`). A director orphan sweep of
+leftover decision servers from killed isolated stacks matched the demo's own
+launch shell by its command line and killed it, which took the whole demo
+down through the make trap; the demo was relaunched at once. Lesson recorded:
+sweep by exact PID list or by port, never by a substring that the demo's
+launcher also carries. The make demo target kills every PID in
+`.local/demo/pids`, so the mock signer is restarted after each rebuild and
+its PID appended.
