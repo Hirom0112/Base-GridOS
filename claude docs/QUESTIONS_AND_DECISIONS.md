@@ -1726,7 +1726,7 @@ Root's post-gate order becomes 4D.8, 4C.6, 4E.8, 4E.9, 4B.9, 4C.7. Until
 they land the console states these as missing evidence rather than
 inferring success from plan or audit state.
 
-## 2026-09-27 07:32Z — Gate 5 backend GREEN
+## 2026-09-27 07:17Z — Gate 5 backend GREEN
 
 Report committed at `claude docs/gate-reports/wave-5.md`. Final lines on
 the director's machine: all 19 scenarios pass (groups 2 and 3 rerun after
@@ -1741,7 +1741,7 @@ approval and emergency stop are enforced end to end. Open after this:
 3F.5, 4F.5 and 5F.2 (the console's 17-step demo path) plus the six console
 support items.
 
-## 2026-09-27 07:40Z — Demo rebuilt with step-up enforcement; sweep mistake
+## 2026-09-27 07:18Z — Demo rebuilt with step-up enforcement; sweep mistake
 
 The demo was rebuilt on 604cee0 with GRIDOS_STEP_UP_KEY exported to the make
 invocation (control and worker inherit it; the mock signer runs with the
@@ -1754,7 +1754,7 @@ launcher also carries. The make demo target kills every PID in
 `.local/demo/pids`, so the mock signer is restarted after each rebuild and
 its PID appended.
 
-## 2026-09-27 07:50Z — 4D.8 verified
+## 2026-09-27 07:20Z — 4D.8 verified
 
 `GOFLAGS=-p=1 go test ./services/control/internal/context/ ./services/control/internal/api/context/ -run Region -count=1`
 printed `ok` for both packages; RED 1c0daf9 stages tests only, GREEN a8bf6b8
@@ -1765,7 +1765,7 @@ settlement point LZ_AEN and weather zone SOUTH_C with CONFIRMED_PUBLIC
 provenance and labelled geography without a restart, since the samples
 are read per request. Marked done.
 
-## 2026-09-27 07:58Z — Demo rebuilt on the 4C.6 tree
+## 2026-09-27 07:26Z — Demo rebuilt on the 4C.6 tree
 
 Rebuilt with the step-up key on 4777fb6 (explanation evidence 43fe91d
 included). Enforcement probe denied without an assertion, the console's
@@ -1774,7 +1774,7 @@ mock-signer restart raced the make target's PID sweep and lost the port
 (bind: address already in use); the second start after `demo ready`
 holds :8080. Rule kept: start the signer only after `demo ready`.
 
-## 2026-09-27 08:02Z — 4C.6 verified
+## 2026-09-27 07:30Z — 4C.6 verified
 
 `go test ./services/control/internal/api/ -run Explanation` ok (0.615s) and
 `go test ./tools/development/mockapi/ -run Fixtures` ok (0.702s) here. RED
@@ -1785,7 +1785,7 @@ units, one stored schedule). Fallback fields are absent from the recorded
 fixture because the demo plan did not fall back and protojson omits false
 and empty values. Marked done.
 
-## 2026-09-27 08:08Z — 4C.8 remaining frozen forecast inputs
+## 2026-09-27 07:31Z — 4C.8 remaining frozen forecast inputs
 
 The console's risk, availability and window panels still read live public
 samples (January 2025 prices, September 14 load) because the explanation
@@ -1796,7 +1796,7 @@ issue time and value kind. Root's order becomes 4E.8, 4E.9, 4C.8, 4B.9,
 4C.7. Until 4C.8 lands those substeps stay labelled missing evidence; the
 console never scores a window from candidate values it invents.
 
-## 2026-09-27 08:12Z — 4E.8: no per-command verified flag
+## 2026-09-27 07:32Z — 4E.8: no per-command verified flag
 
 Root found that verification evidence is aggregate (verification
 summaries and DELIVERY_VERIFIED rows per event interval) and telemetry
@@ -1807,7 +1807,7 @@ event's interval verification summaries as a separate MEASURED aggregate,
 so the console shows "verified at the boundary for the interval" rather
 than a per-device claim. Illegal states stay unrepresentable.
 
-## 2026-09-27 08:20Z — 4E.8 verified
+## 2026-09-27 07:36Z — 4E.8 verified
 
 `go test ./services/control/internal/api/events/ -run Commands -count=1 -v`
 here: TestListEventCommandsFromDurableRows, TestListEventCommandsAuthorization
@@ -1818,7 +1818,7 @@ intervals; no per-command verified flag. Marked done. The demo binary
 predates it; one rebuild follows 4E.9 so both RPCs land in a single
 restart.
 
-## 2026-09-27 08:24Z — 4E.8 reopened: command state must be a closed enum
+## 2026-09-27 07:37Z — 4E.8 reopened: command state must be a closed enum
 
 EventCommand.state in c86347c is a free string. No command state enum
 exists in the contracts, and AGENTS.md requires mutually exclusive states
@@ -1828,7 +1828,7 @@ EXPIRED, REJECTED, plus UNSPECIFIED) mapped from the durable text with an
 error on any unknown value, RED/GREEN, before the demo rebuild. The
 director's earlier [x] was premature.
 
-## 2026-09-27 08:32Z — 4E.8 verified with the closed enum
+## 2026-09-27 07:40Z — 4E.8 verified with the closed enum
 
 RED 7d0a516 (test only) then GREEN 6dbba98: CommandLifecycleState covers
 every durable command state (PERSISTED, SENT, ACKNOWLEDGED, UNCERTAIN,
@@ -1838,7 +1838,7 @@ buf breaking forbids removing it against main. `go test
 ./services/control/internal/api/events/ -run 'Commands|Lifecycle'` ok
 (0.733s) here. Marked done.
 
-## 2026-09-27 08:40Z — 4E.9 verified
+## 2026-09-27 07:47Z — 4E.9 verified
 
 `go test ./services/control/internal/api/report/ ./services/control/internal/api/ -run Reserve -count=1`
 ok for both packages here. RED 6fa78d8 and 1bff6c1 stage tests only; GREEN
@@ -1849,7 +1849,7 @@ with no usable telemetry the report records a data gap instead of a number.
 Marked done. The demo is rebuilt once on this tree so 4E.8 and 4E.9 land
 together; reports published after the rebuild carry reserve compliance.
 
-## 2026-09-27 08:50Z — Demo rebuilt on 2def79e (4E.8 and 4E.9 live)
+## 2026-09-27 07:48Z — Demo rebuilt on 2def79e (4E.8 and 4E.9 live)
 
 Enforcement probe denied without an assertion; the console's live approval
 passed (1 passed 9.1s); ListEventCommands on a past demo event returned 498
@@ -1859,7 +1859,7 @@ lag 19 s. The mock signer again needed a second start after `demo ready`
 PID sweep reached it), so the standing procedure is: rebuild, wait for
 `demo ready`, then start the signer and confirm :8080 answers.
 
-## 2026-09-27 09:05Z — 4C.8 verified
+## 2026-09-27 07:54Z — 4C.8 verified
 
 Explanation tests ok (0.521s) and mockapi Fixtures ok (0.823s) here; RED
 e1711d7 and 588af0f stage tests only. The fixture recorded from the demo on
@@ -1872,7 +1872,7 @@ later: the recorded explanation fixture is 4.55 MB, larger than the
 "small samples" rule intends; trimming the recorded fleet for fixtures is a
 candidate follow-up, not a blocker.
 
-## 2026-09-27 09:15Z — 4B.9 version linkage
+## 2026-09-27 07:59Z — 4B.9 version linkage
 
 The console asked where the versions that EndTravelFlexEarly, EndAway,
 SelectResiliencePlan and ScheduleTravelFlex must echo come from. Decision:
@@ -1883,7 +1883,7 @@ version it binds, stored in `offer_terms` beside the contract and consent
 versions. The console echoes served values only; it never reuses the
 current plan's policy version for a new selection and never invents one.
 
-## 2026-09-27 09:25Z — 4B.9 verified
+## 2026-09-27 08:02Z — 4B.9 verified
 
 `go test ./services/control/internal/api/member -run 'Offers|OfferTermsMigration' -count=1 -v`
 here: TestListMemberOffersUsesStoredTerms and
@@ -1894,7 +1894,7 @@ and the member's scheduled windows carrying their stored consent versions,
 and PresentOffer rejecting term mismatches. Marked done. The demo gets
 migration 0018 at the next rebuild, which waits for the console's release.
 
-## 2026-09-27 09:32Z — 4B.9 policy version follow-up verified; lock headroom note
+## 2026-09-27 08:04Z — 4B.9 policy version follow-up verified; lock headroom note
 
 Offers and migration tests ok (0.836s) here on 5d4e05e; RED 7b300f6 is
 test only; `offer_terms.policy_version` references the reserve policy
@@ -1906,7 +1906,7 @@ migrate at once. Follow-up for the infra lane at the next `make up` (never
 under the standing demo): raise max_locks_per_transaction in the compose
 command; recorded as a plan item under 5D.
 
-## 2026-09-27 09:40Z — 4C.7 verified; backend plan complete
+## 2026-09-27 08:09Z — 4C.7 verified; backend plan complete
 
 `go test ./services/control/internal/api/geo -run AsOf -count=1 -v` here:
 TestGeoAsOfReplaysRetainedTelemetry, TestGeoAsOfUsesRequestedSnapshot and
@@ -1919,7 +1919,7 @@ compose setting applied at the next make up). Open: 3F.5, 4F.5 and 5F.2,
 the console's demo path. The demo is rebuilt on cb5711e so 4B.9 and 4C.7
 serve together.
 
-## 2026-09-27 10:20Z — Demo telemetry outage: advisory lock per device exhausts the lock table
+## 2026-09-27 08:13Z — Demo telemetry outage: advisory lock per device exhausts the lock table
 
 Since 08:01:30Z no telemetry has been ingested on the standing demo. The
 PostgreSQL log shows `out of shared memory ... increase
