@@ -1363,3 +1363,11 @@ assumptions reported by workers land here too.
   emergency zeros bypass. Its migration failed the twice-apply gate
   (relation already exists) and goes back for idempotency before the
   consecutive-events stack run.
+- **2A.10 (lane 5C), verified on the demo:** with the gateway started in
+  live scenario mode on the canonical heat scenario, the director's event
+  launched at 04:06Z and, one hundred seconds after the first accepted
+  command, the retimed offline injection produced a MISSING_TELEMETRY
+  exception on a dispatched device (04:08:00Z, evidence
+  device_65375692ddaafc294e08-376) readable from the event timeline while
+  the event was EXECUTING; twelve timeline entries at that point. The
+  UNCERTAIN kind follows 2B.10, which sends commands inside the window.

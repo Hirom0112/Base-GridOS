@@ -890,7 +890,7 @@ For 2A.6, after lane F's 2F.1: `services/gateway-simulator/internal/telemetry/`.
   test fires two ticks inside one slot and expects one publish and no
   error. GREEN: a repeated slot is skipped, and a per-device producer
   rejection is logged and counted, never fatal to the fleet loop. Verify: `go test ./services/gateway-simulator/... -run RepeatedSlot` passes and the demo gateway survives an hour.
-- `[ ]` 2A.10 `[P]` Live scenario mode for the demo. `make demo` runs the
+- `[x]` 2A.10 `[P]` Live scenario mode for the demo. `make demo` runs the
   gateway without a scenario, so FULL_SPEC §9 step 11 (seeded offline
   devices and a delayed gateway) cannot be shown live. The gateway gains
   `--scenario <file> --live`: the scenario's injections are retimed relative
