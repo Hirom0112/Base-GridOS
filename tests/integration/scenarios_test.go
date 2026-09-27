@@ -231,7 +231,11 @@ func TestOldExpiryNewerPending(t *testing.T) {
 		t.Fatal(err)
 	}
 	if paired == 0 || uncertain == 0 {
-		t.Fatalf("expired old commands paired with newer commands = %d, uncertain newer commands = %d", paired, uncertain)
+		var firstNewer, lastNewer time.Time
+		if err := stack.pool.QueryRow(ctx, `SELECT min(issued_at), max(issued_at) FROM command_intents WHERE event_id = $1 AND generation = 2`, eventID).Scan(&firstNewer, &lastNewer); err != nil {
+			t.Fatal(err)
+		}
+		t.Fatalf("expired old commands paired with newer commands = %d, uncertain newer commands = %d, newer issued %s to %s, delayed fault %s, dropped fault %s", paired, uncertain, firstNewer, lastNewer, stack.scenario.Injections[0].At, stack.scenario.Injections[1].At)
 	}
 	commands := stack.commandStates(t, ctx, eventID)
 	if retained := stack.gatewayCommands(t, ctx, eventID); retained != len(commands) {
