@@ -3,7 +3,7 @@ import json
 
 import pytest
 
-from gridos.observability import new_provider, start_span
+from gridos.observability import new_provider, start_span, traced_rpc
 
 
 def test_python_trace_scrubs_private_fields() -> None:
@@ -37,3 +37,25 @@ def test_python_trace_rejects_private_identity() -> None:
         with start_span(provider, "dispatch.optimize", "site-private-123", "workflow-1", {}):
             pass
     provider.shutdown()
+
+
+def test_rpc_trace_uses_request_metadata_and_calls_handler() -> None:
+    output = io.StringIO()
+    provider = new_provider(output)
+
+    class Context:
+        def invocation_metadata(self) -> tuple[tuple[str, str], ...]:
+            return (("x-correlation-id", "correlation-7"), ("x-workflow-id", "workflow-7"))
+
+    def handler(request: str, context: Context) -> str:
+        assert request == "request"
+        assert isinstance(context, Context)
+        return "response"
+
+    wrapped = traced_rpc(provider, "Optimize", handler)
+    assert wrapped("request", Context()) == "response"
+    provider.shutdown()
+    record = json.loads(output.getvalue())
+    assert record["correlation_id"] == "correlation-7"
+    assert record["workflow_id"] == "workflow-7"
+    assert "private-site" not in output.getvalue()
