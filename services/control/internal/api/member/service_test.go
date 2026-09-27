@@ -187,3 +187,57 @@ func TestMemberStatusRecentEventsContainOwnDeviceOnly(t *testing.T) {
 		t.Fatalf("member events = %+v", response.Msg.GetRecentEvents())
 	}
 }
+
+func TestMemberOfferSelectionUpdatesStatusReserve(t *testing.T) {
+	ctx := context.Background()
+	pool := memberDatabase(t)
+	begin := time.Now().UTC().Truncate(time.Second)
+	_, err := pool.Exec(ctx, `INSERT INTO member_sites(site_id, member_id, bound_at, source, provenance)
+		VALUES ('site-1', 'member-1', now(), 'SIMULATED', '{"provenance":"SIMULATED"}')`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = pool.Exec(ctx, `INSERT INTO reserve_policies(policy_version,protected_hardware_floor_percent,member_plan_floor_percent,dynamic_override_percent,effective_reserve_percent,effective_at,correlation_id)
+		VALUES ('policy-v1',10,65,0,65,$1,'fixture')`, begin.Add(-time.Hour))
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = pool.Exec(ctx, `INSERT INTO pricing_catalog_snapshots(catalog_version,member_plan_id,market,display_name,reserve_floor_percent,energy_plan,energy_term_months,energy_monthly_charge_cents,battery_plan,battery_term_months,battery_monthly_charge_cents,flexibility_reward_cents,effective_at,correlation_id)
+		VALUES ('catalog-v1','plan-1','TX','Cedar',65,'{}',0,1999,'{}',0,1500,500,$1,'fixture')`, begin.Add(-time.Hour))
+	if err != nil {
+		t.Fatal(err)
+	}
+	twin := fleet.NewTwin(time.Minute)
+	twin.Accept(fleet.SiteState{SiteID: "site-1", ObservedAt: begin, OperatingState: fleet.OnGrid, Availability: fleet.Online})
+	sites := []*gridosv1.AuthorizedSite{{Site: &gridosv1.Site{SiteId: "site-1"}}}
+	service := NewService(pool, twin, sites, func() time.Time { return begin })
+	offerRequest := connect.NewRequest(&gridosv1.PresentOfferRequest{MemberId: "member-1", IdempotencyKey: "offer-1",
+		Kind: gridosv1.MemberOfferKind_MEMBER_OFFER_KIND_PLAN, Market: "TX", CatalogVersion: "catalog-v1",
+		MemberPlanId: "plan-1", ContractVersion: "contract-v1", PriceText: "Cedar price",
+		ConsentText: "Cedar reserve accepted", ConsentVersion: "consent-v1",
+		EffectiveAt: timestamppb.New(begin.Add(-time.Minute)), ExpiresAt: timestamppb.New(begin.Add(time.Hour)), CorrelationId: "corr-1"})
+	offerRequest.Header().Set("X-GridOS-Role", "member")
+	offerRequest.Header().Set("X-GridOS-Member-ID", "member-1")
+	offer, err := service.PresentOffer(ctx, offerRequest)
+	if err != nil || offer.Msg.GetOffer().GetEnergyMonthlyChargeCents() != 1999 {
+		t.Fatalf("presented offer: %v, %+v", err, offer)
+	}
+	selectionRequest := connect.NewRequest(&gridosv1.SelectResiliencePlanRequest{MemberId: "member-1",
+		IdempotencyKey: "selection-1", OfferId: "offer-1", Market: "TX", CatalogVersion: "catalog-v1",
+		MemberPlanId: "plan-1", PolicyVersion: "policy-v1", ConsentText: "Cedar reserve accepted",
+		ConsentVersion: "consent-v1", ExplanationShown: "Reserve limits dispatch",
+		EffectiveAt: timestamppb.New(begin), CorrelationId: "corr-1"})
+	selectionRequest.Header().Set("X-GridOS-Role", "member")
+	selectionRequest.Header().Set("X-GridOS-Member-ID", "member-1")
+	selected, err := service.SelectResiliencePlan(ctx, selectionRequest)
+	if err != nil || selected.Msg.GetPlan().GetReserveFloorPercent() != 65 {
+		t.Fatalf("selected plan: %v, %+v", err, selected)
+	}
+	statusRequest := connect.NewRequest(&gridosv1.GetMemberStatusRequest{MemberId: "member-1", SiteId: "site-1"})
+	statusRequest.Header().Set("X-GridOS-Role", "member")
+	statusRequest.Header().Set("X-GridOS-Member-ID", "member-1")
+	status, err := service.GetMemberStatus(ctx, statusRequest)
+	if err != nil || status.Msg.GetCurrentPlan().GetOfferId() != "offer-1" || status.Msg.GetEffectiveReservePercent() != 65 {
+		t.Fatalf("current member reserve: %v, %+v", err, status)
+	}
+}
