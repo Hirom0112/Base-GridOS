@@ -106,13 +106,16 @@ func startStack(t *testing.T, scenarioName string) *stack {
 	if scenario.Name == "optimizer-timeout-fallback" {
 		decisionEnv = []string{"GRIDOS_SOLVER_BUDGET_SECONDS=0.000001"}
 	}
+	if scenario.Name == "negative-margin-no-dispatch" {
+		decisionEnv = append(decisionEnv, "GRIDOS_PUBLIC_FIXTURES_DIR="+writeNegativePriceFixture(t, stack.logDir, scenario))
+	}
 	stack.start(t, "decision", decisionAddress, decisionEnv, "uv", "run", "--project", "services/decision", "python", "-m", "gridos.server", "--port", port(t, decisionAddress))
 	stack.start(t, "gateway", gatewayAddress, []string{"GRIDOS_GATEWAY_TOKEN=" + gatewayToken}, built.gateway,
 		"--scenario", runtimeScenarioPath, "--address", gatewayAddress, "--database", stack.gatewayDB, "--gateway-id", gatewayID, "--cadence", "5s", "--control-address", stack.controlURL)
 	controlEnv := []string{
 		"GRIDOS_CONTROL_ADDRESS=" + controlAddress, "GRIDOS_DATABASE_URL=" + stack.databaseURL, "GRIDOS_GATEWAY_ADDR=" + stack.gatewayURL,
 		"GRIDOS_DECISION_ADDR=" + stack.decisionURL, "GRIDOS_FLEET=" + scenario.Fleet.Path, "GRIDOS_GATEWAY_TOKEN=" + gatewayToken, "TEMPORAL_ADDRESS=" + temporalAddress,
-		"GRIDOS_TASK_QUEUE=" + name, "GRIDOS_SCENARIO=" + runtimeScenarioPath,
+		"GRIDOS_TASK_QUEUE=" + name, "GRIDOS_SCENARIO=" + runtimeScenarioPath, "GRIDOS_STEP_UP_KEY=gridos-local-step-up-key-32-bytes-minimum",
 	}
 	stack.start(t, "control", controlAddress, controlEnv, built.control)
 	stack.start(t, "worker", "", controlEnv, built.worker)
@@ -121,6 +124,31 @@ func startStack(t *testing.T, scenarioName string) *stack {
 	}
 	stack.assertRunning(t, "worker")
 	return stack
+}
+
+func writeNegativePriceFixture(t *testing.T, directory string, scenario Scenario) string {
+	t.Helper()
+	root := filepath.Join(directory, "public")
+	prices := filepath.Join(root, "ercot-prices")
+	if err := os.MkdirAll(prices, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(prices, "PROVENANCE.md"), []byte("Provenance: SIMULATED\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	zone, err := time.LoadLocation("America/Chicago")
+	if err != nil {
+		t.Fatal(err)
+	}
+	price := "Delivery Date,Hour Ending,Repeated Hour Flag,Settlement Point,Settlement Point Price\n"
+	for hour := scenario.Event.StartAt.Truncate(time.Hour); !hour.After(scenario.Event.EndAt); hour = hour.Add(time.Hour) {
+		local := hour.In(zone)
+		price += fmt.Sprintf("%s,%02d:00,N,%s,-50\n", local.Format("01/02/2006"), local.Hour()+1, scenario.Event.Region)
+	}
+	if err := os.WriteFile(filepath.Join(prices, "dam-spp-week.csv"), []byte(price), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	return root
 }
 
 func requireInfrastructure(t *testing.T, root string) {

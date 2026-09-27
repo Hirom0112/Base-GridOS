@@ -3,6 +3,7 @@ package integration
 import (
 	"context"
 	"fmt"
+	"slices"
 	"testing"
 	"time"
 
@@ -17,16 +18,11 @@ func TestTravelFlexLifecycle(t *testing.T) {
 	stack := startStack(t, "travel-flex-lifecycle")
 	ctx := context.Background()
 	cohort := stack.cohort(t)
-	var selected FleetDevice
-	for _, device := range cohort {
-		if device.ReservePreferencePercent <= 20 {
-			selected = device
-			break
-		}
-	}
-	if selected.DeviceID == "" {
+	index := slices.IndexFunc(cohort, func(device FleetDevice) bool { return device.ReservePreferencePercent <= 20 })
+	if index < 0 {
 		t.Fatal("cohort has no low-reserve member")
 	}
+	selected := cohort[index]
 	stack.publishTelemetry(t, ctx, cohort, time.Now().UTC(), constantStateOfEnergy)
 	memberID := stack.selectScenarioPlan(t, selected, 60, 10, 0)
 	if got := stack.memberStatus(t, memberID, selected.SiteID).GetEffectiveReservePercent(); got != 60 {
