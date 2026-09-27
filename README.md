@@ -38,14 +38,14 @@ Tests: `make test-go`, `make test-py`, `make test-web`, and `make test-e2e`
 ## Architecture
 
 ```mermaid
-flowchart LR
-  Console["Operator and member console<br/>React + TanStack, :3000"]
-  Control["Control API<br/>Go + Connect, :28080"]
+flowchart TB
+  Console["Operator and member console<br/>React + TanStack · :3000"]
+  Control["Control API<br/>Go + Connect · :28080"]
+  Temporal[("Temporal · :7233")]
   Worker["Dispatch worker<br/>Go + Temporal"]
-  Decision["Decision service<br/>Python + HiGHS, :25061"]
-  Gateway["Gateway simulator<br/>5,000 batteries, :28081"]
-  Temporal[("Temporal :7233")]
-  Postgres[("PostgreSQL 16 :5432")]
+  Decision["Decision service<br/>Python + HiGHS · :25061"]
+  Gateway["Gateway simulator<br/>5,000 batteries · :28081"]
+  Postgres[("PostgreSQL 16 · :5432")]
   Public[("Public context<br/>ERCOT, NWS fixtures")]
 
   Console -->|Connect RPC| Control
@@ -54,9 +54,9 @@ flowchart LR
   Temporal --> Worker
   Worker -->|forecast, optimize| Decision
   Worker -->|command outbox| Gateway
-  Gateway -->|telemetry, acks| Control
-  Public --> Control
+  Gateway -.->|telemetry, acks| Control
   Public --> Decision
+  Public -.-> Control
 ```
 
 An operator requests capacity for an event. The decision service forecasts load
