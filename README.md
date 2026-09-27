@@ -79,6 +79,14 @@ is [`FULL_SPEC.md`](FULL_SPEC.md) with architecture detail in
 `make demo` wires every service itself; no API keys or cloud accounts are
 needed. The variables you may set:
 
+A sample with the values the recorded demo uses is in `.env.example`:
+
+```sh
+cp .env.example .env
+sed -i '' "s/replace-with-output-of-openssl-rand-hex-32/$(openssl rand -hex 32)/" .env
+set -a; . ./.env; set +a; make demo
+```
+
 | Variable | Default | Purpose |
 | --- | --- | --- |
 | `GRIDOS_DEMO_SCENARIO` | unset | Scenario YAML under `testdata/scenarios/` that drives weather, prices, and failures |
