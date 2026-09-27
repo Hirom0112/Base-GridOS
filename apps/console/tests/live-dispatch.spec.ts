@@ -151,3 +151,38 @@ test("live approval passes the server-issued step-up assertion without launching
     `LIVE STEP-UP: signer 200; matching assertion forwarded; APPROVED; no launch; ${new URL(page.url()).pathname}`,
   );
 });
+
+test("live report and replay preserve recorded planning evidence", async ({
+  page,
+}, testInfo) => {
+  await page.goto("/dispatch/new");
+  await page
+    .getByLabel("Start time")
+    .fill(new Date(Date.now() + 120000).toISOString().slice(0, 16));
+  await page
+    .getByLabel("End time")
+    .fill(new Date(Date.now() + 600000).toISOString().slice(0, 16));
+  await page.getByLabel("Target power (MW)").fill("0.001");
+  await page.getByRole("button", { name: "Create dispatch plan" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Safety validated", exact: true }),
+  ).toBeVisible({ timeout: 45000 });
+  await page.getByRole("link", { name: "Report", exact: true }).click();
+  const report = page.getByRole("region", {
+    name: "Event report",
+    exact: true,
+  });
+  await expect(report).toContainText("SIMULATED");
+  await expect(report).toContainText("Data gaps");
+  await page.getByRole("button", { name: "Replay event", exact: true }).click();
+  await expect(
+    page.getByRole("region", { name: "Event replay", exact: true }),
+  ).toContainText("IDENTICAL", { timeout: 30000 });
+  await expect(
+    page.getByRole("slider", { name: "Replay position" }),
+  ).toBeVisible();
+  await page
+    .locator(".event-panel")
+    .screenshot({ path: testInfo.outputPath("live-report-replay.png") });
+  console.log(`LIVE REPORT REPLAY ${page.url()}`);
+});

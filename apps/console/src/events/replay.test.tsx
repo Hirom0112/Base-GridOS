@@ -77,3 +77,13 @@ test("reversed replay update times are rejected", () => {
   );
   expect(screen.queryByRole("slider")).not.toBeInTheDocument();
 });
+
+test("an event without a scenario manifest retains its valid replay and names the gap", () => {
+  const data = fixture();
+  data.scenarioSha256 = "";
+  render(<ReplayEvidence data={data} />);
+  expect(screen.getByText("IDENTICAL")).toBeVisible();
+  expect(screen.getByText("Scenario SHA-256").parentElement).toHaveTextContent(
+    "Not supplied",
+  );
+});
