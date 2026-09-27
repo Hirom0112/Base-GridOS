@@ -78,3 +78,33 @@ func TestRecordWritesEveryIndexedMethod(t *testing.T) {
 		}
 	}
 }
+
+func TestRecordSendsScopedMemberIdentity(t *testing.T) {
+	fixtureRoot := t.TempDir()
+	index := []byte(`{"screens":{"fleet":["gridos.v1.FleetService.GetFleetSummary"],"member":["gridos.v1.MemberService.GetMemberStatus"]},"requests":{"gridos.v1.FleetService.GetFleetSummary":{"role":"operator","body":{}},"gridos.v1.MemberService.GetMemberStatus":{"role":"member","memberId":"member-1","body":{"memberId":"member-1","siteId":"site-1"}}}}`)
+	if err := os.WriteFile(filepath.Join(fixtureRoot, "INDEX.json"), index, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	operatorCalled := false
+	stub := httptest.NewServer(http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+		if request.URL.Path == "/gridos.v1.FleetService/GetFleetSummary" {
+			operatorCalled = true
+			if request.Header.Get("X-GridOS-Member-ID") != "" {
+				t.Error("operator request carries member identity")
+			}
+		} else if request.Header.Get("X-GridOS-Member-ID") != "member-1" {
+			http.Error(response, "member identity required", http.StatusForbidden)
+			return
+		}
+		response.Header().Set("Content-Type", "application/json")
+		_, _ = response.Write([]byte(`{"recorded":true}`))
+	}))
+	defer stub.Close()
+	err := recordFixtures(fixtureRoot, stub.URL, &http.Client{Timeout: time.Second})
+	if !operatorCalled {
+		t.Fatal("operator control path was not called")
+	}
+	if err != nil {
+		t.Fatal(err)
+	}
+}
