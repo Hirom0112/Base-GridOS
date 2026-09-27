@@ -68,6 +68,20 @@ def test_negative_public_price_keeps_base_reserve(
     assert terms["MEMBER_REWARD"].high == 0
 
 
+def test_plain_grid_service_has_sourced_zero_value_terms(
+    serve: Callable[[OptimizationServer], optimization_pb2_grpc.OptimizationServiceStub],
+    optimize_request: optimization_pb2.OptimizeRequest,
+) -> None:
+    explanation = serve(OptimizationServer()).Optimize(optimize_request).plan.margin_explanation
+    terms = {term.name: term for term in explanation.terms}
+    assert terms["AVOIDED_PEAK_COST"].source == "ABSENT_PEAK_AVOIDANCE_CONTRACT"
+    assert terms["COMMITMENT_RELIABILITY_VALUE"].source == "ABSENT_COMMITMENT_CONTRACT"
+    assert all(
+        not terms[name].unavailable and terms[name].low == terms[name].high == 0
+        for name in ("AVOIDED_PEAK_COST", "COMMITMENT_RELIABILITY_VALUE")
+    )
+
+
 def test_negative_simulated_price_keeps_its_label(
     serve: Callable[[OptimizationServer], optimization_pb2_grpc.OptimizationServiceStub],
     optimize_request: optimization_pb2.OptimizeRequest,
