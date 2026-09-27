@@ -2058,3 +2058,12 @@ container still has 64 because applying it means restarting PostgreSQL
 under the standing demo, which also hosts Temporal state. The item stays
 dispatched until the next `make up` (at demo retirement or the next full
 gate), when the live `show max_locks_per_transaction` line closes it.
+
+## 2026-09-27 09:22Z — 4C.9 API verified; fixture waits for the demo
+
+RED fd2da26 (test only) then GREEN c47f87a: the eligibility snapshot
+freezes each device's reserve basis and the consented Travel Flex credit
+binding, and the explanation serves the plan-selected effective reserve.
+`go test ./services/control/internal/api -run 'ReserveBasis|Explanation'`
+ok (1.378s) here. The fixture recording waits for the demo rebuild on
+c47f87a after the steps 11/12 proof window closes.
