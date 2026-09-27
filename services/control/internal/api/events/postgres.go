@@ -64,7 +64,7 @@ func (source *PostgresSource) Snapshot(ctx context.Context, eventID string) (*gr
 	if err != nil {
 		return nil, err
 	}
-	exceptions, err := source.exceptions(ctx, eventID)
+	exceptions, err := source.TimelineExceptions(ctx, eventID)
 	if err != nil {
 		return nil, err
 	}
@@ -142,7 +142,7 @@ func (source *PostgresSource) commandPower(ctx context.Context, eventID string) 
 	return result, rows.Err()
 }
 
-func (source *PostgresSource) Timeline(ctx context.Context, eventID string) (*gridosv1.GetEventTimelineResponse, error) {
+func (source *PostgresSource) Timeline(ctx context.Context, eventID string) ([]*gridosv1.EventTimelineEntry, error) {
 	rows, err := source.pool.Query(ctx, `SELECT sequence, occurred_at, actor_id, action, previous_values, new_values
 		FROM audit_journal WHERE resource_id = $1 OR resource_id IN (SELECT command_id FROM command_intents WHERE event_id = $1)
 		ORDER BY sequence`, eventID)
@@ -169,11 +169,7 @@ func (source *PostgresSource) Timeline(ctx context.Context, eventID string) (*gr
 	if err = rows.Err(); err != nil {
 		return nil, err
 	}
-	exceptions, err := source.exceptions(ctx, eventID)
-	if err != nil {
-		return nil, err
-	}
-	return &gridosv1.GetEventTimelineResponse{Entries: entries, Exceptions: exceptions}, nil
+	return entries, nil
 }
 
 type transitionValues struct {

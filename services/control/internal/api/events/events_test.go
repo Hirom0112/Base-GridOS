@@ -28,10 +28,14 @@ func (source *changingSource) Snapshot(context.Context, string) (*gridosv1.Watch
 	return proto.Clone(source.update).(*gridosv1.WatchEventResponse), nil
 }
 
-func (source *changingSource) Timeline(context.Context, string) (*gridosv1.GetEventTimelineResponse, error) {
+func (source *changingSource) Timeline(context.Context, string) ([]*gridosv1.EventTimelineEntry, error) {
 	source.mu.RLock()
 	defer source.mu.RUnlock()
-	return &gridosv1.GetEventTimelineResponse{Entries: source.timeline}, nil
+	return source.timeline, nil
+}
+
+func (source *changingSource) TimelineExceptions(context.Context, string) ([]*gridosv1.EventException, error) {
+	return nil, nil
 }
 
 func (source *changingSource) RequestStop(_ context.Context, request *gridosv1.EmergencyStopRequest) (*gridosv1.EmergencyStopResponse, error) {

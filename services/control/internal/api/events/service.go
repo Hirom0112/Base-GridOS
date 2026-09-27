@@ -14,7 +14,8 @@ import (
 
 type Source interface {
 	Snapshot(context.Context, string) (*gridosv1.WatchEventResponse, error)
-	Timeline(context.Context, string) (*gridosv1.GetEventTimelineResponse, error)
+	Timeline(context.Context, string) ([]*gridosv1.EventTimelineEntry, error)
+	TimelineExceptions(context.Context, string) ([]*gridosv1.EventException, error)
 	RequestStop(context.Context, *gridosv1.EmergencyStopRequest) (*gridosv1.EmergencyStopResponse, error)
 }
 
@@ -41,11 +42,15 @@ func (service *Service) GetEventTimeline(ctx context.Context, request *connect.R
 	if request.Msg.GetEventId() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("event identifier is required"))
 	}
-	timeline, err := service.source.Timeline(ctx, request.Msg.GetEventId())
+	entries, err := service.source.Timeline(ctx, request.Msg.GetEventId())
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
-	return connect.NewResponse(timeline), nil
+	exceptions, err := service.source.TimelineExceptions(ctx, request.Msg.GetEventId())
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	return connect.NewResponse(&gridosv1.GetEventTimelineResponse{Entries: entries, Exceptions: exceptions}), nil
 }
 
 func (service *Service) EmergencyStop(ctx context.Context, request *connect.Request[gridosv1.EmergencyStopRequest]) (*connect.Response[gridosv1.EmergencyStopResponse], error) {

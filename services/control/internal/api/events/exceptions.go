@@ -9,7 +9,7 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-func (source *PostgresSource) exceptions(ctx context.Context, eventID string) ([]*gridosv1.EventException, error) {
+func (source *PostgresSource) TimelineExceptions(ctx context.Context, eventID string) ([]*gridosv1.EventException, error) {
 	rows, err := source.pool.Query(ctx, `WITH event_window AS (
 		SELECT request.begin_time, request.end_time FROM dispatch_requests AS request
 		JOIN dispatch_events AS event USING (request_id) WHERE event.event_id = $1
