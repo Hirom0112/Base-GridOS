@@ -2373,3 +2373,12 @@ c94b11df-72e1-4fa1-b801-e615116d09e7, then failed step 09: the spec waits
 COMMANDS_PERSISTED. Root cause under investigation. The gateway's armed
 launch is consumed; the five-fault proof is read from this event's durable
 rows, and the full seventeen-step run needs another rebuild.
+
+## 2026-09-27 14:29Z — 2A.13 verified live
+
+Event c94b11df-72e1-4fa1-b801-e615116d09e7, the first launch on the
+rebuilt gateway, recorded COMMAND_RETRY (14:27:50Z), MISSING_TELEMETRY
+(14:28:31Z), then UNCERTAIN_COMMAND, STALE_CAPACITY_REMOVED,
+REBALANCED_COMMAND and REPLACEMENT_PLANNED by 14:29:13Z, read from
+EventsService/GetEventTimeline. With 2B.11 in place the replacement command
+no longer blocks UNCERTAIN. Marked done.
