@@ -1536,3 +1536,10 @@ printed `Executed 1 out of 1 test: 1 test passes.` and `bazelisk build
 //services/control:image` printed `Build completed successfully`. 5D.6 marked
 done. 5D.5 stays dispatched until one clean uncached broad run after root's
 GREEN for the new scope lands, at the Gate 5 window.
+
+## 2026-09-27 05:08Z — 5D.7 verified
+
+`sqlc diff` printed nothing (exit 0) and `go vet ./services/control/...`
+printed nothing (exit 0) on d421e8b, which adds `sqlc generate` to the
+generate target and commits the regenerated models. Marked done. The README
+quickstart therefore lists sqlc among the prerequisites (lane 5F).
