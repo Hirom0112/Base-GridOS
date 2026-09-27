@@ -177,11 +177,12 @@ func mergeReplacementPlan(approved, replacement *gridosv1.DispatchPlan, dropped 
 
 func (activities *Activities) publishCommands(ctx context.Context, commands []storage.CommandIntent) error {
 	for _, command := range commands {
-		var planVersion, generation int64
+		var planVersion int64
 		var setpoint float64
-		err := activities.Pool.QueryRow(ctx, `SELECT plan_version, generation, setpoint_kw FROM command_intents WHERE command_id = $1`, command.CommandID).Scan(&planVersion, &generation, &setpoint)
+		var deviceID, eventID, key string
+		err := activities.Pool.QueryRow(ctx, `SELECT device_id, event_id, idempotency_key, plan_version, setpoint_kw FROM command_intents WHERE command_id = $1`, command.CommandID).Scan(&deviceID, &eventID, &key, &planVersion, &setpoint)
 		if err == nil {
-			if planVersion != command.PlanVersion || generation != command.Generation || setpoint != command.SetpointKW {
+			if deviceID != command.DeviceID || eventID != command.EventID || key != command.IdempotencyKey || planVersion != command.PlanVersion || setpoint != command.SetpointKW {
 				return errors.New("replacement command changed on retry")
 			}
 			continue

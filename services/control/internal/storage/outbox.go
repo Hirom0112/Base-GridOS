@@ -8,6 +8,7 @@ import (
 
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/observability"
 	storagegen "github.com/Hirom0112/Base-GridOS/services/control/internal/storage/gen"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -48,6 +49,18 @@ func InsertCommand(ctx context.Context, pool *pgxpool.Pool, command CommandInten
 		return err
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
+	var existing string
+	err = tx.QueryRow(ctx, `SELECT command_id FROM command_intents WHERE idempotency_key = $1`, command.IdempotencyKey).Scan(&existing)
+	if err == nil {
+		return fmt.Errorf("duplicate command key %s", command.IdempotencyKey)
+	}
+	if !errors.Is(err, pgx.ErrNoRows) {
+		return err
+	}
+	command.Generation, err = nextDeviceGeneration(ctx, tx, command.DeviceID)
+	if err != nil {
+		return err
+	}
 	queries := storagegen.New(tx)
 	_, err = queries.InsertCommandIntentAndOutbox(ctx, storagegen.InsertCommandIntentAndOutboxParams{
 		CommandID:      command.CommandID,
@@ -88,6 +101,14 @@ func InsertZeroCommand(ctx context.Context, pool *pgxpool.Pool, command CommandI
 		return err
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
+	exists, err := existingZeroCommand(ctx, tx, command)
+	if err != nil || exists {
+		return err
+	}
+	command.Generation, err = nextDeviceGeneration(ctx, tx, command.DeviceID)
+	if err != nil {
+		return err
+	}
 	tag, err := tx.Exec(ctx, `INSERT INTO command_intents
 		(command_id, idempotency_key, device_id, event_id, plan_version, generation, setpoint_kw, issued_at, effective_at, expires_at, policy_version, correlation_id)
 		VALUES ($1, $2, $3, $4, $5, $6, 0, $7, $8, $9, $10, $11)
@@ -97,15 +118,12 @@ func InsertZeroCommand(ctx context.Context, pool *pgxpool.Pool, command CommandI
 		return err
 	}
 	if tag.RowsAffected() == 0 {
-		var existing CommandIntent
-		err = tx.QueryRow(ctx, `SELECT command_id, device_id, event_id, plan_version, generation, setpoint_kw
-			FROM command_intents WHERE idempotency_key = $1`, command.IdempotencyKey).Scan(
-			&existing.CommandID, &existing.DeviceID, &existing.EventID, &existing.PlanVersion, &existing.Generation, &existing.SetpointKW)
+		exists, err = existingZeroCommand(ctx, tx, command)
 		if err != nil {
 			return err
 		}
-		if existing.CommandID != command.CommandID || existing.DeviceID != command.DeviceID || existing.EventID != command.EventID || existing.PlanVersion != command.PlanVersion || existing.Generation != command.Generation || existing.SetpointKW != 0 {
-			return fmt.Errorf("conflicting reuse of zero command key %s", command.IdempotencyKey)
+		if !exists {
+			return errors.New("zero command conflict has no durable intent")
 		}
 		return nil
 	}
@@ -122,13 +140,51 @@ func InsertZeroCommand(ctx context.Context, pool *pgxpool.Pool, command CommandI
 	return nil
 }
 
+func nextDeviceGeneration(ctx context.Context, tx pgx.Tx, deviceID string) (int64, error) {
+	var generation int64
+	err := tx.QueryRow(ctx, `INSERT INTO device_command_generations (device_id, last_generation)
+		VALUES ($1, 1)
+		ON CONFLICT (device_id) DO UPDATE
+		SET last_generation = device_command_generations.last_generation + 1
+		RETURNING last_generation`, deviceID).Scan(&generation)
+	return generation, err
+}
+
+func existingZeroCommand(ctx context.Context, tx pgx.Tx, command CommandIntent) (bool, error) {
+	var existing CommandIntent
+	err := tx.QueryRow(ctx, `SELECT command_id, device_id, event_id, plan_version, setpoint_kw
+		FROM command_intents WHERE idempotency_key = $1`, command.IdempotencyKey).Scan(
+		&existing.CommandID, &existing.DeviceID, &existing.EventID, &existing.PlanVersion, &existing.SetpointKW)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	if existing.CommandID != command.CommandID || existing.DeviceID != command.DeviceID || existing.EventID != command.EventID || existing.PlanVersion != command.PlanVersion || existing.SetpointKW != 0 {
+		return true, fmt.Errorf("conflicting reuse of zero command key %s", command.IdempotencyKey)
+	}
+	return true, nil
+}
+
 func ClaimOutbox(ctx context.Context, pool *pgxpool.Pool, claim OutboxClaim) ([]ClaimedCommand, error) {
 	rows, err := pool.Query(ctx, `WITH candidates AS (
-        SELECT command_id
-        FROM command_outbox
-        WHERE state IN ('PENDING', 'PUBLISHING') AND next_attempt_at <= $1
-        ORDER BY next_attempt_at, command_id
-        FOR UPDATE SKIP LOCKED
+        SELECT outbox.command_id
+        FROM command_outbox AS outbox
+        JOIN command_intents AS intent USING (command_id)
+        WHERE outbox.state IN ('PENDING', 'PUBLISHING') AND outbox.next_attempt_at <= $1
+        AND (SELECT state FROM command_states WHERE command_id = outbox.command_id ORDER BY recorded_at DESC LIMIT 1)
+            NOT IN ('EXPIRED', 'CANCELLED', 'REJECTED', 'COMPLETED')
+        AND (intent.setpoint_kw = 0 OR NOT EXISTS (
+            SELECT 1 FROM command_intents AS prior
+            JOIN command_outbox AS prior_outbox USING (command_id)
+            WHERE prior.device_id = intent.device_id AND prior.generation < intent.generation
+            AND prior_outbox.state <> 'PUBLISHED'
+            AND (SELECT state FROM command_states WHERE command_id = prior.command_id ORDER BY recorded_at DESC LIMIT 1)
+                NOT IN ('UNCERTAIN', 'EXPIRED', 'CANCELLED', 'REJECTED', 'COMPLETED')
+        ))
+        ORDER BY outbox.next_attempt_at, intent.device_id, intent.generation, outbox.command_id
+        FOR UPDATE OF outbox SKIP LOCKED
         LIMIT $2
     ), claimed AS (
         UPDATE command_outbox AS outbox
@@ -143,7 +199,7 @@ func ClaimOutbox(ctx context.Context, pool *pgxpool.Pool, claim OutboxClaim) ([]
            intent.expires_at, intent.policy_version, intent.correlation_id,
            claimed.attempts
     FROM claimed JOIN command_intents AS intent USING (command_id)
-    ORDER BY intent.command_id`, claim.AvailableAt, claim.BatchSize, claim.LeaseUntil)
+    ORDER BY intent.device_id, intent.generation, intent.command_id`, claim.AvailableAt, claim.BatchSize, claim.LeaseUntil)
 	if err != nil {
 		return nil, err
 	}
