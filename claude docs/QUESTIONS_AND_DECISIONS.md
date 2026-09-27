@@ -1074,3 +1074,14 @@ assumptions reported by workers land here too.
   SIMULATED negative forward price frozen into the forecast, the report
   shows a negative margin upper bound with its price provenance and no
   flex capacity is dispatched (111 s on the director's machine).
+- **5E.1 (lane 5E via root), verified:** thirty control-plane handlers
+  crossed with six roles plus missing and unknown; positive controls reach
+  each handler, denied roles get 403, missing role 401; the matrix caught
+  four context methods with no role gate. Director: api, context, and
+  member RoleMatrix selectors pass.
+- **Gateway exit defect (director, 2026-09-27):** the standing demo's
+  gateway process exited with "source time must advance" after the
+  wall-clock anchor produced a repeated slot; the earlier 83-minute
+  telemetry gap on the previous demo instance had the same cause. Item
+  2A.9 makes a repeated slot a skipped tick and a producer rejection
+  non-fatal.

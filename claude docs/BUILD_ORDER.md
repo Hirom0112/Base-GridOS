@@ -882,6 +882,14 @@ For 2A.6, after lane F's 2F.1: `services/gateway-simulator/internal/telemetry/`.
   populated on every observation, deterministic from the seed. Owns
   `services/gateway-simulator/internal/telemetry/` and `internal/battery/`
   additively. Found by the director on the standing demo. Verify: `go test ./services/gateway-simulator/... -run Physical` passes and a fresh event on `make demo` reaches VALIDATED with schedules.
+- `[ ]` 2A.9 `[P]` Gateway never exits on a repeated slot. With the
+  wall-clock anchor, a tick that lands in the same quantized slot as the
+  previous one makes the producer reject "source time must advance" and the
+  whole gateway process exits (found twice on the standing demo: a
+  83-minute telemetry gap, then an exit at 02:24:59Z). RED: a scheduler
+  test fires two ticks inside one slot and expects one publish and no
+  error. GREEN: a repeated slot is skipped, and a per-device producer
+  rejection is logged and counted, never fatal to the fleet loop. Verify: `go test ./services/gateway-simulator/... -run RepeatedSlot` passes and the demo gateway survives an hour.
 
 ### Lane 2B — Temporal dispatch workflow
 
@@ -1607,7 +1615,7 @@ Owns: `docs/operations/security/` (threat model and retention),
 `services/control/internal/api/` (all subpackages, for authorization tests),
 `tools/development/hooks/`.
 
-- `[ ]` 5E.1 `[P]` Role matrix test: every API handler × every role from
+- `[x]` 5E.1 `[P]` Role matrix test: every API handler × every role from
   FULL_SPEC §11, asserting allow or deny. Verify: `go test ./services/control/internal/api/ -run RoleMatrix` passes.
 - `[ ]` 5E.2 `[P]` Step-up authorization and immutable audit entry required
   for dispatch approval and emergency stop. Verify: `-run StepUp` passes.
