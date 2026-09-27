@@ -1280,3 +1280,10 @@ assumptions reported by workers land here too.
   cause with the assertion kept. Group two's lost-acknowledgement and
   old-expiry scenarios wait on the report-energy fix. Both reruns follow
   the fixes inside the gate window.
+- **Verification cadence (2B.10, 2026-09-27):** the workflow verifies
+  delivery every min(reporting interval, event duration / 12) with a
+  five-second floor, so long events keep five-minute checks and a
+  compressed one-minute window verifies every five seconds; the interval
+  is recorded in the timeline. Without it, faults injected early in a
+  short window were not seen until the event ended, which is why the
+  canonical scenario derived no exceptions.
