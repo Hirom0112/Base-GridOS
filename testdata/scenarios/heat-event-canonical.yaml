@@ -16,8 +16,10 @@ event:
 injections:
   - at: 2026-08-12T18:15:00-05:00
     kind: OFFLINE_DEVICES
+    scope: scheduled
   - at: 2026-08-12T18:20:00-05:00
     kind: DELAYED_GATEWAY
+    scope: scheduled
 expected:
   final_event_state: REPORTED
   reserve_violations: 0
