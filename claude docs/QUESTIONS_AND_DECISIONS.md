@@ -1499,3 +1499,16 @@ enabling the real path on the demo (the step-up key can be set once the
 console sends assertions) or reclassified `PENDING-LIVE` with the provider
 it waits for, and the marker text in code changes with it so STUBS.md keeps
 matching the tree.
+
+## 2026-09-27 05:10Z — Canonical scenario: DELAYED_GATEWAY scope next_command
+
+With distinct per-kind selection the delayed fault picks an original
+scheduled device, but after launch only replacement devices receive
+commands, so no receipt is ever delayed and the UNCERTAIN assertion stays
+red. Decision: root adds one more closed scope value, `next_command`, valid
+for the per-device kinds only, which targets the first nonzero command the
+gateway receives during the fault tick. The canonical scenario uses it for
+DELAYED_GATEWAY and keeps `scheduled` for OFFLINE_DEVICES. Determinism holds
+because the tick and the command order are recorded. Focused RED/GREEN in
+the failures engine, scenario parsing rejects the scope on global kinds, then
+the canonical rerun with both assertions positive is the gate.
