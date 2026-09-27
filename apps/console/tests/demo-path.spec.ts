@@ -321,6 +321,7 @@ test("seventeen-step severe-weather operating loop against the live demo", async
 }, testInfo) => {
   test.setTimeout(960000);
   await page.goto("/fleet");
+  await expect(page.getByRole("combobox", { name: "Demo role" })).toBeEnabled();
   await test.step("01 Inspect Austin markets, weather, outage history and fleet readiness", async () => {
     const context = page.getByRole("region", { name: "Austin conditions" });
     await expect(context).toBeVisible();
