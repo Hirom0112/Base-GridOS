@@ -158,19 +158,19 @@ func (snapshotter *FleetSnapshotter) Freeze(ctx context.Context, event *gridosv1
 			parameters := device.GetBatteryParameters()
 			energy := state.EnergyKWh
 			available := state.OperatingState == fleet.OnGrid && state.Availability == fleet.Online
-			baseReserve := state.ReserveKWh
+			baseReserve := max(state.ReserveKWh, state.HardwareFloorKWh)
 			var baseField, flexField *float64
 			if reserve, found := reserves[site.GetSite().GetSiteId()]; found {
 				baseReserve = max(baseReserve, parameters.GetUsableEnergyKwh()*reserve.BasePercent/100)
 				baseField = &baseReserve
 				if reserve.TravelFlexPercent != nil {
-					flex := min(baseReserve, max(state.ReserveKWh, parameters.GetUsableEnergyKwh()*(*reserve.TravelFlexPercent)/100))
+					flex := min(baseReserve, max(state.HardwareFloorKWh, parameters.GetUsableEnergyKwh()*(*reserve.TravelFlexPercent)/100))
 					flexField = &flex
 				}
 			}
 			optimization.Devices = append(optimization.Devices, &gridosv1.DeviceState{
 				DeviceId: device.GetDeviceId(), UsableEnergyKwh: parameters.GetUsableEnergyKwh(), EnergyKwh: energy,
-				HardwareFloorKwh: state.ReserveKWh, EffectiveReserveKwh: baseReserve, BaseReserveKwh: baseField, TravelFlexReserveKwh: flexField,
+				HardwareFloorKwh: state.HardwareFloorKWh, EffectiveReserveKwh: baseReserve, BaseReserveKwh: baseField, TravelFlexReserveKwh: flexField,
 				MaxChargeKw: parameters.GetMaxChargeKw(), MaxDischargeKw: parameters.GetMaxDischargeKw(),
 				ChargeEfficiency: parameters.GetChargeEfficiency(), DischargeEfficiency: parameters.GetDischargeEfficiency(),
 				AvailabilityProbability: boolFloat(available), Stale: state.Availability == fleet.Stale, TelemetryObservedAt: timestamppb.New(state.ObservedAt), LoadZone: site.GetSite().GetLoadZone(),
@@ -181,7 +181,7 @@ func (snapshotter *FleetSnapshotter) Freeze(ctx context.Context, event *gridosv1
 			}
 			observedAt := state.ObservedAt
 			canonical.Devices[device.GetDeviceId()] = safety.DeviceState{
-				EnergyKWh: &energy, UsableCapacityKWh: parameters.GetUsableEnergyKwh(), HardwareReserveKWh: state.ReserveKWh, PlanReserveKWh: baseReserve, TravelFlexReserveKWh: flexField,
+				EnergyKWh: &energy, UsableCapacityKWh: parameters.GetUsableEnergyKwh(), HardwareReserveKWh: state.HardwareFloorKWh, PlanReserveKWh: baseReserve, TravelFlexReserveKWh: flexField,
 				MaxChargeKW: parameters.GetMaxChargeKw(), MaxDischargeKW: parameters.GetMaxDischargeKw(), ChargeEfficiency: parameters.GetChargeEfficiency(), DischargeEfficiency: parameters.GetDischargeEfficiency(),
 				Available: available, TelemetryAt: &observedAt, FreshnessLimit: 30 * time.Second, MeterExportLimitKW: parameters.GetMaxDischargeKw(), InterconnectionLimitKW: parameters.GetMaxDischargeKw(),
 			}

@@ -3,7 +3,6 @@ package fleet
 import (
 	"os"
 	"path/filepath"
-	"reflect"
 	"testing"
 	"time"
 
@@ -14,7 +13,7 @@ import (
 
 func TestLoadRetainsForecastIdentifiers(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "fleet.jsonl")
-	contents := `{"device_id":"device-1","site_id":"site-1","h3_cell":"874898c80ffffff","usable_energy_kwh":40,"max_discharge_kw":5,"load_profile_type":"RESHIWR_SCENT","reliability_trait":"HIGH","weather_zone":"SCENT","load_zone":"LZ_AEN"}`
+	contents := `{"device_id":"device-1","site_id":"site-1","h3_cell":"874898c80ffffff","usable_energy_kwh":40,"max_discharge_kw":5,"hardware_floor_percent":10,"load_profile_type":"RESHIWR_SCENT","reliability_trait":"HIGH","weather_zone":"SCENT","load_zone":"LZ_AEN"}`
 	require.NoError(t, os.WriteFile(path, []byte(contents+"\n"), 0o600))
 	sites, _, err := Load(path, NewTwin(time.Minute), time.Now())
 	require.NoError(t, err)
@@ -36,7 +35,5 @@ func TestLoadKeepsHardwareFloorSeparateFromMemberPreference(t *testing.T) {
 	state, found := twin.Site("site-1", now)
 	require.True(t, found)
 	require.Equal(t, 0.0, state.ReserveKWh)
-	hardware := reflect.ValueOf(state).FieldByName("HardwareFloorKWh")
-	require.True(t, hardware.IsValid(), "hardware floor is absent from site state")
-	require.Equal(t, 4.0, hardware.Float())
+	require.Equal(t, 4.0, state.HardwareFloorKWh)
 }

@@ -63,6 +63,7 @@ type fleetDevice struct {
 	ChargeEfficiency         *float64 `json:"charge_efficiency"`
 	DischargeEfficiency      *float64 `json:"discharge_efficiency"`
 	ReservePreferencePercent *float64 `json:"reserve_preference_percent"`
+	HardwareFloorPercent     *float64 `json:"hardware_floor_percent"`
 	SimulationSeed           *int64   `json:"simulation_seed"`
 }
 
@@ -180,11 +181,11 @@ func startTelemetry(ctx context.Context, configuration config, devices []fleetDe
 	}
 	physicalDevices := make([]telemetry.Device, 0, len(devices))
 	for _, device := range devices {
-		reserve := max(10, *device.ReservePreferencePercent)
+		reserve := max(*device.HardwareFloorPercent, *device.ReservePreferencePercent)
 		physicalDevices = append(physicalDevices, telemetry.Device{
 			DeviceID: device.DeviceID, LoadProfileType: device.LoadProfileType, SimulationSeed: *device.SimulationSeed,
 			Parameters: battery.Parameters{
-				UsableEnergyKWh: *device.UsableEnergyKWh, HardwareFloorKWh: *device.UsableEnergyKWh * reserve / 100,
+				UsableEnergyKWh: *device.UsableEnergyKWh, HardwareFloorKWh: *device.UsableEnergyKWh * *device.HardwareFloorPercent / 100,
 				ReservePercent: reserve, MaxChargeKW: *device.MaxChargeKW, MaxDischargeKW: *device.MaxDischargeKW,
 				ChargeEfficiency: *device.ChargeEfficiency, DischargeEfficiency: *device.DischargeEfficiency,
 			},
@@ -340,7 +341,7 @@ func validateFleetDevice(device fleetDevice) error {
 	if device.Provenance != "SIMULATED" || device.SimulationSeed == nil {
 		return errors.New("fleet provenance and simulation seed are required")
 	}
-	values := []*float64{device.UsableEnergyKWh, device.MaxChargeKW, device.MaxDischargeKW, device.ChargeEfficiency, device.DischargeEfficiency, device.ReservePreferencePercent}
+	values := []*float64{device.UsableEnergyKWh, device.MaxChargeKW, device.MaxDischargeKW, device.ChargeEfficiency, device.DischargeEfficiency, device.ReservePreferencePercent, device.HardwareFloorPercent}
 	for _, value := range values {
 		if value == nil || math.IsNaN(*value) || math.IsInf(*value, 0) {
 			return errors.New("fleet numeric fields must be present and finite")
@@ -359,8 +360,15 @@ func validateFleetDevice(device fleetDevice) error {
 			return errors.New("fleet efficiency is invalid")
 		}
 	}
-	if *device.ReservePreferencePercent < 0 || *device.ReservePreferencePercent > 100 {
-		return errors.New("fleet reserve preference is invalid")
+	if err := validateReservePercentages(*device.ReservePreferencePercent, *device.HardwareFloorPercent); err != nil {
+		return err
+	}
+	return nil
+}
+
+func validateReservePercentages(preference, hardware float64) error {
+	if preference < 0 || preference > 100 || hardware <= 0 || hardware > 100 {
+		return errors.New("fleet reserve percentages are invalid")
 	}
 	return nil
 }

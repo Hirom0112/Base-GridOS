@@ -70,6 +70,7 @@ def _device(seed: int, index: int) -> dict[str, object]:
         "reliability_trait": RELIABILITY_TRAITS[rng.randrange(len(RELIABILITY_TRAITS))],
         "resilience_plan": plan,
         "reserve_preference_percent": rng.choice(PLAN_RESERVES[plan]),
+        "hardware_floor_percent": 10,
         "provenance": "SIMULATED",
         "simulation_seed": seed,
     }

@@ -35,6 +35,7 @@ type SiteState struct {
 	DispatchableKWh    float64
 	EnergyKWh          float64
 	ReserveKWh         float64
+	HardwareFloorKWh   float64
 	BackupHoursCurrent float64
 	BackupHours750W    float64
 	Provenance         string
