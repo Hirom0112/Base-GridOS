@@ -59,7 +59,7 @@ export function LocalSession({ children }: { children: ReactNode }) {
   return (
     <>
       <div className="local-session">
-        <span>LOCAL DEMO · STUBBED IDENTITY</span>
+        <span>LOCAL IDENTITY · PENDING-LIVE</span>
         <label>
           Demo role
           <select

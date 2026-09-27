@@ -25,14 +25,14 @@ test("server-rendered identity controls wait for hydration", () => {
   expect(markup).toHaveTextContent("operator: local");
 });
 
-test("local auth exposes the explicit stub and selected role", async () => {
+test("local auth exposes the pending identity provider and selected role", async () => {
   render(
     <LocalSession>
       <Identity />
     </LocalSession>,
   );
   expect(screen.getByText("operator: local")).toBeVisible();
-  expect(screen.getByText(/STUBBED/)).toBeVisible();
+  expect(screen.getByText("LOCAL IDENTITY · PENDING-LIVE")).toBeVisible();
   await userEvent.selectOptions(
     screen.getByRole("combobox", { name: "Demo role" }),
     "approver",
