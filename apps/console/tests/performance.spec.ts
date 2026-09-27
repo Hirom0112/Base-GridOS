@@ -15,7 +15,7 @@ type FrameMetrics = {
   last: number;
   observing: boolean;
 };
-type MeasuredWindow = Window & { gridosPerformance: FrameMetrics };
+type MeasuredWindow = typeof window & { gridosPerformance: FrameMetrics };
 
 function measureFrames() {
   const metrics: FrameMetrics = {

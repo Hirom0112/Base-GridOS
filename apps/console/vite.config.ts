@@ -7,6 +7,15 @@ export default defineConfig(({ mode }) => {
   const env = { ...loadEnv(mode, process.cwd(), ""), ...process.env };
   return {
     cacheDir: env.GRIDOS_VITE_CACHE ?? "node_modules/.vite",
+    build: {
+      rolldownOptions: {
+        output: {
+          codeSplitting: {
+            groups: [{ name: "h3", test: /node_modules\/h3-js/ }],
+          },
+        },
+      },
+    },
     define: {
       "import.meta.env.VITE_GRIDOS_AUTH_MODE": JSON.stringify(
         env.GRIDOS_AUTH_MODE ?? "clerk",

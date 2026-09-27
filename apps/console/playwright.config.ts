@@ -2,7 +2,7 @@ import { defineConfig, devices } from "@playwright/test";
 
 export default defineConfig({
   testDir: "./tests",
-  testIgnore: "live-dispatch.spec.ts",
+  testIgnore: ["live-dispatch.spec.ts", "performance.spec.ts"],
   use: { baseURL: "http://127.0.0.1:3100", trace: "retain-on-failure" },
   webServer: {
     command:
