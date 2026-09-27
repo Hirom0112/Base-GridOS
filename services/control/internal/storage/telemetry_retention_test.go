@@ -38,6 +38,32 @@ func TestRetentionStoresTelemetryOutsideAuditJournal(t *testing.T) {
 	require.True(t, partitioned)
 }
 
+func TestRiskBridgePersistsGatewayHeartbeatAndDeviceSourceAtomically(t *testing.T) {
+	pool := testDatabase(t)
+	now := time.Now().UTC().Truncate(time.Second)
+	store := NewTelemetryStoreAt(pool, func() time.Time { return now })
+	observation := &gridosv1.TelemetryObservation{ObservationId: "risk-observation-1", DeviceId: "risk-device-1",
+		Sequence: 1, ObservationTime: timestamppb.New(now.Add(-time.Second)), ValueState: gridosv1.ValueState_VALUE_STATE_PRESENT}
+	inserted, err := store.Write(context.Background(), "gateway-1", []*gridosv1.TelemetryObservation{observation})
+	require.NoError(t, err)
+	require.Len(t, inserted, 1)
+	var publishedAt, observedAt time.Time
+	var count int
+	var gatewayID string
+	require.NoError(t, pool.QueryRow(context.Background(), `SELECT last_published_at,last_sequence_count FROM gateway_heartbeats WHERE gateway_id = 'gateway-1'`).Scan(&publishedAt, &count))
+	require.Equal(t, now, publishedAt)
+	require.Equal(t, 1, count)
+	require.NoError(t, pool.QueryRow(context.Background(), `SELECT gateway_id,observed_at FROM gateway_device_sources WHERE device_id = 'risk-device-1'`).Scan(&gatewayID, &observedAt))
+	require.Equal(t, "gateway-1", gatewayID)
+	require.Equal(t, now.Add(-time.Second), observedAt)
+	store = NewTelemetryStoreAt(pool, func() time.Time { return now.Add(10 * time.Second) })
+	inserted, err = store.Write(context.Background(), "gateway-2", []*gridosv1.TelemetryObservation{observation})
+	require.NoError(t, err)
+	require.Empty(t, inserted)
+	require.NoError(t, pool.QueryRow(context.Background(), `SELECT gateway_id FROM gateway_device_sources WHERE device_id = 'risk-device-1'`).Scan(&gatewayID))
+	require.Equal(t, "gateway-1", gatewayID)
+}
+
 func TestRetentionRejectsExpiredObservationWithAudit(t *testing.T) {
 	pool := testDatabase(t)
 	store := NewTelemetryStore(pool)
