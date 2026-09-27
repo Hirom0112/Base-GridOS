@@ -8,6 +8,7 @@ import (
 
 	gridosv1 "github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/safety"
+	"github.com/Hirom0112/Base-GridOS/services/control/internal/storage"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -15,6 +16,20 @@ import (
 type replacementSafety struct {
 	calls int
 	err   error
+}
+
+func TestReplacementPublishesConsecutiveDeviceGenerations(t *testing.T) {
+	harness := newActivityHarness(t)
+	harness.plan(t)
+	now := harness.activities.Now()
+	commands := []storage.CommandIntent{
+		{CommandID: "replacement-z", IdempotencyKey: "replacement-z", DeviceID: "device-2", EventID: harness.input.EventID, PlanVersion: 1, SetpointKW: 1, IssuedAt: now, EffectiveAt: now.Add(time.Minute), ExpiresAt: now.Add(time.Hour), PolicyVersion: "policy-1", CorrelationID: "correlation-1"},
+		{CommandID: "replacement-a", IdempotencyKey: "replacement-a", DeviceID: "device-2", EventID: harness.input.EventID, PlanVersion: 1, SetpointKW: 1, IssuedAt: now, EffectiveAt: now.Add(time.Minute), ExpiresAt: now.Add(time.Hour), PolicyVersion: "policy-1", CorrelationID: "correlation-1"},
+	}
+	require.NoError(t, harness.activities.publishCommands(context.Background(), commands))
+	var acknowledged int
+	require.NoError(t, harness.pool.QueryRow(context.Background(), `SELECT count(*) FROM command_acknowledgements WHERE command_id IN ($1, $2)`, commands[0].CommandID, commands[1].CommandID).Scan(&acknowledged))
+	require.Equal(t, 2, acknowledged)
 }
 
 func (gate *replacementSafety) Validate(*gridosv1.DispatchPlan, safety.CanonicalState) error {
