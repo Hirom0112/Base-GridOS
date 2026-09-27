@@ -27,7 +27,7 @@ func TestRetentionStoresTelemetryOutsideAuditJournal(t *testing.T) {
 	require.NoError(t, pool.QueryRow(context.Background(), `SELECT count(*) FROM audit_journal WHERE action = 'TELEMETRY_RECEIVED'`).Scan(&auditRows))
 	require.Equal(t, 2, observations)
 	require.Zero(t, auditRows)
-	latest, err := store.Latest(context.Background(), []string{"device-retention"})
+	latest, err := store.Latest(context.Background(), []string{"device-retention"}, now.Add(-30*time.Second))
 	require.NoError(t, err)
 	require.Len(t, latest, 1)
 	require.Equal(t, uint64(2), latest[0].GetSequence())
