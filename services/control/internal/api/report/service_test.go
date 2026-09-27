@@ -72,3 +72,17 @@ func selectedFullReportJSON(t *testing.T, encoded string) string {
 	require.NoError(t, err)
 	return string(selected)
 }
+
+func TestGetEventReportRequiresRoleAndEvent(t *testing.T) {
+	service := NewService(&reportSource{})
+	request := connect.NewRequest(&gridosv1.GetEventReportRequest{EventId: "event-1"})
+	_, err := service.GetEventReport(context.Background(), request)
+	require.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(err))
+	request.Header().Set("X-GridOS-Role", "member")
+	_, err = service.GetEventReport(context.Background(), request)
+	require.Equal(t, connect.CodePermissionDenied, connect.CodeOf(err))
+	request.Header().Set("X-GridOS-Role", "analyst")
+	request.Msg.EventId = ""
+	_, err = service.GetEventReport(context.Background(), request)
+	require.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+}
