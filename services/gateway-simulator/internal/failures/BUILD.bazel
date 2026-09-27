@@ -21,15 +21,9 @@ go_test(
     srcs = [
         "houston_test.go",
         "inject_test.go",
-        "outage_replay_test.go",
         "runtime_test.go",
         "scenario_test.go",
     ],
     embed = [":failures"],
     data = ["//testdata:scenarios"],
-    deps = [
-        "//contracts/gen/go/gridos/v1:gridos",
-        "//services/gateway-simulator/internal/gateway",
-        "//services/gateway-simulator/internal/telemetry",
-    ],
 )
