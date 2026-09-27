@@ -2,6 +2,7 @@ import io
 import json
 
 import pytest
+
 from gridos.observability import new_provider, start_span
 
 
