@@ -919,7 +919,7 @@ Owns: `services/control/internal/dispatch/`, `services/control/cmd/worker`,
   control logs ingest errors with the gateway id. Verify: `go test
   ./services/gateway-simulator/internal/telemetry/ -run PublishFailure` passes
   and the two metrics appear on `:9466/metrics`.
-- `[ ]` 2A.13 `[after 2A.10]` Live faults persist. In live scenario mode a
+- `[~]` 2A.13 `[after 2A.10]` Live faults persist. In live scenario mode a
   per-device fault (OFFLINE_DEVICES, DELAYED_GATEWAY, DROPPED_MESSAGES) stays
   in effect from its injection time until the end of the live window instead
   of one gateway tick, so at the demo's real cadence the control plane's

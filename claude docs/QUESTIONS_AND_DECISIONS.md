@@ -2150,3 +2150,16 @@ recomputing the plan. Decision: 4C.10 adds the stored input and
 eligibility snapshot ids and the policy, solver, model and code versions
 to GetPlanExplanation, read from the plan row and frozen inputs. Root,
 queued after 2A.13 and 5F.5.
+
+## 2026-09-27 09:34Z — 2A.13 code verified; demo proof running
+
+Runtime RED 9236189 and scenario RED 1ddda8b stage tests only; GREEN
+0235b30 makes live per-device faults expire at the shifted live window end
+(next_command still one-shot) and GREEN 9df6a0a seeds the canonical
+scenario with a one-shot OFFLINE next_command at event start for a
+deterministic retry. Focused failures tests ok here; root posted three
+consecutive isolated canonical passes (118.6 s, 118.2 s, 121.0 s) and the
+director's own isolated rerun printed `--- PASS: TestHeatEventCanonical
+(116.20s)`, `ok ... 116.612s`. The item stays dispatched until the last
+verify clause, all five exception kinds on the standing demo within
+fifteen minutes, is observed on live-proof-1790501468.
