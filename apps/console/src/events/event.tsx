@@ -14,6 +14,7 @@ import { ApprovalActions } from "../dispatch/approval";
 import { eventStateLabels } from "./events-timeline";
 import { AuditTimeline } from "./audit-timeline";
 import { EmergencyStopControl } from "./emergency-stop";
+import { LiveEvent } from "./events-live";
 
 const pendingStates: Partial<Record<DispatchEventState, string>> = {
   [DispatchEventState.REQUESTED]:
@@ -121,7 +122,10 @@ export function EventView({
       </div>
       <PendingEvent state={event.state} violations={safetyViolations} />
       {view === "execution" && (
-        <EmergencyStopControl key={eventId} eventId={eventId} />
+        <>
+          <EmergencyStopControl key={eventId} eventId={eventId} />
+          <LiveEvent key={`live-${eventId}`} eventId={eventId} />
+        </>
       )}
       {safetyViolations.length > 0 && (
         <div className="error-notice">

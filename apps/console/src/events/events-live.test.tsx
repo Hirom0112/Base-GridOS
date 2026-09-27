@@ -1,7 +1,11 @@
 import { create } from "@bufbuild/protobuf";
+import { TimestampSchema } from "@bufbuild/protobuf/wkt";
 import { render, screen } from "@testing-library/react";
 import { expect, test } from "vitest";
-import { WatchEventResponseSchema } from "../api/gen/gridos/v1/api_pb";
+import {
+  WatchEventResponseSchema,
+  EventPowerAggregateSchema,
+} from "../api/gen/gridos/v1/api_pb";
 import { reduceEventSamples, EventResponse } from "./events-live";
 
 const update = create(WatchEventResponseSchema, {
@@ -32,7 +36,11 @@ test("live response separates sent, acknowledgement and measured power", () => {
 test("unknown delivery is a gap and never becomes zero", () => {
   const unknown = create(WatchEventResponseSchema, {
     ...update,
-    fleet: { ...update.fleet, deliveredMw: 0, deliveredState: 4 },
+    fleet: create(EventPowerAggregateSchema, {
+      ...update.fleet!,
+      deliveredMw: 0,
+      deliveredState: 4,
+    }),
   });
   const samples = reduceEventSamples([], unknown, "event-1");
   expect(samples[0]?.delivered).toBeNull();
@@ -49,7 +57,10 @@ test("stream samples reject foreign events and invalid evidence", () => {
       [],
       create(WatchEventResponseSchema, {
         ...update,
-        fleet: { ...update.fleet, metadata: undefined },
+        fleet: create(EventPowerAggregateSchema, {
+          ...update.fleet!,
+          metadata: undefined,
+        }),
       }),
       "event-1",
     ),
@@ -65,7 +76,10 @@ test("sample history is bounded and duplicate timestamps replace the last sample
       samples,
       create(WatchEventResponseSchema, {
         ...update,
-        observedAt: { seconds: 1790424000n + BigInt(index) },
+        observedAt: create(TimestampSchema, {
+          seconds: 1790424000n + BigInt(index),
+          nanos: 0,
+        }),
       }),
       "event-1",
     );

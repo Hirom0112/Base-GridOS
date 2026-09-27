@@ -8,6 +8,17 @@ export async function recordedApi(page: Page) {
       "/rpc/gridos.v1.",
       "",
     );
+    if (path === "EventsService/WatchEvent") {
+      await route.fulfill({
+        status: 501,
+        contentType: "application/json",
+        body: JSON.stringify({
+          code: "unimplemented",
+          message: "This unary fixture set contains no event stream",
+        }),
+      });
+      return;
+    }
     const body = await readFile(
       resolve(process.cwd(), `../../testdata/fixtures/api/${path}.json`),
       "utf8",

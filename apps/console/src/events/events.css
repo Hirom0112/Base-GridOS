@@ -3,6 +3,104 @@
   padding-block: 24px;
   margin-bottom: 24px;
 }
+.live-response {
+  border-block: 1px solid var(--ink-3);
+  margin-block: 28px;
+  padding-block: 24px;
+}
+.live-response h3 {
+  margin-top: 8px;
+}
+.response-values {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  margin-block: 24px 16px;
+}
+.response-values > div {
+  border-top: 2px solid var(--paper-0);
+  padding-top: 12px;
+}
+.response-values .ack-value {
+  border-color: var(--forecast);
+  border-top-style: dashed;
+}
+.response-values .delivery-value {
+  border-color: var(--energy);
+  border-top-style: double;
+  border-top-width: 3px;
+}
+.response-values span {
+  color: var(--paper-1);
+  font-size: 12px;
+}
+.response-values strong {
+  display: block;
+  font-family: "Geist Mono Variable", monospace;
+  font-size: clamp(14px, 1.5vw, 23px);
+  font-weight: 400;
+  margin-top: 10px;
+}
+.response-chart {
+  width: 100%;
+  margin-top: 22px;
+  overflow: visible;
+}
+.response-chart text {
+  fill: var(--paper-2);
+  font:
+    12px "Geist Mono Variable",
+    monospace;
+}
+.chart-grid {
+  stroke: var(--ink-3);
+  stroke-width: 1;
+}
+.response-chart line {
+  vector-effect: non-scaling-stroke;
+}
+.series-sent {
+  stroke: var(--paper-0);
+  fill: var(--paper-0);
+  stroke-width: 1.5;
+}
+.series-acknowledged {
+  stroke: var(--forecast);
+  fill: var(--forecast);
+  stroke-dasharray: 5 4;
+  stroke-width: 2;
+}
+.series-delivered {
+  stroke: var(--energy);
+  fill: var(--energy);
+  stroke-width: 3;
+}
+.response-data {
+  border-top: 1px solid var(--ink-3);
+  margin-top: 18px;
+  padding-top: 14px;
+  font-size: 12px;
+}
+.response-data summary {
+  cursor: pointer;
+}
+.response-data table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 14px;
+  white-space: nowrap;
+  text-align: left;
+}
+.response-data td,
+.response-data th {
+  padding: 12px;
+  border-bottom: 1px solid var(--ink-3);
+  font-size: 11px;
+}
+.response-data th {
+  color: var(--paper-1);
+  font-weight: 400;
+}
 .pending-event {
   border-left: 2px solid var(--forecast);
   background: var(--ink-1);
@@ -98,6 +196,13 @@
   margin-top: 8px;
 }
 @media (max-width: 700px) {
+  .response-values span {
+    display: block;
+    min-height: 36px;
+  }
+  .response-chart text {
+    font-size: 18px;
+  }
   .event-history time {
     font-size: 9px;
   }

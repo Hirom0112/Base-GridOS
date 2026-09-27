@@ -1,5 +1,33 @@
 import { expect, test } from "@playwright/test";
 
+test("live demo receives event stream evidence without launching commands", async ({
+  page,
+}) => {
+  await page.goto("/dispatch/new");
+  await page
+    .getByLabel("Start time")
+    .fill(new Date(Date.now() + 120000).toISOString().slice(0, 16));
+  await page
+    .getByLabel("End time")
+    .fill(new Date(Date.now() + 600000).toISOString().slice(0, 16));
+  await page.getByLabel("Target power (MW)").fill("0.001");
+  await page.getByRole("button", { name: "Create dispatch plan" }).click();
+  await page.getByRole("link", { name: "Execution", exact: true }).click();
+  await expect(page.getByText("Stream connected")).toBeVisible({
+    timeout: 15000,
+  });
+  await expect(
+    page.getByRole("region", { name: "Measured event response" }),
+  ).toContainText("SIMULATED");
+  await expect(
+    page.getByRole("region", { name: "Measured event response" }),
+  ).toContainText("Delivery unknown");
+  await page
+    .locator(".live-response")
+    .screenshot({ path: "test-results/live-stream-actual.png" });
+  console.log(`LIVE STREAM ${page.url()}`);
+});
+
 test("live demo creates, validates, approves, and launches a simulated event", async ({
   page,
   request,
