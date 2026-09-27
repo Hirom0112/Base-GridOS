@@ -1,7 +1,9 @@
 from collections.abc import Callable
 from dataclasses import replace
+from decimal import Decimal
 
 import pytest
+from gridos.economics.margin import MarginComponents, MoneyRange, estimate_margin
 from gridos.fallback.planner import DeviceState, PlanningInterval, plan_fallback
 from gridos.server import OptimizationServer
 from gridos.v1 import optimization_pb2, optimization_pb2_grpc
@@ -103,3 +105,21 @@ def test_margin_response_reports_expected_not_nameplate(
     assert response.plan.shortfalls[0].feasible_kw == 5.0
     assert response.plan.shortfalls[0].shortfall_kw == 1.0
     assert "INSUFFICIENT_FEASIBLE_CAPACITY" in response.plan.shortfalls[0].reasons
+
+
+def test_margin_formula_uses_every_term_and_conservative_bounds() -> None:
+    components = MarginComponents(
+        dispatch_value=MoneyRange(Decimal("100"), Decimal("120")),
+        avoided_peak_cost=MoneyRange(Decimal("30"), Decimal("40")),
+        commitment_reliability_value=MoneyRange(Decimal("10"), Decimal("20")),
+        charging_energy=MoneyRange(Decimal("20"), Decimal("25")),
+        incremental_degradation=MoneyRange(Decimal("8"), Decimal("10")),
+        penalty_exposure=MoneyRange(Decimal("5"), Decimal("7")),
+        member_reward=MoneyRange(Decimal("12"), Decimal("15")),
+        support_and_risk_cost=MoneyRange(Decimal("3"), Decimal("4")),
+    )
+
+    estimate = estimate_margin(components)
+
+    assert estimate.conservative == Decimal("79")
+    assert estimate.optimistic == Decimal("132")
