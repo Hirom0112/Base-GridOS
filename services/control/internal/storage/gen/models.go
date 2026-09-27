@@ -62,6 +62,11 @@ type CommandState struct {
 	CorrelationID string             `json:"correlation_id"`
 }
 
+type DeviceCommandGeneration struct {
+	DeviceID       string `json:"device_id"`
+	LastGeneration int64  `json:"last_generation"`
+}
+
 type DispatchEvent struct {
 	EventID       string             `json:"event_id"`
 	RequestID     string             `json:"request_id"`
@@ -104,16 +109,45 @@ type EmergencyStop struct {
 	CorrelationID   string             `json:"correlation_id"`
 }
 
+type EventReport struct {
+	EventID    string             `json:"event_id"`
+	Version    int64              `json:"version"`
+	Report     []byte             `json:"report"`
+	Sha256     string             `json:"sha256"`
+	ProducedAt pgtype.Timestamptz `json:"produced_at"`
+}
+
 type FlexibilityOffer struct {
-	OfferID                string             `json:"offer_id"`
-	MemberID               string             `json:"member_id"`
-	CatalogVersion         string             `json:"catalog_version"`
-	ContractVersion        string             `json:"contract_version"`
-	FlexibilityRewardCents int64              `json:"flexibility_reward_cents"`
-	PriceText              string             `json:"price_text"`
-	EffectiveAt            pgtype.Timestamptz `json:"effective_at"`
-	ExpiresAt              pgtype.Timestamptz `json:"expires_at"`
-	CorrelationID          string             `json:"correlation_id"`
+	OfferID                   string             `json:"offer_id"`
+	MemberID                  string             `json:"member_id"`
+	CatalogVersion            string             `json:"catalog_version"`
+	ContractVersion           string             `json:"contract_version"`
+	FlexibilityRewardCents    int64              `json:"flexibility_reward_cents"`
+	PriceText                 string             `json:"price_text"`
+	EffectiveAt               pgtype.Timestamptz `json:"effective_at"`
+	ExpiresAt                 pgtype.Timestamptz `json:"expires_at"`
+	CorrelationID             string             `json:"correlation_id"`
+	MemberPlanID              pgtype.Text        `json:"member_plan_id"`
+	Market                    pgtype.Text        `json:"market"`
+	OfferType                 pgtype.Text        `json:"offer_type"`
+	ConsentText               pgtype.Text        `json:"consent_text"`
+	ConsentVersion            pgtype.Text        `json:"consent_version"`
+	TemporaryReservePercent   pgtype.Float8      `json:"temporary_reserve_percent"`
+	CreditType                pgtype.Text        `json:"credit_type"`
+	EnergyMonthlyChargeCents  pgtype.Int8        `json:"energy_monthly_charge_cents"`
+	BatteryMonthlyChargeCents pgtype.Int8        `json:"battery_monthly_charge_cents"`
+}
+
+type GatewayDeviceSource struct {
+	DeviceID   string             `json:"device_id"`
+	GatewayID  string             `json:"gateway_id"`
+	ObservedAt pgtype.Timestamptz `json:"observed_at"`
+}
+
+type GatewayHeartbeat struct {
+	GatewayID         string             `json:"gateway_id"`
+	LastPublishedAt   pgtype.Timestamptz `json:"last_published_at"`
+	LastSequenceCount int32              `json:"last_sequence_count"`
 }
 
 type InputSnapshot struct {
@@ -123,6 +157,60 @@ type InputSnapshot struct {
 	Inputs        []byte             `json:"inputs"`
 	Provenance    []byte             `json:"provenance"`
 	CorrelationID string             `json:"correlation_id"`
+}
+
+type MemberAlert struct {
+	AlertID       string             `json:"alert_id"`
+	MemberID      string             `json:"member_id"`
+	Kind          string             `json:"kind"`
+	Message       string             `json:"message"`
+	PreferenceID  string             `json:"preference_id"`
+	Evidence      []byte             `json:"evidence"`
+	ObservedAt    pgtype.Timestamptz `json:"observed_at"`
+	CorrelationID string             `json:"correlation_id"`
+}
+
+type MemberAlertDelivery struct {
+	DeliveryID    string             `json:"delivery_id"`
+	AlertID       string             `json:"alert_id"`
+	Channel       string             `json:"channel"`
+	AttemptedAt   pgtype.Timestamptz `json:"attempted_at"`
+	Outcome       string             `json:"outcome"`
+	CorrelationID string             `json:"correlation_id"`
+}
+
+type MemberAnomalyPreference struct {
+	PreferenceID    string             `json:"preference_id"`
+	MemberID        string             `json:"member_id"`
+	OptedIn         bool               `json:"opted_in"`
+	ConsentText     string             `json:"consent_text"`
+	ConsentVersion  string             `json:"consent_version"`
+	BaselineUpperKw float64            `json:"baseline_upper_kw"`
+	BaselineBegin   pgtype.Timestamptz `json:"baseline_begin"`
+	BaselineEnd     pgtype.Timestamptz `json:"baseline_end"`
+	EffectiveAt     pgtype.Timestamptz `json:"effective_at"`
+	ExpiresAt       pgtype.Timestamptz `json:"expires_at"`
+	CorrelationID   string             `json:"correlation_id"`
+}
+
+type MemberAwayPeriod struct {
+	AwayPeriodID      string             `json:"away_period_id"`
+	MemberID          string             `json:"member_id"`
+	StartTime         pgtype.Timestamptz `json:"start_time"`
+	EndTime           pgtype.Timestamptz `json:"end_time"`
+	ConsentVersion    string             `json:"consent_version"`
+	CorrelationID     string             `json:"correlation_id"`
+	EndedAt           pgtype.Timestamptz `json:"ended_at"`
+	EndIdempotencyKey pgtype.Text        `json:"end_idempotency_key"`
+	EndCorrelationID  pgtype.Text        `json:"end_correlation_id"`
+}
+
+type MemberSite struct {
+	SiteID     string             `json:"site_id"`
+	MemberID   string             `json:"member_id"`
+	BoundAt    pgtype.Timestamptz `json:"bound_at"`
+	Source     string             `json:"source"`
+	Provenance []byte             `json:"provenance"`
 }
 
 type OperatorApproval struct {
@@ -155,6 +243,7 @@ type PlanVersion struct {
 	ModelVersion          string             `json:"model_version"`
 	CorrelationID         string             `json:"correlation_id"`
 	CreatedAt             pgtype.Timestamptz `json:"created_at"`
+	ReplacementSnapshotID pgtype.Text        `json:"replacement_snapshot_id"`
 }
 
 type PricingCatalogSnapshot struct {
@@ -171,6 +260,9 @@ type PricingCatalogSnapshot struct {
 	EffectiveAt               pgtype.Timestamptz `json:"effective_at"`
 	ExpiresAt                 pgtype.Timestamptz `json:"expires_at"`
 	CorrelationID             string             `json:"correlation_id"`
+	DisplayName               pgtype.Text        `json:"display_name"`
+	ReserveFloorPercent       pgtype.Float8      `json:"reserve_floor_percent"`
+	Provenance                []byte             `json:"provenance"`
 }
 
 type ReserveOverride struct {
@@ -182,6 +274,7 @@ type ReserveOverride struct {
 	ExpiresAt           pgtype.Timestamptz `json:"expires_at"`
 	PolicyVersion       string             `json:"policy_version"`
 	CorrelationID       string             `json:"correlation_id"`
+	EvidenceID          pgtype.Text        `json:"evidence_id"`
 }
 
 type ReservePolicy struct {
@@ -193,6 +286,7 @@ type ReservePolicy struct {
 	EffectiveAt                   pgtype.Timestamptz `json:"effective_at"`
 	ExpiresAt                     pgtype.Timestamptz `json:"expires_at"`
 	CorrelationID                 string             `json:"correlation_id"`
+	Provenance                    []byte             `json:"provenance"`
 }
 
 type ResiliencePlan struct {
@@ -206,6 +300,10 @@ type ResiliencePlan struct {
 	EffectiveAt         pgtype.Timestamptz `json:"effective_at"`
 	ExpiresAt           pgtype.Timestamptz `json:"expires_at"`
 	CorrelationID       string             `json:"correlation_id"`
+	CatalogVersion      pgtype.Text        `json:"catalog_version"`
+	MemberPlanID        pgtype.Text        `json:"member_plan_id"`
+	ExplanationShown    pgtype.Text        `json:"explanation_shown"`
+	OfferID             pgtype.Text        `json:"offer_id"`
 }
 
 type RewardLedger struct {
@@ -217,6 +315,60 @@ type RewardLedger struct {
 	EntryType     string             `json:"entry_type"`
 	RecordedAt    pgtype.Timestamptz `json:"recorded_at"`
 	CorrelationID string             `json:"correlation_id"`
+	PeriodStart   pgtype.Timestamptz `json:"period_start"`
+}
+
+type RiskPolicy struct {
+	Version                    string             `json:"version"`
+	EffectiveAt                pgtype.Timestamptz `json:"effective_at"`
+	ExpiresAt                  pgtype.Timestamptz `json:"expires_at"`
+	OutageProbabilityThreshold float64            `json:"outage_probability_threshold"`
+	TelemetryFreshnessSeconds  float64            `json:"telemetry_freshness_seconds"`
+	GatewayCadenceSeconds      float64            `json:"gateway_cadence_seconds"`
+	WeatherFloorPercent        float64            `json:"weather_floor_percent"`
+	OutageFloorPercent         float64            `json:"outage_floor_percent"`
+	StaleFloorPercent          float64            `json:"stale_floor_percent"`
+	AlarmFloorPercent          float64            `json:"alarm_floor_percent"`
+	CommunicationsFloorPercent float64            `json:"communications_floor_percent"`
+	HealthFloorPercent         float64            `json:"health_floor_percent"`
+	WeatherZoneUgc             []byte             `json:"weather_zone_ugc"`
+	Provenance                 []byte             `json:"provenance"`
+}
+
+type RiskPolicyEvaluation struct {
+	SiteID        string             `json:"site_id"`
+	EvaluatedAt   pgtype.Timestamptz `json:"evaluated_at"`
+	MemberID      pgtype.Text        `json:"member_id"`
+	PolicyVersion string             `json:"policy_version"`
+	Signals       []byte             `json:"signals"`
+	Decisions     []byte             `json:"decisions"`
+}
+
+type StepUpAssertion struct {
+	Nonce       string             `json:"nonce"`
+	Subject     string             `json:"subject"`
+	Action      string             `json:"action"`
+	EventID     string             `json:"event_id"`
+	PlanVersion int64              `json:"plan_version"`
+	IssuedAt    pgtype.Timestamptz `json:"issued_at"`
+	ExpiresAt   pgtype.Timestamptz `json:"expires_at"`
+	AcceptedAt  pgtype.Timestamptz `json:"accepted_at"`
+}
+
+type TelemetryObservation struct {
+	ObservedAt    pgtype.Timestamptz `json:"observed_at"`
+	DeviceID      string             `json:"device_id"`
+	Sequence      int64              `json:"sequence"`
+	ObservationID string             `json:"observation_id"`
+	Payload       []byte             `json:"payload"`
+}
+
+type TelemetryObservationsDefault struct {
+	ObservedAt    pgtype.Timestamptz `json:"observed_at"`
+	DeviceID      string             `json:"device_id"`
+	Sequence      int64              `json:"sequence"`
+	ObservationID string             `json:"observation_id"`
+	Payload       []byte             `json:"payload"`
 }
 
 type TravelFlexWindow struct {
@@ -233,6 +385,10 @@ type TravelFlexWindow struct {
 	ConsentVersion          string             `json:"consent_version"`
 	PolicyVersion           string             `json:"policy_version"`
 	CorrelationID           string             `json:"correlation_id"`
+	CancelledAt             pgtype.Timestamptz `json:"cancelled_at"`
+	EndIdempotencyKey       pgtype.Text        `json:"end_idempotency_key"`
+	EndCorrelationID        pgtype.Text        `json:"end_correlation_id"`
+	OfferID                 pgtype.Text        `json:"offer_id"`
 }
 
 type UncertaintyInterval struct {

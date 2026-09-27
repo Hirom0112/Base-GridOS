@@ -16,6 +16,7 @@ down:
 generate:
 	buf generate contracts
 	buf breaking contracts --against '.git#branch=main,subdir=contracts'
+	sqlc generate
 
 test-go:
 	go test -timeout 40m $$(go list -m -f '{{if and .Main (ne .Path "github.com/Hirom0112/Base-GridOS/tests/end-to-end")}}{{.Path}}/...{{end}}' all)
