@@ -1,0 +1,21 @@
+name: negative-margin-no-dispatch
+provenance: SIMULATED
+clock:
+  seed: 20260926
+  start_at: 2026-08-12T16:00:00-05:00
+  interval_seconds: 300
+fleet:
+  path: testdata/fleets/austin-5000.jsonl
+  size: 5000
+event:
+  region: LZ_AEN
+  start_at: 2026-08-12T18:00:00-05:00
+  end_at: 2026-08-12T20:00:00-05:00
+  target_mw: 0.5
+  boundary: METER_NET_EXPORT
+injections: []
+expected:
+  final_event_state: REPORTED
+  reserve_violations: 0
+  allows_shortfall: true
+  required_recovery_actions: []

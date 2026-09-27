@@ -22,6 +22,12 @@ type scenarioReport struct {
 	ReserveViolationsPrevented uint64
 	Versions                   struct{ Policy string }
 	DataGaps                   []struct{ Reason string }
+	Margin                     *struct {
+		ValueUSD         float64
+		Bound            string   `json:"margin_bound"`
+		PriceProvenance  string   `json:"price_provenance"`
+		UnavailableCosts []string `json:"unavailable_cost_terms"`
+	}
 }
 
 func TestZeroPercentReservePreservesHardwareFloor(t *testing.T) {
