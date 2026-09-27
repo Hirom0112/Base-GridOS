@@ -61,6 +61,9 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	if err = fleet.SeedSimulatedMemberSites(ctx, pool, sites); err != nil {
+		log.Fatal(err)
+	}
 	telemetryToken := os.Getenv("GRIDOS_GATEWAY_TOKEN")
 	if telemetryToken == "" {
 		telemetryToken = LOCAL_GATEWAY_CREDENTIAL
