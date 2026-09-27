@@ -46,7 +46,12 @@ test("inconsistent reserve observation counts fail closed", () => {
 test("a device can be observed and still have gaps in the event window", () => {
   render(
     <ReserveEvidence
-      evidence={{ ...evidence, DevicesObserved: 100, ObservationGaps: 1 }}
+      evidence={{
+        ...evidence,
+        DevicesObserved: 100,
+        ObservationGaps: 1,
+        MinimumMarginKWh: 0.25,
+      }}
     />,
   );
   expect(
@@ -57,3 +62,25 @@ test("a device can be observed and still have gaps in the event window", () => {
   ).toHaveTextContent("1 devices with observation gaps");
   expect(screen.queryByRole("alert")).not.toBeInTheDocument();
 });
+
+test.each([-0.25, -0.0001])(
+  "negative reserve margin %s has an explicit breach warning",
+  (margin) => {
+    const view = render(
+      <ReserveEvidence evidence={{ ...evidence, MinimumMarginKWh: 0.25 }} />,
+    );
+    expect(
+      screen.getByRole("region", { name: "Reserve protection evidence" }),
+    ).toHaveTextContent("0.250 kWh");
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    view.rerender(
+      <ReserveEvidence evidence={{ ...evidence, MinimumMarginKWh: margin }} />,
+    );
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Reserve breach observed",
+    );
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "before another dispatch",
+    );
+  },
+);
