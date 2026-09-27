@@ -36,6 +36,7 @@ services:
 
   prometheus:
     image: prom/prometheus:v3.2.1
+    profiles: ["observability"]
     command: ["--config.file=/etc/prometheus/prometheus.yml"]
     extra_hosts:
       - "host.docker.internal:host-gateway"
@@ -46,6 +47,7 @@ services:
 
   grafana:
     image: grafana/grafana:11.6.2
+    profiles: ["observability"]
     depends_on:
       - prometheus
     environment:
