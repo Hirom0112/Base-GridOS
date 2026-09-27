@@ -9,14 +9,19 @@ import {
 } from "react";
 import { Link, useLocation, useParams } from "@tanstack/react-router";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
+import { create } from "@bufbuild/protobuf";
 import { useEventStream } from "./events/events-live";
+import { ReplayClock, useReplayClock } from "./events/replay-clock";
 import { MemberHome } from "./member/home";
 import { Shell } from "./shell";
 import { useSession } from "./api/auth";
 import { Evidence, evidenceSchema, Quantity } from "./api/Provenance";
 import { useFleet } from "./fleet/fleet";
+import { useGeographicCells } from "./map/geographic-time";
+import { H3SiteAggregateSchema } from "./api/gen/gridos/v1/api_pb";
 import type {
   AggregateMetadata,
+  FleetSummary,
   H3SiteAggregate,
 } from "./api/gen/gridos/v1/api_pb";
 
@@ -24,13 +29,16 @@ const LivingGrid = lazy(() => import("./fleet/living-grid"));
 
 export function Console({ children }: { children: ReactNode }) {
   const { identity } = useSession();
+  const { position, setPosition } = useReplayClock();
   const { summary, sites } = useFleet();
   const { pathname } = useLocation();
   const params = useParams({ strict: false });
   const [activeEvent, setActiveEvent] = useState(params.eventId);
   useEffect(() => {
     if (params.eventId) setActiveEvent(params.eventId);
-  }, [params.eventId]);
+    if (params.eventId && position && params.eventId !== position.eventId)
+      setPosition(null);
+  }, [params.eventId, position, setPosition]);
   const eventId = params.eventId ?? activeEvent;
   const [selectedCell, setSelectedCell] = useState<string | null>(null);
   const fleet = summary.data?.summary;
@@ -50,16 +58,29 @@ export function Console({ children }: { children: ReactNode }) {
   if (identity.role === "member") return <MemberHome />;
   return (
     <Shell
-      observedAt={observedAt}
+      observedAt={
+        position ? timestampDate(position.at).toISOString() : observedAt
+      }
       identity={identity.role}
       eventId={eventId}
       evidence={
-        <FleetEvidence
-          pathname={pathname}
-          metadata={metadata}
-          selected={selected}
-          clear={() => setSelectedCell(null)}
-        />
+        position ? (
+          <aside className="evidence-rail">
+            <h2>Historical geography</h2>
+            <p>
+              The field uses the replay clock. Inspect its timestamped cell
+              evidence below. Per-cell command and delivery history remain
+              unavailable.
+            </p>
+          </aside>
+        ) : (
+          <FleetEvidence
+            pathname={pathname}
+            metadata={metadata}
+            selected={selected}
+            clear={() => setSelectedCell(null)}
+          />
+        )
       }
     >
       <div
@@ -67,6 +88,7 @@ export function Console({ children }: { children: ReactNode }) {
         data-view={pathname}
       >
         <ConsoleHeading pathname={pathname} role={identity.role} />
+        <ReplayClock />
         {(summary.isError || sites.isError) && (
           <div role="alert" className="error-notice">
             {summary.error?.message ?? sites.error?.message}
@@ -80,23 +102,7 @@ export function Console({ children }: { children: ReactNode }) {
             </button>
           </div>
         )}
-        <div className="headline-quantities">
-          <Quantity
-            label="Installed power"
-            unit="MW"
-            aggregate={fleet?.installedMw}
-          />
-          <Quantity
-            label="Usable energy"
-            unit="MWh"
-            aggregate={fleet?.installedMwh}
-          />
-          <Quantity
-            label="Reserved for backup"
-            unit="MWh"
-            aggregate={fleet?.reservedForBackupMwh}
-          />
-        </div>
+        {!position && <FleetHeadlines fleet={fleet} />}
         <Suspense
           fallback={
             <div className="grid-loading" role="status">
@@ -255,11 +261,58 @@ function GeographicField({
   eventId,
   ...props
 }: ComponentProps<typeof LivingGrid> & { eventId?: string }) {
-  const { query } = useEventStream(eventId);
+  const { position } = useReplayClock();
+  const historical = useGeographicCells(position?.at ?? null);
+  const { query } = useEventStream(position ? undefined : eventId);
+  const cells = useMemo(
+    () =>
+      historical.data?.cells.map((cell) =>
+        create(H3SiteAggregateSchema, {
+          h3Cell: cell.h3Cell,
+          siteCount: cell.siteCount,
+          installedMw: { value: cell.installedMw, metadata: cell.metadata },
+          installedMwh: { value: cell.installedMwh, metadata: cell.metadata },
+        }),
+      ) ?? [],
+    [historical.data],
+  );
   return (
-    <LivingGrid
-      {...props}
-      response={query.isError ? undefined : query.data?.at(-1)}
-    />
+    <>
+      {position && historical.isPending && (
+        <p role="status">Loading geography at the replay time…</p>
+      )}
+      {position && historical.isError && (
+        <p role="alert">
+          Historical geography unavailable: {historical.error.message}
+        </p>
+      )}
+      <LivingGrid
+        {...props}
+        cells={position ? cells : props.cells}
+        response={position || query.isError ? undefined : query.data?.at(-1)}
+      />
+    </>
+  );
+}
+
+function FleetHeadlines({ fleet }: { fleet: FleetSummary | undefined }) {
+  return (
+    <div className="headline-quantities">
+      <Quantity
+        label="Installed power"
+        unit="MW"
+        aggregate={fleet?.installedMw}
+      />
+      <Quantity
+        label="Usable energy"
+        unit="MWh"
+        aggregate={fleet?.installedMwh}
+      />
+      <Quantity
+        label="Reserved for backup"
+        unit="MWh"
+        aggregate={fleet?.reservedForBackupMwh}
+      />
+    </div>
   );
 }

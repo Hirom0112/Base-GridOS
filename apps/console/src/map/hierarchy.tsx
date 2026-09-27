@@ -4,6 +4,8 @@ import { z } from "zod";
 import { useSession } from "../api/auth";
 import { Evidence, evidenceSchema } from "../api/Provenance";
 import type { DrilldownResponse, GeoNode } from "../api/gen/gridos/v1/geo_pb";
+import { useReplayClock } from "../events/replay-clock";
+import { verifyGeographicTime } from "./geographic-time";
 
 const hierarchySchema = z.object({
   nodes: z.array(
@@ -63,11 +65,27 @@ export function HierarchyEvidence({
 
 export function GeographicHierarchy() {
   const { client, identity } = useSession();
+  const { position } = useReplayClock();
+  const asOf = position?.at;
   const [path, setPath] = useState<GeoNode[]>([]);
   const parentId = path.at(-1)?.id ?? "";
   const query = useQuery({
-    queryKey: ["geo-hierarchy", parentId, identity.role],
-    queryFn: ({ signal }) => client.geo.drilldown({ parentId }, { signal }),
+    queryKey: [
+      "geo-hierarchy",
+      parentId,
+      identity.role,
+      asOf?.seconds.toString(),
+      asOf?.nanos,
+    ],
+    queryFn: async ({ signal }) => {
+      const response = await client.geo.drilldown(
+        { parentId, asOf },
+        { signal },
+      );
+      verifyGeographicTime(response, asOf);
+      for (const node of response.nodes) verifyGeographicTime(node, asOf);
+      return response;
+    },
   });
   return (
     <section className="geographic-hierarchy" aria-label="Geographic hierarchy">

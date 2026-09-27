@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { useSession } from "../api/auth";
+import { useReplayClock } from "../events/replay-clock";
+import { useGeographicCells } from "./geographic-time";
 import { Evidence } from "../api/Provenance";
 import {
   mapFeatures,
@@ -15,16 +15,8 @@ import "./map.css";
 import { GeographicHierarchy } from "./hierarchy";
 
 export function FleetMap() {
-  const { client, identity } = useSession();
-  const sites = useQuery({
-    queryKey: ["geo-cells", identity.role, 7],
-    queryFn: ({ signal }) =>
-      client.geo.listCells(
-        { resolution: 7, loadZones: ["LZ_AEN"] },
-        { signal },
-      ),
-    refetchInterval: 5000,
-  });
+  const { position } = useReplayClock();
+  const sites = useGeographicCells(position?.at ?? "current");
   const [measure, setMeasure] = useState<MapMeasure>("capacity");
   const [selected, setSelected] = useState<string | null>(null);
   const [status, setStatus] = useState("Preparing geographic map…");

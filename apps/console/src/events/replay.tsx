@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { z } from "zod";
 import { useSession } from "../api/auth";
 import type { ReplayEventResponse } from "../api/gen/gridos/v1/api_pb";
 import { AuditRecords, recordsSchema } from "./audit-timeline";
+import { useReplayClock } from "./replay-clock";
 
 const replaySchema = z
   .object({
@@ -45,9 +46,28 @@ const replaySchema = z
       (result.diffStatus === "IDENTICAL") === (result.differences.length === 0),
   );
 
-export function ReplayEvidence({ data }: { data: ReplayEventResponse }) {
-  const [position, setPosition] = useState(0);
+export function ReplayEvidence({
+  data,
+  eventId,
+}: {
+  data: ReplayEventResponse;
+  eventId: string;
+}) {
+  const { position: clock, setPosition } = useReplayClock();
+  const position =
+    clock?.eventId === eventId
+      ? Math.min(clock.index, data.updates.length - 1)
+      : 0;
   const result = replaySchema.safeParse(data);
+  const first = result.success ? data.updates[0]?.occurredAt : undefined;
+  useEffect(() => {
+    if (first)
+      setPosition((current) =>
+        current?.eventId === eventId
+          ? current
+          : { eventId, index: 0, at: first },
+      );
+  }, [first, eventId, setPosition]);
   if (!result.success)
     return (
       <p role="alert">
@@ -112,15 +132,28 @@ export function ReplayEvidence({ data }: { data: ReplayEventResponse }) {
               max={data.updates.length - 1}
               step={1}
               value={position}
-              onChange={(event) => setPosition(Number(event.target.value))}
+              onChange={(event) => {
+                const index = z.coerce
+                  .number()
+                  .int()
+                  .min(0)
+                  .max(data.updates.length - 1)
+                  .parse(event.target.value);
+                setPosition({
+                  eventId,
+                  index,
+                  at: data.updates[index]!.occurredAt!,
+                });
+              }}
             />
           </label>
           <AuditRecords entries={data.updates.slice(0, position + 1)} />
         </>
       )}
       <p className="boundary-note">
-        Historical power samples and per-cell response are not included in this
-        replay. The geographic field above remains a current fleet snapshot.
+        The replay timestamp controls historical geography. Per-cell command and
+        measured response histories are unavailable; no delivery is inferred
+        from capacity.
       </p>
     </div>
   );
@@ -157,7 +190,11 @@ export function EventReplay({ eventId }: { eventId: string }) {
         <p role="alert">Replay unavailable: {query.error.message}</p>
       )}
       {query.data && (
-        <ReplayEvidence key={query.dataUpdatedAt} data={query.data} />
+        <ReplayEvidence
+          key={query.dataUpdatedAt}
+          data={query.data}
+          eventId={eventId}
+        />
       )}
     </section>
   );
