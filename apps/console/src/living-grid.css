@@ -204,11 +204,9 @@
     inset-inline: 16px;
     flex-direction: column;
     gap: 3px;
-    font-size: 8px;
   }
   .geography-table > summary {
     padding-inline: 16px;
-    font-size: 10px;
   }
 }
 
