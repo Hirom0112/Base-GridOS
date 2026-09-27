@@ -1,0 +1,36 @@
+title = "GridOS secret scanning"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Localhost Grafana default credentials in the build verification plan; service binds to 127.0.0.1"
+targetRules = ["curl-auth-user"]
+condition = "AND"
+regexTarget = "match"
+paths = ['''^claude docs/BUILD_ORDER\.md$''']
+regexes = ['''^curl -u admin:admin $''']
+
+[[allowlists]]
+description = "Historical Go test fixture acknowledgement and idempotency identifiers, not credentials"
+targetRules = ["generic-api-key"]
+condition = "AND"
+regexTarget = "match"
+paths = ['''^services/control/internal/(reconciliation/activities_test|storage/acknowledgements_test)\.go$''']
+regexes = ['''^IdempotencyKey:\s*"(acknowledgement-1|ack-idempotency-[12])"$''']
+
+[[allowlists]]
+description = "Historical API fixture idempotency identifiers, not credentials"
+targetRules = ["generic-api-key"]
+condition = "AND"
+regexTarget = "match"
+paths = ['''^testdata/fixtures/api/INDEX\.json$''']
+regexes = ['''^idempotencyKey": "(idem_austin_(approve|launch)_0004|idem_sim_approve_0001)"$''']
+
+[[allowlists]]
+description = "Published dataset digest for the ComEd PV layer, not a credential"
+targetRules = ["generic-api-key"]
+condition = "AND"
+regexTarget = "match"
+paths = ['''^DATASETS\.md$''']
+regexes = ['''^API\. PV layer ID: `d282a890afb34956a906ae224c9f708e`$''']
