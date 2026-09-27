@@ -1546,7 +1546,7 @@ Owns: `services/control/internal/context/`, `services/control/internal/api/conte
   was built from, each with provenance, issue time and value kind, so the
   console's risk, availability and window panels read frozen inputs rather
   than live public samples. Verify: `go test ./services/control/internal/api/ -run Explanation` passes and the recorded fixture carries all four.
-- `[ ]` 4C.9 `[after 4C.6]` Frozen reserve basis in the explanation.
+- `[x]` 4C.9 `[after 4C.6]` Frozen reserve basis in the explanation.
   `PlanExplanationEvidence` carries, per device, the frozen hardware floor,
   plan reserve, any active override floor with its reason, source id and
   policy version, and the effective reserve the plan honoured, plus each

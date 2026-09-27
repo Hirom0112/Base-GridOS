@@ -2091,3 +2091,17 @@ builds and starts the mock identity signer itself when GRIDOS_STEP_UP_KEY
 is set (local auth mode, 127.0.0.1:8080, PID tracked with the others), so
 one command brings up the enforced demo and the console's identity path.
 Takes effect at the next rebuild.
+
+## 2026-09-27 09:15Z — 4C.9 verified end to end
+
+Root seeded through the public paths only: a Balanced selection and Travel
+Flex window seed-4c9-69f8eaa3-window (FIXED_DAILY, 500 cents) via
+MemberService, and a COMMUNICATIONS override (40 percent, active) raised
+by the live risk bridge from a runbook gateway silence; the gateway was
+restarted per runbook (PID 71881, up, no publish failures, lag 3 s). Event
+event-4c9-1790500277 is VALIDATED. Fixture GREEN 1b943d3 (RED 5761c00 test
+only) records 5,000 frozen reserve bases including two with the
+COMMUNICATIONS override and one Travel Flex binding; `go test
+./tools/development/mockapi -run 'Fixtures|ReserveBasis'` ok (0.871s)
+here. The override, window and event rows match on the demo. Marked done;
+the seeding window is closed and the demo reopened to the console.
