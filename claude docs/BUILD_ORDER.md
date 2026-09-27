@@ -1704,7 +1704,7 @@ Owns: `README.md`, `docs/operations/` (except `security/`), `AGENTS.md`.
 - Terraform validates; no secrets or long-lived keys in the tree.
 - Role matrix and scrubber tests green.
 - README and runbooks verified by execution.
-- `STUBS.md` contains only `PENDING-LIVE` connector entries.
+- `STUBS.md` contains only `PENDING-LIVE` entries, each naming the live system it waits for; no `STUBBED` marker remains in the tree.
 
 ---
 

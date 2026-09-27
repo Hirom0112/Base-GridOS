@@ -1558,3 +1558,20 @@ ok. Every RED commit in the trail (214ca9a, 721d63b, 4a0c0c2, 00e4175,
 7aa9477, dbbab2f, 1c64c3a, 0b829e4) stages test files only. Both items
 marked done; Wave 2 backend is closed. The standing demo gateway binary
 predates the next_command scope and gets rebuilt next.
+
+## 2026-09-27 05:12Z — Gate 5 stub condition resolved
+
+The four `STUBBED` rows (mock API local identities, mock API local step-up,
+control's default local gateway bearer token, control's unset step-up key)
+stand in for two external systems this build cannot ship: an identity
+provider that issues sessions and signed step-up assertions, and a secret
+store for the gateway credential and the step-up key. That is the same
+situation as the connectors, so they are reclassified `PENDING-LIVE`
+naming the provider each waits for, in the code markers and in STUBS.md
+together; runtime warnings keep printing when the local substitute is in
+use. The Gate 5 condition in the plan now reads "only PENDING-LIVE entries,
+each naming the live system it waits for; no STUBBED marker remains in the
+tree". Root owns the marker rename in services and tools; the console lane
+renames its identity badge. Verify: `grep -rn STUBBED services tools apps
+--include='*.go' --include='*.py' --include='*.ts' --include='*.tsx'`
+prints nothing and `grep -c STUBBED STUBS.md` prints 0.
