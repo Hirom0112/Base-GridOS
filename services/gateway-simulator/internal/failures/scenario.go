@@ -130,8 +130,11 @@ func (scenario Scenario) RetimeLive(anchor time.Time, window, cadence time.Durat
 		}
 		mapped := time.Duration(float64(offset) / float64(originalWindow) * float64(window))
 		slots := mapped / cadence
-		if mapped > 0 && slots == 0 {
-			slots = 1
+		if mapped%cadence != 0 {
+			slots++
+		}
+		if slots*cadence > window {
+			slots = window / cadence
 		}
 		scenario.Injections[index].At = anchor.Add(slots * cadence)
 	}
