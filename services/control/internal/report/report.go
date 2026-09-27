@@ -72,6 +72,7 @@ type Delivered struct {
 }
 
 type StoredEvent struct {
+	PlanVersion                uint64
 	RequestedMW                float64
 	ApprovedMW                 float64
 	CommandedMW                float64
@@ -94,6 +95,7 @@ type Source interface {
 
 type EventReport struct {
 	EventID                    string
+	PlanVersion                uint64
 	RequestedMW                float64
 	ApprovedMW                 float64
 	CommandedMW                float64
@@ -127,6 +129,7 @@ func Build(ctx context.Context, source Source, eventID string) (EventReport, err
 	}
 	report := EventReport{
 		EventID:                    eventID,
+		PlanVersion:                stored.PlanVersion,
 		RequestedMW:                stored.RequestedMW,
 		ApprovedMW:                 stored.ApprovedMW,
 		CommandedMW:                stored.CommandedMW,

@@ -30,7 +30,7 @@ func TestCompareReportsTracksNumericAndVersionChanges(t *testing.T) {
 	differences := Compare(before, after)
 	want := map[string]bool{
 		"plan_version": true, "requested_mw": true, "energy.requested_mwh": true, "measurement.baseline_mw": true,
-		"delivered.delivered_mw": true, "delivered.uncertain_intervals.device-1.upper_kw": true,
+		"delivered.delivered_mw": true, "delivered.uncertain_intervals.0.upper_kw": true,
 		"reserve_violations_prevented": true, "excluded_by_reason.RESERVE": true, "economics.net_value_usd": true, "versions.policy": true,
 	}
 	if len(differences) != len(want) {
