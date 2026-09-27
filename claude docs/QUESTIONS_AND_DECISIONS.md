@@ -1795,3 +1795,14 @@ unavailable sources into PlanExplanationEvidence with the same provenance,
 issue time and value kind. Root's order becomes 4E.8, 4E.9, 4C.8, 4B.9,
 4C.7. Until 4C.8 lands those substeps stay labelled missing evidence; the
 console never scores a window from candidate values it invents.
+
+## 2026-09-27 08:12Z — 4E.8: no per-command verified flag
+
+Root found that verification evidence is aggregate (verification
+summaries and DELIVERY_VERIFIED rows per event interval) and telemetry
+carries no command id, so a per-command verified boolean could only ever be
+false or a false attribution. Decision: ListEventCommands has no such flag.
+It returns intent, latest durable state and receipt per command, and the
+event's interval verification summaries as a separate MEASURED aggregate,
+so the console shows "verified at the boundary for the interval" rather
+than a per-device claim. Illegal states stay unrepresentable.

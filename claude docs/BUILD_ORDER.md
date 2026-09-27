@@ -1577,10 +1577,12 @@ Owns: `tests/integration/`, `testdata/scenarios/`, `tests/end-to-end/`,
   on `EventsService` returns every command intent of an event with device,
   generation, setpoint, issued, effective and expiry times, the latest
   durable state (PERSISTED, SENT, ACKNOWLEDGED, UNCERTAIN, EXPIRED,
-  REJECTED), the gateway receipt, and whether delivery was verified, so
-  intent, acknowledgement and verified delivery are distinguishable in the
-  browser (FULL_SPEC §10) and expiry and safe return are shown from durable
-  rows, never inferred. Verify: `go test ./services/control/internal/api/events/ -run Commands` passes.
+  REJECTED) and the gateway receipt, plus the event's interval verification
+  summaries (commanded, delivered, tracking error, MEASURED at the boundary)
+  as a separate aggregate; there is no per-command verified flag because no
+  durable row links delivered power to a command, so intent, acknowledgement
+  and verified delivery stay distinguishable in the browser (FULL_SPEC §10)
+  and expiry and safe return are shown from durable rows, never inferred. Verify: `go test ./services/control/internal/api/events/ -run Commands` passes.
 - `[ ]` 4E.9 `[after 4E.2]` Measured reserve compliance in the report.
   `GetEventReport` carries per-event reserve compliance from telemetry in
   the window: devices observed, minimum margin above the effective reserve,
