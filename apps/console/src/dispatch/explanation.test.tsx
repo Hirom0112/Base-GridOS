@@ -246,3 +246,42 @@ test("window ranking explains missing interval-matched inputs", () => {
     screen.getByRole("region", { name: "Dispatch window ranking" }),
   ).toHaveTextContent("Frozen outage probabilities unavailable");
 });
+
+test("plan review exposes the stored manifest and fails closed on missing lineage", () => {
+  const explanation = fixture();
+  explanation.manifest = fromJsonString(
+    GetPlanExplanationResponseSchema,
+    JSON.stringify({
+      manifest: {
+        inputSnapshotId: "input-frozen-one",
+        eligibilitySnapshotId: "eligibility-frozen-one",
+        policyVersion: "policy-one",
+        solverVersion: "solver-one",
+        modelVersion: "model-one",
+        codeVersion: "code-one",
+      },
+    }),
+  ).manifest;
+  const { rerender } = render(
+    <ExplanationEvidence explanation={explanation} />,
+  );
+  const manifest = screen.getByRole("region", { name: "Frozen plan inputs" });
+  for (const value of [
+    "input-frozen-one",
+    "eligibility-frozen-one",
+    "policy-one",
+    "solver-one",
+    "model-one",
+    "code-one",
+  ]) {
+    expect(manifest).toHaveTextContent(value);
+  }
+  if (!explanation.manifest) throw new Error("Manifest required");
+  explanation.manifest.inputSnapshotId = "";
+  rerender(<ExplanationEvidence explanation={explanation} />);
+  expect(manifest).toHaveTextContent("Frozen plan inputs unavailable");
+  expect(manifest).not.toHaveTextContent("eligibility-frozen-one");
+  explanation.manifest = undefined;
+  rerender(<ExplanationEvidence explanation={explanation} />);
+  expect(manifest).toHaveTextContent("Frozen plan inputs unavailable");
+});
