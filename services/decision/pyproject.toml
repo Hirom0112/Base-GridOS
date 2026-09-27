@@ -6,10 +6,8 @@ dependencies = [
   "grpcio>=1.75.0",
   "grpcio-tools>=1.75.0",
   "highspy>=1.11.0",
-  "numpy>=2.3.0",
   "opentelemetry-api>=1.45.0",
   "opentelemetry-sdk>=1.45.0",
-  "polars>=1.33.0",
   "prometheus-client>=0.22.0",
   "protobuf>=6.32.0",
 ]
