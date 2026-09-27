@@ -47,3 +47,23 @@ func TestScenarioFileReadsScheduledScope(t *testing.T) {
 		t.Fatalf("scope = %q", scenario.Injections[0].Scope)
 	}
 }
+
+func TestLiveScenarioRetimesToNextSlotWithoutChangingSource(t *testing.T) {
+	start := time.Date(2026, time.August, 12, 18, 0, 0, 0, time.UTC)
+	scenario := Scenario{
+		Start: start.Add(-2 * time.Hour), Tick: 5 * time.Minute,
+		EventStart: start, EventEnd: start.Add(2 * time.Hour),
+		Injections: []Injection{{At: start.Add(20 * time.Minute), Kind: DelayedGateway}},
+	}
+	anchor := time.Date(2026, time.September, 27, 3, 0, 0, 0, time.UTC)
+	live, err := scenario.RetimeLive(anchor, 10*time.Minute, 15*time.Second)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := anchor.Add(105 * time.Second); !live.Injections[0].At.Equal(want) {
+		t.Fatalf("live injection=%s want=%s", live.Injections[0].At, want)
+	}
+	if !scenario.Injections[0].At.Equal(start.Add(20 * time.Minute)) {
+		t.Fatalf("source injection changed: %s", scenario.Injections[0].At)
+	}
+}
