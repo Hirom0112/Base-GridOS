@@ -9,21 +9,6 @@ test.use({
   baseURL: process.env.GRIDOS_DEMO_CONSOLE_URL ?? "http://127.0.0.1:3000",
 });
 
-async function storyStep(name: string, verify: () => Promise<void>) {
-  await test.step(name, async () => {
-    try {
-      await verify();
-    } catch (failure) {
-      expect
-        .soft(
-          failure instanceof Error ? failure.message : String(failure),
-          name,
-        )
-        .toBe("");
-    }
-  });
-}
-
 async function createPlan(page: Page, request: APIRequestContext) {
   const now = new Date().toISOString();
   const receipt = await request.post(
@@ -111,135 +96,123 @@ test("seventeen-step severe-weather operating loop against the live demo", async
   page,
   request,
 }) => {
-  test.setTimeout(120000);
+  test.setTimeout(600000);
   let eventId = "";
   await page.goto("/fleet");
-  await storyStep(
-    "01 Context: forecast load, prices, weather, outage risk, readiness",
-    async () => {
-      await expect(
-        page.getByRole("region", { name: "Regional context" }),
-      ).toBeVisible({ timeout: 1000 });
-    },
-  );
-  await storyStep(
-    "02 Operator selects region, event window, and target MW",
-    async () => {
-      eventId = await createPlan(page, request);
-    },
-  );
-  await storyStep(
-    "03 Versioned plan is recorded (snapshot detail pending)",
-    async () => {
-      await expect(page.locator(".event-identifiers")).toContainText(
-        "Plan v1",
-        { timeout: 15000 },
-      );
-      await expect(
-        page.getByRole("heading", { name: "Safety validated" }),
-      ).toBeVisible();
-    },
-  );
-  await storyStep(
-    "04 Forecast consumption, risk, and fleet availability",
-    async () => {
-      await expect(
-        page.getByRole("region", { name: "Forecast intervals" }),
-      ).toBeVisible({ timeout: 1000 });
-    },
-  );
-  await storyStep(
-    "05 Optimizer proposes a reserve-preserving plan",
-    async () => {
-      await expect(
-        page.getByRole("region", { name: "Optimization explanation" }),
-      ).toBeVisible({ timeout: 1000 });
-    },
-  );
-  await storyStep(
-    "06 Explain expected value, held reserve, constraints, and exclusions",
-    async () => {
-      await expect(
-        page.getByRole("heading", { name: "Exclusions by reason" }),
-      ).toBeVisible();
-      await expect(
-        page.getByRole("region", { name: "Constraint margins" }),
-      ).toBeVisible({ timeout: 1000 });
-    },
-  );
-  await storyStep(
-    "07 Travel Flex credit and weather-raised reserve",
-    async () => {
-      await expect(
-        page.getByRole("region", { name: "Travel Flex eligibility" }),
-      ).toBeVisible({ timeout: 1000 });
-    },
-  );
-  await storyStep(
-    "08 Independently reject the unsafe alternative",
-    async () => {
-      await expect(
-        page.getByRole("button", { name: "Validate unsafe alternative" }),
-      ).toBeVisible({ timeout: 1000 });
-    },
-  );
-  await storyStep("09 Approve and launch as separate confirmed actions", () =>
-    approveAndLaunch(page),
-  );
-  await storyStep(
-    "10 Commands fan out through durable workflow and gateway",
-    async () => {
-      await expect(
-        page.getByRole("region", { name: "Command fan-out" }),
-      ).toBeVisible({ timeout: 1000 });
-    },
-  );
-  await storyStep(
-    "11 Seeded failure takes devices offline and delays a gateway",
-    async () => {
-      await expect(
-        page.getByRole("region", { name: "Scenario failures" }),
-      ).toBeVisible({ timeout: 1000 });
-    },
-  );
-  await storyStep(
-    "12 Safe retries and rebalancing remain inside the envelope",
-    async () => {
-      await expect(
-        page.getByRole("region", { name: "Recovery decisions" }),
-      ).toBeVisible({ timeout: 1000 });
-    },
-  );
-  await storyStep(
-    "13 Sent, acknowledged, and measured delivery remain distinct",
-    async () => {
-      await expect(
-        page.getByRole("region", { name: "Measured event response" }),
-      ).toBeVisible({ timeout: 1000 });
-    },
-  );
-  await storyStep(
-    "14 Track the request while preserving household reserve",
-    async () => {
-      await expect(
-        page.getByRole("region", { name: "Reserve protection evidence" }),
-      ).toBeVisible({ timeout: 1000 });
-    },
-  );
-  await storyStep("15 Explicit expiry and safe return", async () => {
+  await test.step("01 Context: forecast load, prices, weather, outage risk, readiness", async () => {
+    await expect(
+      page.getByRole("region", { name: "Regional context" }),
+    ).toBeVisible({ timeout: 1000 });
+  });
+  await test.step("02 Operator selects region, event window, and target MW", async () => {
+    eventId = await createPlan(page, request);
+  });
+  await test.step("03 Versioned plan is recorded (snapshot detail pending)", async () => {
+    await expect(page.locator(".event-identifiers")).toContainText("Plan v1", {
+      timeout: 15000,
+    });
+    await expect(
+      page.getByRole("heading", { name: "Safety validated" }),
+    ).toBeVisible();
+  });
+  await test.step("04 Forecast consumption, risk, and fleet availability", async () => {
+    await expect(
+      page.getByRole("region", { name: "Forecast intervals" }),
+    ).toBeVisible({ timeout: 1000 });
+  });
+  await test.step("05 Optimizer proposes a reserve-preserving plan", async () => {
+    const explanation = page.getByRole("region", {
+      name: "Optimization explanation",
+    });
+    await expect(explanation).toContainText("Reserve held back");
+    await expect(explanation).toContainText(/\d[\d,.]* kWh/);
+    await expect(
+      page.getByRole("table", { name: "Interval feasibility" }),
+    ).toContainText("Feasible kW");
+  });
+  await test.step("06 Explain expected value, held reserve, constraints, and exclusions", async () => {
+    await expect(
+      page.getByRole("heading", { name: "Exclusions by reason" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("region", { name: "Constraint margins" }),
+    ).toContainText("RESERVE");
+  });
+  await test.step("07 Travel Flex credit and weather-raised reserve", async () => {
+    await expect(
+      page.getByRole("region", { name: "Travel Flex eligibility" }),
+    ).toBeVisible({ timeout: 1000 });
+  });
+  await test.step("08 Independently reject the unsafe alternative", async () => {
+    await expect(
+      page.getByRole("button", { name: "Validate unsafe alternative" }),
+    ).toBeVisible({ timeout: 1000 });
+  });
+  await test.step("09 Approve and launch as separate confirmed actions", () =>
+    approveAndLaunch(page));
+  await test.step("10 Commands fan out through durable workflow and gateway", async () => {
+    await expect(
+      page.getByRole("region", { name: "Command fan-out" }),
+    ).toBeVisible({ timeout: 1000 });
+  });
+  await test.step("11 Seeded failure takes devices offline and delays a gateway", async () => {
+    const failures = page.getByRole("region", { name: "Scenario failures" });
+    await expect(failures).toContainText(/MISSING[_ ]TELEMETRY/, {
+      timeout: 180000,
+    });
+    await expect(failures).toContainText(/UNCERTAIN[_ ]COMMAND/, {
+      timeout: 180000,
+    });
+  });
+  await test.step("12 Safe retries and rebalancing remain inside the envelope", async () => {
+    const recovery = page.getByRole("region", { name: "Recovery decisions" });
+    await expect(recovery).toContainText(/RETRY/, { timeout: 60000 });
+    await expect(recovery).toContainText(/REBALANCED[_ ]COMMAND/, {
+      timeout: 60000,
+    });
+    await expect(recovery).toContainText(/STALE[_ ]CAPACITY[_ ]REMOVED/, {
+      timeout: 60000,
+    });
+  });
+  await test.step("13 Sent, acknowledged, and measured delivery remain distinct", async () => {
+    const response = page.getByRole("region", {
+      name: "Measured event response",
+    });
+    await expect
+      .poll(async () =>
+        Number.parseFloat(
+          await response.locator(".sent-value strong").innerText(),
+        ),
+      )
+      .toBeGreaterThan(0);
+    await expect
+      .poll(async () =>
+        Number.parseFloat(
+          await response.locator(".ack-value strong").innerText(),
+        ),
+      )
+      .toBeGreaterThan(0);
+    await expect(response.locator(".delivery-value strong")).toHaveText(
+      /^-?\d+\.\d{3} MW$/,
+      { timeout: 15000 },
+    );
+    await expect(response).toContainText("SIMULATED");
+  });
+  await test.step("14 Track the request while preserving household reserve", async () => {
+    await expect(
+      page.getByRole("region", { name: "Reserve protection evidence" }),
+    ).toBeVisible({ timeout: 1000 });
+  });
+  await test.step("15 Explicit expiry and safe return", async () => {
     await expect(
       page.getByRole("region", { name: "Safe return evidence" }),
     ).toBeVisible({ timeout: 1000 });
   });
-  await storyStep("16 Basic report (delivery and full economics pending)", () =>
-    verifyReport(page, eventId),
-  );
-  await storyStep(
-    "17 Replay the event from seed and versioned inputs",
-    async () => {
-      await expect(
-        page.getByRole("button", { name: "Replay event" }),
-      ).toBeVisible({ timeout: 1000 });
-    },
-  );
+  await test.step("16 Basic report (delivery and full economics pending)", () =>
+    verifyReport(page, eventId));
+  await test.step("17 Replay the event from seed and versioned inputs", async () => {
+    await expect(
+      page.getByRole("button", { name: "Replay event" }),
+    ).toBeVisible({ timeout: 1000 });
+  });
 });
