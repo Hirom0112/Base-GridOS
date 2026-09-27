@@ -331,6 +331,15 @@ message ReplayEventResponse {
   repeated ReplayDifference differences = 12;
 }
 
+message GetEventReportRequest {
+  string event_id = 1;
+  bool partner_view = 2;
+}
+
+message GetEventReportResponse {
+  string report_json = 1;
+}
+
 message ContextSource {
   DataProvenance provenance = 1;
   google.protobuf.Timestamp as_of = 2;
@@ -456,6 +465,10 @@ service EventsService {
 
 service ReplayService {
   rpc ReplayEvent(ReplayEventRequest) returns (ReplayEventResponse);
+}
+
+service ReportService {
+  rpc GetEventReport(GetEventReportRequest) returns (GetEventReportResponse);
 }
 
 service ContextService {
