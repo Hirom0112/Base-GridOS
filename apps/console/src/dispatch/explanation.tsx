@@ -160,9 +160,9 @@ export function ExplanationEvidence({
       <p className="explanation-note">
         Values belong to the selected event and plan version. Frozen records
         show their own issue time and provenance; aggregate objective and
-        constraint source metadata are not supplied. Frozen snapshot identifiers
-        are pending server evidence.
+        constraint source metadata are not supplied.
       </p>
+      <FrozenPlanInputs manifest={explanation.manifest} />
       <section aria-label="Constraint margins">
         <h3>Constraint margins</h3>
         <p>
@@ -352,5 +352,48 @@ function ObjectiveEvidence({
         <p>Objective breakdown unavailable.</p>
       )}
     </details>
+  );
+}
+
+const manifestSchema = z.object({
+  inputSnapshotId: z.string().trim().min(1),
+  eligibilitySnapshotId: z.string().trim().min(1),
+  policyVersion: z.string().trim().min(1),
+  solverVersion: z.string().trim().min(1),
+  modelVersion: z.string().trim().min(1),
+  codeVersion: z.string().trim().min(1),
+});
+
+function FrozenPlanInputs({ manifest }: { manifest: unknown }) {
+  const result = manifestSchema.safeParse(manifest);
+  const labels = {
+    inputSnapshotId: "Input snapshot",
+    eligibilitySnapshotId: "Eligibility snapshot",
+    policyVersion: "Policy version",
+    solverVersion: "Solver version",
+    modelVersion: "Model version",
+    codeVersion: "Code version",
+  } as const;
+  return (
+    <section aria-label="Frozen plan inputs">
+      <h3>Frozen plan inputs</h3>
+      {result.success ? (
+        <dl className="frozen-policy-details">
+          {Object.entries(labels).map(([key, label]) => (
+            <div key={key}>
+              <dt>{label}</dt>
+              <dd className="mono">
+                {result.data[key as keyof typeof labels]}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      ) : (
+        <p>
+          Frozen plan inputs unavailable. Complete snapshot identifiers and
+          versions have not been supplied for this plan.
+        </p>
+      )}
+    </section>
   );
 }
