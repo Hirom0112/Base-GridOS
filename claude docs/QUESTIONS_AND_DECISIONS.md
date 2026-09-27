@@ -1236,3 +1236,8 @@ assumptions reported by workers land here too.
   integration stack, load test, or Bazel test; unit tests and commits
   continue. The orphan sweep now also matches processes under the
   temporary stack directories, which the earlier pattern missed.
+- **Container build boundary (5D.3, 2026-09-27):** images generate the
+  protobuf bindings internally from the checked-in contracts with the
+  pinned local plugins, so a fresh checkout builds without a host step;
+  generated trees are excluded from the build context. Verified by
+  building from a clean archive of HEAD.
