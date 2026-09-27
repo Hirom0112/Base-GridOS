@@ -11,12 +11,14 @@ import (
 )
 
 const PruneTelemetryActivity = "PruneTelemetry"
+const PostPeriodicRewardsActivity = "PostPeriodicRewards"
 const RiskOverridesActivity = "EvaluateRiskOverrides"
 const RiskAnomaliesActivity = "EvaluateRiskAnomalies"
 
 type TelemetryMaintenanceActivities struct {
-	Store *storage.TelemetryStore
-	Now   func() time.Time
+	Store   *storage.TelemetryStore
+	Rewards *policy.Store
+	Now     func() time.Time
 }
 
 type RiskOverrideActivities struct {
@@ -36,7 +38,13 @@ func (activities *TelemetryMaintenanceActivities) PruneTelemetry(ctx context.Con
 	return err
 }
 
+func (activities *TelemetryMaintenanceActivities) PostPeriodicRewards(ctx context.Context, at time.Time) error {
+	_, err := activities.Rewards.PostPeriodicRewards(ctx, at)
+	return err
+}
+
 func TelemetryMaintenance(ctx workflow.Context) error {
+	at := workflow.Now(ctx)
 	ctx = workflow.WithActivityOptions(ctx, workflow.ActivityOptions{
 		StartToCloseTimeout: time.Minute,
 		RetryPolicy: &temporal.RetryPolicy{
@@ -45,7 +53,10 @@ func TelemetryMaintenance(ctx workflow.Context) error {
 			MaximumAttempts: 1,
 		},
 	})
-	return workflow.ExecuteActivity(ctx, PruneTelemetryActivity).Get(ctx, nil)
+	if err := workflow.ExecuteActivity(ctx, PruneTelemetryActivity).Get(ctx, nil); err != nil {
+		return err
+	}
+	return workflow.ExecuteActivity(ctx, PostPeriodicRewardsActivity, at).Get(ctx, nil)
 }
 
 func RiskOverrides(ctx workflow.Context) error {

@@ -124,6 +124,55 @@ func TestRewardPostingAddsFixedEventTravelCreditOnlyForFullWindow(t *testing.T) 
 	require.Zero(t, partial)
 }
 
+func TestRewardPostingUsesLocalDailyAndAnnualPeriodsOnce(t *testing.T) {
+	pool := policyDatabase(t)
+	ctx := context.Background()
+	zone, err := time.LoadLocation("America/Chicago")
+	require.NoError(t, err)
+	at := time.Date(2026, 9, 26, 12, 0, 0, 0, zone)
+	seedPolicyCatalog(t, pool, at)
+	store := New(pool)
+	for _, member := range []string{"daily", "annual"} {
+		_, err = selectWithOffer(t, store, Selection{ID: "selection-" + member, MemberID: "member-" + member,
+			Market: "TX", CatalogVersion: "catalog-v1", MemberPlanID: "plan-cedar", PolicyVersion: "policy-v1",
+			ConsentText: "I consent", ConsentVersion: "v1", ExplanationShown: "Backup reserve",
+			EffectiveAt: at.Add(-2 * time.Hour), CorrelationID: "periodic-test"})
+		require.NoError(t, err)
+	}
+	for _, window := range []TravelFlex{
+		{ID: "daily-window", MemberID: "member-daily", Start: at.Add(-time.Hour), End: at.AddDate(0, 0, 2), CreditType: FixedDaily, CreditCents: 300},
+		{ID: "annual-window", MemberID: "member-annual", Start: at.Add(-time.Hour), End: at.AddDate(2, 0, 1), CreditType: FixedAnnual, CreditCents: 900},
+	} {
+		window.Timezone = zone.String()
+		window.TemporaryReservePercent = 20
+		window.EarlyReturnAction = RestorePlanReserve
+		window.ConsentText = "I accept fixed credit"
+		window.ConsentVersion = "v1"
+		window.PolicyVersion = "policy-v1"
+		window.CorrelationID = "periodic-test"
+		_, err = scheduleWithOffer(t, store, window)
+		require.NoError(t, err)
+	}
+	posted, err := store.PostPeriodicRewards(ctx, at.UTC())
+	require.NoError(t, err)
+	require.Equal(t, 2, posted)
+	posted, err = store.PostPeriodicRewards(ctx, at.Add(time.Hour).UTC())
+	require.NoError(t, err)
+	require.Zero(t, posted)
+	posted, err = store.PostPeriodicRewards(ctx, at.AddDate(0, 0, 1).UTC())
+	require.NoError(t, err)
+	require.Equal(t, 1, posted)
+	posted, err = store.PostPeriodicRewards(ctx, at.AddDate(1, 0, 0).UTC())
+	require.NoError(t, err)
+	require.Equal(t, 1, posted)
+	var periods int
+	require.NoError(t, pool.QueryRow(ctx, `SELECT count(*) FROM reward_ledger
+		WHERE entry_type = 'FIXED_DAILY' AND period_start = $1`, time.Date(2026, 9, 26, 0, 0, 0, 0, zone).UTC()).Scan(&periods))
+	require.Equal(t, 1, periods)
+	require.NoError(t, pool.QueryRow(ctx, `SELECT count(*) FROM reward_ledger WHERE event_id IS NULL`).Scan(&periods))
+	require.Equal(t, 4, periods)
+}
+
 func seedRewardPostingEvent(t *testing.T, pool *pgxpool.Pool, begin, end time.Time) {
 	t.Helper()
 	ctx := context.Background()
