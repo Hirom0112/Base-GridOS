@@ -1992,3 +1992,13 @@ authoritative (the plan's flexibility reward versus the Travel Flex fixed
 credit) and makes both RPCs emit the same numbers, with a RED that
 compares the two responses for each kind. The console keeps rejecting any
 changed charge or reward.
+
+## 2026-09-27 08:38Z — 4B.9 reward parity verified; demo rebuilt on d22ba2c
+
+RED 1914fb7 (test only) compares ListMemberOffers and PresentOffer field
+by field per offer kind; GREEN ab895af makes the listed Travel Flex reward
+equal its authoritative fixed credit while the plan reward stays the
+catalog value. Offers tests ok (1.166s) here. Demo rebuilt: telemetry lag
+7 s, publish failures 0, buffered rows 0, enforcement denied without an
+assertion, worker log clean. The console reruns its member proof against
+it.
