@@ -1725,3 +1725,18 @@ verification; new 4E.9 measured reserve compliance in the event report.
 Root's post-gate order becomes 4D.8, 4C.6, 4E.8, 4E.9, 4B.9, 4C.7. Until
 they land the console states these as missing evidence rather than
 inferring success from plan or audit state.
+
+## 2026-09-27 07:32Z — Gate 5 backend GREEN
+
+Report committed at `claude docs/gate-reports/wave-5.md`. Final lines on
+the director's machine: all 19 scenarios pass (groups 2 and 3 rerun after
+the fault repair); `make test-go` exit 0 with 38 packages ok; uncached
+`bazelisk test //services/...` 31 of 31 pass, console vitest 1 of 1, control
+image builds; Terraform valid; gitleaks clean; role matrix, scrubber and
+connectors ok; Grafana dashboard and four alert rules; load figures on
+record; STUBS.md holds only PENDING-LIVE rows. 5D.5, 5F.3 and 5F.4 marked
+done. The gate window closes; root's queue (4D.8, 4C.6, 4E.8, 4E.9, 4B.9,
+4C.7) starts. The demo is rebuilt next with GRIDOS_STEP_UP_KEY on control so
+approval and emergency stop are enforced end to end. Open after this:
+3F.5, 4F.5 and 5F.2 (the console's 17-step demo path) plus the six console
+support items.

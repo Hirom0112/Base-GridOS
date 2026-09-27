@@ -1689,7 +1689,7 @@ Owns: `infrastructure/aws/`.
   with pinned base images. Verify: `docker build -f services/control/Dockerfile .` succeeds for each service.
 - `[x]` 5D.4 `[P]` `terraform plan` recorded against a mock provider; no
   `apply` in this build. Verify: plan output saved to `claude docs/gate-reports/terraform-plan.md`.
-- `[~]` 5D.5 `[P]` `MODULE.bazel` with Bzlmod (`rules_go`, `gazelle`,
+- `[x]` 5D.5 `[P]` `MODULE.bazel` with Bzlmod (`rules_go`, `gazelle`,
   `rules_python`, `rules_proto`, `rules_buf`) now that real build targets
   exist (TECHSTACK: "added with the first build target"). Go and Python
   service tests run under Bazel. Verify: `bazelisk test //services/...` passes.
@@ -1730,11 +1730,11 @@ Owns: `README.md`, `docs/operations/` (except `security/`), `AGENTS.md`.
   steps 1 to 17 with the exact clicks and expected screens. Verify: the
   director follows the runbook against `make demo` and every step's expected
   screen appears; `playwright test demo-path` is green on the same build.
-- `[ ]` 5F.3 `[after all lanes]` Docs alignment pass: every command in
+- `[x]` 5F.3 `[after all lanes]` Docs alignment pass: every command in
   `README.md` and `AGENTS.md` executed; status section updated from
   "specification stage" to the shipped state. Verify: `docs-align` skill run
   green.
-- `[ ]` 5F.4 `[after 5F.3]` Final gate report `claude docs/gate-reports/wave-5.md`
+- `[x]` 5F.4 `[after 5F.3]` Final gate report `claude docs/gate-reports/wave-5.md`
   with the full FULL_SPEC §10 acceptance table and STUBS.md reviewed.
   Verify: every bullet under FULL_SPEC §10 "The MVP is complete when it can"
   has a table row naming the command that proves it and its passing output.
