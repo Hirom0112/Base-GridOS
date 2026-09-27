@@ -43,12 +43,16 @@ type Forecast struct {
 }
 
 type Alert struct {
-	City      string
-	Event     string
-	Severity  string
-	Effective time.Time
-	Expires   time.Time
-	Source    Source
+	ID              string
+	City            string
+	AreaDescription string
+	UGC             []string
+	SAME            []string
+	Event           string
+	Severity        string
+	Effective       time.Time
+	Expires         time.Time
+	Source          Source
 }
 
 type Snapshot struct {

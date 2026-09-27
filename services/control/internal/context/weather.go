@@ -76,7 +76,14 @@ func loadAlerts(path, city string, now time.Time) ([]Alert, error) {
 	}
 	var document struct {
 		Features []struct {
+			ID         string `json:"id"`
 			Properties struct {
+				ID              string `json:"id"`
+				AreaDescription string `json:"areaDesc"`
+				Geocode         struct {
+					UGC  []string `json:"UGC"`
+					SAME []string `json:"SAME"`
+				} `json:"geocode"`
 				Sent      string `json:"sent"`
 				Effective string `json:"effective"`
 				Expires   string `json:"expires"`
@@ -101,7 +108,16 @@ func loadAlerts(path, city string, now time.Time) ([]Alert, error) {
 		if err != nil {
 			return nil, err
 		}
-		alerts = append(alerts, Alert{City: city, Event: properties.Event, Severity: properties.Severity, Effective: effective, Expires: expires, Source: stamp})
+		id := properties.ID
+		if id == "" {
+			id = feature.ID
+		}
+		if id == "" {
+			return nil, errors.New("weather alert identifier required")
+		}
+		alerts = append(alerts, Alert{ID: id, City: city, AreaDescription: properties.AreaDescription,
+			UGC: properties.Geocode.UGC, SAME: properties.Geocode.SAME,
+			Event: properties.Event, Severity: properties.Severity, Effective: effective, Expires: expires, Source: stamp})
 	}
 	return alerts, nil
 }
