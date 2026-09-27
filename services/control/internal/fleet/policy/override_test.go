@@ -2,6 +2,7 @@ package policy
 
 import (
 	"context"
+	"os"
 	"testing"
 	"time"
 
@@ -85,4 +86,21 @@ func TestOverridePersistsAcrossPlanChangeUntilExpiry(t *testing.T) {
 	bySite, err := store.SiteReserves(ctx, []string{"site-override"}, changedAt)
 	require.NoError(t, err)
 	require.Equal(t, 85.0, bySite["site-override"].BasePercent)
+}
+
+func TestOverrideMigrationReappliesAfterRollback(t *testing.T) {
+	pool := policyDatabase(t)
+	forward, err := os.ReadFile("../../../../../database/migrations/0011_reserve_override_signals.sql")
+	require.NoError(t, err)
+	rollback, err := os.ReadFile("../../../../../database/rollback/0011_reserve_override_signals.sql")
+	require.NoError(t, err)
+	_, err = pool.Exec(context.Background(), string(forward))
+	require.NoError(t, err)
+	_, err = pool.Exec(context.Background(), string(rollback))
+	require.NoError(t, err)
+	_, err = pool.Exec(context.Background(), string(forward))
+	require.NoError(t, err)
+	var present bool
+	require.NoError(t, pool.QueryRow(context.Background(), `SELECT EXISTS (SELECT 1 FROM pg_attribute WHERE attrelid = 'reserve_overrides'::regclass AND attname = 'evidence_id' AND NOT attisdropped)`).Scan(&present))
+	require.True(t, present)
 }

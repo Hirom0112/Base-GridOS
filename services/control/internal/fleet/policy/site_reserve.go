@@ -21,7 +21,7 @@ func (store *Store) SiteReservesForWindow(ctx context.Context, siteIDs []string,
 	rows, err := store.pool.Query(ctx, `SELECT binding.site_id, plan.reserve_floor_percent,
 		r.protected_hardware_floor_percent, r.dynamic_override_percent,
 		COALESCE((SELECT max(o.reserve_floor_percent) FROM reserve_overrides o
-			WHERE o.member_id = binding.member_id AND o.policy_version = plan.policy_version
+			WHERE o.member_id = binding.member_id
 			AND o.effective_at <= $2 AND (o.expires_at IS NULL OR o.expires_at > $2)), 0),
 		(SELECT w.temporary_reserve_percent FROM travel_flex_windows w
 			WHERE w.member_id = binding.member_id AND w.policy_version = plan.policy_version
