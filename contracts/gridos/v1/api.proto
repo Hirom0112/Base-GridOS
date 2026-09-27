@@ -331,6 +331,105 @@ message ReplayEventResponse {
   repeated ReplayDifference differences = 12;
 }
 
+message ContextSource {
+  DataProvenance provenance = 1;
+  google.protobuf.Timestamp as_of = 2;
+  google.protobuf.Duration freshness = 3;
+}
+
+message ContextMarketPrice {
+  google.protobuf.Timestamp interval_end = 1;
+  string settlement_point = 2;
+  double usd_per_mwh = 3;
+  ContextSource source = 4;
+}
+
+message ContextSystemLoad {
+  google.protobuf.Timestamp interval_end = 1;
+  string weather_zone = 2;
+  double mw = 3;
+  ContextSource source = 4;
+}
+
+message ContextWeatherForecast {
+  string city = 1;
+  google.protobuf.Timestamp begin_time = 2;
+  google.protobuf.Timestamp end_time = 3;
+  int32 temperature_f = 4;
+  string summary = 5;
+  ContextSource source = 6;
+}
+
+message ContextWeatherAlert {
+  string city = 1;
+  string event = 2;
+  string severity = 3;
+  google.protobuf.Timestamp effective_at = 4;
+  google.protobuf.Timestamp expires_at = 5;
+  ContextSource source = 6;
+}
+
+message ContextOutageRate {
+  string county = 1;
+  string month = 2;
+  double rate = 3;
+  ContextSource source = 4;
+}
+
+message ContextWindowCandidate {
+  google.protobuf.Timestamp begin_time = 1;
+  google.protobuf.Timestamp end_time = 2;
+  double price_usd_per_mwh = 3;
+  double regional_load_mw = 4;
+  double outage_risk = 5;
+  double feasible_capacity_mw = 6;
+}
+
+message ContextDispatchWindow {
+  google.protobuf.Timestamp begin_time = 1;
+  google.protobuf.Timestamp end_time = 2;
+  uint32 rank = 3;
+  double score = 4;
+  double forecast_grid_value_usd = 5;
+  string value_kind = 6;
+}
+
+message GetMarketContextRequest {
+  string settlement_point = 1;
+  string weather_zone = 2;
+}
+
+message GetMarketContextResponse {
+  repeated ContextMarketPrice day_ahead_prices = 1;
+  repeated ContextMarketPrice real_time_prices = 2;
+  repeated ContextSystemLoad system_loads = 3;
+}
+
+message GetWeatherContextRequest {
+  string city = 1;
+}
+
+message GetWeatherContextResponse {
+  repeated ContextWeatherForecast forecasts = 1;
+  repeated ContextWeatherAlert alerts = 2;
+}
+
+message GetOutageRiskRequest {
+  string county = 1;
+}
+
+message GetOutageRiskResponse {
+  repeated ContextOutageRate rates = 1;
+}
+
+message ListDispatchWindowsRequest {
+  repeated ContextWindowCandidate candidates = 1;
+}
+
+message ListDispatchWindowsResponse {
+  repeated ContextDispatchWindow windows = 1;
+}
+
 service FleetService {
   rpc GetFleetSummary(GetFleetSummaryRequest) returns (GetFleetSummaryResponse);
   rpc ListSites(ListSitesRequest) returns (ListSitesResponse);
@@ -357,4 +456,11 @@ service EventsService {
 
 service ReplayService {
   rpc ReplayEvent(ReplayEventRequest) returns (ReplayEventResponse);
+}
+
+service ContextService {
+  rpc GetMarketContext(GetMarketContextRequest) returns (GetMarketContextResponse);
+  rpc GetWeatherContext(GetWeatherContextRequest) returns (GetWeatherContextResponse);
+  rpc GetOutageRisk(GetOutageRiskRequest) returns (GetOutageRiskResponse);
+  rpc ListDispatchWindows(ListDispatchWindowsRequest) returns (ListDispatchWindowsResponse);
 }
