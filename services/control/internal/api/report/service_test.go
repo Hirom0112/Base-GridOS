@@ -154,3 +154,31 @@ func TestGetEventReportReserveCompliance(t *testing.T) {
 	}
 	require.Contains(t, string(report["ReserveCompliance"]), `"ValueKind":"MEASURED"`)
 }
+
+func TestGetEventReportShortfallSeparatesPlanAndMeasuredDelivery(t *testing.T) {
+	source := &reportSource{}
+	fixture := `{"PlanVersion":1,"RequestedMW":1,"planned_shortfall":[{"begin":"2026-09-27T10:00:00Z","end":"2026-09-27T10:05:00Z","requested_kw":1000,"feasible_kw":800,"shortfall_kw":200,"reasons":["RESERVE"]}],"delivery_shortfall":[{"begin":"2026-09-27T10:00:00Z","end":"2026-09-27T10:05:00Z","requested_kwh":83.33333333333333,"measured_delivered_kwh":0,"shortfall_kwh":83.33333333333333,"coverage":1,"value_kind":"MEASURED"},{"begin":"2026-09-27T10:05:00Z","end":"2026-09-27T10:10:00Z","requested_kwh":83.33333333333333,"coverage":0,"value_kind":"UNKNOWN"}]}`
+	if err := json.Unmarshal([]byte(fixture), &source.live); err != nil {
+		t.Fatal(err)
+	}
+	request := connect.NewRequest(&gridosv1.GetEventReportRequest{EventId: "event-shortfall"})
+	request.Header().Set("X-GridOS-Role", "analyst")
+	response, err := NewService(source).GetEventReport(context.Background(), request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var body map[string]json.RawMessage
+	if err := json.Unmarshal([]byte(response.Msg.GetReportJson()), &body); err != nil {
+		t.Fatal(err)
+	}
+	if string(body["RequestedMW"]) != "1" {
+		t.Fatalf("requested power control missing: %s", response.Msg.GetReportJson())
+	}
+	var planned, delivered []map[string]json.RawMessage
+	if err := json.Unmarshal(body["planned_shortfall"], &planned); err != nil || len(planned) != 1 || string(planned[0]["shortfall_kw"]) != "200" {
+		t.Fatalf("planned shortfall = %s", response.Msg.GetReportJson())
+	}
+	if err := json.Unmarshal(body["delivery_shortfall"], &delivered); err != nil || len(delivered) != 2 || string(delivered[0]["measured_delivered_kwh"]) != "0" || string(delivered[1]["coverage"]) != "0" || delivered[1]["shortfall_kwh"] != nil {
+		t.Fatalf("delivery shortfall = %s", response.Msg.GetReportJson())
+	}
+}
