@@ -42,6 +42,37 @@ func TestLivePersistPerDeviceFaultsThroughWindowAndConsumeNextCommandOnce(t *tes
 	}
 }
 
+func TestLiveNextCommandSeedSurvivesAnchorBatch(t *testing.T) {
+	start := time.Date(2026, 9, 27, 8, 0, 0, 0, time.UTC)
+	scenario := Scenario{Seed: 17, Start: start, EventStart: start, EventEnd: start.Add(time.Hour), Tick: 15 * time.Second,
+		Injections: []Injection{{At: start, Kind: OfflineDevices, Scope: NextCommand}}}
+	engine, err := NewEngine(scenario, []Device{{ID: "device-1", Region: "LZ_AEN"}, {ID: "device-2", Region: "LZ_AEN"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	runtime := NewLiveRuntime(engine)
+	launch := start.Add(time.Hour)
+	if runtime.RecordCommand(launch, "event-live", "device-1", 1)[OfflineDevices] {
+		t.Fatal("accepted launch command consumed the retry fault")
+	}
+	affected := 0
+	for index := range 100 {
+		at := launch.Add(time.Duration(index) * time.Millisecond)
+		if runtime.TargetCommand(at, "event-live", "device-2")[OfflineDevices] {
+			affected++
+		}
+	}
+	for index := range 100 {
+		at := launch.Add(15*time.Second + time.Duration(index)*time.Millisecond)
+		if runtime.TargetCommand(at, "event-live", "device-2")[OfflineDevices] {
+			affected++
+		}
+	}
+	if affected != 1 {
+		t.Fatalf("offline retry faults across anchor and later batches = %d, want 1", affected)
+	}
+}
+
 func TestRuntimeTargetsOnlySeededDevices(t *testing.T) {
 	start := time.Date(2026, 8, 12, 18, 0, 0, 0, time.UTC)
 	scenario := Scenario{
