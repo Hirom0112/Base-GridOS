@@ -29,9 +29,13 @@ func TestExceptionsFromDurableEvidence(t *testing.T) {
 		INSERT INTO eligibility_snapshots (snapshot_id, event_id, captured_at, eligible_device_ids, exclusions, policy_version, correlation_id)
 		VALUES ('eligibility-exception', 'event-exception', $1, ARRAY['device-1'], '[]', 'policy-1', 'exception');
 		INSERT INTO plan_versions (event_id, version, input_snapshot_id, eligibility_snapshot_id, plan, solver_version, model_version, correlation_id)
-		VALUES ('event-exception', 1, 'input-exception', 'eligibility-exception', '{}', 'fallback-1', 'model-1', 'exception');
+		VALUES ('event-exception', 1, 'input-exception', 'eligibility-exception', '{"deviceSchedules":[{"deviceId":"device-1"}]}', 'fallback-1', 'model-1', 'exception');
+		INSERT INTO plan_versions (event_id, version, input_snapshot_id, eligibility_snapshot_id, plan, solver_version, model_version, correlation_id)
+		VALUES ('event-exception', 2, 'input-exception', 'eligibility-exception', '{"deviceSchedules":[{"deviceId":"device-2"}]}', 'fallback-1', 'model-1', 'exception');
 		INSERT INTO command_intents (command_id, idempotency_key, device_id, event_id, plan_version, generation, setpoint_kw, issued_at, effective_at, expires_at, policy_version, correlation_id)
 		VALUES ('command-1', 'key-command-1', 'device-1', 'event-exception', 1, 0, 10, $1, $1, $1::timestamptz + interval '1 hour', 'policy-1', 'exception');
+		INSERT INTO command_intents (command_id, idempotency_key, device_id, event_id, plan_version, generation, setpoint_kw, issued_at, effective_at, expires_at, policy_version, correlation_id)
+		VALUES ('command-2', 'key-command-2', 'device-2', 'event-exception', 2, 1, 10, $1::timestamptz + interval '5 minutes', $1::timestamptz + interval '5 minutes', $1::timestamptz + interval '1 hour', 'policy-1', 'exception');
 		INSERT INTO command_states (command_id, state, recorded_at, correlation_id)
 		VALUES ('command-1', 'SENT', $1, 'exception'), ('command-1', 'UNCERTAIN', $1::timestamptz + interval '2 minutes', 'exception'), ('command-1', 'ACKNOWLEDGED', $1::timestamptz + interval '4 minutes', 'exception');
 		INSERT INTO command_acknowledgements (acknowledgement_id, command_id, idempotency_key, receipt_status, received_at, gateway_id, correlation_id)
@@ -42,7 +46,7 @@ func TestExceptionsFromDurableEvidence(t *testing.T) {
 		VALUES ($1::timestamptz + interval '1 minute', 'device-1', 1, 'observation-1', '{"valueState":"VALUE_STATE_MISSING"}'),
 		($1::timestamptz - interval '1 minute', 'device-1', 2, 'observation-before', '{"valueState":"VALUE_STATE_MISSING"}');
 		INSERT INTO audit_journal (occurred_at, actor_id, action, resource_type, resource_id, new_values, correlation_id)
-		VALUES ($1::timestamptz + interval '5 minutes', 'decision', 'REPLACEMENT_PLANNED', 'event', 'event-exception', '{}', 'exception')`, pgx.QueryExecModeSimpleProtocol, begin)
+		VALUES ($1::timestamptz + interval '5 minutes', 'decision', 'REPLACEMENT_PLANNED', 'event', 'event-exception', '{"plan_version":2}', 'exception')`, pgx.QueryExecModeSimpleProtocol, begin)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -55,15 +59,20 @@ func TestExceptionsFromDurableEvidence(t *testing.T) {
 		t.Fatal(err)
 	}
 	want := map[gridosv1.EventExceptionKind]string{
-		gridosv1.EventExceptionKind_EVENT_EXCEPTION_KIND_MISSING_TELEMETRY:   "observation-1",
-		gridosv1.EventExceptionKind_EVENT_EXCEPTION_KIND_UNCERTAIN_COMMAND:   "command-1",
-		gridosv1.EventExceptionKind_EVENT_EXCEPTION_KIND_LATE_ACCEPTANCE:     "ack-1",
-		gridosv1.EventExceptionKind_EVENT_EXCEPTION_KIND_COMMAND_RETRY:       "command-1",
-		gridosv1.EventExceptionKind_EVENT_EXCEPTION_KIND_REPLACEMENT_PLANNED: "",
+		gridosv1.EventExceptionKind_EVENT_EXCEPTION_KIND_MISSING_TELEMETRY:      "observation-1",
+		gridosv1.EventExceptionKind_EVENT_EXCEPTION_KIND_UNCERTAIN_COMMAND:      "command-1",
+		gridosv1.EventExceptionKind_EVENT_EXCEPTION_KIND_LATE_ACCEPTANCE:        "ack-1",
+		gridosv1.EventExceptionKind_EVENT_EXCEPTION_KIND_COMMAND_RETRY:          "command-1",
+		gridosv1.EventExceptionKind_EVENT_EXCEPTION_KIND_REPLACEMENT_PLANNED:    "",
+		gridosv1.EventExceptionKind_EVENT_EXCEPTION_KIND_STALE_CAPACITY_REMOVED: "",
+		gridosv1.EventExceptionKind_EVENT_EXCEPTION_KIND_REBALANCED_COMMAND:     "command-2",
 	}
 	for _, exception := range response.Msg.GetExceptions() {
-		if exception.GetEventId() != "event-exception" || exception.GetDeviceId() != "device-1" && exception.GetKind() != gridosv1.EventExceptionKind_EVENT_EXCEPTION_KIND_REPLACEMENT_PLANNED || exception.GetOccurredAt() == nil {
+		if exception.GetEventId() != "event-exception" || exception.GetOccurredAt() == nil || exception.GetEvidenceId() == "" {
 			t.Fatalf("incomplete exception: %v", exception)
+		}
+		if exception.GetKind() == gridosv1.EventExceptionKind_EVENT_EXCEPTION_KIND_STALE_CAPACITY_REMOVED && exception.GetDeviceId() != "device-1" || exception.GetKind() == gridosv1.EventExceptionKind_EVENT_EXCEPTION_KIND_REBALANCED_COMMAND && exception.GetDeviceId() != "device-2" {
+			t.Fatalf("wrong recovery device: %v", exception)
 		}
 		if evidence, ok := want[exception.GetKind()]; ok {
 			if evidence != "" && exception.GetEvidenceId() != evidence {
