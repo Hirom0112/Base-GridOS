@@ -66,3 +66,26 @@ def test_negative_public_price_keeps_base_reserve(
     assert not terms["DISPATCH_VALUE"].unavailable
     assert terms["MEMBER_REWARD"].unavailable
     assert terms["MEMBER_REWARD"].high == 0
+
+
+def test_negative_simulated_price_keeps_its_label(
+    serve: Callable[[OptimizationServer], optimization_pb2_grpc.OptimizationServiceStub],
+    optimize_request: optimization_pb2.OptimizeRequest,
+) -> None:
+    request = optimize_request.request
+    request.devices[0].base_reserve_kwh = 4.0
+    request.devices[0].travel_flex_reserve_kwh = 2.0
+    request.devices[0].effective_reserve_kwh = 4.0
+    price = request.forecast.regional_prices.add(load_zone="LZ_AEN")
+    price.interval_begin_time.CopyFrom(request.intervals[0].begin_time)
+    price.price_per_mwh.value = -50.0
+    price.price_per_mwh.lower = -50.0
+    price.price_per_mwh.upper = -50.0
+    price.price_per_mwh.model_version = "day-ahead-v1"
+    price.price_per_mwh.value_kind = "simulated_forward"
+    price.price_per_mwh.provenance = device_pb2.DATA_PROVENANCE_SIMULATED
+
+    response = serve(OptimizationServer()).Optimize(optimize_request)
+
+    assert response.plan.margin_explanation.conservative_margin < 0
+    assert response.plan.margin_explanation.terms[0].source == "FROZEN_SIMULATED_PRICE"
