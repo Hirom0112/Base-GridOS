@@ -57,7 +57,7 @@ func appendFrozenSite(optimization *gridosv1.OptimizationRequest, canonical *saf
 		canonical.Devices[device.GetDeviceId()] = safety.DeviceState{
 			EnergyKWh: &energy, UsableCapacityKWh: parameters.GetUsableEnergyKwh(), HardwareReserveKWh: state.HardwareFloorKWh, PlanReserveKWh: baseReserve, TravelFlexReserveKWh: flexField,
 			MaxChargeKW: parameters.GetMaxChargeKw(), MaxDischargeKW: parameters.GetMaxDischargeKw(), ChargeEfficiency: parameters.GetChargeEfficiency(), DischargeEfficiency: parameters.GetDischargeEfficiency(),
-			Available: available, TelemetryAt: &observedAt, FreshnessLimit: 30 * time.Second, MeterExportLimitKW: parameters.GetMaxDischargeKw(), InterconnectionLimitKW: parameters.GetMaxDischargeKw(),
+			Available: available, MaintenanceLocked: state.Availability == fleet.Maintenance, TelemetryAt: &observedAt, FreshnessLimit: 30 * time.Second, MeterExportLimitKW: parameters.GetMaxDischargeKw(), InterconnectionLimitKW: parameters.GetMaxDischargeKw(),
 		}
 	}
 	return nil

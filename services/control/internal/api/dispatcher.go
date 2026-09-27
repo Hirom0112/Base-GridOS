@@ -96,18 +96,31 @@ func (dispatcher *Dispatcher) ValidatePlan(ctx context.Context, eventID string, 
 	if err != nil {
 		return err
 	}
-	violations := make([]storage.StoredViolation, 0)
-	if validateErr := dispatcher.Safety.Validate(plan, canonical); validateErr != nil {
-		violations = append(violations, storage.StoredViolation{Code: validateErr.Error()})
-	}
+	validateErr := dispatcher.Safety.Validate(plan, canonical)
+	violations := storedViolations(validateErr)
 	_, err = store.ValidatePlanned(ctx, eventID, planVersion, violations, dispatcher.Now())
 	if err != nil {
 		return err
 	}
 	if len(violations) > 0 {
-		return errors.Join(ErrSafetyRejected, errors.New(violations[0].Code))
+		return errors.Join(ErrSafetyRejected, validateErr)
 	}
 	return nil
+}
+
+func storedViolations(validateErr error) []storage.StoredViolation {
+	stored := make([]storage.StoredViolation, 0)
+	var rejection SafetyRejection
+	switch {
+	case validateErr == nil:
+	case errors.As(validateErr, &rejection):
+		for _, violation := range rejection.Violations {
+			stored = append(stored, storage.StoredViolation{Code: string(violation.Code)})
+		}
+	default:
+		stored = append(stored, storage.StoredViolation{Code: string(safety.ContradictoryInput)})
+	}
+	return stored
 }
 
 func (dispatcher *Dispatcher) Plan(ctx context.Context, request *gridosv1.CreateEventRequestRequest) (*gridosv1.DispatchEvent, error) {
@@ -167,6 +180,18 @@ func (dispatcher *Dispatcher) Publish(ctx context.Context, commands []storage.Co
 	return nil
 }
 
+type SafetyRejection struct {
+	Violations []safety.Violation
+}
+
+func (rejection SafetyRejection) Error() string {
+	return fmt.Sprintf("%v: %v", ErrSafetyRejected, rejection.Violations)
+}
+
+func (SafetyRejection) Unwrap() error {
+	return ErrSafetyRejected
+}
+
 type IndependentSafetyGate struct{}
 
 func (IndependentSafetyGate) Validate(plan *gridosv1.DispatchPlan, canonical safety.CanonicalState) error {
@@ -178,7 +203,7 @@ func (IndependentSafetyGate) Validate(plan *gridosv1.DispatchPlan, canonical saf
 	if approval.Approved {
 		return nil
 	}
-	return fmt.Errorf("%w: %v", ErrSafetyRejected, violations)
+	return SafetyRejection{Violations: violations}
 }
 
 func commandIntents(plan *gridosv1.DispatchPlan, request *gridosv1.OptimizationRequest) ([]storage.CommandIntent, error) {
