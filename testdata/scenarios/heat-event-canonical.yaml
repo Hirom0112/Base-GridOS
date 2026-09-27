@@ -14,6 +14,9 @@ event:
   target_mw: 20
   boundary: METER_NET_EXPORT
 injections:
+  - at: 2026-08-12T18:00:00-05:00
+    kind: OFFLINE_DEVICES
+    scope: next_command
   - at: 2026-08-12T18:15:00-05:00
     kind: OFFLINE_DEVICES
     scope: scheduled

@@ -26,6 +26,7 @@ go_test(
         "scenario_test.go",
     ],
     embed = [":failures"],
+    data = ["//testdata:scenarios"],
     deps = [
         "//contracts/gen/go/gridos/v1:gridos",
         "//services/gateway-simulator/internal/gateway",
