@@ -950,3 +950,8 @@ assumptions reported by workers land here too.
   "energy anomaly signal" text and household-only evidence; no opt-in, no
   away, normal load, an expired window, or an early return creates none.
   Migration 0013 re-applies. Director: four anomaly tests pass.
+- **4E.4 (lane 4E via root), verified:** the report reads actual event
+  reward cents from the ledger and records reward_unposted when none; the
+  stored plan margin appears only when all eight §5.11 terms are sourced,
+  otherwise margin_unavailable; both fields join the comparison and the
+  published copy stays immutable. Director: report and api selectors pass.

@@ -1462,7 +1462,7 @@ Owns: `services/control/internal/report/`.
   build returns the stored version. Verify: `-run Immutable` passes.
 - `[x]` 4E.3 `[P]` Event comparison: two reports diffed on every numeric field
   and on plan and policy versions. Verify: `-run Compare` passes.
-- `[ ]` 4E.4 `[after 4A.5, 4B.2]` Member rewards and conservative incremental
+- `[x]` 4E.4 `[after 4A.5, 4B.2]` Member rewards and conservative incremental
   margin included in the report (FULL_SPEC §9 step 16). Verify: `-run Rewards` passes.
 - `[x]` 4E.5 `[P]` Partner view of the report: aggregates only, no site rows,
   no travel or away state (FULL_SPEC §11). Verify: `-run PartnerView` passes including a test that the JSON has no `site_id`.- `[ ]` 4E.6 `[after 4E.2]` Live report completeness. `pgreport.go` fills
