@@ -9,6 +9,7 @@ from gridos.economics.margin import (
     MoneyRange,
     eligible_additional_capacity,
     estimate_margin,
+    market_reward,
 )
 from gridos.fallback.planner import DeviceState, PlanningInterval, plan_fallback
 from gridos.server import OptimizationServer
@@ -147,3 +148,15 @@ def test_margin_hurdle_blocks_negative_and_uncertain_capacity() -> None:
         )
         == capacity
     )
+
+
+def test_no_fee_market_uses_fixed_reward() -> None:
+    reward = market_reward(Decimal(0), Decimal("15"))
+
+    assert reward.kind == "FIXED_CREDIT"
+    assert reward.amount == Decimal("15")
+
+    waiver = market_reward(Decimal("20"), Decimal("15"))
+
+    assert waiver.kind == "FEE_WAIVER"
+    assert waiver.amount == Decimal("20")
