@@ -2082,3 +2082,12 @@ the end of the live window; determinism unchanged; canonical scenario
 proven three times isolated and once on the standing demo. Root owns it
 after the 4C.9 fixture seed. The demo is rebuilt on c47f87a now and root's
 exclusive seeding window opens.
+
+## 2026-09-27 09:12Z — make demo starts the mock signer when a step-up key is set
+
+Every rebuild killed the hand-started signer through the target's PID
+sweep and needed a manual restart, which raced twice. The demo target now
+builds and starts the mock identity signer itself when GRIDOS_STEP_UP_KEY
+is set (local auth mode, 127.0.0.1:8080, PID tracked with the others), so
+one command brings up the enforced demo and the console's identity path.
+Takes effect at the next rebuild.
