@@ -157,3 +157,75 @@ test("forecast site search bounds the selector and never shows a mismatched site
     screen.queryByRole("table", { name: "Frozen site forecasts" }),
   ).not.toBeInTheDocument();
 });
+
+test("frozen regional forecasts preserve price signs, probabilities, and missing sources", () => {
+  const explanation = fixture();
+  const value = {
+    value: -5,
+    lower: -10,
+    upper: 0,
+    valueKind: "confirmed_public_forward",
+    provenance: "DATA_PROVENANCE_CONFIRMED_PUBLIC",
+    issuedAt: "2026-09-27T11:00:00Z",
+    modelVersion: "price-v1",
+    featureVersion: "prices-v1",
+  };
+  explanation.evidence = fromJsonString(
+    GetPlanExplanationResponseSchema,
+    JSON.stringify({
+      evidence: {
+        siteLoadUnits: "kWh",
+        regionalPrices: [
+          {
+            loadZone: "LZ_AEN",
+            intervalBeginTime: "2026-09-27T12:00:00Z",
+            pricePerMwh: value,
+          },
+        ],
+        outageRisks: [
+          {
+            county: "Travis",
+            intervalBeginTime: "2026-09-27T12:00:00Z",
+            probability: {
+              ...value,
+              value: 0.2,
+              lower: 0.1,
+              upper: 0.3,
+              valueKind: "modeled_estimate",
+            },
+          },
+        ],
+        deviceAvailability: [
+          {
+            deviceId: "device-1",
+            intervalBeginTime: "2026-09-27T12:00:00Z",
+            probability: {
+              ...value,
+              value: 0.9,
+              lower: 0.8,
+              upper: 1,
+              valueKind: "modeled_estimate",
+            },
+          },
+        ],
+        unavailableSources: ["regional_price:LZ_OTHER"],
+      },
+    }),
+  ).evidence;
+  render(<ExplanationEvidence explanation={explanation} />);
+  expect(
+    screen.getByRole("region", { name: "Frozen regional prices" }),
+  ).toHaveTextContent("-5 USD/MWh");
+  expect(
+    screen.getByRole("region", { name: "Frozen regional prices" }),
+  ).toHaveTextContent("confirmed_public_forward");
+  expect(
+    screen.getByRole("region", { name: "Frozen outage risk" }),
+  ).toHaveTextContent("20%");
+  expect(
+    screen.getByRole("region", { name: "Frozen device availability" }),
+  ).toHaveTextContent("90%");
+  expect(
+    screen.getByRole("region", { name: "Unavailable forecast sources" }),
+  ).toHaveTextContent("regional_price:LZ_OTHER");
+});
