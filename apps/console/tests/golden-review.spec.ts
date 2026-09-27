@@ -83,6 +83,15 @@ for (const profile of profiles) {
   }, testInfo) => {
     const errors: string[] = [];
     page.on("pageerror", (error) => errors.push(error.message));
+    page.on("console", (message) => {
+      if (message.type() !== "error") return;
+      if (
+        profile.graphics === "fallback" &&
+        message.text().includes("Error creating WebGL context")
+      )
+        return;
+      errors.push(message.text());
+    });
     await recordedApi(page);
     await page.setViewportSize({
       width: profile.width / profile.zoom,
@@ -157,6 +166,13 @@ for (const profile of profiles) {
         .violations,
     ).toEqual([]);
     expect(errors).toEqual([]);
+    await page.locator(".living-grid").scrollIntoViewIfNeeded();
+    await page.evaluate(
+      () =>
+        new Promise<void>((resolve) =>
+          requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+        ),
+    );
     await page.screenshot({
       path: testInfo.outputPath("planning.png"),
       fullPage: true,

@@ -259,12 +259,12 @@ function FleetEvidence({
             <br />
             Footprint: site count
             <br />
-            Height: installed MW
+            Height: selected power in MW
           </p>
         )}
         <p>
-          Cell-level availability and delivery remain unencoded until supplied
-          by the server.
+          Missing cell values remain unknown. The field uses only
+          server-supplied evidence for the selected measure.
         </p>
       </section>
     </aside>
