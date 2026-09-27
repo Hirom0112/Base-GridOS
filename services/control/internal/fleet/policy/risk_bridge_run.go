@@ -49,13 +49,14 @@ func (bridge *RiskBridge) evaluateSite(ctx context.Context, at time.Time, policy
 	if memberID == "" {
 		evidence.Missing = append(evidence.Missing, "member_binding_unavailable")
 	}
-	var reserve float64
 	var policyVersion string
 	if memberID != "" && len(decisions) > 0 {
-		var err error
-		policyVersion, reserve, err = bridge.currentRiskReserve(ctx, memberID, at)
+		plan, err := bridge.store.Current(ctx, memberID, at)
 		if err != nil {
 			return err
+		}
+		if plan != nil {
+			policyVersion = plan.PolicyVersion
 		}
 		if policyVersion == "" {
 			evidence.Missing = append(evidence.Missing, "consented_plan_unavailable")
@@ -75,31 +76,41 @@ func (bridge *RiskBridge) evaluateSite(ctx context.Context, at time.Time, policy
 		return strings.Compare(string(left.Reason), string(right.Reason))
 	})
 	for _, decision := range decisions {
-		if decision.FloorPercent <= reserve {
-			continue
-		}
 		id := fmt.Sprintf("risk:%s:%s:%s:%d", policy.Version, siteID, decision.Reason, at.UnixNano())
-		command := ReserveOverride{ID: id, MemberID: memberID, Reason: decision.Reason,
-			FloorPercent: decision.FloorPercent, EffectiveAt: at, ExpiresAt: decision.ExpiresAt,
-			PolicyVersion: policyVersion, EvidenceID: decision.EvidenceID, CorrelationID: id}
-		if err := bridge.store.ApplyOverride(ctx, command); err != nil {
+		if err := bridge.applyRiskDecision(ctx, id, memberID, policyVersion, at, decision); err != nil {
 			return err
 		}
-		reserve = decision.FloorPercent
 	}
 	return nil
 }
 
-func (bridge *RiskBridge) currentRiskReserve(ctx context.Context, memberID string, at time.Time) (string, float64, error) {
-	plan, err := bridge.store.Current(ctx, memberID, at)
-	if err != nil || plan == nil {
-		return "", 0, err
+func (bridge *RiskBridge) applyRiskDecision(ctx context.Context, id, memberID, policyVersion string, at time.Time, decision RiskDecision) error {
+	start, err := bridge.riskCoverageLapse(ctx, memberID, decision.FloorPercent, at, decision.ExpiresAt)
+	if err != nil || !start.Before(decision.ExpiresAt) {
+		return err
 	}
-	state, err := bridge.store.ReserveAt(ctx, memberID, at)
-	if err != nil {
-		return "", 0, err
+	state, err := bridge.store.ReserveAt(ctx, memberID, start)
+	if err != nil || decision.FloorPercent <= state.EffectivePercent {
+		return err
 	}
-	return plan.PolicyVersion, state.EffectivePercent, nil
+	return bridge.store.ApplyOverride(ctx, ReserveOverride{ID: id, MemberID: memberID, Reason: decision.Reason,
+		FloorPercent: decision.FloorPercent, EffectiveAt: start, ExpiresAt: decision.ExpiresAt,
+		PolicyVersion: policyVersion, EvidenceID: decision.EvidenceID, CorrelationID: id})
+}
+
+func (bridge *RiskBridge) riskCoverageLapse(ctx context.Context, memberID string, floor float64, at, until time.Time) (time.Time, error) {
+	lapse := at
+	for lapse.Before(until) {
+		var coveredUntil *time.Time
+		err := bridge.pool.QueryRow(ctx, `SELECT max(expires_at) FROM reserve_overrides
+			WHERE member_id = $1 AND reserve_floor_percent >= $2 AND effective_at <= $3 AND expires_at > $3`,
+			memberID, floor, lapse).Scan(&coveredUntil)
+		if err != nil || coveredUntil == nil {
+			return lapse, err
+		}
+		lapse = *coveredUntil
+	}
+	return lapse, nil
 }
 
 func (bridge *RiskBridge) recordEvaluation(ctx context.Context, siteID, memberID string, at time.Time, policyVersion string, evidence riskEvidence, decisions []RiskDecision) ([]RiskDecision, error) {
