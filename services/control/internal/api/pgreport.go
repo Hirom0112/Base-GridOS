@@ -101,29 +101,38 @@ func (source *PostgresReportSource) EventReportData(ctx context.Context, eventID
 		report.MemberRewardsCents = &rewardCents
 		report.Provenance = append(report.Provenance, "REWARD_LEDGER")
 	}
+	return source.fillPlanEvidence(ctx, eventID, planVersion, begin, end, &report)
+}
+
+func (source *PostgresReportSource) fillPlanEvidence(ctx context.Context, eventID string, planVersion int64, begin, end time.Time, report *reporting.StoredEvent) (reporting.StoredEvent, error) {
+	if planVersion == 0 {
+		addLiveReportGap(report, begin, end, "plan_unavailable")
+		fillLiveForecast(report, nil, begin, end)
+		return *report, nil
+	}
 	var inputID, eligibilityID string
 	var planJSON []byte
-	err = source.pool.QueryRow(ctx, `SELECT input_snapshot_id, eligibility_snapshot_id, plan
+	err := source.pool.QueryRow(ctx, `SELECT input_snapshot_id, eligibility_snapshot_id, plan
 		FROM plan_versions WHERE event_id = $1 AND version = $2`, eventID, planVersion).Scan(&inputID, &eligibilityID, &planJSON)
 	if err != nil {
-		return report, err
+		return *report, err
 	}
 	plan := new(gridosv1.DispatchPlan)
 	if err = protojson.Unmarshal(planJSON, plan); err != nil {
-		return report, err
+		return *report, err
 	}
 	if margin, valid := sourcedMargin(plan.GetMarginExplanation()); valid {
 		report.Margin = margin
 		report.Provenance = append(report.Provenance, "STORED_PLAN_MARGIN")
 	} else {
-		addLiveReportGap(&report, begin, end, "margin_unavailable")
+		addLiveReportGap(report, begin, end, "margin_unavailable")
 	}
 	frozen, err := storage.NewPostgresEventStore(source.pool).LoadFrozen(ctx, eventID, inputID, eligibilityID)
 	if err != nil {
-		return report, err
+		return *report, err
 	}
-	fillLiveForecast(&report, frozen, begin, end)
-	return report, nil
+	fillLiveForecast(report, frozen, begin, end)
+	return *report, nil
 }
 
 func sourcedMargin(explanation *gridosv1.MarginExplanation) (*reporting.ModeledMargin, bool) {

@@ -210,7 +210,7 @@ func (service *Service) GetEvent(ctx context.Context, request *connect.Request[g
 			response.SafetyViolations = append(response.SafetyViolations, &gridosv1.SafetyViolation{Code: violation.Code})
 		}
 	}
-	if service.reports != nil {
+	if service.reports != nil && event.GetPlanVersion() > 0 {
 		report, reportErr := reporting.Build(ctx, service.reports, request.Msg.GetEventId())
 		if reportErr != nil {
 			return nil, connect.NewError(connect.CodeInternal, reportErr)
