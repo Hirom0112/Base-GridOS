@@ -1064,3 +1064,9 @@ assumptions reported by workers land here too.
   machine a member on a zero-percent plan keeps the 10 percent hardware
   floor through planning, dispatch, and the audit chain (111 s), after the
   step-up audit rows were corrected to carry the event correlation.
+- **Reward posting semantics (4A.11, 2026-09-27):** participation needs a
+  durable accepted acknowledgement of a nonzero command for the site in
+  the event; the credit is the one frozen in the offer consented before
+  event begin, paid even if the offer later expired; a Travel Flex event
+  credit is additional only when a consented window covered the whole
+  event window. Posting is idempotent on (event, member, offer).
