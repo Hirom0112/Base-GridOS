@@ -112,6 +112,51 @@ if [ -n "$py_files" ]; then
   RUFF="ruff"; command -v ruff >/dev/null || RUFF="uvx --quiet ruff"
   $RUFF format --check $py_files || fail "ruff format"
   $RUFF check $py_files || fail "ruff check"
+  uv run --quiet --no-project --python 3.12 python - $py_files <<'PY' || fail "python docstrings, comments, 150-line functions or nesting over 4"
+import ast
+import io
+import subprocess
+import sys
+import tokenize
+
+BLOCKS = (ast.If, ast.For, ast.AsyncFor, ast.While, ast.With, ast.AsyncWith, ast.Try, ast.TryStar, ast.Match)
+SCOPES = (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef, ast.Lambda)
+
+
+def depth(node: ast.AST, level: int = 0) -> int:
+    return max(
+        [level]
+        + [depth(child, level + isinstance(child, BLOCKS)) for child in ast.iter_child_nodes(node) if not isinstance(child, SCOPES)]
+    )
+
+
+def violations(path: str, source: str) -> list[str]:
+    found = []
+    for node in ast.walk(ast.parse(source)):
+        line = getattr(node, "lineno", 1)
+        if isinstance(node, (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)) and ast.get_docstring(node) is not None:
+            found.append(f"{path}:{line}: docstring")
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            length = (node.end_lineno or line) - line + 1
+            if length > 150:
+                found.append(f"{path}:{line}: function has {length} lines (ceiling 150)")
+            if depth(node) > 4:
+                found.append(f"{path}:{line}: nesting depth {depth(node)} (ceiling 4)")
+    for token in tokenize.generate_tokens(io.StringIO(source).readline):
+        directive = token.start[0] <= 2 and token.string.startswith(("#!", "# -*-"))
+        if token.type == tokenize.COMMENT and not directive:
+            found.append(f"{path}:{token.start[0]}: comment {token.string}")
+    return found
+
+
+problems = [
+    problem
+    for path in sys.argv[1:]
+    for problem in violations(path, subprocess.run(["git", "show", f":{path}"], capture_output=True, text=True, check=True).stdout)
+]
+if problems:
+    sys.exit("\n".join(problems))
+PY
   tests=$(printf '%s\n' $py_files | grep -E '(^|/)test_[^/]+\.py$' || true)
   for f in $(printf '%s\n' $py_files | grep -vE '(^|/)test_[^/]+\.py$' || true); do
     tests="$tests $(python_tests_importing "$f")"
