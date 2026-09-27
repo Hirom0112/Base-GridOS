@@ -63,6 +63,8 @@ func PostgresSnapshot(sites []*gridosv1.AuthorizedSite, twin *fleet.Twin, teleme
 		}
 	}
 	return func(ctx context.Context, now time.Time, source SnapshotSource) ([]fleet.SiteState, map[string]bool, error) {
+		ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+		defer cancel()
 		rows, err := pool.Query(ctx, `SELECT DISTINCT intent.device_id FROM command_intents AS intent
 			JOIN LATERAL (SELECT state FROM command_states WHERE command_id = intent.command_id
 				AND recorded_at <= $1 ORDER BY recorded_at DESC LIMIT 1) AS latest ON true
@@ -97,9 +99,10 @@ func PostgresSnapshot(sites []*gridosv1.AuthorizedSite, twin *fleet.Twin, teleme
 }
 
 func retainedSiteStates(ctx context.Context, pool *pgxpool.Pool, adapter *fleet.TelemetryTwin, deviceIDs []string, at time.Time) ([]fleet.SiteState, error) {
-	rows, err := pool.Query(ctx, `SELECT DISTINCT ON (device_id) device_id, payload
-		FROM telemetry_observations WHERE device_id = ANY($1) AND observed_at <= $2
-		ORDER BY device_id, observed_at DESC, sequence DESC`, deviceIDs, at)
+	rows, err := pool.Query(ctx, `SELECT wanted.device_id, latest.payload FROM unnest($1::text[]) AS wanted(device_id)
+		JOIN LATERAL (SELECT payload FROM telemetry_observations AS observation
+			WHERE observation.device_id = wanted.device_id AND observation.observed_at <= $2
+			ORDER BY observation.observed_at DESC, observation.sequence DESC LIMIT 1) AS latest ON true`, deviceIDs, at)
 	if err != nil {
 		return nil, err
 	}
