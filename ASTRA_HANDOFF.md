@@ -1,5 +1,7 @@
 # GridOS handoff for Astra
 
+Status at 15:08Z on 2026-09-27: the weather RPC fix, the 4E.10 report fixture and 2A.13 are done; see SESSION_HANDOFF.md for current state. The sections below are the earlier plan.
+
 ## Current state
 
 The build runs in one shared tree on `main`. The director coordinates through `.local/mailbox.log`; read its last 40 `director:` lines before each item and append progress there. `AGENTS.md`, `claude docs/BUILD_ORDER.md`, and `claude docs/QUESTIONS_AND_DECISIONS.md` govern the work. Do not rewrite the mailbox or restart the demo without the director's release.
