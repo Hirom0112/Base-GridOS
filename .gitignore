@@ -37,3 +37,6 @@ presentations/system-overview/build/
 /gateway-simulator
 /services/control/control
 *.egg-info/
+
+# Agent tooling, local only
+/.claude/
