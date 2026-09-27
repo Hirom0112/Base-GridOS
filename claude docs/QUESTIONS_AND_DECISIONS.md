@@ -1654,3 +1654,17 @@ GRIDOS_STEP_UP_KEY as the mock signer at the next demo rebuild, after the
 Gate 5 window, so approval and emergency stop are enforced end to end on
 the demo; STUBS.md's control step-up row stays PENDING-LIVE for the real
 identity provider.
+
+## 2026-09-27 06:36Z — Gate 5 full suite: two package failures
+
+`make test-go` (still running) already shows two red packages, both
+reproduced in isolation here. (1) `storage/publisher`
+TestPublisherMarksDeadlineUncertain: `states = PERSISTED/PENDING, want
+ACKNOWLEDGED/PUBLISHED`; this package is host-only under Bazel and had not
+been run since the stop-drain change, so the gate is the first place it
+surfaced. (2) `tests/contract` TestCommandIntentCanonicalJSON: the recorded
+fixture carries spaces after commas and the live protojson output does
+not; protojson whitespace is documented as unstable, so the comparison must
+be semantic (unmarshal both and compare with proto.Equal, or compact both)
+rather than byte-for-byte. Root owns both; the gate reruns `make test-go`
+in full afterwards.
