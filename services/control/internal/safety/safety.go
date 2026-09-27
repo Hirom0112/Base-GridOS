@@ -43,6 +43,7 @@ const (
 	MissingFreshness            ViolationCode = "MISSING_FRESHNESS"
 	ContradictoryInput          ViolationCode = "CONTRADICTORY_INPUT"
 	ReserveSelectionMismatch    ViolationCode = "RESERVE_SELECTION_MISMATCH"
+	TemperatureOutOfRange       ViolationCode = "TEMPERATURE_OUT_OF_RANGE"
 )
 
 type ReserveSelection string
@@ -102,6 +103,9 @@ type DeviceState struct {
 	MaxRampKWPerMinute     float64
 	PreviousMeterExportKW  float64
 	HomeLoadKW             float64
+	TemperatureC           *float64
+	MinTemperatureC        float64
+	MaxTemperatureC        float64
 }
 
 type CanonicalState struct {
@@ -264,6 +268,9 @@ func validateDeviceState(deviceID string, state DeviceState, now time.Time) []Vi
 	if state.MaintenanceLocked {
 		violations = append(violations, Violation{Code: MaintenanceLock, DeviceID: deviceID})
 	}
+	if temperature := state.TemperatureC; temperature != nil && !(*temperature >= state.MinTemperatureC && *temperature <= state.MaxTemperatureC) {
+		violations = append(violations, Violation{Code: TemperatureOutOfRange, DeviceID: deviceID})
+	}
 	if invalidPhysics(state) {
 		violations = append(violations, Violation{Code: ContradictoryInput, DeviceID: deviceID})
 	}
@@ -317,7 +324,7 @@ func intervalCount(plan Plan) int {
 }
 
 func invalidPhysics(state DeviceState) bool {
-	values := []float64{state.UsableCapacityKWh, state.HardwareReserveKWh, state.PlanReserveKWh, state.DynamicReserveKWh, state.MaxChargeKW, state.MaxDischargeKW, state.ChargeEfficiency, state.DischargeEfficiency, state.MeterExportLimitKW, state.InterconnectionLimitKW, state.MaxRampKWPerMinute, state.PreviousMeterExportKW, state.HomeLoadKW}
+	values := []float64{state.UsableCapacityKWh, state.HardwareReserveKWh, state.PlanReserveKWh, state.DynamicReserveKWh, state.MaxChargeKW, state.MaxDischargeKW, state.ChargeEfficiency, state.DischargeEfficiency, state.MeterExportLimitKW, state.InterconnectionLimitKW, state.MaxRampKWPerMinute, state.PreviousMeterExportKW, state.HomeLoadKW, state.MinTemperatureC, state.MaxTemperatureC}
 	if !finite(values...) || invalidNonnegativeBounds(state) {
 		return true
 	}
@@ -328,7 +335,7 @@ func invalidPhysics(state DeviceState) bool {
 }
 
 func invalidNonnegativeBounds(state DeviceState) bool {
-	return state.UsableCapacityKWh <= 0 || state.HardwareReserveKWh < 0 || state.PlanReserveKWh < 0 || state.DynamicReserveKWh < 0 || state.MaxChargeKW < 0 || state.MaxDischargeKW < 0 || state.MeterExportLimitKW < 0 || state.InterconnectionLimitKW < 0 || state.MaxRampKWPerMinute < 0 || state.HomeLoadKW < 0
+	return state.UsableCapacityKWh <= 0 || state.HardwareReserveKWh < 0 || state.PlanReserveKWh < 0 || state.DynamicReserveKWh < 0 || state.MaxChargeKW < 0 || state.MaxDischargeKW < 0 || state.MeterExportLimitKW < 0 || state.InterconnectionLimitKW < 0 || state.MaxRampKWPerMinute < 0 || state.HomeLoadKW < 0 || state.MinTemperatureC > state.MaxTemperatureC
 }
 
 func EffectiveReserve(state DeviceState, now time.Time) float64 {
