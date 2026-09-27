@@ -241,3 +241,45 @@ func TestMemberOfferSelectionUpdatesStatusReserve(t *testing.T) {
 		t.Fatalf("current member reserve: %v, %+v", err, status)
 	}
 }
+
+func TestListHomeActivityAlertsReturnsOwnSignalsOnly(t *testing.T) {
+	ctx := context.Background()
+	pool := memberDatabase(t)
+	now := time.Now().UTC().Truncate(time.Second)
+	_, err := pool.Exec(ctx, `INSERT INTO member_sites(site_id,member_id,bound_at,source,provenance)
+		VALUES ('site-1','member-1',$1,'SIMULATED','{"provenance":"SIMULATED"}'),
+		('site-2','member-2',$1,'SIMULATED','{"provenance":"SIMULATED"}')`, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, memberID := range []string{"member-1", "member-2"} {
+		_, err = pool.Exec(ctx, `INSERT INTO member_anomaly_preferences(preference_id,member_id,opted_in,consent_text,
+			consent_version,baseline_upper_kw,baseline_begin,baseline_end,effective_at,expires_at,correlation_id)
+			VALUES ($1,$2,true,'away alert consent','consent-v1',1,$3,$4,$3,$4,$1)`, memberID+":preference", memberID, now.Add(-time.Hour), now.Add(time.Hour))
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, err = pool.Exec(ctx, `INSERT INTO member_alerts(alert_id,member_id,kind,message,preference_id,evidence,observed_at,correlation_id)
+			VALUES ($1,$2,'ENERGY_ANOMALY_SIGNAL','energy anomaly signal',$3,
+			'{"observation_id":"own-meter","site_id":"own-site","to_home_kw":2,"baseline_upper_kw":1,"consent_version":"consent-v1"}',$4,$1)`,
+			memberID+":alert", memberID, memberID+":preference", now)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	service := NewService(pool, fleet.NewTwin(time.Minute), nil, time.Now)
+	request := connect.NewRequest(&gridosv1.ListHomeActivityAlertsRequest{MemberId: "member-1"})
+	request.Header().Set("X-GridOS-Role", "member")
+	request.Header().Set("X-GridOS-Member-ID", "member-1")
+	response, err := service.ListHomeActivityAlerts(ctx, request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(response.Msg.GetAlerts()) != 1 || response.Msg.GetAlerts()[0].GetAlertId() != "member-1:alert" || response.Msg.GetAlerts()[0].GetDescription() != "energy anomaly signal" {
+		t.Fatalf("own alert list = %+v", response.Msg.GetAlerts())
+	}
+	request.Header().Set("X-GridOS-Member-ID", "member-2")
+	if _, err := service.ListHomeActivityAlerts(ctx, request); connect.CodeOf(err) != connect.CodePermissionDenied {
+		t.Fatalf("cross-member alert code = %v", connect.CodeOf(err))
+	}
+}
