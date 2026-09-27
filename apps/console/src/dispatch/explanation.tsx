@@ -160,7 +160,8 @@ export function ExplanationEvidence({
       <p className="explanation-note">
         Values belong to the selected event and plan version. Frozen records
         show their own issue time and provenance; aggregate objective and
-        constraint source metadata are not supplied.
+        constraint source metadata are not supplied. Frozen snapshot identifiers
+        are pending server evidence.
       </p>
       <section aria-label="Constraint margins">
         <h3>Constraint margins</h3>
