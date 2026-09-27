@@ -1791,6 +1791,17 @@ Owns: `README.md`, `docs/operations/` (except `security/`), `AGENTS.md`.
   with the full FULL_SPEC §10 acceptance table and STUBS.md reviewed.
   Verify: every bullet under FULL_SPEC §10 "The MVP is complete when it can"
   has a table row naming the command that proves it and its passing output.
+- `[ ]` 5F.5 `[after 2A.13]` Demo weather risk through the public path. When
+  `GRIDOS_DEMO_SCENARIO` is set, `make demo` assembles `.local/demo/public`
+  from `testdata/fixtures/public` with the `weather/` directory replaced by
+  `testdata/scenarios/weather/` (a clearly SIMULATED severe-weather alert for
+  the Austin zone TXZ192 with a far-future expiry and a PROVENANCE note) and
+  passes `GRIDOS_PUBLIC_CONTEXT_DIR` to control and worker, so the live risk
+  bridge raises a WEATHER floor on Austin sites within one risk cycle and
+  the console shows SIMULATED weather provenance. Verify: after `make demo`,
+  `psql ... -Atc "select count(*) from reserve_overrides where reason='WEATHER' and expires_at > now()"`
+  prints a positive count within ten minutes and the console's step 7
+  proof shows the WEATHER floor.
 
 ### Gate 5
 

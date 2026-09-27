@@ -2114,3 +2114,18 @@ The console's step 7 proof against the seeded event passed here too
 and the bound Travel Flex window render from the explanation evidence
 with matching source, policy and credit. Step 7 no longer carries a
 missing-evidence label.
+
+## 2026-09-27 09:24Z — Demo weather floor via the public context directory (5F.5)
+
+FULL_SPEC step 7 names weather risk raising the reserve; the seeded demo
+proves a COMMUNICATIONS override, not WEATHER, because the real Austin
+alert sample is empty. The productive path is the public context
+directory (GRIDOS_PUBLIC_CONTEXT_DIR, default testdata/fixtures/public)
+that the risk bridge and ContextService read; the weather integration
+scenario already proves the WEATHER floor from a SIMULATED alert file in
+that layout. Decision: 5F.5 makes `make demo` assemble a demo public
+directory with the weather subdirectory replaced by a checked-in
+SIMULATED severe-weather alert for TXZ192, so the bridge raises WEATHER on
+the demo through the same code path as production, labelled SIMULATED
+end to end. No database inserts, no console-side fabrication. Root after
+2A.13.
