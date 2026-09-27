@@ -101,18 +101,19 @@ func addLiveReportGap(report *reporting.StoredEvent, begin, end time.Time, reaso
 }
 
 func fillLiveForecast(report *reporting.StoredEvent, frozen *gridosv1.OptimizationRequest, begin, end time.Time) {
-	addLiveReportGap(report, begin, end, "baseline_confidence_unavailable")
 	addLiveReportGap(report, begin, end, "delivery_method_unavailable")
 	forecast := frozen.GetForecast()
 	if forecast == nil {
 		addLiveReportGap(report, begin, end, "frozen_forecast_unavailable")
 		addLiveReportGap(report, begin, end, "baseline_unavailable")
+		addLiveReportGap(report, begin, end, "baseline_confidence_unavailable")
 		addLiveReportGap(report, begin, end, "availability_unavailable")
 		return
 	}
 	baselineKWh, hours, baselineVersion, valid := frozenBaseline(frozen)
 	if !valid {
 		addLiveReportGap(report, begin, end, "baseline_unavailable")
+		addLiveReportGap(report, begin, end, "baseline_confidence_unavailable")
 		addLiveReportGap(report, begin, end, "availability_unavailable")
 		return
 	}
@@ -125,6 +126,11 @@ func fillLiveForecast(report *reporting.StoredEvent, frozen *gridosv1.Optimizati
 	report.Versions.Baseline = baselineVersion
 	report.Versions.Forecast = baselineVersion
 	report.Provenance = append(report.Provenance, "FROZEN_FORECAST")
+	if coverage, available := frozenCoverage(forecast.GetSiteLoads()); available {
+		report.Measurement.Confidence = coverage
+	} else {
+		addLiveReportGap(report, begin, end, "baseline_confidence_unavailable")
+	}
 	availability, version, valid := frozenAvailability(frozen)
 	if !valid {
 		addLiveReportGap(report, begin, end, "availability_unavailable")
@@ -132,6 +138,21 @@ func fillLiveForecast(report *reporting.StoredEvent, frozen *gridosv1.Optimizati
 	}
 	report.Measurement.Availability = availability
 	report.Versions.Availability = version
+}
+
+func frozenCoverage(loads []*gridosv1.ForecastSiteLoad) (float64, bool) {
+	if len(loads) == 0 {
+		return 0, false
+	}
+	var coverage float64
+	for index, load := range loads {
+		value := load.GetLoadKwh()
+		if value == nil || value.IntervalCoverage == nil || !finiteLiveReport(value.GetIntervalCoverage()) || value.GetIntervalCoverage() <= 0 || value.GetIntervalCoverage() > 1 || (index > 0 && value.GetIntervalCoverage() != coverage) {
+			return 0, false
+		}
+		coverage = value.GetIntervalCoverage()
+	}
+	return coverage, true
 }
 
 type forecastCell struct {
