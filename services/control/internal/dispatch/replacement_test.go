@@ -86,3 +86,27 @@ func TestReplacementSafetyRejectionLeavesQuantifiedShortfall(t *testing.T) {
 	require.NoError(t, harness.pool.QueryRow(context.Background(), `SELECT count(*) FROM audit_journal WHERE action = 'REPLACEMENT_SAFETY_REJECTED' AND resource_id = $1`, harness.input.EventID).Scan(&decisions))
 	require.Equal(t, 1, decisions)
 }
+
+func TestReplacementRetainsSurvivingApprovedSchedules(t *testing.T) {
+	harness := newActivityHarness(t)
+	approved := harness.activities.Dispatcher.Optimizer.(activityOptimizer).plan
+	approved.DeviceSchedules = append(approved.DeviceSchedules, &gridosv1.DeviceSchedule{DeviceId: "device-2", Intervals: []*gridosv1.DeviceScheduleInterval{{BeginTime: harness.input.Request.BeginTime, EndTime: harness.input.Request.EndTime, SetpointKw: 1}}})
+	harness.persist(t)
+	require.NoError(t, harness.pool.QueryRow(context.Background(), `UPDATE dispatch_events SET state = 'EXECUTING' WHERE event_id = $1 RETURNING event_id`, harness.input.EventID).Scan(new(string)))
+	snapshotter := harness.activities.Dispatcher.Snapshots.(activitySnapshotter)
+	snapshotter.snapshot.Optimization.PlanVersion = 2
+	snapshotter.snapshot.Optimization.Intervals = []*gridosv1.OptimizationInterval{{BeginTime: harness.input.Request.BeginTime, EndTime: harness.input.Request.EndTime, TargetKw: 2}}
+	harness.activities.Dispatcher.Snapshots = snapshotter
+	harness.activities.Dispatcher.Safety = &replacementSafety{}
+	first := &gridosv1.DispatchPlan{EventId: harness.input.EventID, PlanVersion: 2, PlanId: "replacement-2", SolverVersion: "fallback", ModelVersion: "1", DeviceSchedules: []*gridosv1.DeviceSchedule{{DeviceId: "device-3", Intervals: []*gridosv1.DeviceScheduleInterval{{BeginTime: harness.input.Request.BeginTime, EndTime: harness.input.Request.EndTime, SetpointKw: 1}}}}}
+	harness.activities.Dispatcher.Optimizer = activityOptimizer{replacementPlan: first}
+	require.NoError(t, harness.activities.IssueReplacement(context.Background(), ReplacementCommand{EventID: harness.input.EventID, Request: harness.input.Request, DroppedDeviceIDs: []string{"device-1"}, EnvelopeDeviceIDs: []string{"device-1", "device-2", "device-3", "device-4"}, Generation: 2}))
+	_, updated, err := harness.events.LoadPlan(context.Background(), harness.input.EventID, 2)
+	require.NoError(t, err)
+	require.Len(t, updated.GetDeviceSchedules(), 2)
+	snapshotter.snapshot.Optimization.PlanVersion = 3
+	harness.activities.Dispatcher.Snapshots = snapshotter
+	second := &gridosv1.DispatchPlan{EventId: harness.input.EventID, PlanVersion: 3, PlanId: "replacement-3", SolverVersion: "fallback", ModelVersion: "1", DeviceSchedules: []*gridosv1.DeviceSchedule{{DeviceId: "device-4", Intervals: []*gridosv1.DeviceScheduleInterval{{BeginTime: harness.input.Request.BeginTime, EndTime: harness.input.Request.EndTime, SetpointKw: 1}}}}}
+	harness.activities.Dispatcher.Optimizer = activityOptimizer{replacementPlan: second}
+	require.NoError(t, harness.activities.IssueReplacement(context.Background(), ReplacementCommand{EventID: harness.input.EventID, Request: harness.input.Request, DroppedDeviceIDs: []string{"device-2"}, EnvelopeDeviceIDs: []string{"device-2", "device-3", "device-4"}, Generation: 3}))
+}
