@@ -775,3 +775,7 @@ assumptions reported by workers land here too.
   the conservative estimate takes the low end of each value and the high
   end of each cost; the RED failed on the missing module. Director: 8
   margin tests pass, mypy clean over 25 files.
+- **4B.3 (lane 4B), verified:** additional flexibility is eligible only
+  when the conservative margin strictly clears the configured hurdle; a
+  margin at or below the hurdle, including a negative one, yields zero
+  additional capacity. Director re-run: hurdle and formula tests pass.

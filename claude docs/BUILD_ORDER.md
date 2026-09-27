@@ -1357,7 +1357,7 @@ Owns: `services/decision/` (whole package this wave, including
   low end of value and the high end of every cost. Verify: fails.
 - `[x]` 4B.2 `[P]` GREEN: `economics/margin.py` producing `MarginEstimate`.
   Verify: `uv run --project services/decision pytest services/decision -k margin_formula` passes.
-- `[ ]` 4B.3 `[P]` RED then GREEN: hurdle gate. Additional flexibility is used
+- `[x]` 4B.3 `[P]` RED then GREEN: hurdle gate. Additional flexibility is used
   only when the conservative margin clears the configured hurdle; a negative
   margin produces no additional dispatch (TECHSTACK e2e scenario 15).
   Verify: `-k hurdle` passes.
