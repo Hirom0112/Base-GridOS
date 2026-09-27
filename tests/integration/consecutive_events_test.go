@@ -82,6 +82,7 @@ func TestConsecutiveEventsUseNextDeviceGeneration(t *testing.T) {
 			if generation <= secondGeneration || receipt != "ACCEPTED" {
 				t.Fatalf("stop generation=%d receipt=%s after dispatch=%d", generation, receipt, secondGeneration)
 			}
+			t.Logf("device %s receipts %s/%s/%s generations %d/%d/%d", deviceID, firstState, secondState, receipt, firstGeneration, secondGeneration, generation)
 			return
 		}
 		if !errors.Is(err, pgx.ErrNoRows) {
