@@ -1,18 +1,18 @@
 import { Code, ConnectError } from "@connectrpc/connect";
 import { experimental_streamedQuery, useQuery } from "@tanstack/react-query";
 import { z } from "zod";
+import { isValidCell } from "h3-js";
 import { useSession } from "../api/auth";
 import { Evidence, evidenceSchema } from "../api/Provenance";
 import type {
   AggregateMetadata,
+  H3EventPowerAggregate,
   WatchEventResponse,
 } from "../api/gen/gridos/v1/api_pb";
 import { ResponseChart } from "./response-chart";
 
-const updateSchema = z.object({
-  event: z.object({ eventId: z.string().min(1) }),
-  observedAt: evidenceSchema.shape.timestamp,
-  fleet: z.object({
+const powerSchema = z
+  .object({
     sentMw: z.number().finite(),
     acknowledgedMw: z.number().finite(),
     deliveredMw: z.number().finite(),
@@ -37,10 +37,29 @@ const updateSchema = z.object({
             (begin.seconds === end.seconds && begin.nanos < end.nanos),
         ),
     ),
-  }),
+  })
+  .refine((power) => power.deliveredState !== 5 || power.deliveredMw === 0);
+
+const updateSchema = z.object({
+  event: z.object({ eventId: z.string().min(1) }),
+  observedAt: evidenceSchema.shape.timestamp,
+  fleet: powerSchema,
+  h3: z
+    .array(
+      z.object({
+        h3Cell: z.string().refine(isValidCell),
+        power: powerSchema,
+        metadata: evidenceSchema,
+      }),
+    )
+    .refine(
+      (cells) =>
+        new Set(cells.map((cell) => cell.h3Cell)).size === cells.length,
+    ),
 });
 
 export type EventSample = {
+  h3: H3EventPowerAggregate[];
   time: number;
   order: bigint;
   sent: number;
@@ -67,6 +86,7 @@ export function reduceEventSamples(
   if (power.deliveredState === 5 && power.deliveredMw !== 0)
     throw new Error("Zero delivery state has a nonzero measurement");
   const next = {
+    h3: update.h3,
     time:
       Number(parsed.observedAt.seconds) * 1000 +
       parsed.observedAt.nanos / 1000000,
