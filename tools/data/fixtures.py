@@ -10,7 +10,7 @@ PUBLIC = ROOT / "testdata/fixtures/public"
 
 PROVENANCE = {
     "fleet": "Provenance: CONFIRMED_PUBLIC\n\nSource: https://www.basepowercompany.com/blog/aggregated-ders-and-the-capacity-crunch\n",
-    "ercot-prices": "Provenance: CONFIRMED_PUBLIC\n\nSource: https://www.ercot.com/misapp/GetReports.do\n\nSelection: January 1 through January 7, 2025 for LZ_HOUSTON and HB_HOUSTON.\n",
+    "ercot-prices": "Provenance: CONFIRMED_PUBLIC\n\nSource: https://www.ercot.com/misapp/GetReports.do\n\nSelection: January 1 through January 7, 2025 for LZ_AEN, LZ_HOUSTON, and HB_HOUSTON.\n",
     "load-profiles": "Provenance: CONFIRMED_PUBLIC\n\nSource: https://www.ercot.com/mktinfo/loadprofile/alp\n\nSelection: January 1 through January 7, 2025 for all 32 residential profile types.\n",
     "outages": "Provenance: DERIVED\n\nSource: https://storage.googleapis.com/outage_data_export/texas_outage_event_data.csv\n\nLineage: Customer-minute weighted monthly outage rates for Travis and Harris counties in January 2023.\n",
     "weather": "Provenance: CONFIRMED_PUBLIC\n\nSource: https://api.weather.gov/\n\nSelection: Forecast and alert snapshots captured September 25, 2026 for Austin, Dallas, Houston, and San Antonio.\n",
@@ -37,7 +37,7 @@ def price_fixtures() -> None:
     def selected(row: dict[str, str]) -> bool:
         point = row.get("Settlement Point") or row["Settlement Point Name"]
         day = datetime.strptime(row["Delivery Date"], "%m/%d/%Y").date()
-        return point in {"LZ_HOUSTON", "HB_HOUSTON"} and day.day <= 7 and day.month == 1
+        return point in {"LZ_AEN", "LZ_HOUSTON", "HB_HOUSTON"} and day.day <= 7 and day.month == 1
 
     write_csv(source_dir / "dam-spp-2025.csv", destination / "dam-spp-week.csv", selected)
     write_csv(source_dir / "rtm-spp-2025.csv", destination / "rtm-spp-week.csv", selected)
