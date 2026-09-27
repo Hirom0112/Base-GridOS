@@ -1,0 +1,24 @@
+load("@rules_python//python:defs.bzl", "py_test")
+
+exports_files(["uv.lock"])
+
+py_test(
+    name = "decision_test",
+    srcs = ["bazel_test.py"] + glob(["gridos/**/*.py", "tests/**/*.py"]),
+    data = ["//testdata:fixtures"],
+    imports = [".", "gridos/gen"],
+    legacy_create_init = 0,
+    main = "bazel_test.py",
+    deps = [
+        "@gridos_pypi//grpcio:pkg",
+        "@gridos_pypi//highspy:pkg",
+        "@gridos_pypi//hypothesis:pkg",
+        "@gridos_pypi//numpy:pkg",
+        "@gridos_pypi//opentelemetry_api:pkg",
+        "@gridos_pypi//opentelemetry_sdk:pkg",
+        "@gridos_pypi//polars:pkg",
+        "@gridos_pypi//prometheus_client:pkg",
+        "@gridos_pypi//protobuf:pkg",
+        "@gridos_pypi//pytest:pkg",
+    ],
+)

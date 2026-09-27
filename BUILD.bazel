@@ -1,1 +1,5 @@
+load("@gazelle//:def.bzl", "gazelle")
+
 exports_files(["go.work"])
+
+gazelle(name = "gazelle")
