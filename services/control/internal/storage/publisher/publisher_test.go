@@ -108,13 +108,6 @@ func TestPublisherRetriesSameCommandID(t *testing.T) {
 		Interval:               intervalFor,
 	})
 	before := acknowledgementSamples(t)
-	if err := publisher.PublishBatch(context.Background()); err == nil {
-		t.Fatal("first delivery succeeded")
-	}
-	if got := acknowledgementSamples(t); got != before {
-		t.Fatalf("failed delivery samples = %v, want %v", got, before)
-	}
-	now = now.Add(2 * time.Second)
 	if err := publisher.PublishBatch(context.Background()); err != nil {
 		t.Fatal(err)
 	}
@@ -123,6 +116,10 @@ func TestPublisherRetriesSameCommandID(t *testing.T) {
 	}
 	if len(service.commandIDs) != 2 || service.commandIDs[0] != service.commandIDs[1] {
 		t.Fatalf("retry command IDs = %v", service.commandIDs)
+	}
+	var attempts int
+	if err := pool.QueryRow(context.Background(), `SELECT attempts FROM command_outbox WHERE command_id = $1`, command.CommandID).Scan(&attempts); err != nil || attempts != 2 {
+		t.Fatalf("durable retry attempts = %d, error = %v", attempts, err)
 	}
 	assertPublisherState(t, pool, command.CommandID, "ACKNOWLEDGED", "PUBLISHED")
 }

@@ -47,11 +47,37 @@ func (publisher *Publisher) PublishBatch(ctx context.Context) error {
 		return err
 	}
 	for _, command := range commands {
-		if err = publisher.Publish(ctx, command); err != nil {
+		if err = publisher.publishWithRetry(ctx, command); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+func (publisher *Publisher) publishWithRetry(ctx context.Context, command storage.ClaimedCommand) error {
+	for {
+		err := publisher.Publish(ctx, command)
+		if err == nil || connect.CodeOf(err) != connect.CodeUnavailable {
+			return err
+		}
+		if command.Attempts >= 3 {
+			at := publisher.config.Now()
+			interval := publisher.config.Interval(command, at)
+			_, err = storage.MarkAcknowledgementUncertain(ctx, publisher.config.Pool, at, at, interval)
+			return err
+		}
+		timer := time.NewTimer(time.Duration(command.Attempts) * 50 * time.Millisecond)
+		select {
+		case <-ctx.Done():
+			timer.Stop()
+			return ctx.Err()
+		case <-timer.C:
+		}
+		command.Attempts, err = storage.MarkOutboxRetry(ctx, publisher.config.Pool, command.CommandID, publisher.config.Now().Add(publisher.config.LeaseDuration))
+		if err != nil {
+			return err
+		}
+	}
 }
 
 func (publisher *Publisher) Publish(ctx context.Context, command storage.ClaimedCommand) error {

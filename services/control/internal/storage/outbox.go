@@ -243,6 +243,15 @@ func MarkOutboxPublished(ctx context.Context, pool *pgxpool.Pool, commandID stri
 	return nil
 }
 
+func MarkOutboxRetry(ctx context.Context, pool *pgxpool.Pool, commandID string, leaseUntil time.Time) (int, error) {
+	var attempts int
+	err := pool.QueryRow(ctx, `UPDATE command_outbox
+		SET attempts = attempts + 1, next_attempt_at = $2
+		WHERE command_id = $1 AND state = 'PUBLISHING'
+		RETURNING attempts`, commandID, leaseUntil).Scan(&attempts)
+	return attempts, err
+}
+
 func timestamp(value time.Time) pgtype.Timestamptz {
 	return pgtype.Timestamptz{Time: value, Valid: true}
 }
