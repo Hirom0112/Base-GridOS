@@ -16,6 +16,7 @@ import (
 	apicontext "github.com/Hirom0112/Base-GridOS/services/control/internal/api/context"
 	apievents "github.com/Hirom0112/Base-GridOS/services/control/internal/api/events"
 	apigeo "github.com/Hirom0112/Base-GridOS/services/control/internal/api/geo"
+	apimember "github.com/Hirom0112/Base-GridOS/services/control/internal/api/member"
 	apireplay "github.com/Hirom0112/Base-GridOS/services/control/internal/api/replay"
 	apireport "github.com/Hirom0112/Base-GridOS/services/control/internal/api/report"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/dispatch"
@@ -92,6 +93,7 @@ func main() {
 	mux.Handle(gridosv1connect.NewContextServiceHandler(apicontext.NewService(environment("GRIDOS_PUBLIC_CONTEXT_DIR", "testdata/fixtures/public"), time.Now)))
 	mux.Handle(gridosv1connect.NewReportServiceHandler(apireport.NewService(controlapi.NewPostgresReportSource(pool))))
 	mux.Handle(gridosv1connect.NewGeoServiceHandler(apigeo.NewService(sites, apigeo.PostgresSnapshot(sites, twin, pool), time.Now)))
+	mux.Handle(gridosv1connect.NewMemberServiceHandler(apimember.NewService(pool, twin, sites, time.Now)))
 	replayPath, replayHandler := gridosv1connect.NewReplayServiceHandler(apireplay.NewService(environment("GRIDOS_REPLAY_DIR", ".local/replay"), replay.PostgresSource{Pool: pool}, eventSource, controlapi.NewConnectOptimizer(decisionClient)))
 	mux.Handle(replayPath, replayHandler)
 	geoAssets, err := apigeo.AssetHandler(os.DirFS("testdata/fixtures/geo"))
