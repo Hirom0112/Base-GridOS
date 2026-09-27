@@ -153,3 +153,38 @@ func TestZeroCommandsEndScheduledFaultEligibility(t *testing.T) {
 		t.Fatal("ended events remained eligible for a scheduled fault")
 	}
 }
+
+func TestNextCommandScopeTargetsFirstNonzeroCommandDuringTick(t *testing.T) {
+	start := time.Date(2026, time.August, 12, 18, 0, 0, 0, time.UTC)
+	devices := []Device{{ID: "first", Region: "LZ_AEN"}, {ID: "second", Region: "LZ_AEN"}}
+	scenario := Scenario{Seed: 17, Start: start, Tick: time.Minute, Injections: []Injection{{At: start, Kind: DelayedGateway, Scope: "next_command"}}}
+	engine, err := NewEngine(scenario, devices)
+	if err != nil {
+		t.Fatal(err)
+	}
+	runtime := NewRuntime(engine)
+	runtime.RecordCommand(start, "event", "first", 0)
+	if runtime.Affects(string(DelayedGateway), "first") {
+		t.Fatal("zero command consumed next-command fault")
+	}
+	runtime.RecordCommand(start.Add(time.Second), "event", "first", 1)
+	runtime.RecordCommand(start.Add(2*time.Second), "event", "second", 1)
+	if !runtime.Affects(string(DelayedGateway), "first") || runtime.Affects(string(DelayedGateway), "second") {
+		t.Fatal("next-command fault did not target first nonzero command only")
+	}
+	runtime.Advance(start.Add(time.Minute))
+	if runtime.Affects(string(DelayedGateway), "first") {
+		t.Fatal("next-command fault survived its tick")
+	}
+}
+
+func TestNextCommandScopeRejectsGlobalFaults(t *testing.T) {
+	start := time.Date(2026, time.August, 12, 18, 0, 0, 0, time.UTC)
+	devices := []Device{{ID: "first", Region: "LZ_AEN"}}
+	for _, kind := range []Kind{GatewayRestart, BadForecasts, OptimizerTimeout, PartialRegionOutage} {
+		scenario := Scenario{Seed: 17, Start: start, Tick: time.Minute, Injections: []Injection{{At: start, Kind: kind, Scope: "next_command"}}}
+		if _, err := NewEngine(scenario, devices); err == nil {
+			t.Fatalf("%s accepted next-command scope", kind)
+		}
+	}
+}
