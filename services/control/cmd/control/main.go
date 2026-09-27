@@ -37,8 +37,8 @@ import (
 
 const (
 	LOCAL_GATEWAY_CREDENTIAL        = "Bearer local-gateway"
-	LOCAL_GATEWAY_CREDENTIAL_STATUS = "STUBBED"
-	LOCAL_STEP_UP_STATUS            = "STUBBED"
+	LOCAL_GATEWAY_CREDENTIAL_STATUS = "PENDING-LIVE"
+	LOCAL_STEP_UP_STATUS            = "PENDING-LIVE"
 )
 
 func main() {

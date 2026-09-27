@@ -14,8 +14,8 @@ import (
 	"time"
 )
 
-const localAuthStatus = "STUBBED"
-const localStepUpStatus = "STUBBED"
+const localAuthStatus = "PENDING-LIVE"
+const localStepUpStatus = "PENDING-LIVE"
 
 var localRoles = []string{"operator", "approver", "analyst", "partner", "service", "member"}
 
