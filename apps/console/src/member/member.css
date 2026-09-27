@@ -1,0 +1,22 @@
+.member-home {
+  max-width: 840px;
+  margin: 40px auto;
+  padding: 24px;
+  font-size: 16px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.member-home h1 {
+  font-size: 32px;
+}
+.member-home h2 {
+  font-size: 26px;
+  margin-block: 24px 12px;
+}
+.member-home h3 {
+  font-size: 20px;
+  margin-block: 24px 12px;
+}
+.member-home button {
+  min-height: 44px;
+}

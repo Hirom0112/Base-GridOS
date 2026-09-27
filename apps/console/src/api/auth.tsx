@@ -50,11 +50,12 @@ export function SessionProvider({
 
 export function LocalSession({ children }: { children: ReactNode }) {
   const hydrated = useHydrated();
+  const [memberId, setMemberId] = useState("");
   const [role, setRole] = useState<Role>("operator");
   const [permissions, setPermissions] = useState<"site_location"[]>([]);
   const identity = useMemo<Identity>(
-    () => ({ mode: "local", role, permissions }),
-    [role, permissions],
+    () => ({ mode: "local", role, permissions, memberId }),
+    [role, permissions, memberId],
   );
   return (
     <>
@@ -73,6 +74,16 @@ export function LocalSession({ children }: { children: ReactNode }) {
             ))}
           </select>
         </label>
+        {role === "member" && (
+          <label>
+            Local member principal
+            <input
+              value={memberId}
+              onChange={(event) => setMemberId(event.target.value.trim())}
+              disabled={!hydrated}
+            />
+          </label>
+        )}
         <label>
           <input
             type="checkbox"
@@ -86,7 +97,7 @@ export function LocalSession({ children }: { children: ReactNode }) {
         </label>
       </div>
       <SessionProvider
-        key={`${role}:${permissions.join()}`}
+        key={`${role}:${permissions.join()}:${memberId}`}
         identity={identity}
       >
         {children}

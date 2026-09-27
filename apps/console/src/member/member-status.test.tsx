@@ -7,11 +7,11 @@ import { MemberStatus } from "./member-status";
 
 const memberId = "member-9d5ecb7e1fda8fcce5d0";
 const siteId = "site_9d5ecb7e1fda8fcce5d0";
-function fixture(variant = "on_grid") {
+function fixture(variant = "") {
   return fromJsonString(
     GetMemberStatusResponseSchema,
     readFileSync(
-      `../../testdata/fixtures/api/MemberService/GetMemberStatus.${variant}.json`,
+      `../../testdata/fixtures/api/MemberService/GetMemberStatus${variant ? `.${variant}` : ""}.json`,
       "utf8",
     ),
   );
@@ -34,8 +34,8 @@ test.each([
   );
   expect(screen.getByRole("heading", { name: label })).toBeVisible();
   expect(
-    screen.getByText("Plan reserve floor").parentElement,
-  ).toHaveTextContent("65%");
+    screen.getByText("Plan and reserve evidence unavailable."),
+  ).toBeVisible();
 });
 
 test("unavailable telemetry never presents stale charge as current", () => {
@@ -54,6 +54,9 @@ test("unavailable telemetry never presents stale charge as current", () => {
 
 test("online measurements retain units and plan charges", () => {
   render(<MemberStatus data={fixture()} memberId={memberId} siteId={siteId} />);
+  expect(
+    screen.getByText("Plan reserve floor").parentElement,
+  ).toHaveTextContent("65%");
   expect(screen.getByText("80%")).toBeVisible();
   expect(screen.getByText("4 h")).toBeVisible();
   expect(screen.getByText("12 h")).toBeVisible();

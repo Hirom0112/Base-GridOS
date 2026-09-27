@@ -2,6 +2,7 @@ import { createClient, ConnectError, Code } from "@connectrpc/connect";
 import { createConnectTransport } from "@connectrpc/connect-web";
 import { QueryClient } from "@tanstack/react-query";
 import { z } from "zod";
+import { MemberService } from "./gen/gridos/v1/member_pb";
 import { stepUpAuthorization } from "./step-up";
 import {
   ContextService,
@@ -22,7 +23,12 @@ export const roleSchema = z.enum([
 ]);
 export type Role = z.infer<typeof roleSchema>;
 export type Identity =
-  | { mode: "local"; role: Role; permissions: "site_location"[] }
+  | {
+      mode: "local";
+      role: Role;
+      permissions: "site_location"[];
+      memberId?: string;
+    }
   | {
       mode: "clerk";
       role: Role;
@@ -43,6 +49,8 @@ export function createConsoleClient(
       (next) => async (request) => {
         if (identity.mode === "local") {
           request.header.set("X-GridOS-Role", identity.role);
+          if (identity.role === "member" && identity.memberId)
+            request.header.set("X-GridOS-Member-ID", identity.memberId);
           if (identity.permissions.length)
             request.header.set(
               "X-GridOS-Permissions",
@@ -60,6 +68,7 @@ export function createConsoleClient(
     ],
   });
   return {
+    member: createClient(MemberService, transport),
     replay: createClient(ReplayService, transport),
     reports: createClient(ReportService, transport),
     context: createClient(ContextService, transport),

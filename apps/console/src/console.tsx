@@ -8,6 +8,7 @@ import {
 } from "react";
 import { Link, useLocation, useParams } from "@tanstack/react-router";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
+import { MemberHome } from "./member/home";
 import { Shell } from "./shell";
 import { useSession } from "./api/auth";
 import { Evidence, evidenceSchema, Quantity } from "./api/Provenance";
@@ -44,16 +45,7 @@ export function Console({ children }: { children: ReactNode }) {
     [sites.data],
   );
   const selected = cells.find((cell) => cell.h3Cell === selectedCell);
-  if (identity.role === "member")
-    return (
-      <main className="auth-gate">
-        <h1>Member access</h1>
-        <p>
-          Household views require the member service. Fleet operations are not
-          available to this role.
-        </p>
-      </main>
-    );
+  if (identity.role === "member") return <MemberHome />;
   return (
     <Shell
       observedAt={observedAt}
