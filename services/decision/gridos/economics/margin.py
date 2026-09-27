@@ -51,3 +51,15 @@ def estimate_margin(components: MarginComponents) -> MarginEstimate:
         optimistic=sum((term.high for term in values), Decimal(0))
         - sum((term.low for term in costs), Decimal(0)),
     )
+
+
+def eligible_additional_capacity(
+    capacity_kw: Decimal, estimate: MarginEstimate, hurdle: Decimal
+) -> Decimal:
+    if not capacity_kw.is_finite() or capacity_kw < 0:
+        raise ValueError("additional capacity must be finite and nonnegative")
+    if not hurdle.is_finite() or hurdle < 0:
+        raise ValueError("margin hurdle must be finite and nonnegative")
+    if estimate.conservative <= hurdle:
+        return Decimal(0)
+    return capacity_kw
