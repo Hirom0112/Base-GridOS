@@ -1,20 +1,22 @@
 BEGIN;
 
-ALTER TABLE reserve_policies ADD COLUMN provenance jsonb;
-UPDATE reserve_policies SET provenance = '{"provenance":"DERIVED"}';
+ALTER TABLE reserve_policies ADD COLUMN IF NOT EXISTS provenance jsonb;
+UPDATE reserve_policies SET provenance = '{"provenance":"DERIVED"}' WHERE provenance IS NULL;
 ALTER TABLE reserve_policies ALTER COLUMN provenance SET NOT NULL;
 ALTER TABLE reserve_policies ALTER COLUMN provenance SET DEFAULT '{"provenance":"DERIVED"}';
+ALTER TABLE reserve_policies DROP CONSTRAINT IF EXISTS reserve_policies_provenance_check;
 ALTER TABLE reserve_policies ADD CONSTRAINT reserve_policies_provenance_check
 CHECK (provenance->>'provenance' IN ('CONFIRMED_PUBLIC', 'CONFIRMED_SANDBOX', 'AUTHORIZED_OPERATIONAL', 'DERIVED', 'SIMULATED'));
 
-ALTER TABLE pricing_catalog_snapshots ADD COLUMN provenance jsonb;
-DROP TRIGGER pricing_catalog_snapshots_append_only ON pricing_catalog_snapshots;
-UPDATE pricing_catalog_snapshots SET provenance = '{"provenance":"DERIVED"}';
+ALTER TABLE pricing_catalog_snapshots ADD COLUMN IF NOT EXISTS provenance jsonb;
+DROP TRIGGER IF EXISTS pricing_catalog_snapshots_append_only ON pricing_catalog_snapshots;
+UPDATE pricing_catalog_snapshots SET provenance = '{"provenance":"DERIVED"}' WHERE provenance IS NULL;
 CREATE TRIGGER pricing_catalog_snapshots_append_only
 BEFORE UPDATE OR DELETE ON pricing_catalog_snapshots
 FOR EACH ROW EXECUTE FUNCTION reject_row_mutation();
 ALTER TABLE pricing_catalog_snapshots ALTER COLUMN provenance SET NOT NULL;
 ALTER TABLE pricing_catalog_snapshots ALTER COLUMN provenance SET DEFAULT '{"provenance":"DERIVED"}';
+ALTER TABLE pricing_catalog_snapshots DROP CONSTRAINT IF EXISTS pricing_catalog_snapshots_provenance_check;
 ALTER TABLE pricing_catalog_snapshots ADD CONSTRAINT pricing_catalog_snapshots_provenance_check
 CHECK (provenance->>'provenance' IN ('CONFIRMED_PUBLIC', 'CONFIRMED_SANDBOX', 'AUTHORIZED_OPERATIONAL', 'DERIVED', 'SIMULATED'));
 
