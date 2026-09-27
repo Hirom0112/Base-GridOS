@@ -43,6 +43,8 @@ func (service *Service) GetPlanExplanation(ctx context.Context, request *connect
 		MarginExplanation: plan.GetMarginExplanation(), Evidence: &gridosv1.PlanExplanationEvidence{
 			SiteLoads: input.GetForecast().GetSiteLoads(), SiteLoadUnits: "kWh", FallbackUsed: plan.GetFallbackUsed(),
 			FallbackReason: plan.GetFallbackReason(), DeviceSchedules: plan.GetDeviceSchedules(),
+			RegionalPrices: input.GetForecast().GetRegionalPrices(), OutageRisks: input.GetForecast().GetOutageRisks(),
+			DeviceAvailability: input.GetForecast().GetDeviceAvailability(), UnavailableSources: input.GetForecast().GetUnavailableSources(),
 		},
 	}), nil
 }
