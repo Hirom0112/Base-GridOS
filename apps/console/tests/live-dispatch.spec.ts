@@ -5,7 +5,7 @@ const assertionSchema = z.object({ assertion: z.string().min(1) });
 
 test("live demo receives event stream evidence without launching commands", async ({
   page,
-}) => {
+}, testInfo) => {
   await page.goto("/dispatch/new");
   await page
     .getByLabel("Start time")
@@ -27,14 +27,14 @@ test("live demo receives event stream evidence without launching commands", asyn
   ).toContainText("Delivery unknown");
   await page
     .locator(".live-response")
-    .screenshot({ path: "test-results/live-stream-actual.png" });
+    .screenshot({ path: testInfo.outputPath("live-stream-actual.png") });
   console.log(`LIVE STREAM ${page.url()}`);
 });
 
 test("live demo creates, validates, approves, and launches a simulated event", async ({
   page,
   request,
-}) => {
+}, testInfo) => {
   const now = new Date().toISOString();
   const receipt = await request.post(
     "http://127.0.0.1:28080/gridos.v1.TelemetryService/PublishTelemetry",
@@ -76,7 +76,7 @@ test("live demo creates, validates, approves, and launches a simulated event", a
   await page.getByLabel("Demo role").selectOption("approver");
   await page.getByRole("button", { name: "Review approval" }).click();
   await page.getByLabel("Type plan version 1").fill("1");
-  await page.screenshot({ path: "test-results/live-approval.png" });
+  await page.screenshot({ path: testInfo.outputPath("live-approval.png") });
   await page.getByRole("button", { name: "Confirm approval" }).click();
   await expect(
     page.getByRole("heading", { name: "Approved", exact: true }),
@@ -89,10 +89,10 @@ test("live demo creates, validates, approves, and launches a simulated event", a
   ).toBeVisible();
   await page.getByRole("link", { name: "Execution", exact: true }).click();
   await expect(
-    page.getByText("Awaiting measured delivery evidence"),
+    page.getByText("Command state alone does not establish measured delivery"),
   ).toBeVisible();
   await page.screenshot({
-    path: "test-results/live-execution.png",
+    path: testInfo.outputPath("live-execution.png"),
     fullPage: true,
   });
   await page.getByRole("link", { name: "Report", exact: true }).click();
@@ -100,7 +100,7 @@ test("live demo creates, validates, approves, and launches a simulated event", a
     page.getByRole("heading", { name: "Event evidence" }),
   ).toBeVisible();
   await page.screenshot({
-    path: "test-results/live-report.png",
+    path: testInfo.outputPath("live-report.png"),
     fullPage: true,
   });
   console.log(`LIVE EVENT ${page.url()}`);
@@ -185,4 +185,30 @@ test("live report and replay preserve recorded planning evidence", async ({
     .locator(".event-panel")
     .screenshot({ path: testInfo.outputPath("live-report-replay.png") });
   console.log(`LIVE REPORT REPLAY ${page.url()}`);
+});
+
+test("live Austin context retains regional geography and source dates", async ({
+  page,
+}) => {
+  await page.goto("/fleet");
+  await expect(page.getByLabel("Demo role")).toBeEnabled();
+  const response = page.waitForRequest((request) =>
+    request.url().endsWith("/GetMarketContext"),
+  );
+  await page.reload();
+  expect((await response).postDataJSON()).toEqual({
+    settlementPoint: "LZ_AEN",
+    weatherZone: "SOUTH_C",
+  });
+  await expect(page.getByLabel("Demo role")).toBeEnabled();
+  await page.getByText("Inspect Austin markets · LZ_AEN and SOUTH_C").click();
+  const prices = page.getByRole("table", {
+    name: "Day-ahead reference prices",
+  });
+  await expect(prices).toContainText("LZ_AEN");
+  await expect(prices).toContainText("CONFIRMED_PUBLIC");
+  await expect(prices).toContainText(/2025-01-/);
+  await expect(
+    page.getByRole("table", { name: "Reference system load" }),
+  ).toContainText("SOUTH_C");
 });
