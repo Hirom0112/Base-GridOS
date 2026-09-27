@@ -187,7 +187,7 @@ func TestDetectRecoveryUsesScheduledDevicesAndStoredEnvelope(t *testing.T) {
 		(event_id, version, input_snapshot_id, eligibility_snapshot_id, plan, solver_version, model_version, correlation_id)
 		VALUES ('event-1', 2, 'input-1', 'eligibility-2',
 		'{"deviceSchedules":[{"deviceId":"device-1"},{"deviceId":"device-2"}]}', 'solver-1', 'model-1', 'correlation-1');
-		UPDATE dispatch_events SET plan_version = 2 WHERE event_id = 'event-1'`, pgx.QueryExecModeSimpleProtocol, harness.begin.Add(time.Minute))
+		UPDATE dispatch_events SET plan_version = 2, state = 'EXECUTING' WHERE event_id = 'event-1'`, pgx.QueryExecModeSimpleProtocol, harness.begin.Add(time.Minute))
 	if err != nil {
 		t.Fatal(err)
 	}
