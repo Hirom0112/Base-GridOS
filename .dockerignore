@@ -10,3 +10,5 @@ control
 gateway-simulator
 services/control/control
 presentation
+contracts/gen/go/gridos/
+services/decision/gridos/gen/

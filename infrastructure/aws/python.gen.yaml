@@ -1,0 +1,8 @@
+version: v2
+plugins:
+  - protoc_builtin: python
+    protoc_path: /usr/local/bin/protoc
+    out: services/decision/gridos/gen
+  - protoc_builtin: pyi
+    protoc_path: /usr/local/bin/protoc
+    out: services/decision/gridos/gen

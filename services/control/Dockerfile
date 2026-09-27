@@ -1,6 +1,13 @@
+FROM bufbuild/buf:1.73.0@sha256:75d8f756f0919dcded71e67968a91adfe55fe4dd62c4900c57bbfcd7fe625608 AS buf
+
 FROM golang:1.27.1@sha256:3680233e3204827fbdc66088528ae6d4b3d034f51d03a99d454f6de034888244 AS build
 WORKDIR /src
-COPY contracts/gen/go/ contracts/gen/go/
+COPY --from=buf /usr/local/bin/buf /usr/local/bin/buf
+COPY contracts/buf.yaml contracts/buf.yaml
+COPY contracts/gridos/ contracts/gridos/
+COPY contracts/gen/go/go.mod contracts/gen/go/go.sum contracts/gen/go/
+COPY infrastructure/aws/go.gen.yaml /tmp/go.gen.yaml
+RUN go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.11 && go install connectrpc.com/connect/cmd/protoc-gen-connect-go@v1.21.0 && buf generate contracts --template /tmp/go.gen.yaml
 COPY services/control/go.mod services/control/go.sum services/control/
 RUN cd services/control && GOWORK=off go mod download
 COPY services/control/cmd/ services/control/cmd/
