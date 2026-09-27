@@ -2281,3 +2281,15 @@ waits for the rebuild after 2B.11. The recorded console gate rerun after
 the lane's twelve corrections printed `2 failed`, `76 passed (1.1m)`:
 audit records at 390 in dark, and the dispatch-flow confirmations at 390;
 posted for correction.
+
+## 2026-09-27 10:12Z — Recorded console gate GREEN
+
+The two remaining failures were document reloads: the console lane's
+traces showed the Vite dev server reconnecting mid-test while root's
+`make generate` rewrote generated bindings under the console's import
+graph. Rerun inside a declared window with no generated-code writes:
+`pnpm --dir apps/console playwright test --grep-invert demo-path` printed
+`78 passed (1.0m)`, exit 0, on top of vitest `180 passed (180)`. Rule kept:
+recorded browser gates run in a window with no binding regeneration.
+Open on the console track: the integrated 17-step demo path against the
+rebuilt demo (3F.5, 4F.5, 5F.2).
