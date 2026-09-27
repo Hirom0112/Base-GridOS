@@ -144,7 +144,7 @@ func (engine *Engine) effect(injection Injection, commanded map[string]struct{})
 			ids = append(ids, deviceID)
 		}
 		sort.Strings(ids)
-		digest := sha256.Sum256([]byte(fmt.Sprintf("%d|%s", engine.scenario.Seed, strings.Join(ids, "\x00"))))
+		digest := sha256.Sum256([]byte(fmt.Sprintf("%d|%s|%s", engine.scenario.Seed, injection.Kind, strings.Join(ids, "\x00"))))
 		index := binary.BigEndian.Uint64(digest[:8]) % uint64(len(ids))
 		effect.DeviceIDs = []string{ids[index]}
 		return effect
