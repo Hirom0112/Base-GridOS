@@ -11,6 +11,7 @@ import (
 	"connectrpc.com/connect"
 	gridosv1 "github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1"
 	"github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1/gridosv1connect"
+	"github.com/Hirom0112/Base-GridOS/tests/integration/stepup"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	_ "modernc.org/sqlite"
 )
@@ -101,6 +102,11 @@ func (stack *stack) approveEvent(t *testing.T, ctx context.Context, eventID stri
 	t.Helper()
 	request := connect.NewRequest(&gridosv1.ApproveEventRequest{EventId: eventID, PlanVersion: 1, IdempotencyKey: "approve-" + eventID, ApprovedBy: "approver", ApprovedAt: timestamppb.New(now)})
 	request.Header().Set("X-GridOS-Role", "approver")
+	assertion, err := stepup.SignStepUpAssertion(stepup.LocalStepUpKey, "approver", "APPROVE_EVENT", eventID, 1, time.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	request.Header().Set("X-GridOS-Step-Up", assertion)
 	if _, err := stack.dispatch().ApproveEvent(ctx, request); err != nil {
 		t.Fatal(err)
 	}
