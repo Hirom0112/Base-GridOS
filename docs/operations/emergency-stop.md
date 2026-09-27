@@ -1,5 +1,8 @@
 # Emergency stop
 
+Live recovery verification is blocked on 2B.9, the per-device generation fix.
+The recorded request and rejection below are evidence of the blocker.
+
 Use this when an active dispatch must end before expiry. The request requires
 an operator or approver and an idempotency key. A requested stop is not a
 confirmed gateway action.
