@@ -33,6 +33,10 @@
     "geo_map": [
       "gridos.v1.GeoService.ListCells",
       "gridos.v1.GeoService.Drilldown"
+    ],
+    "report_review": [
+      "gridos.v1.ReportService.GetEventReport",
+      "gridos.v1.ReportService.CompareEventReports"
     ]
   },
   "requests": {
@@ -438,6 +442,21 @@
     "gridos.v1.GeoService.Drilldown": {
       "role": "operator",
       "body": {}
+    },
+    "gridos.v1.ReportService.GetEventReport": {
+      "role": "analyst",
+      "body": {
+        "eventId": "event-report-a"
+      }
+    },
+    "gridos.v1.ReportService.CompareEventReports": {
+      "role": "analyst",
+      "body": {
+        "eventIdA": "event-report-a",
+        "eventIdB": "event-report-b",
+        "planVersionA": "1",
+        "planVersionB": "1"
+      }
     }
   },
   "variants": {
@@ -492,6 +511,21 @@
           "parentId": "feeder:LZ_AEN:86489e367ffffff"
         },
         "permissions": "site_location"
+      }
+    },
+    "gridos.v1.ReportService.GetEventReport": {
+      "partner": {
+        "role": "partner",
+        "body": {
+          "eventId": "event-report-a",
+          "partnerView": true
+        }
+      },
+      "comparison_peer": {
+        "role": "analyst",
+        "body": {
+          "eventId": "event-report-b"
+        }
       }
     }
   }
