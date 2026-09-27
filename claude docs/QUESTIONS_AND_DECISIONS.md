@@ -1349,3 +1349,10 @@ assumptions reported by workers land here too.
   the host (each image generates them internally with the pinned plugins),
   pinned non-root bases, no secrets; the gateway and control binaries run
   from their images and the decision image starts its server entrypoint.
+- **Live scenario demo (2A.10 proof, in progress, 2026-09-27):** the
+  standing demo now runs the gateway with the canonical heat scenario in
+  live mode; the director created, approved (approver role), and launched
+  (approver role; the operator role is correctly refused) a 1 MW event at
+  04:06Z, which reached ACKNOWLEDGED_OR_UNCERTAIN; the retimed offline and
+  delayed-gateway injections fire from the first accepted command, and the
+  typed exception entries are read from the timeline afterwards.
