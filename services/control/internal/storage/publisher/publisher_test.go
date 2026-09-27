@@ -12,6 +12,8 @@ import (
 	"path/filepath"
 	"runtime"
 	"sort"
+	"strconv"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -19,6 +21,7 @@ import (
 	"connectrpc.com/connect"
 	gridosv1 "github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1"
 	"github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1/gridosv1connect"
+	"github.com/Hirom0112/Base-GridOS/services/control/internal/observability"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/storage"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -68,17 +71,41 @@ func TestPublisherRetriesSameCommandID(t *testing.T) {
 		Now:                    func() time.Time { return now },
 		Interval:               intervalFor,
 	})
+	before := acknowledgementSamples(t)
 	if err := publisher.PublishBatch(context.Background()); err == nil {
 		t.Fatal("first delivery succeeded")
+	}
+	if got := acknowledgementSamples(t); got != before {
+		t.Fatalf("failed delivery samples = %v, want %v", got, before)
 	}
 	now = now.Add(2 * time.Second)
 	if err := publisher.PublishBatch(context.Background()); err != nil {
 		t.Fatal(err)
 	}
+	if got := acknowledgementSamples(t); got != before+1 {
+		t.Fatalf("accepted delivery samples = %v, want %v", got, before+1)
+	}
 	if len(service.commandIDs) != 2 || service.commandIDs[0] != service.commandIDs[1] {
 		t.Fatalf("retry command IDs = %v", service.commandIDs)
 	}
 	assertPublisherState(t, pool, command.CommandID, "ACKNOWLEDGED", "PUBLISHED")
+}
+
+func acknowledgementSamples(t *testing.T) float64 {
+	t.Helper()
+	response := httptest.NewRecorder()
+	observability.ProcessMetrics.Handler().ServeHTTP(response, httptest.NewRequest("GET", "/metrics", nil))
+	for line := range strings.SplitSeq(response.Body.String(), "\n") {
+		if value, ok := strings.CutPrefix(line, "gridos_ack_latency_seconds_count "); ok {
+			count, err := strconv.ParseFloat(value, 64)
+			if err != nil {
+				t.Fatal(err)
+			}
+			return count
+		}
+	}
+	t.Fatal("ack latency metric absent")
+	return 0
 }
 
 func TestPublisherMarksDeadlineUncertain(t *testing.T) {
