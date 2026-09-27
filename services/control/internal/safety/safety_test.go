@@ -317,3 +317,26 @@ func TestValidateReservesHomeLoadDrawnWithExport(t *testing.T) {
 		t.Fatalf("expected approval with ample energy for export plus home load, got %#v", violations)
 	}
 }
+
+func withTemperature(device DeviceState, celsius float64) DeviceState {
+	device.TemperatureC = &celsius
+	device.MinTemperatureC = -10
+	device.MaxTemperatureC = 45
+	return device
+}
+
+func TestValidateRejectsTemperatureOutsideOperatingRange(t *testing.T) {
+	for _, celsius := range []float64{-10.5, 45.5, math.NaN()} {
+		plan, state := validInputs()
+		state.Devices["device-1"] = withTemperature(state.Devices["device-1"], celsius)
+		_, violations := Validate(plan, state)
+		if !violationCodes(violations)[TemperatureOutOfRange] {
+			t.Fatalf("expected %s at %v C, got %#v", TemperatureOutOfRange, celsius, violations)
+		}
+	}
+	plan, state := validInputs()
+	state.Devices["device-1"] = withTemperature(state.Devices["device-1"], 45)
+	if approval, violations := Validate(plan, state); !approval.Approved {
+		t.Fatalf("expected approval at the operating limit, got %#v", violations)
+	}
+}
