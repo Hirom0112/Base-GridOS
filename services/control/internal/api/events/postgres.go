@@ -224,7 +224,7 @@ func (source *PostgresSource) RequestStop(ctx context.Context, request *gridosv1
 	}
 	stop := &gridosv1.EmergencyStop{
 		EmergencyStopId: request.GetEventId() + ":" + request.GetIdempotencyKey(), IdempotencyKey: request.GetIdempotencyKey(),
-		EventId: request.GetEventId(), RequestedBy: request.GetRequestedBy(), Reason: request.GetReason(), RequestedAt: request.GetRequestedAt(), CorrelationId: request.GetCorrelationId(),
+		EventId: request.GetEventId(), RequestedBy: request.GetRequestedBy(), Reason: request.GetReason(), RequestedAt: timestamppb.New(source.now()), CorrelationId: request.GetCorrelationId(),
 	}
 	_, err = tx.Exec(ctx, `INSERT INTO emergency_stops
 		(emergency_stop_id, idempotency_key, event_id, requested_by, reason, requested_at, correlation_id)
