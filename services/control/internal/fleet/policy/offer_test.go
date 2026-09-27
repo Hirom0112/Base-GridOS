@@ -90,3 +90,20 @@ func TestOfferTravelFlexRequiresExactFixedCreditAndConsent(t *testing.T) {
 	require.NoError(t, pool.QueryRow(ctx, `SELECT offer_id FROM travel_flex_windows WHERE travel_flex_window_id = $1`, window.ID).Scan(&storedOffer))
 	require.Equal(t, offer.ID, storedOffer)
 }
+
+func TestOfferLegacyUnknownTermsNeverUnlockTravelFlex(t *testing.T) {
+	pool := policyDatabase(t)
+	ctx := context.Background()
+	begin := time.Date(2026, 9, 26, 12, 0, 0, 0, time.UTC)
+	seedPolicyCatalog(t, pool, begin)
+	_, err := pool.Exec(ctx, `INSERT INTO resilience_plans(resilience_plan_id, member_id, market, reserve_floor_percent, consent_text, consent_version, policy_version, effective_at, correlation_id, catalog_version, member_plan_id, explanation_shown)
+		VALUES ('legacy-plan', 'member-legacy', 'TX', 65, 'Legacy consent', 'v1', 'policy-v1', $1, 'legacy', 'catalog-v1', 'plan-cedar', 'Legacy explanation')`, begin)
+	require.NoError(t, err)
+	_, err = pool.Exec(ctx, `INSERT INTO travel_flex_windows(travel_flex_window_id, member_id, start_time, end_time, timezone, temporary_reserve_percent, early_return_action, credit_type, credit_cents, consent_text, consent_version, policy_version, correlation_id)
+		VALUES ('legacy-window', 'member-legacy', $1, $2, 'UTC', 20, 'RESTORE_PLAN_RESERVE', 'FIXED_EVENT', 100, 'Legacy consent', 'v1', 'policy-v1', 'legacy')`, begin, begin.Add(time.Hour))
+	require.NoError(t, err)
+	reserve, err := New(pool).ReserveAt(ctx, "member-legacy", begin)
+	require.NoError(t, err)
+	require.Nil(t, reserve.TravelFlexPercent)
+	require.Equal(t, 65.0, reserve.EffectivePercent)
+}
