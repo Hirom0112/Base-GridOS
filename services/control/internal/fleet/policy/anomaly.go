@@ -59,7 +59,7 @@ func (store *Store) EvaluateAnomaly(ctx context.Context, reading MeasuredSiteLoa
 	if err != nil || !away {
 		return nil, err
 	}
-	alert := AnomalyAlert{ID: memberID + ":" + reading.ObservationID, MemberID: memberID,
+	alert := AnomalyAlert{ID: memberID + ":" + preference.ID + ":" + reading.ObservationID, MemberID: memberID,
 		Text: "energy anomaly signal", PreferenceID: preference.ID, ObservationID: reading.ObservationID,
 		SiteID: reading.SiteID, ObservedAt: reading.ObservedAt.UTC(), LoadKW: reading.ToHomeKW}
 	return store.recordAnomalyAlert(ctx, alert, reading, *preference)
