@@ -779,3 +779,7 @@ assumptions reported by workers land here too.
   when the conservative margin strictly clears the configured hurdle; a
   margin at or below the hurdle, including a negative one, yields zero
   additional capacity. Director re-run: hurdle and formula tests pass.
+- **4B.4 (lane 4B), verified:** the member reward is a closed union of
+  fee waiver and fixed credit; a market with no membership fee yields a
+  fixed credit and a no-fee market without a configured credit is an
+  error at the edge. Director re-run: 11 economics tests pass.
