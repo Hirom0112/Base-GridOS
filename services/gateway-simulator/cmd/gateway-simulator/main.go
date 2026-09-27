@@ -221,8 +221,7 @@ func startTelemetry(ctx context.Context, configuration config, devices []fleetDe
 			},
 		})
 	}
-	publisher := telemetry.NewConnectPublisher(gridosv1connect.NewTelemetryServiceClient(http.DefaultClient, configuration.controlAddress), configuration.gatewayID, authorizationToken)
-	network, err := failures.NewNetwork(publisher)
+	network, err := failures.NewNetwork(newTelemetryPublisher(configuration.controlAddress, configuration.gatewayID, authorizationToken, telemetryPublishTimeout))
 	if err != nil {
 		return nil, err
 	}
@@ -238,6 +237,13 @@ func startTelemetry(ctx context.Context, configuration config, devices []fleetDe
 	}
 	go runTelemetry(ctx, fleet, configuration.scenarioStart, configuration.scenarioTick, configuration.telemetryCadence, configuration.clock, telemetryErrors)
 	return fleet, nil
+}
+
+const telemetryPublishTimeout time.Duration = 0
+
+func newTelemetryPublisher(controlAddress, gatewayID, authorizationToken string, timeout time.Duration) *telemetry.ConnectPublisher {
+	client := gridosv1connect.NewTelemetryServiceClient(&http.Client{Timeout: timeout}, controlAddress)
+	return telemetry.NewConnectPublisher(client, gatewayID, authorizationToken)
 }
 
 func parseConfig(arguments []string) (config, error) {
