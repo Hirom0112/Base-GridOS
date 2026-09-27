@@ -1491,7 +1491,7 @@ Owns: `tests/integration/`, `testdata/scenarios/`, `tests/end-to-end/`,
   `negative-margin-no-dispatch`, `no-fee-market-reward`,
   `anomaly-signal-label`. Each asserts its outcome through the API and the
   stored report. Verify: `go test ./tests/integration/ -run "TravelFlex|RaiseFloor|ZeroPercent|NegativeMargin|NoFee|Anomaly"` passes.
-- `[ ]` 4F.2 `[after 4A.7]` Record member fixtures: `GetMemberStatus` in
+- `[x]` 4F.2 `[after 4A.7]` Record member fixtures: `GetMemberStatus` in
   each operating state, `SelectResiliencePlan`, `ScheduleTravelFlex`,
   `EndTravelFlexEarly`, and a `HomeActivityAlert`. Verify: `go test ./tools/development/mockapi/ -run Fixtures` passes.
 - `[x]` 4F.3 `[after 4D.3, 4C.2]` Record context and geo fixtures: market,

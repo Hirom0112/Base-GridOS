@@ -1032,3 +1032,8 @@ assumptions reported by workers land here too.
   observability wiring, so lane E opens for the next free agent with 5E.2
   first; hook changes under 5E.4 are reviewed by the director before
   commit.
+- **4F.2 (lane 4F), verified:** member fixtures recorded from an isolated
+  control through the real member RPCs: status in six operating states,
+  plan and Travel Flex offers, plan selection, Travel Flex scheduling and
+  early end, and an alert list carrying the fixed anomaly text. Director:
+  fixture validator ok, thirteen files inspected.
