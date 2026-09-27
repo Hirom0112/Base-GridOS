@@ -58,3 +58,25 @@ func TestManifestRejectsIncompleteAndUnsafeInputs(t *testing.T) {
 	_, err = os.Stat(filepath.Join(dir, "event-1.json"))
 	require.True(t, os.IsNotExist(err))
 }
+
+func TestManifestRecordsAbsentScenarioAndRequiresSeed(t *testing.T) {
+	directory := t.TempDir()
+	fleet := filepath.Join(directory, "fleet.jsonl")
+	require.NoError(t, os.WriteFile(fleet, []byte("fleet-v1"), 0o600))
+	input := Input{
+		EventID: "event-2", Seed: 42, FleetFile: fleet,
+		InputSnapshotID: "input-2", EligibilitySnapshotID: "eligibility-2",
+		PolicyVersion: "policy-1", SolverVersion: "highs", FallbackVersion: "fallback-1", CodeVersion: "abc123",
+	}
+	manifest, err := Create(directory, input)
+	require.NoError(t, err)
+	require.Empty(t, manifest.ScenarioFile)
+	require.Empty(t, manifest.ScenarioSHA256)
+	stored, err := Load(directory, input.EventID)
+	require.NoError(t, err)
+	require.Equal(t, manifest, stored)
+	input.EventID = "missing-seed"
+	input.Seed = 0
+	_, err = Create(directory, input)
+	require.ErrorContains(t, err, "seed")
+}
