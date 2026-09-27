@@ -57,3 +57,9 @@
   border-bottom: 1px solid var(--ink-3);
   vertical-align: top;
 }
+.replay-power-table {
+  min-width: 860px;
+}
+.replay-power-table th {
+  white-space: nowrap;
+}

@@ -86,7 +86,10 @@ export function ReplayDeliveryEvidence({
         aria-label="Replay measurement table"
         tabIndex={0}
       >
-        <table aria-label="Replay interval power">
+        <table
+          className="replay-power-table"
+          aria-label="Replay interval power"
+        >
           <thead>
             <tr>
               <th>Interval end (UTC)</th>
