@@ -4,6 +4,7 @@ import { useSession } from "../api/auth";
 import { evidenceSchema } from "../api/Provenance";
 import type { EventTimelineEntry } from "../api/gen/gridos/v1/api_pb";
 import type { DispatchEvent } from "../api/gen/gridos/v1/dispatch_pb";
+import { EventExceptions } from "./exceptions";
 import { EventHistory, eventStateLabels } from "./events-timeline";
 
 const recordsSchema = z
@@ -48,7 +49,15 @@ export function AuditTimeline({ event }: { event: DispatchEvent }) {
         <EventHistory event={event} />
       </>
     );
-  return <AuditRecords entries={query.data.entries} />;
+  return (
+    <>
+      <EventExceptions
+        eventId={event.eventId}
+        records={query.data.exceptions}
+      />
+      <AuditRecords entries={query.data.entries} />
+    </>
+  );
 }
 
 export function AuditRecords({ entries }: { entries: EventTimelineEntry[] }) {
