@@ -1679,7 +1679,7 @@ Owns: `docs/operations/security/` (threat model and retention),
 
 Owns: `README.md`, `docs/operations/` (except `security/`), `AGENTS.md`.
 
-- `[ ]` 5F.1 `[P]` Runbooks in `docs/operations/`: worker restart, gateway
+- `[x]` 5F.1 `[P]` Runbooks in `docs/operations/`: worker restart, gateway
   restart, stuck outbox, uncertain command, emergency stop, replay an event.
   Each runbook's commands executed once and output pasted. Verify: every command block in each runbook runs.
 - `[ ]` 5F.2 `[P]` Demo runbook `docs/operations/demo.md` walking FULL_SPEC §9

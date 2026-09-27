@@ -1415,3 +1415,41 @@ packages move to their own `go_test` targets so the remaining unit coverage
 keeps running in the sandbox. `make test-go` covers all five, and the 5F
 docs must say so. The gate stays the broad `bazelisk test //services/...`
 line, rerun by the director.
+
+## 2026-09-27 04:50Z — 5F.1 verified by executing every runbook block
+
+The director ran every command block of the six runbooks against the
+standing demo. Stuck outbox: five PUBLISHED rows, all ACKNOWLEDGED. Uncertain
+command: `0` and `gridos_uncertain_commands 0`. Replay: GetEvent VALIDATED
+plan 1, then `IDENTICAL` (exit 0). Emergency stop: the idempotent retry
+returned the same stop id, one zero intent, generation 5 and generation 6
+both ACKNOWLEDGED with ACCEPTED receipts; the confirm block now reads
+EXECUTING because the event advanced after the stop, which the runbook
+labels as the pre-stop reading. Worker restart: PID 31369 stopped, PID 36048
+started detached, `Started Worker ... WorkerID 36048`, port 9465 listening.
+Gateway restart: PID 31366 stopped, PID 36301 started with the live scenario,
+`gridos_gateway_up 1`, telemetry lag 11 s after one cadence. The worker
+binary carries a VCS revision stamp, so the runbook's environment without
+GRIDOS_CODE_VERSION is sufficient. Correction 3ea7851 is accurate: the control
+binary exposes no identity endpoint; the mock identity endpoint lives in the
+development mock API for the console. 5F.1 marked done.
+
+## 2026-09-27 04:50Z — 2B.10 canonical assertion, gateway selection grant
+
+Root's canonical rerun failed on the positive UNCERTAIN assertion: after
+live retiming, OFFLINE_DEVICES and DELAYED_GATEWAY land on the same tick and
+the scheduled selection hashes only seed plus commanded ids, so both faults
+pick the same device and OFFLINE wins. Decision: root may edit the gateway
+failures engine so scheduled selection includes the injection kind in its
+hash, with a focused test proving two kinds on one tick select distinct
+devices. Determinism per seed is kept; the selection merely differs per
+kind. The gate is the canonical rerun with both the UNCERTAIN and the
+recovery-action assertions positive. The other scenario groups rerun at the
+Gate 5 window, since selection changed.
+
+## 2026-09-27 04:50Z — 5F.2 held on the console
+
+The demo runbook text covers steps 1 to 17, but the Playwright demo-path
+spec asserts softly and only checks region presence for steps 11 to 15.
+5F.2 stays open until the console lane hardens the spec and ships the
+remaining screens; the director then walks the runbook on the same build.
