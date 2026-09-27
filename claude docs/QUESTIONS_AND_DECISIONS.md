@@ -1054,3 +1054,9 @@ assumptions reported by workers land here too.
   the director's machine (consented plan, scheduled window, frozen flex
   reserve, early return, second window, automatic expiry). The remaining
   scenarios wait on the hardware-floor source, 4A.10, and 4A.11.
+- **Margin upper bound in reports (2026-09-27):** with every value term
+  sourced and every cost term unavailable, the computed margin is an upper
+  bound; a bound at or below zero proves the true margin is not positive,
+  so the report shows it as margin_bound UPPER with price provenance and
+  the unavailable cost terms listed. A positive bound proves nothing and
+  stays margin_unavailable. Lane 4F owns the report mapping for this.
