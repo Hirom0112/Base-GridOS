@@ -1744,7 +1744,7 @@ Owns: `docs/operations/security/` (threat model and retention),
 - `[x]` 5D.7 `[after 5D.5]` `make generate` also runs `sqlc generate`, and the
   committed `services/control/internal/storage/gen/` matches the migrations.
   Verify: `sqlc diff` prints nothing and `go vet ./services/control/...` passes.
-- `[ ]` 5D.8 `[after 5D.5]` Local PostgreSQL lock headroom. The compose PostgreSQL
+- `[~]` 5D.8 `[after 5D.5]` Local PostgreSQL lock headroom. The compose PostgreSQL
   command sets `max_locks_per_transaction` high enough that migration 0006
   (partitioned telemetry) applies on several isolated test databases at once
   without "out of shared memory". Applied at the next `make up`, never under

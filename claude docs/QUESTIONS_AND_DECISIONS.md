@@ -2049,3 +2049,12 @@ provenance and issue time; root owns it now, RED/GREEN separate, fixture
 refreshed from a demo plan that has an active weather override and a
 consented window (the director seeds both on the demo before the fixture
 run). Until then step 7 stays labelled missing evidence.
+
+## 2026-09-27 09:12Z — 5D.8 config landed, live verify deferred
+
+8fdd302 sets the compose PostgreSQL command to `max_locks_per_transaction=256`;
+`docker compose config` renders it and validates here. The running
+container still has 64 because applying it means restarting PostgreSQL
+under the standing demo, which also hosts Temporal state. The item stays
+dispatched until the next `make up` (at demo retirement or the next full
+gate), when the live `show max_locks_per_transaction` line closes it.
