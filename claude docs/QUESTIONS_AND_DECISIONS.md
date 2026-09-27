@@ -1154,3 +1154,9 @@ assumptions reported by workers land here too.
   emitted names. On the demo the telemetry device and freshness gauges,
   gateway up, and the solver duration histogram all carry real values
   after one planned event.
+- **4F.1 anomaly scenario verified (2026-09-27):** opt-in and away set
+  through the member API, a normal 0.5 kW reading emits nothing and a
+  2 kW reading yields one own-member "energy anomaly signal" through the
+  alert RPC via the real maintenance workflow (110 s here). A first run
+  had stalled at PLANNED under the load of the orphaned stacks and passed
+  once they were removed.
