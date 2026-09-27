@@ -1430,7 +1430,13 @@ Owns: `services/control/internal/report/`.
 - `[ ]` 4E.4 `[after 4A.5, 4B.2]` Member rewards and conservative incremental
   margin included in the report (FULL_SPEC §9 step 16). Verify: `-run Rewards` passes.
 - `[x]` 4E.5 `[P]` Partner view of the report: aggregates only, no site rows,
-  no travel or away state (FULL_SPEC §11). Verify: `-run PartnerView` passes including a test that the JSON has no `site_id`.
+  no travel or away state (FULL_SPEC §11). Verify: `-run PartnerView` passes including a test that the JSON has no `site_id`.- `[ ]` 4E.6 `[after 4E.2]` Live report completeness. `pgreport.go` fills
+  the baseline (MW and MWh, method, confidence) and availability from the
+  forecast frozen in the event's input snapshot, energy totals from the
+  stored delivery, and lists every field it cannot source as an explicit
+  data gap; modeled economics stay a named gap until 4B.5 and 4E.4 land.
+  Nothing is estimated in the report source. Verify: `go test ./services/control/internal/api/ -run LiveReport` passes and a demo event's report shows baseline values with provenance and an economics gap.
+
 ### Lane 4F — flexibility scenarios and fixtures
 
 Owns: `tests/integration/`, `testdata/scenarios/`, `tests/end-to-end/`,
