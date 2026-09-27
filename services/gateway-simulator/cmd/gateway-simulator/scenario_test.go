@@ -63,6 +63,21 @@ func TestCadenceOverridesScenarioTickWithoutChangingLogicalClock(t *testing.T) {
 	}
 }
 
+func TestLiveScenarioUsesWallClockAndLiveCadence(t *testing.T) {
+	path := filepath.Join("..", "..", "..", "testdata", "scenarios", "heat-event-canonical.yaml")
+	started := time.Now()
+	configuration, err := parseConfig([]string{"--scenario", path, "--live", "--gateway-id", "gateway-live", "--cadence", "15s"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if configuration.telemetryCadence != 15*time.Second || configuration.scenarioTick != 15*time.Second {
+		t.Fatalf("live cadence=%s step=%s", configuration.telemetryCadence, configuration.scenarioTick)
+	}
+	if configuration.scenarioStart.Before(started) || configuration.scenarioStart.After(time.Now()) {
+		t.Fatalf("scenario start=%s, want process wall clock", configuration.scenarioStart)
+	}
+}
+
 func TestRuntimeDropsSelectedReceiptAfterDurableCommand(t *testing.T) {
 	ctx := context.Background()
 	store, err := gateway.Open(ctx, filepath.Join(t.TempDir(), "gateway.db"))
