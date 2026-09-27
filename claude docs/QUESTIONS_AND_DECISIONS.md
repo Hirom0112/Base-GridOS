@@ -1325,3 +1325,8 @@ assumptions reported by workers land here too.
   Rule: an activity never fails on a trace attribute; an identifier that
   fails the validator is replaced on the span by a stable derived value
   (a SHA-256 prefix) marked as derived, and the scrub boundary stays.
+- **Geo drill-down guard (2026-09-27):** the role-matrix suite exposed a
+  panic when the geo service had no fleet snapshot; the root request with
+  an empty parent id stays valid, and a missing snapshot now answers
+  Unavailable ("fleet not loaded") rather than a client fault. Found while
+  landing the report-energy fix; verified here.
