@@ -1,0 +1,23 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "context",
+    srcs = [
+        "csv.go",
+        "public.go",
+        "weather.go",
+        "windows.go",
+    ],
+    importpath = "github.com/Hirom0112/Base-GridOS/services/control/internal/context",
+    visibility = ["//services/control:__subpackages__"],
+)
+
+go_test(
+    name = "context_test",
+    srcs = [
+        "public_test.go",
+        "weather_test.go",
+        "windows_test.go",
+    ],
+    embed = [":context"],
+)

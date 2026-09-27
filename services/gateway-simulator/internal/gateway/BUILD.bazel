@@ -1,0 +1,18 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "gateway",
+    srcs = ["store.go"],
+    importpath = "github.com/Hirom0112/Base-GridOS/services/gateway-simulator/internal/gateway",
+    visibility = ["//services/gateway-simulator:__subpackages__"],
+    deps = ["@org_modernc_sqlite//:sqlite"],
+)
+
+go_test(
+    name = "gateway_test",
+    srcs = [
+        "store_batch_test.go",
+        "store_test.go",
+    ],
+    embed = [":gateway"],
+)

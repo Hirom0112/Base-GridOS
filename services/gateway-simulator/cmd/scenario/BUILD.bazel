@@ -1,0 +1,15 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "scenario",
+    srcs = ["runner.go"],
+    importpath = "github.com/Hirom0112/Base-GridOS/services/gateway-simulator/cmd/scenario",
+    visibility = ["//visibility:public"],
+    deps = ["//services/gateway-simulator/internal/failures"],
+)
+
+go_test(
+    name = "scenario_test",
+    srcs = ["runner_test.go"],
+    embed = [":scenario"],
+)

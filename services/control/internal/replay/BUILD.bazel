@@ -1,0 +1,32 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "replay",
+    srcs = [
+        "manifest.go",
+        "postgres.go",
+        "run.go",
+    ],
+    importpath = "github.com/Hirom0112/Base-GridOS/services/control/internal/replay",
+    visibility = ["//services/control:__subpackages__"],
+    deps = [
+        "//contracts/gen/go/gridos/v1:gridos",
+        "@com_github_jackc_pgx_v5//pgxpool",
+        "@org_golang_google_protobuf//encoding/protojson",
+        "@org_golang_google_protobuf//proto",
+    ],
+)
+
+go_test(
+    name = "replay_test",
+    srcs = [
+        "manifest_test.go",
+        "run_test.go",
+    ],
+    embed = [":replay"],
+    deps = [
+        "//contracts/gen/go/gridos/v1:gridos",
+        "@com_github_stretchr_testify//require",
+        "@org_golang_google_protobuf//proto",
+    ],
+)

@@ -1,0 +1,44 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "events",
+    srcs = [
+        "exceptions.go",
+        "postgres.go",
+        "service.go",
+    ],
+    importpath = "github.com/Hirom0112/Base-GridOS/services/control/internal/api/events",
+    visibility = ["//services/control:__subpackages__"],
+    deps = [
+        "//contracts/gen/go/gridos/v1:gridos",
+        "//services/control/internal/api/stepup",
+        "//services/control/internal/reconciliation",
+        "//services/control/internal/report",
+        "//services/control/internal/storage",
+        "@com_connectrpc_connect//:connect",
+        "@com_github_jackc_pgx_v5//:pgx",
+        "@com_github_jackc_pgx_v5//pgxpool",
+        "@org_golang_google_protobuf//encoding/protojson",
+        "@org_golang_google_protobuf//proto",
+        "@org_golang_google_protobuf//types/known/durationpb",
+        "@org_golang_google_protobuf//types/known/timestamppb",
+    ],
+)
+
+go_test(
+    name = "events_test",
+    srcs = [
+        "events_test.go",
+        "exceptions_test.go",
+    ],
+    embed = [":events"],
+    deps = [
+        "//contracts/gen/go/gridos/v1:gridos",
+        "//contracts/gen/go/gridos/v1/gridosv1connect",
+        "@com_connectrpc_connect//:connect",
+        "@com_github_jackc_pgx_v5//:pgx",
+        "@com_github_jackc_pgx_v5//pgxpool",
+        "@org_golang_google_protobuf//proto",
+        "@org_golang_google_protobuf//types/known/timestamppb",
+    ],
+)

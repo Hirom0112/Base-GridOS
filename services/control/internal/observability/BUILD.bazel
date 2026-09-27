@@ -1,0 +1,36 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "observability",
+    srcs = [
+        "metrics.go",
+        "scrub.go",
+        "server.go",
+        "trace.go",
+    ],
+    importpath = "github.com/Hirom0112/Base-GridOS/services/control/internal/observability",
+    visibility = ["//services/control:__subpackages__"],
+    deps = [
+        "@com_github_prometheus_client_golang//prometheus",
+        "@com_github_prometheus_client_golang//prometheus/promhttp",
+        "@io_opentelemetry_go_otel//attribute",
+        "@io_opentelemetry_go_otel_sdk//instrumentation",
+        "@io_opentelemetry_go_otel_sdk//resource",
+        "@io_opentelemetry_go_otel_sdk//trace",
+    ],
+)
+
+go_test(
+    name = "observability_test",
+    srcs = [
+        "metrics_test.go",
+        "scrub_test.go",
+        "trace_test.go",
+    ],
+    embed = [":observability"],
+    deps = [
+        "@io_opentelemetry_go_otel//attribute",
+        "@io_opentelemetry_go_otel_sdk//trace",
+        "@io_opentelemetry_go_otel_trace//:trace",
+    ],
+)

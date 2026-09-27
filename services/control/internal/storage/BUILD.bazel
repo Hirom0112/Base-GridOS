@@ -1,0 +1,58 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "storage",
+    srcs = [
+        "acknowledgements.go",
+        "command_states.go",
+        "event_store.go",
+        "events.go",
+        "lifecycle.go",
+        "outbox.go",
+        "reports.go",
+        "telemetry.go",
+        "telemetry_retention.go",
+    ],
+    importpath = "github.com/Hirom0112/Base-GridOS/services/control/internal/storage",
+    visibility = ["//services/control:__subpackages__"],
+    deps = [
+        "//contracts/gen/go/gridos/v1:gridos",
+        "//services/control/internal/observability",
+        "//services/control/internal/report",
+        "//services/control/internal/storage/gen",
+        "@com_github_jackc_pgx_v5//:pgx",
+        "@com_github_jackc_pgx_v5//pgtype",
+        "@com_github_jackc_pgx_v5//pgxpool",
+        "@org_golang_google_protobuf//encoding/protojson",
+        "@org_golang_google_protobuf//types/known/timestamppb",
+    ],
+)
+
+go_test(
+    name = "storage_test",
+    srcs = [
+        "acknowledgements_test.go",
+        "command_metrics_test.go",
+        "event_store_test.go",
+        "events_test.go",
+        "harness_test.go",
+        "model_test.go",
+        "outbox_test.go",
+        "replacement_test.go",
+        "reports_test.go",
+        "telemetry_retention_test.go",
+    ],
+    data = glob(["testdata/**"]),
+    embed = [":storage"],
+    deps = [
+        "//contracts/gen/go/gridos/v1:gridos",
+        "//services/control/internal/observability",
+        "//services/control/internal/report",
+        "@com_github_jackc_pgx_v5//:pgx",
+        "@com_github_jackc_pgx_v5//pgxpool",
+        "@com_github_stretchr_testify//require",
+        "@net_pgregory_rapid//:rapid",
+        "@org_golang_google_protobuf//encoding/protojson",
+        "@org_golang_google_protobuf//types/known/timestamppb",
+    ],
+)

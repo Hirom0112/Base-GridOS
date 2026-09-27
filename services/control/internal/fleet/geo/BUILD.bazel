@@ -1,0 +1,26 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "geo",
+    srcs = [
+        "aggregate.go",
+        "private.go",
+    ],
+    importpath = "github.com/Hirom0112/Base-GridOS/services/control/internal/fleet/geo",
+    visibility = ["//services/control:__subpackages__"],
+    deps = [
+        "//contracts/gen/go/gridos/v1:gridos",
+        "//services/control/internal/fleet",
+        "@com_github_uber_h3_go_v4//:h3-go",
+    ],
+)
+
+go_test(
+    name = "geo_test",
+    srcs = ["aggregate_test.go"],
+    embed = [":geo"],
+    deps = [
+        "//contracts/gen/go/gridos/v1:gridos",
+        "//services/control/internal/fleet",
+    ],
+)

@@ -1,0 +1,18 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "gridosv1connect",
+    srcs = [
+        "api.connect.go",
+        "dispatch.connect.go",
+        "geo.connect.go",
+        "member.connect.go",
+        "optimization.connect.go",
+    ],
+    importpath = "github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1/gridosv1connect",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//contracts/gen/go/gridos/v1:gridos",
+        "@com_connectrpc_connect//:connect",
+    ],
+)

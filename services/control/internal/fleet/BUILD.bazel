@@ -1,0 +1,34 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "fleet",
+    srcs = [
+        "eligibility.go",
+        "load.go",
+        "twin.go",
+    ],
+    importpath = "github.com/Hirom0112/Base-GridOS/services/control/internal/fleet",
+    visibility = ["//services/control:__subpackages__"],
+    deps = [
+        "//contracts/gen/go/gridos/v1:gridos",
+        "@com_github_jackc_pgx_v5//pgxpool",
+        "@org_golang_google_protobuf//types/known/timestamppb",
+    ],
+)
+
+go_test(
+    name = "fleet_test",
+    srcs = [
+        "eligibility_test.go",
+        "h3_test.go",
+        "load_test.go",
+        "twin_test.go",
+    ],
+    embed = [":fleet"],
+    deps = [
+        "//contracts/gen/go/gridos/v1:gridos",
+        "//services/control/internal/fleet/geo",
+        "@com_github_stretchr_testify//require",
+        "@org_golang_google_protobuf//types/known/timestamppb",
+    ],
+)

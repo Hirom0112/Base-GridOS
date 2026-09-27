@@ -1,0 +1,22 @@
+load("@rules_go//go:def.bzl", "go_test")
+
+go_test(
+    name = "tests_test",
+    srcs = [
+        "protocol_test.go",
+        "restart_test.go",
+        "scale_test.go",
+        "scenario_determinism_test.go",
+    ],
+    deps = [
+        "//contracts/gen/go/gridos/v1:gridos",
+        "//contracts/gen/go/gridos/v1/gridosv1connect",
+        "//services/gateway-simulator/cmd/scenario",
+        "//services/gateway-simulator/internal/battery",
+        "//services/gateway-simulator/internal/gateway",
+        "//services/gateway-simulator/internal/protocol",
+        "//services/gateway-simulator/internal/telemetry",
+        "@com_connectrpc_connect//:connect",
+        "@org_golang_google_protobuf//types/known/timestamppb",
+    ],
+)

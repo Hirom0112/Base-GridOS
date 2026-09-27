@@ -1,0 +1,31 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "connectors",
+    srcs = [
+        "connectors.go",
+        "notification.go",
+        "simulated.go",
+    ],
+    importpath = "github.com/Hirom0112/Base-GridOS/services/control/internal/connectors",
+    visibility = ["//services/control:__subpackages__"],
+    deps = [
+        "@com_github_jackc_pgx_v5//:pgx",
+        "@com_github_jackc_pgx_v5//pgxpool",
+    ],
+)
+
+go_test(
+    name = "connectors_test",
+    srcs = [
+        "contract_live_test.go",
+        "contract_test.go",
+        "notification_test.go",
+        "simulated_test.go",
+    ],
+    embed = [":connectors"],
+    deps = [
+        "@com_github_jackc_pgx_v5//:pgx",
+        "@com_github_jackc_pgx_v5//pgxpool",
+    ],
+)

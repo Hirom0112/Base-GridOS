@@ -1,0 +1,27 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "report",
+    srcs = ["service.go"],
+    importpath = "github.com/Hirom0112/Base-GridOS/services/control/internal/api/report",
+    visibility = ["//services/control:__subpackages__"],
+    deps = [
+        "//contracts/gen/go/gridos/v1:gridos",
+        "//services/control/internal/report",
+        "@com_connectrpc_connect//:connect",
+        "@com_github_jackc_pgx_v5//:pgx",
+    ],
+)
+
+go_test(
+    name = "report_test",
+    srcs = ["service_test.go"],
+    embed = [":report"],
+    deps = [
+        "//contracts/gen/go/gridos/v1:gridos",
+        "//contracts/gen/go/gridos/v1/gridosv1connect",
+        "//services/control/internal/report",
+        "@com_connectrpc_connect//:connect",
+        "@com_github_stretchr_testify//require",
+    ],
+)

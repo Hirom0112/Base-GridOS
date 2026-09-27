@@ -1,0 +1,48 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "reconciliation",
+    srcs = [
+        "activities.go",
+        "cells.go",
+        "delivery.go",
+        "event.go",
+        "history.go",
+        "load.go",
+        "persist.go",
+        "reallocation.go",
+        "uncertain.go",
+    ],
+    importpath = "github.com/Hirom0112/Base-GridOS/services/control/internal/reconciliation",
+    visibility = ["//services/control:__subpackages__"],
+    deps = [
+        "//contracts/gen/go/gridos/v1:gridos",
+        "//services/control/internal/report",
+        "//services/control/internal/storage",
+        "@com_github_jackc_pgx_v5//:pgx",
+        "@com_github_jackc_pgx_v5//pgxpool",
+        "@org_golang_google_protobuf//encoding/protojson",
+    ],
+)
+
+go_test(
+    name = "reconciliation_test",
+    srcs = [
+        "activities_test.go",
+        "delivery_test.go",
+        "event_test.go",
+        "history_test.go",
+        "reallocation_test.go",
+        "uncertain_test.go",
+    ],
+    embed = [":reconciliation"],
+    deps = [
+        "//contracts/gen/go/gridos/v1:gridos",
+        "//services/control/internal/report",
+        "//services/control/internal/storage",
+        "@com_github_jackc_pgx_v5//:pgx",
+        "@com_github_jackc_pgx_v5//pgxpool",
+        "@net_pgregory_rapid//:rapid",
+        "@org_golang_google_protobuf//types/known/timestamppb",
+    ],
+)

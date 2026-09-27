@@ -1,0 +1,26 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "gridos",
+    srcs = [
+        "api.pb.go",
+        "device.pb.go",
+        "dispatch.pb.go",
+        "events.pb.go",
+        "geo.pb.go",
+        "member.pb.go",
+        "member_policy.pb.go",
+        "optimization.pb.go",
+        "pricing.pb.go",
+        "telemetry.pb.go",
+        "verification.pb.go",
+    ],
+    importpath = "github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1",
+    visibility = ["//visibility:public"],
+    deps = [
+        "@org_golang_google_protobuf//reflect/protoreflect",
+        "@org_golang_google_protobuf//runtime/protoimpl",
+        "@org_golang_google_protobuf//types/known/durationpb",
+        "@org_golang_google_protobuf//types/known/timestamppb",
+    ],
+)

@@ -1,0 +1,58 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "policy",
+    srcs = [
+        "anomaly.go",
+        "anomaly_consent.go",
+        "away.go",
+        "offer.go",
+        "override.go",
+        "policy.go",
+        "reward_periodic.go",
+        "reward_posting.go",
+        "risk_bridge.go",
+        "risk_bridge_anomaly.go",
+        "risk_bridge_run.go",
+        "risk_bridge_source.go",
+        "risk_bridge_weather.go",
+        "site_reserve.go",
+        "travel_flex.go",
+        "travel_flex_reserve.go",
+    ],
+    importpath = "github.com/Hirom0112/Base-GridOS/services/control/internal/fleet/policy",
+    visibility = ["//services/control:__subpackages__"],
+    deps = [
+        "//contracts/gen/go/gridos/v1:gridos",
+        "//services/control/internal/context",
+        "//services/control/internal/storage",
+        "@com_github_jackc_pgx_v5//:pgx",
+        "@com_github_jackc_pgx_v5//pgxpool",
+    ],
+)
+
+go_test(
+    name = "policy_test",
+    srcs = [
+        "anomaly_test.go",
+        "dev_seed_test.go",
+        "offer_test.go",
+        "override_test.go",
+        "policy_test.go",
+        "reward_posting_test.go",
+        "risk_bridge_test.go",
+        "site_reserve_test.go",
+        "travel_flex_test.go",
+    ],
+    embed = [":policy"],
+    deps = [
+        "//contracts/gen/go/gridos/v1:gridos",
+        "//services/control/internal/context",
+        "//services/control/internal/fleet",
+        "//services/control/internal/storage",
+        "@com_github_jackc_pgx_v5//:pgx",
+        "@com_github_jackc_pgx_v5//pgxpool",
+        "@com_github_stretchr_testify//require",
+        "@org_golang_google_protobuf//types/known/timestamppb",
+    ],
+)

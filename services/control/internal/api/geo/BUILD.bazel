@@ -1,0 +1,48 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "geo",
+    srcs = [
+        "assets.go",
+        "hierarchy.go",
+        "metadata.go",
+        "privacy.go",
+        "service.go",
+    ],
+    importpath = "github.com/Hirom0112/Base-GridOS/services/control/internal/api/geo",
+    visibility = ["//services/control:__subpackages__"],
+    deps = [
+        "//contracts/gen/go/gridos/v1:gridos",
+        "//services/control/internal/fleet",
+        "//services/control/internal/fleet/geo",
+        "@com_connectrpc_connect//:connect",
+        "@com_github_jackc_pgx_v5//pgxpool",
+        "@com_github_uber_h3_go_v4//:h3-go",
+        "@org_golang_google_protobuf//types/known/durationpb",
+        "@org_golang_google_protobuf//types/known/timestamppb",
+    ],
+)
+
+go_test(
+    name = "geo_test",
+    srcs = [
+        "assets_test.go",
+        "cell_metadata_test.go",
+        "privacy_test.go",
+        "service_test.go",
+    ],
+    embed = [":geo"],
+    deps = [
+        "//contracts/gen/go/gridos/v1:gridos",
+        "//contracts/gen/go/gridos/v1/gridosv1connect",
+        "//services/control/internal/fleet",
+        "//services/control/internal/fleet/geo",
+        "@com_connectrpc_connect//:connect",
+        "@com_github_stretchr_testify//require",
+        "@org_golang_google_protobuf//encoding/protojson",
+        "@org_golang_google_protobuf//proto",
+        "@org_golang_google_protobuf//reflect/protoreflect",
+        "@org_golang_google_protobuf//types/known/durationpb",
+        "@org_golang_google_protobuf//types/known/timestamppb",
+    ],
+)

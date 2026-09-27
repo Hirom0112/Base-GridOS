@@ -1,0 +1,27 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "safety",
+    srcs = ["safety.go"],
+    importpath = "github.com/Hirom0112/Base-GridOS/services/control/internal/safety",
+    visibility = ["//services/control:__subpackages__"],
+    deps = ["//services/control/internal/observability"],
+)
+
+go_test(
+    name = "safety_test",
+    srcs = [
+        "aggregate_ramp_test.go",
+        "benchmark_test.go",
+        "golden_test.go",
+        "metrics_test.go",
+        "reapproval_test.go",
+        "reserve_selection_test.go",
+        "safety_test.go",
+    ],
+    embed = [":safety"],
+    deps = [
+        "//services/control/internal/observability",
+        "@net_pgregory_rapid//:rapid",
+    ],
+)

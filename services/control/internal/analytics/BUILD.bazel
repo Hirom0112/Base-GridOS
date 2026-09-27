@@ -1,0 +1,32 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "analytics",
+    srcs = [
+        "bigquery.go",
+        "local.go",
+        "record.go",
+        "scrub.go",
+    ],
+    importpath = "github.com/Hirom0112/Base-GridOS/services/control/internal/analytics",
+    visibility = ["//services/control:__subpackages__"],
+    deps = [
+        "@org_golang_x_oauth2//:oauth2",
+        "@org_golang_x_oauth2//google",
+        "@org_golang_x_oauth2//google/externalaccount",
+    ],
+)
+
+go_test(
+    name = "analytics_test",
+    srcs = [
+        "bigquery_test.go",
+        "export_test.go",
+        "isolation_test.go",
+        "local_test.go",
+        "scrub_test.go",
+    ],
+    data = glob(["testdata/**"]),
+    embed = [":analytics"],
+    deps = ["@org_golang_x_oauth2//google/externalaccount"],
+)

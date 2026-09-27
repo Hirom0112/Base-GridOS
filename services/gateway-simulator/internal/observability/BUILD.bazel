@@ -1,0 +1,21 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "observability",
+    srcs = ["trace.go"],
+    importpath = "github.com/Hirom0112/Base-GridOS/services/gateway-simulator/internal/observability",
+    visibility = ["//services/gateway-simulator:__subpackages__"],
+    deps = [
+        "@io_opentelemetry_go_otel//attribute",
+        "@io_opentelemetry_go_otel_exporters_stdout_stdouttrace//:stdouttrace",
+        "@io_opentelemetry_go_otel_sdk//resource",
+        "@io_opentelemetry_go_otel_sdk//trace",
+        "@io_opentelemetry_go_otel_trace//:trace",
+    ],
+)
+
+go_test(
+    name = "observability_test",
+    srcs = ["trace_test.go"],
+    embed = [":observability"],
+)

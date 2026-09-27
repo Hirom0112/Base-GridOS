@@ -1,0 +1,12 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "stepup",
+    srcs = ["stepup.go"],
+    importpath = "github.com/Hirom0112/Base-GridOS/services/control/internal/api/stepup",
+    visibility = ["//services/control:__subpackages__"],
+    deps = [
+        "//services/control/internal/storage",
+        "@com_github_jackc_pgx_v5//pgxpool",
+    ],
+)

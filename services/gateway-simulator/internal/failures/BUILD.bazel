@@ -1,0 +1,34 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "failures",
+    srcs = [
+        "inject.go",
+        "network.go",
+        "runtime.go",
+        "scenario.go",
+    ],
+    importpath = "github.com/Hirom0112/Base-GridOS/services/gateway-simulator/internal/failures",
+    visibility = ["//services/gateway-simulator:__subpackages__"],
+    deps = [
+        "//contracts/gen/go/gridos/v1:gridos",
+        "//services/gateway-simulator/internal/telemetry",
+    ],
+)
+
+go_test(
+    name = "failures_test",
+    srcs = [
+        "houston_test.go",
+        "inject_test.go",
+        "outage_replay_test.go",
+        "runtime_test.go",
+        "scenario_test.go",
+    ],
+    embed = [":failures"],
+    deps = [
+        "//contracts/gen/go/gridos/v1:gridos",
+        "//services/gateway-simulator/internal/gateway",
+        "//services/gateway-simulator/internal/telemetry",
+    ],
+)
