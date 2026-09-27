@@ -112,6 +112,9 @@ func loadRealTime(path string, now time.Time) ([]Price, error) {
 		if hourErr != nil || intervalErr != nil || hour < 1 || hour > 24 || interval < 1 || interval > 4 || row[4] == "" {
 			return errors.New("invalid real-time interval")
 		}
+		if row[5] == "LZEW" {
+			return nil
+		}
 		at := day.Add(time.Duration(hour-1)*time.Hour + time.Duration(interval)*15*time.Minute)
 		value, err := parseFinite(row[6])
 		if err != nil {
