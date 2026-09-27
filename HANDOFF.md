@@ -1,6 +1,6 @@
 # GridOS handoff
 
-Written 2026-09-27 at 15:20Z, the single handoff for this repo. It
+Written 2026-09-27 at 15:37Z (final, at submission), the single handoff for this repo. It
 replaces SESSION_HANDOFF.md and ASTRA_HANDOFF.md.
 
 ## Where things stand
@@ -38,6 +38,19 @@ close together on one green run of the integrated spec
 
 ## Open, in priority order
 
+0. **Red on main: replacement path lacks home load.** Since ba8c08f2 and
+   12e3b8c1, `TestReplacementUsesRealDecisionServer` in
+   `services/control/internal/dispatch` fails, and 7de44ce2 adds a second
+   RED proving that replacement must carry frozen site IDs and site load
+   forecasts into the optimize request and into replacement safety
+   (`dispatch/replacement.go:53`). Until fixed, live replacements under
+   METER_NET_EXPORT come back empty or are rejected, so rebalancing
+   (demo-path step 12) breaks on HEAD. An unverified GREEN attempt sits
+   uncommitted in `api/home_load.go`, `dispatch/replacement.go` and
+   `dispatch/replacement_server_test.go`; verify with
+   `cd services/control && go test ./internal/dispatch/ ./internal/api/ -count=1`
+   before committing. The standing demo was built on bb2748c7, before
+   this regression, and is what the Loom was recorded on.
 1. **Go safety wiring for home load and temperature.** The optimizer now
    budgets frozen home load (ba8c08f2, 237189b1 indexed lookup, dc407173
    linear formulation: 5,000 devices with home load solve in 0.66 s). The
@@ -53,7 +66,7 @@ close together on one green run of the integrated spec
    rebalancing; the spec window is back to 5 minutes (bb2748c7). Earlier
    runs passed steps 13 and 15 to 16; step 14 needed the home-load fix and
    17 the server-clock audit fix, both landed. Rerun after the Loom:
-   rebuild on HEAD, wait for telemetry lag under 15 s, then
+   fix item 0, rebuild on HEAD, wait for telemetry lag under 15 s, then
    `PLAYWRIGHT_LIST_PRINT_STEPS=1 pnpm --dir apps/console playwright test demo-path.spec.ts --workers 1 --reporter list`
    (about 7 minutes; it waits out the live event window).
 3. **Audit P0 leftovers.** Typed CommandState to remove five `_ =`
