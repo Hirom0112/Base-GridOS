@@ -78,6 +78,54 @@ func TestGetPlanExplanation(t *testing.T) {
 	}
 }
 
+func TestGetPlanExplanationManifest(t *testing.T) {
+	pool := apiTestDatabase(t)
+	_, err := pool.Exec(context.Background(), `INSERT INTO dispatch_requests
+		(request_id, event_type, begin_time, end_time, target_kw, measurement_boundary, load_zones, correlation_id)
+		VALUES ('request-manifest', 'GRID_SERVICE', now(), now() + interval '1 hour', 100, 'METER_NET_EXPORT', ARRAY['LZ_AEN'], 'manifest');
+		INSERT INTO dispatch_events (event_id, request_id, state, plan_version, correlation_id)
+		VALUES ('event-manifest', 'request-manifest', 'VALIDATED', 2, 'manifest');
+		INSERT INTO input_snapshots (snapshot_id, event_id, captured_at, inputs, provenance, correlation_id)
+		VALUES ('input-manifest', 'event-manifest', now(), '{"reservePolicy":{"policyVersion":"input-policy"}}', '{"code_version":"build-frozen-1"}', 'manifest');
+		INSERT INTO eligibility_snapshots (snapshot_id, event_id, captured_at, eligible_device_ids, exclusions, policy_version, correlation_id)
+		VALUES ('eligible-manifest', 'event-manifest', now(), ARRAY[]::text[], '[]', 'policy-frozen-1', 'manifest');
+		INSERT INTO plan_versions (event_id, version, input_snapshot_id, eligibility_snapshot_id, plan, solver_version, model_version, correlation_id)
+		VALUES ('event-manifest', 2, 'input-manifest', 'eligible-manifest', '{"eventId":"event-manifest","planVersion":"2","objectiveBreakdown":{"gridValue":4}}', 'solver-frozen-1', 'model-frozen-1', 'manifest')`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	request := connect.NewRequest(&gridosv1.GetPlanExplanationRequest{EventId: "event-manifest", PlanVersion: 2})
+	request.Header().Set(roleHeader, "analyst")
+	response, err := NewService(NewPostgresEventStore(pool), nil, nil, time.Now).GetPlanExplanation(context.Background(), request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if response.Msg.GetObjectiveBreakdown().GetGridValue() != 4 {
+		t.Fatal("stored plan control missing")
+	}
+	encoded, err := protojson.Marshal(response.Msg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var value struct {
+		Manifest struct {
+			InputSnapshotID       string `json:"inputSnapshotId"`
+			EligibilitySnapshotID string `json:"eligibilitySnapshotId"`
+			PolicyVersion         string `json:"policyVersion"`
+			SolverVersion         string `json:"solverVersion"`
+			ModelVersion          string `json:"modelVersion"`
+			CodeVersion           string `json:"codeVersion"`
+		} `json:"manifest"`
+	}
+	if err := json.Unmarshal(encoded, &value); err != nil {
+		t.Fatal(err)
+	}
+	manifest := value.Manifest
+	if manifest.InputSnapshotID != "input-manifest" || manifest.EligibilitySnapshotID != "eligible-manifest" || manifest.PolicyVersion != "policy-frozen-1" || manifest.SolverVersion != "solver-frozen-1" || manifest.ModelVersion != "model-frozen-1" || manifest.CodeVersion != "build-frozen-1" {
+		t.Fatalf("frozen manifest = %s", encoded)
+	}
+}
+
 func TestGetPlanExplanationFrozenEvidence(t *testing.T) {
 	now := time.Date(2026, 9, 26, 12, 0, 0, 0, time.UTC)
 	events := NewMemoryEventStore()
