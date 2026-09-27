@@ -11,6 +11,7 @@ import (
 	gridosv1 "github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1"
 	"github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1/gridosv1connect"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/fleet"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 )
@@ -35,15 +36,13 @@ func TestGeoServicePrivacyAndDrilldown(t *testing.T) {
 	cellsRequest := connect.NewRequest(&gridosv1.ListCellsRequest{Resolution: 7})
 	cellsRequest.Header().Set("X-GridOS-Role", "operator")
 	cells, err := client.ListCells(context.Background(), cellsRequest)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(cells.Msg.GetCells()) != 1 || cells.Msg.GetCells()[0].GetSiteCount() != 6 || cells.Msg.GetCells()[0].GetActiveDispatchCount() != 1 || cells.Msg.GetCells()[0].GetProvenance() != gridosv1.DataProvenance_DATA_PROVENANCE_SIMULATED {
-		t.Fatalf("unsafe or incomplete aggregate: %+v", cells.Msg.GetCells())
-	}
-	if len(cells.Msg.GetCells()[0].GetOperatingStateCounts()) != 1 || cells.Msg.GetCells()[0].GetOperatingStateCounts()[0].GetAggregate().GetDeviceCount() != 7 {
-		t.Fatalf("operating state must count devices: %+v", cells.Msg.GetCells()[0].GetOperatingStateCounts())
-	}
+	require.NoError(t, err)
+	require.Len(t, cells.Msg.GetCells(), 1)
+	require.Equal(t, uint64(6), cells.Msg.GetCells()[0].GetSiteCount())
+	require.Equal(t, uint64(1), cells.Msg.GetCells()[0].GetActiveDispatchCount())
+	require.Equal(t, gridosv1.DataProvenance_DATA_PROVENANCE_SIMULATED, cells.Msg.GetCells()[0].GetProvenance())
+	require.Len(t, cells.Msg.GetCells()[0].GetOperatingStateCounts(), 1)
+	require.Equal(t, uint64(7), cells.Msg.GetCells()[0].GetOperatingStateCounts()[0].GetAggregate().GetDeviceCount())
 	parent := ""
 	for range 5 {
 		request := connect.NewRequest(&gridosv1.DrilldownRequest{ParentId: parent})
