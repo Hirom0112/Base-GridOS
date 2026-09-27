@@ -111,3 +111,38 @@ test("uncertainty evidence rejects a reversed time interval", () => {
     reduceEventSamples([], withInterval(2n, 1n), "event-1"),
   ).toThrow();
 });
+
+test("stream keeps independently measured H3 evidence", () => {
+  const spatial = create(WatchEventResponseSchema, {
+    ...update,
+    h3: [
+      {
+        h3Cell: "87489d884ffffff",
+        power: update.fleet,
+        metadata: update.fleet!.metadata,
+      },
+    ],
+  });
+  const samples = reduceEventSamples([], spatial, "event-1");
+  expect(samples[0]?.h3[0]?.h3Cell).toBe("87489d884ffffff");
+  expect(samples[0]?.h3[0]?.power?.deliveredMw).toBe(0.6);
+  const invalid = create(WatchEventResponseSchema, {
+    ...spatial,
+    h3: [{ ...spatial.h3[0]!, h3Cell: "invalid" }],
+  });
+  expect(() => reduceEventSamples([], invalid, "event-1")).toThrow();
+});
+
+test("zero per-cell delivery cannot carry a nonzero measurement", () => {
+  const spatial = create(WatchEventResponseSchema, {
+    ...update,
+    h3: [
+      {
+        h3Cell: "87489d884ffffff",
+        power: { ...update.fleet!, deliveredState: 5, deliveredMw: 0.2 },
+        metadata: update.fleet!.metadata,
+      },
+    ],
+  });
+  expect(() => reduceEventSamples([], spatial, "event-1")).toThrow();
+});
