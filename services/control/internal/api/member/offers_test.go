@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"reflect"
 	"testing"
 	"time"
 
@@ -16,6 +17,7 @@ import (
 	"github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1/gridosv1connect"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/fleet"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -70,24 +72,46 @@ func TestListMemberOffersUsesStoredTerms(t *testing.T) {
 	if err := json.Unmarshal(body, &listed); err != nil {
 		t.Fatal(err)
 	}
-	if len(listed.Offers) != 2 || listed.Offers[0].PriceText != "Stored price" || listed.Offers[1].ConsentVersion != "consent-flex-1" || len(listed.TravelFlexWindows) != 1 || len(listed.AwayWindows) != 1 {
-		t.Fatalf("stored offers and windows = %s", body)
-	}
-	if listed.Offers[0].PolicyVersion != "policy-offers" || listed.Offers[1].PolicyVersion != "policy-offers" || listed.TravelFlexWindows[0].ConsentVersion != "consent-flex-1" || listed.TravelFlexWindows[0].EarlyReturnAction != "MEMBER_EARLY_RETURN_ACTION_RESTORE_PLAN_RESERVE" || listed.AwayWindows[0].ConsentVersion != "away-consent" {
-		t.Fatalf("stored versions and early return = %s", body)
-	}
+	require.Len(t, listed.Offers, 2)
+	require.Len(t, listed.TravelFlexWindows, 1)
+	require.Len(t, listed.AwayWindows, 1)
+	require.Equal(t, "Stored price", listed.Offers[0].PriceText)
+	require.Equal(t, "consent-flex-1", listed.Offers[1].ConsentVersion)
+	require.Equal(t, "policy-offers", listed.Offers[0].PolicyVersion)
+	require.Equal(t, "policy-offers", listed.Offers[1].PolicyVersion)
+	require.Equal(t, "consent-flex-1", listed.TravelFlexWindows[0].ConsentVersion)
+	require.Equal(t, "MEMBER_EARLY_RETURN_ACTION_RESTORE_PLAN_RESERVE", listed.TravelFlexWindows[0].EarlyReturnAction)
+	require.Equal(t, "away-consent", listed.AwayWindows[0].ConsentVersion)
 	offer := connect.NewRequest(&gridosv1.PresentOfferRequest{MemberId: "member-offers", IdempotencyKey: "offer-forged", Kind: gridosv1.MemberOfferKind_MEMBER_OFFER_KIND_PLAN, Market: "ERCOT", CatalogVersion: "catalog-offers", MemberPlanId: "balanced", ContractVersion: "contract-1", PriceText: "Forged price", ConsentText: "Stored consent", ConsentVersion: "consent-1", EffectiveAt: timestamppb.New(now), ExpiresAt: timestamppb.New(now.Add(time.Hour)), CorrelationId: "fixture"})
 	offer.Header().Set("X-GridOS-Role", "member")
 	offer.Header().Set("X-GridOS-Member-ID", "member-offers")
 	_, err = service.PresentOffer(ctx, offer)
-	if connect.CodeOf(err) != connect.CodeInvalidArgument {
-		t.Fatalf("forged terms code = %v", connect.CodeOf(err))
-	}
+	require.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 	offer.Msg.PriceText = "Stored price"
 	offer.Msg.IdempotencyKey = "offer-valid"
 	accepted, err := service.PresentOffer(ctx, offer)
-	if err != nil || accepted.Msg.GetOffer().GetPriceText() != "Stored price" {
-		t.Fatalf("stored terms rejected: %v, %#v", err, accepted)
+	require.NoError(t, err)
+	require.Equal(t, "Stored price", accepted.Msg.GetOffer().GetPriceText())
+	var catalog gridosv1.ListMemberOffersResponse
+	require.NoError(t, protojson.Unmarshal(body, &catalog))
+	for _, terms := range catalog.GetOffers() {
+		present := connect.NewRequest(&gridosv1.PresentOfferRequest{MemberId: "member-offers", IdempotencyKey: "compare-" + terms.GetKind().String(), Kind: terms.GetKind(), Market: terms.GetMarket(), CatalogVersion: terms.GetCatalogVersion(), MemberPlanId: terms.GetMemberPlanId(), ContractVersion: terms.GetContractVersion(), PriceText: terms.GetPriceText(), ConsentText: terms.GetConsentText(), ConsentVersion: terms.GetConsentVersion(), EffectiveAt: timestamppb.New(now), ExpiresAt: timestamppb.New(now.Add(time.Hour)), TemporaryReservePercent: terms.TemporaryReservePercent, CreditType: terms.GetCreditType(), FixedCreditCents: terms.GetFixedCreditCents(), CorrelationId: "fixture"})
+		present.Header().Set("X-GridOS-Role", "member")
+		present.Header().Set("X-GridOS-Member-ID", "member-offers")
+		result, err := service.PresentOffer(ctx, present)
+		require.NoError(t, err)
+		listedJSON, err := protojson.Marshal(terms)
+		require.NoError(t, err)
+		presentedJSON, err := protojson.Marshal(result.Msg.GetOffer())
+		require.NoError(t, err)
+		var listedFields, presentedFields map[string]any
+		require.NoError(t, json.Unmarshal(listedJSON, &listedFields))
+		require.NoError(t, json.Unmarshal(presentedJSON, &presentedFields))
+		for _, field := range []string{"kind", "market", "catalogVersion", "memberPlanId", "contractVersion", "priceText", "consentText", "consentVersion", "temporaryReservePercent", "creditType", "fixedCreditCents", "energyMonthlyChargeCents", "batteryMonthlyChargeCents", "flexibilityRewardCents"} {
+			if !reflect.DeepEqual(listedFields[field], presentedFields[field]) {
+				t.Fatalf("%s %s: listed %v, presented %v", terms.GetKind(), field, listedFields[field], presentedFields[field])
+			}
+		}
 	}
 }
 
