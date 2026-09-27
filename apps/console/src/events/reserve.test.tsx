@@ -19,7 +19,7 @@ test("measured reserve margins retain breaches and observation gaps", () => {
   });
   expect(reserve).toHaveTextContent("-0.250 kWh");
   expect(reserve).toHaveTextContent("99 of 100 devices observed");
-  expect(reserve).toHaveTextContent("1 devices without observations");
+  expect(reserve).toHaveTextContent("1 devices with observation gaps");
   expect(reserve).toHaveTextContent(
     "1 devices touched or crossed the reserve floor",
   );
@@ -41,4 +41,19 @@ test("inconsistent reserve observation counts fail closed", () => {
     "Reserve evidence is invalid",
   );
   expect(screen.queryByText(/-0.250 kWh/)).not.toBeInTheDocument();
+});
+
+test("a device can be observed and still have gaps in the event window", () => {
+  render(
+    <ReserveEvidence
+      evidence={{ ...evidence, DevicesObserved: 100, ObservationGaps: 1 }}
+    />,
+  );
+  expect(
+    screen.getByRole("region", { name: "Reserve protection evidence" }),
+  ).toHaveTextContent("100 of 100 devices observed");
+  expect(
+    screen.getByRole("region", { name: "Reserve protection evidence" }),
+  ).toHaveTextContent("1 devices with observation gaps");
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
 });
