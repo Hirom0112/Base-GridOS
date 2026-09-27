@@ -1,6 +1,6 @@
 {
-  "command": "pnpm --dir apps/console playwright test golden-review.spec.ts --workers 1 --output /tmp/gridos-golden-composed",
-  "last_line": "8 passed (47.9s)",
+  "command": "pnpm --dir apps/console playwright test golden-review.spec.ts --workers 1 --output /tmp/gridos-golden-visible-field",
+  "last_line": "8 passed (48.5s)",
   "mode": "Local identity; recorded, explicitly SIMULATED fleet and context fixtures",
   "checks": [
     "Single active renderer",
@@ -45,7 +45,7 @@
       "profile": "mobile-dark",
       "state": "fleet",
       "file": "mobile-dark-fleet.png",
-      "sha256": "a5e4fae442e39a7e4b5643eadc906eb1a26fece076c3335f45784a2e345daed9"
+      "sha256": "0b64bef3ba1ff05dd7de0929205077c35a7bd4277b17c8c073572fdccecd1cd1"
     },
     {
       "profile": "mobile-dark",
@@ -57,7 +57,7 @@
       "profile": "mobile-light",
       "state": "fleet",
       "file": "mobile-light-fleet.png",
-      "sha256": "5574fd8fee14765a1c209baf19e367ca9cc30dd2df63c031c41f0bd9fc25d295"
+      "sha256": "bffb4c280de96a07b9a4f28f5e624f73ee419a2a51758859372e3d991c1f5c22"
     },
     {
       "profile": "mobile-light",
@@ -105,7 +105,7 @@
       "profile": "reduced-motion",
       "state": "fleet",
       "file": "reduced-motion-fleet.png",
-      "sha256": "a5e4fae442e39a7e4b5643eadc906eb1a26fece076c3335f45784a2e345daed9"
+      "sha256": "0b64bef3ba1ff05dd7de0929205077c35a7bd4277b17c8c073572fdccecd1cd1"
     },
     {
       "profile": "reduced-motion",
