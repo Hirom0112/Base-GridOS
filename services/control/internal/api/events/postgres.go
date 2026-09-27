@@ -64,6 +64,10 @@ func (source *PostgresSource) Snapshot(ctx context.Context, eventID string) (*gr
 	if err != nil {
 		return nil, err
 	}
+	exceptions, err := source.exceptions(ctx, eventID)
+	if err != nil {
+		return nil, err
+	}
 	fleet := &gridosv1.EventPowerAggregate{SentMw: commands.sent / 1000, AcknowledgedMw: commands.acknowledged / 1000, Metadata: source.metadata(now, uint64(len(source.deviceCells)))}
 	if delivered != nil {
 		fleet.DeliveredMw = delivered.DeliveredMW
@@ -92,7 +96,7 @@ func (source *PostgresSource) Snapshot(ctx context.Context, eventID string) (*gr
 		}
 		aggregate.Power.UncertaintyIntervals = uncertaintyMessages(cell.UncertainIntervals)
 	}
-	return &gridosv1.WatchEventResponse{Event: event, Fleet: fleet, H3: sortedCells(byCell), ObservedAt: timestamppb.New(now)}, nil
+	return &gridosv1.WatchEventResponse{Event: event, Fleet: fleet, H3: sortedCells(byCell), ObservedAt: timestamppb.New(now), Exceptions: exceptions}, nil
 }
 
 type power struct {
@@ -138,7 +142,7 @@ func (source *PostgresSource) commandPower(ctx context.Context, eventID string) 
 	return result, rows.Err()
 }
 
-func (source *PostgresSource) Timeline(ctx context.Context, eventID string) ([]*gridosv1.EventTimelineEntry, error) {
+func (source *PostgresSource) Timeline(ctx context.Context, eventID string) (*gridosv1.GetEventTimelineResponse, error) {
 	rows, err := source.pool.Query(ctx, `SELECT sequence, occurred_at, actor_id, action, previous_values, new_values
 		FROM audit_journal WHERE resource_id = $1 OR resource_id IN (SELECT command_id FROM command_intents WHERE event_id = $1)
 		ORDER BY sequence`, eventID)
@@ -162,7 +166,14 @@ func (source *PostgresSource) Timeline(ctx context.Context, eventID string) ([]*
 			PreviousState: eventState(previous.State), State: eventState(next.State), Reason: next.Reason,
 		})
 	}
-	return entries, rows.Err()
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+	exceptions, err := source.exceptions(ctx, eventID)
+	if err != nil {
+		return nil, err
+	}
+	return &gridosv1.GetEventTimelineResponse{Entries: entries, Exceptions: exceptions}, nil
 }
 
 type transitionValues struct {
