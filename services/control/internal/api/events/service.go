@@ -91,6 +91,9 @@ func (service *Service) WatchEvent(ctx context.Context, request *connect.Request
 	var previous *gridosv1.WatchEventResponse
 	for {
 		update, err := service.source.Snapshot(ctx, request.Msg.GetEventId())
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
 		if err != nil {
 			return connect.NewError(connect.CodeInternal, err)
 		}
