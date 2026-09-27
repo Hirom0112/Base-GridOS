@@ -1547,7 +1547,7 @@ Owns: `services/control/internal/connectors/`, `tests/contract/`, `docs/data/`.
 
 Owns: `tests/load/`.
 
-- `[ ]` 5B.1 `[P]` Telemetry ingest load test at 5,000 devices reporting every
+- `[x]` 5B.1 `[P]` Telemetry ingest load test at 5,000 devices reporting every
   5 seconds for 10 minutes; no dropped observations, sequence gaps reported.
   Verify: `go test ./tests/load/ -run TelemetryIngest -timeout 20m` passes.
 - `[ ]` 5B.2 `[P]` Dispatch path load test: 5,000 command intents persisted

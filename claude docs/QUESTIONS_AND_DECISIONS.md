@@ -988,3 +988,6 @@ assumptions reported by workers land here too.
   to the authenticated member id through `member_sites`, the operator may
   only read status, and no self-service site binding exists. Director:
   contracts clean, four member tests pass, control builds.
+- **5B.1 (lane 5B), verified:** on an isolated stack, 5,000 devices at a
+  five-second cadence for ten minutes persisted 600,000 observations with
+  zero dropped and zero sequence gaps (director run, 605 s).
