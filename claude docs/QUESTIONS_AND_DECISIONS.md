@@ -2304,3 +2304,16 @@ after three durable attempts the command becomes UNCERTAIN. `go test
 root posted three consecutive isolated canonical passes (119.7 s, 120.1 s,
 119.4 s). Marked done. The demo is rebuilt on this tree with 4E.10 and the
 steps 11/12 proof is rerun.
+
+## 2026-09-27 10:16Z — Demo rebuilt on 60290a6; integrated proof plan
+
+The demo runs on 60290a6 with 2B.11 and 4E.10: telemetry lag 8 s, no
+publish failures, signer up, two active WEATHER overrides, worker log
+clean. Sequence agreed with both lanes: root's exclusive seeding window
+records the 4C.10 manifest and 4E.10 report fixtures from fresh API-seeded
+data without launching; then the director restarts the gateway so its
+live anchor is armed and hands the demo to the console, whose integrated
+17-step run is the first launch and therefore carries the five-fault
+proof; the director verifies MISSING, UNCERTAIN, COMMAND_RETRY,
+STALE_CAPACITY_REMOVED and REBALANCED_COMMAND from the durable rows of
+that event to close 2A.13 and the demo-path items together.
