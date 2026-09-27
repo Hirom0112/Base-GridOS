@@ -203,7 +203,7 @@ func commandIntents(plan *gridosv1.DispatchPlan, request *gridosv1.OptimizationR
 func safetyPlan(plan *gridosv1.DispatchPlan, canonical safety.CanonicalState) (safety.Plan, error) {
 	requestPlan := safety.Plan{Boundary: canonical.Boundary, PolicyVersion: canonical.PolicyVersion, Generation: canonical.ExpectedGeneration}
 	if len(plan.GetDeviceSchedules()) == 0 {
-		return requestPlan, errors.New("device schedules required")
+		return emptyShortfallPlan(requestPlan, plan.GetShortfalls())
 	}
 	for _, schedule := range plan.GetDeviceSchedules() {
 		state, found := canonical.Devices[schedule.GetDeviceId()]
@@ -231,6 +231,33 @@ func safetyPlan(plan *gridosv1.DispatchPlan, canonical safety.CanonicalState) (s
 	for _, shortfall := range plan.GetShortfalls() {
 		requestPlan.DeclaredShortfall = max(requestPlan.DeclaredShortfall, shortfall.GetShortfallKw())
 		requestPlan.TargetKW = max(requestPlan.TargetKW, shortfall.GetRequestedKw())
+	}
+	return requestPlan, nil
+}
+
+func emptyShortfallPlan(requestPlan safety.Plan, shortfalls []*gridosv1.ShortfallReport) (safety.Plan, error) {
+	if len(shortfalls) == 0 {
+		return requestPlan, errors.New("device schedules or quantified shortfall required")
+	}
+	for index, shortfall := range shortfalls {
+		begin, end := shortfall.GetIntervalBeginTime(), shortfall.GetIntervalEndTime()
+		if begin == nil || end == nil || begin.CheckValid() != nil || end.CheckValid() != nil {
+			return requestPlan, errors.New("shortfall interval times required")
+		}
+		start, finish := begin.AsTime(), end.AsTime()
+		if !finish.After(start) || index > 0 && (!start.Equal(requestPlan.ExpiresAt) || finish.Sub(start) != requestPlan.Interval) {
+			return requestPlan, errors.New("contiguous shortfall intervals required")
+		}
+		if !(shortfall.GetRequestedKw() >= 0 && shortfall.GetFeasibleKw() == 0 && shortfall.GetShortfallKw() >= 0 && math.Abs(shortfall.GetRequestedKw()-shortfall.GetShortfallKw()) <= 1e-9) {
+			return requestPlan, errors.New("empty plan requires full quantified shortfall")
+		}
+		if index == 0 {
+			requestPlan.EffectiveAt = start
+			requestPlan.Interval = finish.Sub(start)
+		}
+		requestPlan.ExpiresAt = finish
+		requestPlan.TargetKW = max(requestPlan.TargetKW, shortfall.GetRequestedKw())
+		requestPlan.DeclaredShortfall = max(requestPlan.DeclaredShortfall, shortfall.GetShortfallKw())
 	}
 	return requestPlan, nil
 }
