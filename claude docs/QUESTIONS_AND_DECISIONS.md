@@ -1060,3 +1060,7 @@ assumptions reported by workers land here too.
   so the report shows it as margin_bound UPPER with price provenance and
   the unavailable cost terms listed. A positive bound proves nothing and
   stays margin_unavailable. Lane 4F owns the report mapping for this.
+- **4F.1 zero-percent scenario verified (2026-09-27):** on the director's
+  machine a member on a zero-percent plan keeps the 10 percent hardware
+  floor through planning, dispatch, and the audit chain (111 s), after the
+  step-up audit rows were corrected to carry the event correlation.
