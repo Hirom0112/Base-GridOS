@@ -1302,3 +1302,9 @@ assumptions reported by workers land here too.
   Flex stalled at REQUESTED for two minutes, which it had not done in the
   earlier standalone run; rerun alone follows group four, with logs kept
   if it repeats.
+- **Report energy on uncertain events (2026-09-27):** the live report
+  copied a signed net delivery into a nonnegative energy total and the
+  validator rejected the whole event read. Decision: never clamp; when
+  delivered energy is negative or non-finite the energy totals are
+  omitted and a delivered_energy_unavailable gap is recorded, while the
+  signed delivery figure stays in the delivery section. Root owns the fix.
