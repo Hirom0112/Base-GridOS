@@ -7,7 +7,6 @@ go_library(
     visibility = ["//services/gateway-simulator:__subpackages__"],
     deps = [
         "//contracts/gen/go/gridos/v1:gridos",
-        "//contracts/gen/go/gridos/v1/gridosv1connect",
         "//services/gateway-simulator/internal/gateway",
         "@com_connectrpc_connect//:connect",
         "@org_golang_google_protobuf//types/known/timestamppb",
