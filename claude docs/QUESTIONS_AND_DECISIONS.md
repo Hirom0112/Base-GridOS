@@ -1287,3 +1287,9 @@ assumptions reported by workers land here too.
   is recorded in the timeline. Without it, faults injected early in a
   short window were not seen until the event ended, which is why the
   canonical scenario derived no exceptions.
+- **Canonical exception assertions, sequenced (2026-09-27):** the heat
+  event scenario's injections gain `scope: scheduled` so they hit
+  dispatched devices; the scenario asserts a MISSING telemetry exception
+  now, and the UNCERTAIN assertion lands with 2B.10, because no command is
+  sent inside the window until recovery issues replacements. Ordering,
+  not weakening: both assertions are required for Gate 4.
