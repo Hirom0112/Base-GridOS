@@ -120,6 +120,36 @@ type FleetSnapshotter struct {
 	telemetry *fleet.TelemetryTwin
 }
 
+func (snapshotter *FleetSnapshotter) TelemetryMetrics(ctx context.Context) (int, int, time.Duration, error) {
+	if snapshotter.pool == nil {
+		return 0, 0, 0, errors.New("durable telemetry store required")
+	}
+	deviceIDs := make([]string, 0)
+	for _, site := range snapshotter.sites {
+		for _, device := range site.GetDevices() {
+			deviceIDs = append(deviceIDs, device.GetDeviceId())
+		}
+	}
+	if len(deviceIDs) == 0 {
+		return 0, 0, 0, nil
+	}
+	var stale int
+	var latest *time.Time
+	now := snapshotter.now()
+	err := snapshotter.pool.QueryRow(ctx, `SELECT count(*) FILTER (WHERE latest.observed_at IS NULL OR latest.observed_at < $2), max(latest.observed_at)
+		FROM unnest($1::text[]) AS device(device_id)
+		LEFT JOIN LATERAL (SELECT observed_at FROM telemetry_observations
+			WHERE device_id = device.device_id ORDER BY observed_at DESC, sequence DESC LIMIT 1) AS latest ON true`,
+		deviceIDs, now.Add(-30*time.Second)).Scan(&stale, &latest)
+	if err != nil {
+		return 0, 0, 0, err
+	}
+	if latest == nil {
+		return len(deviceIDs), stale, 0, nil
+	}
+	return len(deviceIDs), stale, max(0, now.Sub(*latest)), nil
+}
+
 func NewFleetSnapshotter(twin *fleet.Twin, sites []*gridosv1.AuthorizedSite, now func() time.Time) *FleetSnapshotter {
 	return &FleetSnapshotter{twin: twin, sites: sites, now: now}
 }
