@@ -2083,7 +2083,7 @@ proven three times isolated and once on the standing demo. Root owns it
 after the 4C.9 fixture seed. The demo is rebuilt on c47f87a now and root's
 exclusive seeding window opens.
 
-## 2026-09-27 09:12Z — make demo starts the mock signer when a step-up key is set
+## 2026-09-27 09:05Z — make demo starts the mock signer when a step-up key is set
 
 Every rebuild killed the hand-started signer through the target's PID
 sweep and needed a manual restart, which raced twice. The demo target now
