@@ -1977,7 +1977,7 @@ TestGatewayMetricsExposeBufferedRowsAndPublishFailures covers the two new
 metrics. Marked done, with the process slip recorded: root is reminded
 that RED and GREEN are separate commits, no exceptions for urgency.
 
-## 2026-09-27 08:32Z — Demo rebuilt on 133fce2; 4B.9 reward mismatch found by the console
+## 2026-09-27 08:27Z — Demo rebuilt on 133fce2; 4B.9 reward mismatch found by the console
 
 The rebuild carries the gateway publish-failure metrics and the bounded
 historical geo query: telemetry lag 2 s, `gridos_gateway_publish_failures_total 0`,
@@ -1993,7 +1993,7 @@ credit) and makes both RPCs emit the same numbers, with a RED that
 compares the two responses for each kind. The console keeps rejecting any
 changed charge or reward.
 
-## 2026-09-27 08:38Z — 4B.9 reward parity verified; demo rebuilt on d22ba2c
+## 2026-09-27 08:30Z — 4B.9 reward parity verified; demo rebuilt on d22ba2c
 
 RED 1914fb7 (test only) compares ListMemberOffers and PresentOffer field
 by field per offer kind; GREEN ab895af makes the listed Travel Flex reward
@@ -2003,7 +2003,7 @@ catalog value. Offers tests ok (1.166s) here. Demo rebuilt: telemetry lag
 assertion, worker log clean. The console reruns its member proof against
 it.
 
-## 2026-09-27 08:44Z — 4B.10 plan re-selection (found by the console's live retry)
+## 2026-09-27 08:32Z — 4B.10 plan re-selection (found by the console's live retry)
 
 The console's second live member run selected the Balanced plan the same
 member had chosen in the first run and got FAILED_PRECONDITION with the
@@ -2016,7 +2016,7 @@ already-current plan with a new idempotency key as a no-op that returns the
 current plan, and maps rejections to domain reasons. Root, RED/GREEN in
 separate commits, migration with rollback.
 
-## 2026-09-27 08:52Z — 4B.10 verified
+## 2026-09-27 08:38Z — 4B.10 verified
 
 RED 1f46cda (test only, fails on the unique-key violation when returning
 to a former plan) then GREEN 0af212a: migration 0019 with rollback
@@ -2029,7 +2029,7 @@ and raw database errors no longer reach the API. `go test
 all eleven PASS (ok 2.570s). Marked done; the demo is rebuilt so migration
 0019 applies and the console reruns its member proof.
 
-## 2026-09-27 08:56Z — Console member lifecycle proof verified on the demo
+## 2026-09-27 08:41Z — Console member lifecycle proof verified on the demo
 
 The console's live member proof passed (1 passed 39.9s) against the demo on
 a4bcb17. The audit journal shows RESILIENCE_PLAN_SUPERSEDED and
@@ -2038,7 +2038,7 @@ the early-return row for window 5d8a0157, with the stored consent version
 and RESTORE_PLAN_RESERVE read back. 4B.9 and 4B.10 hold end to end with
 the console's strict receipt matching.
 
-## 2026-09-27 09:02Z — 4C.9 frozen reserve basis for demo step 7
+## 2026-09-27 08:42Z — 4C.9 frozen reserve basis for demo step 7
 
 The console can show each device's reserve selection and selected kWh but
 nothing proves where the floor came from (hardware, plan, weather or other
@@ -2050,7 +2050,7 @@ refreshed from a demo plan that has an active weather override and a
 consented window (the director seeds both on the demo before the fixture
 run). Until then step 7 stays labelled missing evidence.
 
-## 2026-09-27 09:12Z — 5D.8 config landed, live verify deferred
+## 2026-09-27 08:44Z — 5D.8 config landed, live verify deferred
 
 8fdd302 sets the compose PostgreSQL command to `max_locks_per_transaction=256`;
 `docker compose config` renders it and validates here. The running
@@ -2059,7 +2059,7 @@ under the standing demo, which also hosts Temporal state. The item stays
 dispatched until the next `make up` (at demo retirement or the next full
 gate), when the live `show max_locks_per_transaction` line closes it.
 
-## 2026-09-27 09:22Z — 4C.9 API verified; fixture waits for the demo
+## 2026-09-27 08:55Z — 4C.9 API verified; fixture waits for the demo
 
 RED fd2da26 (test only) then GREEN c47f87a: the eligibility snapshot
 freezes each device's reserve basis and the consented Travel Flex credit
