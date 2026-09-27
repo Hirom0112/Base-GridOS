@@ -5,6 +5,43 @@ import (
 	"time"
 )
 
+func TestLivePersistPerDeviceFaultsThroughWindowAndConsumeNextCommandOnce(t *testing.T) {
+	start := time.Date(2026, 9, 27, 8, 0, 0, 0, time.UTC)
+	window := 10 * time.Minute
+	scenario := Scenario{Seed: 17, Start: start, EventStart: start, EventEnd: start.Add(window), Tick: 15 * time.Second,
+		Injections: []Injection{
+			{At: start.Add(15 * time.Second), Kind: OfflineDevices, Scope: Scheduled},
+			{At: start.Add(30 * time.Second), Kind: DroppedMessages, Scope: Scheduled},
+			{At: start.Add(45 * time.Second), Kind: DelayedGateway, Scope: Scheduled},
+			{At: start.Add(time.Minute), Kind: DuplicatedMessages, Scope: NextCommand},
+		}}
+	engine, err := NewEngine(scenario, []Device{{ID: "scheduled", Region: "LZ_AEN"}, {ID: "healthy", Region: "LZ_AEN"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	runtime := NewLiveRuntime(engine)
+	launch := start.Add(time.Hour)
+	runtime.RecordCommand(launch, "event-live", "scheduled", 1)
+	runtime.Advance(launch.Add(2 * time.Minute))
+	for _, kind := range []Kind{OfflineDevices, DroppedMessages, DelayedGateway} {
+		if !runtime.Affects(string(kind), "scheduled") || runtime.Affects(string(kind), "healthy") {
+			t.Fatalf("%s did not persist only for the scheduled device", kind)
+		}
+	}
+	if !runtime.TargetCommand(launch.Add(2*time.Minute), "event-live", "scheduled")[DuplicatedMessages] {
+		t.Fatal("next_command did not target its first command")
+	}
+	if runtime.TargetCommand(launch.Add(2*time.Minute), "event-live", "scheduled")[DuplicatedMessages] {
+		t.Fatal("next_command targeted a second command")
+	}
+	runtime.Advance(launch.Add(window))
+	for _, kind := range []Kind{OfflineDevices, DroppedMessages, DelayedGateway} {
+		if runtime.Affects(string(kind), "scheduled") {
+			t.Fatalf("%s outlived the live window", kind)
+		}
+	}
+}
+
 func TestRuntimeTargetsOnlySeededDevices(t *testing.T) {
 	start := time.Date(2026, 8, 12, 18, 0, 0, 0, time.UTC)
 	scenario := Scenario{
