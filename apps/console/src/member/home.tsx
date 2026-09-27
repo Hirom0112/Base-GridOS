@@ -40,44 +40,51 @@ export function MemberHome() {
     setHousehold(result.data);
   }
   return (
-    <main className="member-home">
-      <header>
-        <p className="eyebrow">GridOS · Member</p>
-        <h1>Home energy</h1>
-      </header>
-      <form className="report-comparison" onSubmit={open}>
-        <label>
-          Member ID
-          <input
-            name="memberId"
-            defaultValue={identity.mode === "local" ? identity.memberId : ""}
-            required
+    <div className="console member-shell" data-theme="light">
+      <main className="member-home">
+        <header>
+          <p className="eyebrow">GridOS · Member</p>
+          <h1>Home energy</h1>
+        </header>
+        <form className="report-comparison" onSubmit={open}>
+          <label>
+            Member ID
+            <input
+              name="memberId"
+              defaultValue={identity.mode === "local" ? identity.memberId : ""}
+              required
+            />
+          </label>
+          <label>
+            Site ID
+            <input name="siteId" required />
+          </label>
+          <button className="secondary-button" type="submit">
+            Open household
+          </button>
+        </form>
+        {error && <p role="alert">{error}</p>}
+        {query.isFetching && <p role="status">Refreshing household status…</p>}
+        {query.isError && (
+          <p role="alert">
+            Household status unavailable: {query.error.message}{" "}
+            <button onClick={() => query.refetch()}>Retry household</button>
+          </p>
+        )}
+        {query.data && household && (
+          <MemberStatus
+            data={query.data}
+            memberId={household.memberId}
+            siteId={household.siteId}
           />
-        </label>
-        <label>
-          Site ID
-          <input name="siteId" required />
-        </label>
-        <button type="submit">Open household</button>
-      </form>
-      {error && <p role="alert">{error}</p>}
-      {query.isFetching && <p role="status">Refreshing household status…</p>}
-      {query.isError && (
-        <p role="alert">
-          Household status unavailable: {query.error.message}{" "}
-          <button onClick={() => query.refetch()}>Retry household</button>
-        </p>
-      )}
-      {query.data && household && (
-        <MemberStatus
-          data={query.data}
-          memberId={household.memberId}
-          siteId={household.siteId}
-        />
-      )}
-      {household && (
-        <AnomalyAlerts key={household.memberId} memberId={household.memberId} />
-      )}
-    </main>
+        )}
+        {household && (
+          <AnomalyAlerts
+            key={household.memberId}
+            memberId={household.memberId}
+          />
+        )}
+      </main>
+    </div>
   );
 }

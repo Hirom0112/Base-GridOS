@@ -19,7 +19,8 @@
   align-items: center;
   gap: 8px;
 }
-.local-session select {
+.local-session select,
+.local-session input:not([type="checkbox"]) {
   background: #09120e;
   color: #f0f7f2;
   border: 1px solid #405b4b;

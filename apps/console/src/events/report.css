@@ -21,7 +21,7 @@
 }
 .report-values dd {
   margin: 0;
-  font-family: var(--font-mono);
+  font-family: "Geist Mono Variable", monospace;
 }
 .report-comparison {
   display: grid;

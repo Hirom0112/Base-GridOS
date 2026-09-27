@@ -1,7 +1,10 @@
+.console.member-shell {
+  display: block;
+}
 .member-home {
   max-width: 840px;
-  margin: 40px auto;
-  padding: 24px;
+  margin: 0 auto;
+  padding: 40px 24px;
   font-size: 16px;
   line-height: 1.6;
   overflow-wrap: anywhere;
