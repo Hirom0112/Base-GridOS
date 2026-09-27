@@ -72,6 +72,7 @@ func (service *Service) catalogOffers(ctx context.Context, now time.Time) ([]*gr
 			offer.Kind = gridosv1.MemberOfferKind_MEMBER_OFFER_KIND_PLAN
 		case string(policy.TravelFlexOffer):
 			offer.Kind = gridosv1.MemberOfferKind_MEMBER_OFFER_KIND_TRAVEL_FLEX
+			offer.FlexibilityRewardCents = offer.FixedCreditCents
 		default:
 			return nil, errors.New("unknown stored offer kind")
 		}
