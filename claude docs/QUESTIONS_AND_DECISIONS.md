@@ -2382,3 +2382,25 @@ rebuilt gateway, recorded COMMAND_RETRY (14:27:50Z), MISSING_TELEMETRY
 REBALANCED_COMMAND and REPLACEMENT_PLANNED by 14:29:13Z, read from
 EventsService/GetEventTimeline. With 2B.11 in place the replacement command
 no longer blocks UNCERTAIN. Marked done.
+
+## 2026-09-27 14:41Z — Three backend defects found by the integrated run, fixed
+
+WEATHER overrides were 5-minute slices, and the bridge skipped every
+other slice because the previous one was still active at the new
+evaluation time. Plans freeze an override only if it is active at the
+event's begin, so step 07 failed whenever the event began after the
+current slice. 3e9f54f/1aa4a8e hold WEATHER until the alert expires
+(FULL_SPEC control invariants 1 and 11). 93beec8/9f525cf start each
+non-WEATHER slice where existing coverage lapses, so a persistent risk
+never leaves a reserve unprotected between cycles.
+
+Reconciliation's upsert never updated interval_end_time, so a verification
+row first written mid-interval kept its partial end while measured energy
+grew to the full interval. The report then showed requested 0.17 kWh
+against 1465 kWh measured. d05949f/694787a fix the upsert. Reports on
+c94b11df and earlier live events carry the old rows, so the 4E.10 fixture
+must come from an event reconciled after the next rebuild.
+
+The launch step wait in demo-path went from 15 s to 60 s (46fc98c). SENT
+follows serial publishing of every command, measured at 20 s for 2,510
+commands, and 60 s is the activity's first-attempt bound.
