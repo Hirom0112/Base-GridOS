@@ -14,6 +14,7 @@ import (
 	gridosv1 "github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1"
 	controlapi "github.com/Hirom0112/Base-GridOS/services/control/internal/api"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/fleet"
+	"github.com/Hirom0112/Base-GridOS/services/control/internal/replay"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/safety"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/storage"
 	"github.com/jackc/pgx/v5"
@@ -92,10 +93,19 @@ type activityHarness struct {
 
 func TestFreezeInputsActivity(t *testing.T) {
 	harness := newActivityHarness(t)
+	fleetFile := filepath.Join(t.TempDir(), "fleet.jsonl")
+	require.NoError(t, os.WriteFile(fleetFile, []byte("simulated fleet"), 0o600))
+	harness.activities.ReplayDirectory = t.TempDir()
+	harness.activities.ReplayInput = replay.Input{Seed: 42, FleetFile: fleetFile, SolverVersion: "highs", FallbackVersion: "fallback-1", CodeVersion: "test"}
 	frozen, err := harness.activities.FreezeInputs(context.Background(), harness.input)
 	require.NoError(t, err)
 	require.Equal(t, harness.input.EventID+"-input-1", frozen.InputSnapshotID)
 	require.Equal(t, harness.input.EventID+"-eligibility-1", frozen.EligibilitySnapshotID)
+	manifest, err := replay.Load(harness.activities.ReplayDirectory, harness.input.EventID)
+	require.NoError(t, err)
+	require.Equal(t, frozen.InputSnapshotID, manifest.InputSnapshotID)
+	require.Equal(t, frozen.EligibilitySnapshotID, manifest.EligibilitySnapshotID)
+	require.Equal(t, "policy-1", manifest.PolicyVersion)
 }
 
 func TestFreezeInputsAustinResultStaysBelowTemporalLimit(t *testing.T) {
