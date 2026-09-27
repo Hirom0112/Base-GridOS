@@ -154,6 +154,7 @@
     margin-top: 6px;
   }
   .fleet-view .living-grid {
+    position: relative;
     border-inline: 0;
     border-radius: 0;
     order: 1;
@@ -163,10 +164,17 @@
     background: var(--ink-0);
   }
   .fleet-view .grid-loading {
-    min-height: calc(clamp(520px, 62vh, 760px) + 240px);
+    min-height: calc(clamp(520px, 62vh, 760px) + 140px);
     order: 1;
     border-inline: 0;
     border-radius: 0;
+  }
+  .fleet-view .field-measure {
+    position: absolute;
+    top: 52px;
+    left: 0;
+    right: 56px;
+    z-index: 3;
   }
   .fleet-view .field-caption {
     top: auto;
