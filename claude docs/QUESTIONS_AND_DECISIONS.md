@@ -1315,3 +1315,7 @@ assumptions reported by workers land here too.
   activity fails instead of tracing without ids. Rule: an activity never
   fails on a trace attribute. Lane 5C owns the fix ahead of 2B.9; group
   five and the canonical heat event rerun after it.
+- **Console test boundary (5D.6):** the Bazel wrapper generates the
+  TypeScript bindings into a temporary app tree from the checked-in
+  contracts before running the console tests, matching the Go, Python,
+  and container boundaries: no host generation step on a fresh checkout.
