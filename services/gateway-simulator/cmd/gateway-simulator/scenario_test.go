@@ -203,6 +203,38 @@ func TestRuntimeDelayedGatewayTimesOutAfterDurableCommand(t *testing.T) {
 	}
 }
 
+func TestRuntimeNextCommandScopeDelaysOnlyFirstEventCommand(t *testing.T) {
+	ctx := context.Background()
+	store, err := gateway.Open(ctx, filepath.Join(t.TempDir(), "gateway.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = store.Close() })
+	now := time.Now().UTC()
+	scenario := failures.Scenario{Seed: 2, Start: now, Tick: time.Second, Injections: []failures.Injection{{At: now, Kind: failures.DelayedGateway, Scope: "next_command"}}}
+	engine, err := failures.NewEngine(scenario, []failures.Device{{ID: "first", Region: "LZ_AEN"}, {ID: "second", Region: "LZ_AEN"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	handler := newRuntimeCommandHandler(protocol.NewCommandHandler(store, "gateway", "token", func() time.Time { return now }), failures.NewRuntime(engine), func() time.Time { return now })
+	for index, deviceID := range []string{"first", "second"} {
+		request := connect.NewRequest(commandRequest(deviceID, now))
+		request.Msg.CommandIntent.EventId = "event"
+		request.Header().Set("Authorization", "token")
+		_, err := handler.SubmitCommand(ctx, request)
+		if index == 0 && connect.CodeOf(err) != connect.CodeDeadlineExceeded {
+			t.Fatalf("first command error = %v", err)
+		}
+		if index == 1 && err != nil {
+			t.Fatalf("second command error = %v", err)
+		}
+	}
+	commands, err := store.Commands(ctx)
+	if err != nil || len(commands) != 2 {
+		t.Fatalf("durable commands = %v, error = %v", commands, err)
+	}
+}
+
 func TestRuntimeScheduledFaultFollowsAcceptedCommand(t *testing.T) {
 	ctx := context.Background()
 	store, err := gateway.Open(ctx, filepath.Join(t.TempDir(), "gateway.db"))
