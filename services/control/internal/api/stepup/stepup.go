@@ -90,6 +90,9 @@ func parseAssertion(token string, key []byte) (Assertion, []byte, error) {
 	if err != nil {
 		return Assertion{}, nil, err
 	}
+	if !bytes.Equal(payload, canonical) {
+		return Assertion{}, nil, errors.New("noncanonical step-up claims")
+	}
 	mac := hmac.New(sha256.New, key)
 	_, _ = mac.Write(canonical)
 	if !hmac.Equal(provided, mac.Sum(nil)) {
