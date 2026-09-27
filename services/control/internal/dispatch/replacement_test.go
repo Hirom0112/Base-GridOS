@@ -40,11 +40,13 @@ func TestReplacementStaysInsideApprovedEnvelope(t *testing.T) {
 	snapshotter.snapshot.Canonical.Devices["device-2"] = safety.DeviceState{}
 	harness.activities.Dispatcher.Snapshots = snapshotter
 	plan := &gridosv1.DispatchPlan{EventId: harness.input.EventID, PlanVersion: 2, PlanId: "replacement-2", SolverVersion: "fallback", ModelVersion: "1", DeviceSchedules: []*gridosv1.DeviceSchedule{{DeviceId: "device-2", Intervals: []*gridosv1.DeviceScheduleInterval{{BeginTime: harness.input.Request.BeginTime, EndTime: harness.input.Request.EndTime, SetpointKw: 1, ExpectedEnergyKwh: 7}}}}}
-	harness.activities.Dispatcher.Optimizer = activityOptimizer{replacementPlan: plan}
+	optimizer := &traceCaptureOptimizer{activityOptimizer: activityOptimizer{replacementPlan: plan}, identities: make(map[string][2]string)}
+	harness.activities.Dispatcher.Optimizer = optimizer
 	gate := &replacementSafety{}
 	harness.activities.Dispatcher.Safety = gate
 	replacement := ReplacementCommand{EventID: harness.input.EventID, Request: harness.input.Request, DroppedDeviceIDs: []string{"device-1"}, EnvelopeDeviceIDs: []string{"device-1", "device-2"}, Generation: 2}
 	require.NoError(t, harness.activities.IssueReplacement(context.Background(), replacement))
+	require.Equal(t, [2]string{"correlation-1", "event-1"}, optimizer.identities["Replace"])
 	require.Equal(t, 1, gate.calls)
 	var replacementDevice string
 	require.NoError(t, harness.pool.QueryRow(context.Background(), `SELECT device_id FROM command_intents WHERE generation = 2`).Scan(&replacementDevice))
