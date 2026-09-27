@@ -39,6 +39,9 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	if err = fleet.SeedSimulatedMemberSites(ctx, pool, sites); err != nil {
+		log.Fatal(err)
+	}
 	seed, err := fleetSeed(sites)
 	if err != nil {
 		log.Fatal(err)

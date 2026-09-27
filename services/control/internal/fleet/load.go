@@ -3,12 +3,16 @@ package fleet
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"os"
+	"slices"
+	"strings"
 	"time"
 
 	gridosv1 "github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -119,4 +123,64 @@ func telemetryState(observation *gridosv1.TelemetryObservation) SiteState {
 		state.Availability = Offline
 	}
 	return state
+}
+
+func SeedSimulatedMemberSites(ctx context.Context, pool *pgxpool.Pool, sites []*gridosv1.AuthorizedSite) error {
+	type binding struct {
+		siteID   string
+		memberID string
+		seed     int64
+	}
+	bindings := make([]binding, 0, len(sites))
+	seen := make(map[string]struct{}, len(sites))
+	for _, site := range sites {
+		identifier := site.GetSite().GetSiteId()
+		suffix, valid := strings.CutPrefix(identifier, "site_")
+		provenance := site.GetSite().GetProvenance()
+		if !valid || suffix == "" || provenance.GetProvenance() != gridosv1.DataProvenance_DATA_PROVENANCE_SIMULATED || provenance.GetSimulationSeed() == 0 {
+			return errors.New("simulated site binding requires a site suffix and simulation provenance")
+		}
+		if _, exists := seen[identifier]; exists {
+			return errors.New("duplicate simulated site identifier")
+		}
+		seen[identifier] = struct{}{}
+		bindings = append(bindings, binding{siteID: identifier, memberID: "member-" + suffix, seed: provenance.GetSimulationSeed()})
+	}
+	slices.SortFunc(bindings, func(left, right binding) int { return strings.Compare(left.siteID, right.siteID) })
+	siteIDs := make([]string, 0, len(bindings))
+	memberIDs := make([]string, 0, len(bindings))
+	seeds := make([]int64, 0, len(bindings))
+	for _, item := range bindings {
+		siteIDs = append(siteIDs, item.siteID)
+		memberIDs = append(memberIDs, item.memberID)
+		seeds = append(seeds, item.seed)
+	}
+	if len(bindings) == 0 {
+		return nil
+	}
+	tx, err := pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	_, err = tx.Exec(ctx, `INSERT INTO member_sites (site_id, member_id, bound_at, source, provenance)
+		SELECT site_id, member_id, now(), 'SIMULATED',
+		jsonb_build_object('provenance', 'SIMULATED', 'source_id', 'fleet-file', 'simulation_seed', seed)
+		FROM unnest($1::text[], $2::text[], $3::bigint[]) AS binding(site_id, member_id, seed)
+		ON CONFLICT (site_id) DO NOTHING`, siteIDs, memberIDs, seeds)
+	if err != nil {
+		return err
+	}
+	var matched int
+	err = tx.QueryRow(ctx, `SELECT count(*) FROM unnest($1::text[], $2::text[], $3::bigint[]) AS expected(site_id, member_id, seed)
+		JOIN member_sites AS actual USING (site_id)
+		WHERE actual.member_id = expected.member_id AND actual.source = 'SIMULATED'
+		AND actual.provenance->>'simulation_seed' = expected.seed::text`, siteIDs, memberIDs, seeds).Scan(&matched)
+	if err != nil {
+		return err
+	}
+	if matched != len(bindings) {
+		return errors.New("simulated site conflicts with an existing member binding")
+	}
+	return tx.Commit(ctx)
 }

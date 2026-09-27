@@ -14,4 +14,6 @@ DROP COLUMN IF EXISTS end_idempotency_key;
 ALTER TABLE travel_flex_windows
 DROP COLUMN IF EXISTS cancelled_at;
 
+DROP TABLE IF EXISTS member_sites;
+
 COMMIT;
