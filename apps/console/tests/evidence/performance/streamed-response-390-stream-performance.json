@@ -11,7 +11,5 @@
   "density": 1,
   "peakDraws": 6,
   "totalDraws": 1191,
-  "longTasks": [
-    236
-  ]
+  "longTasks": [236]
 }
