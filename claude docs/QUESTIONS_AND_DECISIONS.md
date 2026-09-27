@@ -1182,3 +1182,9 @@ assumptions reported by workers land here too.
   injections relative to process start on the wall clock, and `make demo`
   passes a scenario file through; the runbook and the console then assert
   those steps for real. Found by lane 5F while drafting the demo script.
+- **Live scenario timing (2A.10):** in live mode the scenario clock starts
+  when the gateway accepts the first command of an event, and injections
+  are retimed proportionally over a live window flag (default ten minutes)
+  from that instant; before launch the gateway streams plain physical
+  telemetry. A presenter creates, approves, and launches at their own pace
+  and the seeded faults land inside the running event.
