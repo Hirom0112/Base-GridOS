@@ -239,7 +239,7 @@ func startTelemetry(ctx context.Context, configuration config, devices []fleetDe
 	return fleet, nil
 }
 
-const telemetryPublishTimeout time.Duration = 0
+const telemetryPublishTimeout = 10 * time.Second
 
 func newTelemetryPublisher(controlAddress, gatewayID, authorizationToken string, timeout time.Duration) *telemetry.ConnectPublisher {
 	client := gridosv1connect.NewTelemetryServiceClient(&http.Client{Timeout: timeout}, controlAddress)

@@ -32,7 +32,7 @@ go_binary(
 
 go_test(
     name = "gateway-simulator_test",
-    srcs = ["metrics_test.go", "scenario_test.go"],
+    srcs = ["metrics_test.go", "publish_test.go", "scenario_test.go"],
     data = ["//testdata:fleets", "//testdata:scenarios"],
     embed = [":gateway-simulator_lib"],
     deps = [
