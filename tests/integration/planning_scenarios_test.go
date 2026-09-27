@@ -41,7 +41,7 @@ func TestHeatEventCanonical(t *testing.T) {
 		t.Fatal("heat event has no MISSING telemetry exception")
 	}
 	if !uncertain {
-		t.Fatal("heat event has no UNCERTAIN command exception")
+		t.Fatalf("heat event has no UNCERTAIN command exception: %v", timeline.Msg.GetExceptions())
 	}
 	actions := map[string]gridosv1.EventExceptionKind{
 		"RETRY":                 gridosv1.EventExceptionKind_EVENT_EXCEPTION_KIND_COMMAND_RETRY,
