@@ -30,8 +30,13 @@ function envelope(value: ReturnType<typeof observation>) {
   return Buffer.concat([header, body]);
 }
 
-for (const width of [390, 1440]) {
-  test(`streamed telemetry remains distinct and visible within five seconds at ${width}`, async ({
+for (const { width, mode } of [
+  { width: 390, mode: "dark" },
+  { width: 1440, mode: "dark" },
+  { width: 390, mode: "light" },
+  { width: 1440, mode: "fallback" },
+]) {
+  test(`streamed telemetry remains distinct and visible within five seconds at ${width} ${mode}`, async ({
     page,
   }) => {
     let emittedAt = 0;
@@ -79,8 +84,16 @@ for (const width of [390, 1440]) {
         };
       }, `http://127.0.0.1:${address.port}/`);
       await page.setViewportSize({ width, height: 1000 });
+      if (mode === "fallback") {
+        await page.emulateMedia({ reducedMotion: "reduce" });
+        await page.addInitScript(() => {
+          HTMLCanvasElement.prototype.getContext = () => null;
+        });
+      }
       await page.goto("/events/event-live");
       await expect(page.getByText("Delivery unknown")).toBeVisible();
+      if (mode === "light")
+        await page.getByRole("button", { name: "Use light theme" }).click();
       await expect(page.getByText("0.650 MW")).toBeVisible({ timeout: 5000 });
       expect(Date.now() - emittedAt).toBeLessThan(5000);
       await expect(page.getByText("Stream connected")).toBeVisible();
@@ -93,9 +106,9 @@ for (const width of [390, 1440]) {
             .analyze()
         ).violations,
       ).toEqual([]);
-      await page
-        .locator(".live-response")
-        .screenshot({ path: `test-results/live-response-${width}.png` });
+      await page.locator(".live-response").screenshot({
+        path: `test-results/live-response-${width}-${mode}.png`,
+      });
       await page.goto("/fleet");
       await expect.poll(() => closed).toBeGreaterThan(0);
     } finally {

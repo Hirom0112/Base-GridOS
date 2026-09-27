@@ -6,6 +6,7 @@ import {
   WatchEventResponseSchema,
   EventPowerAggregateSchema,
 } from "../api/gen/gridos/v1/api_pb";
+import { UncertaintyIntervalSchema } from "../api/gen/gridos/v1/verification_pb";
 import { reduceEventSamples, EventResponse } from "./events-live";
 
 const update = create(WatchEventResponseSchema, {
@@ -85,4 +86,28 @@ test("sample history is bounded and duplicate timestamps replace the last sample
     );
   expect(samples).toHaveLength(120);
   expect(() => reduceEventSamples(samples, update, "event-1")).toThrow();
+});
+
+test("uncertainty evidence rejects a reversed time interval", () => {
+  const withInterval = (begin: bigint, end: bigint) =>
+    create(WatchEventResponseSchema, {
+      ...update,
+      fleet: create(EventPowerAggregateSchema, {
+        ...update.fleet!,
+        uncertaintyIntervals: [
+          create(UncertaintyIntervalSchema, {
+            intervalBeginTime: { seconds: begin, nanos: 0 },
+            intervalEndTime: { seconds: end, nanos: 0 },
+            signedFeasiblePowerLowerKw: 0,
+            signedFeasiblePowerUpperKw: 1,
+          }),
+        ],
+      }),
+    });
+  expect(() =>
+    reduceEventSamples([], withInterval(1n, 2n), "event-1"),
+  ).not.toThrow();
+  expect(() =>
+    reduceEventSamples([], withInterval(2n, 1n), "event-1"),
+  ).toThrow();
 });
