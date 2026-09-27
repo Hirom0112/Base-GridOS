@@ -81,3 +81,56 @@ test("unavailable economic terms remain unknown instead of displaying zero", () 
     within(terms).getByRole("row", { name: /Charging cost/ }),
   ).toHaveTextContent("4.000–8.000");
 });
+
+test("frozen site forecasts retain modeled bounds, lineage, and fallback reason", () => {
+  const explanation = fixture();
+  explanation.evidence = fromJsonString(
+    GetPlanExplanationResponseSchema,
+    JSON.stringify({
+      evidence: {
+        siteLoadUnits: "kWh",
+        fallbackUsed: true,
+        fallbackReason: "solver timeout",
+        siteLoads: [
+          {
+            siteId: "site-one",
+            intervalBeginTime: "2026-09-27T12:00:00Z",
+            loadKwh: {
+              value: 2,
+              lower: 1,
+              upper: 3,
+              valueKind: "modeled_estimate",
+              provenance: "DATA_PROVENANCE_SIMULATED",
+              issuedAt: "2026-09-27T11:00:00Z",
+              modelVersion: "load-v1",
+              featureVersion: "features-v1",
+            },
+          },
+        ],
+      },
+    }),
+  ).evidence;
+  render(<ExplanationEvidence explanation={explanation} />);
+  const forecasts = screen.getByRole("region", { name: "Forecast intervals" });
+  expect(forecasts).toHaveTextContent("2 kWh");
+  expect(forecasts).toHaveTextContent("1–3 kWh");
+  expect(forecasts).toHaveTextContent("MODELED");
+  expect(forecasts).toHaveTextContent("SIMULATED");
+  expect(forecasts).toHaveTextContent("load-v1");
+  expect(forecasts).toHaveTextContent("2026-09-27T11:00:00.000Z");
+  expect(
+    screen.getByRole("region", { name: "Solver fallback" }),
+  ).toHaveTextContent("solver timeout");
+});
+
+test("missing frozen evidence does not imply fallback was unused", () => {
+  const explanation = fixture();
+  explanation.evidence = undefined;
+  render(<ExplanationEvidence explanation={explanation} />);
+  expect(
+    screen.getByRole("region", { name: "Forecast intervals" }),
+  ).toHaveTextContent("Frozen forecast evidence unavailable");
+  expect(
+    screen.getByRole("region", { name: "Solver fallback" }),
+  ).toHaveTextContent("Fallback evidence unavailable");
+});
