@@ -105,6 +105,12 @@ type PublishedSource interface {
 	StoredReport(context.Context, string) (*EventReport, error)
 }
 
+type VersionedPublishedSource interface {
+	StoredReportVersion(context.Context, string, uint64) (*EventReport, error)
+}
+
+var ErrNotPublished = errors.New("report version is not published")
+
 type EventReport struct {
 	EventID                    string
 	PlanVersion                uint64
@@ -187,6 +193,37 @@ func Build(ctx context.Context, source Source, eventID string) (EventReport, err
 		report.Margin = &margin
 	}
 	return report, nil
+}
+
+func BuildPublished(ctx context.Context, source Source, eventID string, version *uint64) (EventReport, error) {
+	if source == nil || eventID == "" || version != nil && *version == 0 {
+		return EventReport{}, errors.New("report source, event identifier, and positive version required")
+	}
+	var published *EventReport
+	var err error
+	if version == nil {
+		latest, ok := source.(PublishedSource)
+		if !ok {
+			return EventReport{}, ErrNotPublished
+		}
+		published, err = latest.StoredReport(ctx, eventID)
+	} else {
+		history, ok := source.(VersionedPublishedSource)
+		if !ok {
+			return EventReport{}, ErrNotPublished
+		}
+		published, err = history.StoredReportVersion(ctx, eventID, *version)
+	}
+	if err != nil {
+		return EventReport{}, err
+	}
+	if published == nil {
+		return EventReport{}, ErrNotPublished
+	}
+	if published.EventID != eventID || version != nil && published.PlanVersion != *version {
+		return EventReport{}, errors.New("published report identity or version mismatch")
+	}
+	return cloneReport(*published), nil
 }
 
 func loadPublished(ctx context.Context, source Source, eventID string) (*EventReport, error) {
