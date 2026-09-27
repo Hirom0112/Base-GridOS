@@ -28,7 +28,7 @@ test-e2e:
 		rm -f .local/e2e/gateway.db; \
 		psql "$$admin_url" -v ON_ERROR_STOP=1 -c 'DROP DATABASE IF EXISTS gridos_e2e WITH (FORCE)' >/dev/null; \
 		psql "$$admin_url" -v ON_ERROR_STOP=1 -c 'CREATE DATABASE gridos_e2e' >/dev/null; \
-		$(MAKE) demo DEMO_DATABASE_URL="$$database_url" GRIDOS_DEMO_DIR=.local/e2e GRIDOS_DEMO_TASK_QUEUE=gridos-e2e GRIDOS_DEMO_CONTROL_PORT=38080 GRIDOS_DEMO_DECISION_PORT=35061 GRIDOS_DEMO_GATEWAY_PORT=38081 > .local/e2e/test-e2e.log 2>&1 & demo_pid=$$!; \
+		GRIDOS_CONTROL_METRICS_PORT=39464 GRIDOS_WORKER_METRICS_PORT=39465 GRIDOS_GATEWAY_METRICS_PORT=39466 GRIDOS_DECISION_METRICS_PORT=39467 $(MAKE) demo DEMO_DATABASE_URL="$$database_url" GRIDOS_DEMO_DIR=.local/e2e GRIDOS_DEMO_TASK_QUEUE=gridos-e2e GRIDOS_DEMO_CONTROL_PORT=38080 GRIDOS_DEMO_DECISION_PORT=35061 GRIDOS_DEMO_GATEWAY_PORT=38081 > .local/e2e/test-e2e.log 2>&1 & demo_pid=$$!; \
 		cleanup() { if test -f .local/e2e/pids; then while read -r pid; do kill "$$pid" 2>/dev/null || true; done < .local/e2e/pids; fi; kill $$demo_pid 2>/dev/null || true; wait $$demo_pid 2>/dev/null || true; psql "$$admin_url" -v ON_ERROR_STOP=1 -c 'DROP DATABASE IF EXISTS gridos_e2e WITH (FORCE)' >/dev/null; }; \
 		trap cleanup EXIT INT TERM; \
 		attempts=0; until grep -q '^demo ready:' .local/e2e/test-e2e.log; do kill -0 $$demo_pid; attempts=$$((attempts + 1)); test $$attempts -lt 120 || { tail -n 20 .local/e2e/test-e2e.log; exit 1; }; sleep 0.25; done; \
