@@ -49,7 +49,7 @@ const commandSchema = z
       (intent.expiresAt.seconds === intent.effectiveAt.seconds &&
         intent.expiresAt.nanos > intent.effectiveAt.nanos),
   );
-const intervalSchema = z
+export const intervalSchema = z
   .object({
     beginTime: timeSchema,
     endTime: timeSchema,

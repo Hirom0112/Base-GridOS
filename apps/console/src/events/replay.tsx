@@ -6,6 +6,7 @@ import { useSession } from "../api/auth";
 import type { ReplayEventResponse } from "../api/gen/gridos/v1/api_pb";
 import { AuditRecords, recordsSchema } from "./audit-timeline";
 import { useReplayClock } from "./replay-clock";
+import { ReplayDelivery } from "./replay-delivery";
 
 const replaySchema = z
   .object({
@@ -160,6 +161,7 @@ export function ReplayEvidence({
 }
 
 export function EventReplay({ eventId }: { eventId: string }) {
+  const { position } = useReplayClock();
   const { client, identity } = useSession();
   const [requested, setRequested] = useState(false);
   const allowed = ["operator", "approver", "analyst", "service"].includes(
@@ -195,6 +197,9 @@ export function EventReplay({ eventId }: { eventId: string }) {
           data={query.data}
           eventId={eventId}
         />
+      )}
+      {query.data && position?.eventId === eventId && (
+        <ReplayDelivery eventId={eventId} asOf={position.at} />
       )}
     </section>
   );
