@@ -2,6 +2,7 @@ package policy
 
 import (
 	"context"
+	"os"
 	"testing"
 	"time"
 
@@ -106,4 +107,48 @@ func TestOfferLegacyUnknownTermsNeverUnlockTravelFlex(t *testing.T) {
 	require.NoError(t, err)
 	require.Nil(t, reserve.TravelFlexPercent)
 	require.Equal(t, 65.0, reserve.EffectivePercent)
+}
+
+func TestLedgerRequiresOfferAndIsAppendOnly(t *testing.T) {
+	pool := policyDatabase(t)
+	ctx := context.Background()
+	begin := time.Date(2026, 9, 26, 12, 0, 0, 0, time.UTC)
+	seedPolicyCatalog(t, pool, begin)
+	store := New(pool)
+	_, err := store.PresentOffer(ctx, Offer{ID: "offer-ledger", MemberID: "member-ledger", Kind: PlanOffer, Market: "TX", CatalogVersion: "catalog-v1", MemberPlanID: "plan-cedar", ContractVersion: "contract-v1", PriceText: "Reward $5.00", ConsentText: "I accept", ConsentVersion: "v1", EffectiveAt: begin, ExpiresAt: begin.Add(time.Hour), CorrelationID: "offer-ledger"})
+	require.NoError(t, err)
+	_, err = pool.Exec(ctx, `INSERT INTO reward_ledger(entry_id, member_id, offer_id, amount_cents, entry_type, recorded_at, correlation_id)
+		VALUES ('entry-without-offer', 'member-ledger', NULL, 500, 'EARNED', $1, 'ledger')`, begin)
+	require.Error(t, err)
+	_, err = pool.Exec(ctx, `INSERT INTO reward_ledger(entry_id, member_id, offer_id, amount_cents, entry_type, recorded_at, correlation_id)
+		VALUES ('entry-ledger', 'member-ledger', 'offer-ledger', 500, 'EARNED', $1, 'ledger')`, begin)
+	require.NoError(t, err)
+	_, err = pool.Exec(ctx, `UPDATE reward_ledger SET amount_cents = 600 WHERE entry_id = 'entry-ledger'`)
+	require.Error(t, err)
+	_, err = pool.Exec(ctx, `DELETE FROM reward_ledger WHERE entry_id = 'entry-ledger'`)
+	require.Error(t, err)
+	var catalog, contract, consent string
+	require.NoError(t, pool.QueryRow(ctx, `SELECT offer.catalog_version, offer.contract_version, offer.consent_version
+		FROM reward_ledger ledger JOIN flexibility_offers offer ON offer.offer_id = ledger.offer_id
+		WHERE ledger.entry_id = 'entry-ledger'`).Scan(&catalog, &contract, &consent))
+	require.Equal(t, "catalog-v1", catalog)
+	require.Equal(t, "contract-v1", contract)
+	require.Equal(t, "v1", consent)
+}
+
+func TestOfferMigrationReappliesAfterRollback(t *testing.T) {
+	pool := policyDatabase(t)
+	forward, err := os.ReadFile("../../../../../database/migrations/0012_presented_offers.sql")
+	require.NoError(t, err)
+	rollback, err := os.ReadFile("../../../../../database/rollback/0012_presented_offers.sql")
+	require.NoError(t, err)
+	_, err = pool.Exec(context.Background(), string(forward))
+	require.NoError(t, err)
+	_, err = pool.Exec(context.Background(), string(rollback))
+	require.NoError(t, err)
+	_, err = pool.Exec(context.Background(), string(forward))
+	require.NoError(t, err)
+	var present bool
+	require.NoError(t, pool.QueryRow(context.Background(), `SELECT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'flexibility_offers_append_only')`).Scan(&present))
+	require.True(t, present)
 }
