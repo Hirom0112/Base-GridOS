@@ -1,15 +1,48 @@
 # Emergency stop
 
-Use this when the operator must end an active dispatch before its scheduled expiry. The command requires an authorized operator or approver and, when step-up is enabled, a fresh identity-provider assertion. The request is audited with an idempotency key.
+Use this when an active dispatch must end before expiry. The request requires
+an operator or approver and an idempotency key. A requested stop is not a
+confirmed gateway action.
 
-1. Open the event's execution view, choose **Emergency stop**, review the event ID and reason, then confirm. Do not repeat the action with a new key merely because the UI has not yet received an acknowledgement.
-2. Watch for the stop request and zero-setpoint intents for the current generation. A requested stop is not a confirmed gateway action; keep the event under observation until acknowledgement and physical response are visible.
-3. If the gateway is unavailable, apply the gateway and uncertain-command runbooks. Preserve the existing command generation and reserve floor.
-
-The isolated API check proves that a stop is reported as requested rather than falsely confirmed:
+**Confirm.** Record the event ID and verify commands have been sent. This
+rehearsal created and launched a fresh `runbook-stop-*` event on the standing
+demo; do not stop another operator's event:
 
 ```sh
-go test ./services/control/internal/api/events -run '^TestEmergencyStopReportsRequestedWithoutConfirmation$' -count=1
+curl -fsS --max-time 10 -H 'Content-Type: application/json' -H 'X-GridOS-Role: operator' --data '{"eventId":"runbook-stop-20260927T0323Z"}' http://127.0.0.1:28080/gridos.v1.DispatchService/GetEvent | jq -r '.event.state'
 ```
 
-Observed output: `ok github.com/Hirom0112/Base-GridOS/services/control/internal/api/events 0.382s`.
+Observed output before the stop: `DISPATCH_EVENT_STATE_ACKNOWLEDGED_OR_UNCERTAIN`.
+
+**Act.** Keep the same idempotency key on every retry. Replace the event ID
+only after checking the event and its operator. This local demo currently has
+no step-up key set; its request was accepted without an assertion:
+
+```sh
+event_id=runbook-stop-20260927T0323Z
+requested_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+body=$(jq -nc --arg id "$event_id" --arg at "$requested_at" '{eventId:$id,idempotencyKey:("stop-"+$id),requestedBy:"runbook-operator",reason:"Operator runbook rehearsal",requestedAt:$at,correlationId:$id}')
+curl -fsS --max-time 20 -H 'Content-Type: application/json' -H 'X-GridOS-Role: operator' --data "$body" http://127.0.0.1:28080/gridos.v1.EventsService/EmergencyStop | jq -c '{stopRequested, emergencyStopId:.emergencyStop.emergencyStopId}'
+```
+
+Observed output: `{"stopRequested":true,"emergencyStopId":"runbook-stop-20260927T0323Z:stop-runbook-stop-20260927T0323Z"}`.
+When step-up is enforced, obtain a fresh `EMERGENCY_STOP` assertion for this
+event from the identity endpoint and add
+`-H "X-GridOS-Step-Up: $STEP_UP_ASSERTION"` to the RPC. An absent or stale
+assertion is rejected before the stop is recorded.
+
+**Recover.** Confirm the audit request and zero-setpoint intent, then watch
+the event and gateway receipts until the physical response is safe:
+
+```sh
+psql 'postgres://gridos:gridos@127.0.0.1:5432/gridos?sslmode=disable' -P pager=off -c "SET statement_timeout = '10s'; SELECT stop.event_id, stop.reason, COUNT(intent.command_id) FILTER (WHERE intent.setpoint_kw = 0) AS zero_setpoint_intents FROM emergency_stops stop LEFT JOIN command_intents intent ON intent.event_id=stop.event_id WHERE stop.event_id='runbook-stop-20260927T0323Z' GROUP BY stop.event_id, stop.reason"
+```
+
+Observed output: one stop with reason `Operator runbook rehearsal` and one
+zero-setpoint intent. The audit journal also contained
+`EMERGENCY_STOP_REQUESTED`. If the gateway is unavailable, use the gateway
+and uncertain-command runbooks; retain the reserve floor.
+
+The isolated API test proves the response does not falsely claim confirmation:
+`go test ./services/control/internal/api/events -run '^TestEmergencyStopReportsRequestedWithoutConfirmation$' -count=1`
+returned `ok github.com/Hirom0112/Base-GridOS/services/control/internal/api/events 0.382s`.
