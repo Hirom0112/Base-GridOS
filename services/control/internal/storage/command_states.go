@@ -5,6 +5,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/Hirom0112/Base-GridOS/services/control/internal/observability"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -55,5 +56,6 @@ func TransitionCommand(ctx context.Context, pool *pgxpool.Pool, transition Comma
 	if err = tx.Commit(ctx); err != nil {
 		return false, err
 	}
+	_ = observability.ProcessMetrics.RecordCommand(transition.NextState)
 	return true, nil
 }
