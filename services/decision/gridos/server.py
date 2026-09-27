@@ -128,15 +128,15 @@ def _selected_reserve_kwh(
         )
     if (
         not isfinite(device.effective_reserve_kwh)
-        or abs(device.effective_reserve_kwh - selected) > 1e-9
+        or abs(device.effective_reserve_kwh - base) > 1e-9
     ):
-        raise ValueError("effective reserve does not match margin-gated reserve")
+        raise ValueError("frozen effective reserve does not match base reserve")
     return selected
 
 
 def _conservative_public_margin(request: optimization_pb2.OptimizationRequest) -> Decimal:
     intervals = {(item.begin_time.seconds, item.begin_time.nanos) for item in request.intervals}
-    prices: dict[tuple[str, int, int], Decimal] = {}
+    prices: dict[str, Decimal] = {}
     for forecast in request.forecast.regional_prices:
         value = forecast.price_per_mwh
         begin = (forecast.interval_begin_time.seconds, forecast.interval_begin_time.nanos)
@@ -152,19 +152,17 @@ def _conservative_public_margin(request: optimization_pb2.OptimizationRequest) -
             raise ValueError("public price forecast must be finite")
         if not value.lower <= value.value <= value.upper:
             raise ValueError("public price forecast bounds must be ordered")
-        key = (forecast.load_zone, *begin)
         lower = Decimal(str(value.lower))
-        prices[key] = min(prices.get(key, lower), lower)
+        prices[forecast.load_zone] = min(prices.get(forecast.load_zone, lower), lower)
     margin = Decimal(0)
     for device in request.devices:
         if not device.HasField("travel_flex_reserve_kwh") or not device.HasField(
             "base_reserve_kwh"
         ):
             continue
-        zone_prices = [lower for (zone, _, _), lower in prices.items() if zone == device.load_zone]
-        if not zone_prices:
+        lower = prices.get(device.load_zone)
+        if lower is None:
             continue
-        lower = min(zone_prices)
         if lower < 0:
             incremental_kwh = Decimal(str(device.base_reserve_kwh)) - Decimal(
                 str(device.travel_flex_reserve_kwh)
@@ -248,10 +246,29 @@ def _response(
         item.device_id = exclusion.device_id
         item.reason = _exclusion_reason(exclusion.reason)
         item.detail = exclusion.reason
+    frozen_by_id = {device.device_id: device for device in request.devices}
+    margin = (
+        Decimal(str(request.conservative_margin))
+        if request.conservative_margin != 0
+        else _conservative_public_margin(request)
+    )
     for schedule in plan.schedules:
         device = by_id[schedule.device_id]
         output_schedule = response.plan.device_schedules.add()
         output_schedule.device_id = schedule.device_id
+        frozen = frozen_by_id[schedule.device_id]
+        selected = _selected_reserve_kwh(request, frozen, margin)
+        base = (
+            frozen.base_reserve_kwh
+            if frozen.HasField("base_reserve_kwh")
+            else frozen.effective_reserve_kwh
+        )
+        output_schedule.reserve_selection = (
+            optimization_pb2.RESERVE_SELECTION_TRAVEL_FLEX
+            if selected < base - 1e-9
+            else optimization_pb2.RESERVE_SELECTION_BASE
+        )
+        output_schedule.selected_reserve_kwh = selected
         for index, planned in enumerate(schedule.intervals):
             output_interval = output_schedule.intervals.add()
             output_interval.begin_time.CopyFrom(request.intervals[index].begin_time)

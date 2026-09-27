@@ -16,7 +16,7 @@ def test_travel_flex_capacity_requires_active_policy_and_margin(
     request.devices[0].discharge_efficiency = 1.0
     request.devices[0].base_reserve_kwh = 4.0
     request.devices[0].travel_flex_reserve_kwh = 2.0
-    request.devices[0].effective_reserve_kwh = 2.0
+    request.devices[0].effective_reserve_kwh = 4.0
     request.conservative_margin = 20.0
     request.margin_hurdle = 10.0
     client = serve(OptimizationServer())
@@ -26,11 +26,12 @@ def test_travel_flex_capacity_requires_active_policy_and_margin(
     assert active.plan.device_schedules[0].intervals[0].setpoint_kw == 3.0
     assert active.plan.shortfalls[0].shortfall_kw == 0.0
 
-    request.devices[0].effective_reserve_kwh = 4.0
+    request.devices[0].effective_reserve_kwh = 2.0
     with pytest.raises(grpc.RpcError) as mismatch:
         client.Optimize(optimize_request)
     assert mismatch.value.code() == grpc.StatusCode.INVALID_ARGUMENT
 
+    request.devices[0].effective_reserve_kwh = 4.0
     request.conservative_margin = 5.0
 
     below_hurdle = client.Optimize(optimize_request)
