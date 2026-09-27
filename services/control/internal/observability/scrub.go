@@ -64,7 +64,7 @@ func safeIdentifier(value string) bool {
 		return false
 	}
 	lower := strings.ToLower(value)
-	for _, forbidden := range []string{"site-", "device-", "member-", "credential", "travel", "bearer"} {
+	for _, forbidden := range []string{"site-", "site_", "device-", "device_", "member-", "member_", "household", "credential", "travel", "bearer"} {
 		if strings.Contains(lower, forbidden) {
 			return false
 		}
