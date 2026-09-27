@@ -5,6 +5,8 @@ import (
 	"context"
 	"strings"
 	"testing"
+
+	"go.opentelemetry.io/otel/attribute"
 )
 
 func TestGatewayTraceKeepsIdentityAndScrubsPrivateFields(t *testing.T) {
@@ -14,12 +16,11 @@ func TestGatewayTraceKeepsIdentityAndScrubsPrivateFields(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	ctx, span, err := Start(context.Background(), provider, "correlation-1", "workflow-1", "gateway.command", map[string]string{
-		"site_id": "site-private-123", "command_credential": "credential-private-456", "travel_window": "travel-window-private-789",
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
+	ctx, span := provider.Tracer("gridos.gateway").Start(context.Background(), "gateway.command")
+	span.SetAttributes(
+		attribute.String("correlation_id", "correlation-1"), attribute.String("workflow_id", "workflow-1"),
+		attribute.String("site_id", "site-private-123"), attribute.String("command_credential", "credential-private-456"), attribute.String("travel_window", "travel-window-private-789"),
+	)
 	span.End()
 	if err := provider.Shutdown(ctx); err != nil {
 		t.Fatal(err)

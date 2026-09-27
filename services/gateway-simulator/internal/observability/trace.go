@@ -10,7 +10,6 @@ import (
 	"go.opentelemetry.io/otel/exporters/stdout/stdouttrace"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
-	"go.opentelemetry.io/otel/trace"
 )
 
 func NewTraceProvider(writer io.Writer) (*sdktrace.TracerProvider, error) {
@@ -25,18 +24,6 @@ func NewTraceProvider(writer io.Writer) (*sdktrace.TracerProvider, error) {
 		sdktrace.WithSpanProcessor(traceIdentityProcessor{}),
 		sdktrace.WithBatcher(&scrubbedExporter{next: exporter}),
 	), nil
-}
-
-func Start(ctx context.Context, provider *sdktrace.TracerProvider, correlationID, workflowID, operation string, fields map[string]string) (context.Context, trace.Span, error) {
-	if !safeIdentity(correlationID) || !safeIdentity(workflowID) {
-		return nil, nil, errors.New("invalid trace identity")
-	}
-	ctx, span := provider.Tracer("gridos.gateway").Start(ctx, operation)
-	span.SetAttributes(attribute.String("correlation_id", correlationID), attribute.String("workflow_id", workflowID))
-	for key, value := range fields {
-		span.SetAttributes(attribute.String(key, value))
-	}
-	return ctx, span, nil
 }
 
 func safeIdentity(value string) bool {

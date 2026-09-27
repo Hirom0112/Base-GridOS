@@ -10,7 +10,6 @@ go_library(
         "@io_opentelemetry_go_otel_exporters_stdout_stdouttrace//:stdouttrace",
         "@io_opentelemetry_go_otel_sdk//resource",
         "@io_opentelemetry_go_otel_sdk//trace",
-        "@io_opentelemetry_go_otel_trace//:trace",
     ],
 )
 
