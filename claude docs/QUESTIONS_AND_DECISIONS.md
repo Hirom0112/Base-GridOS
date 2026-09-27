@@ -1344,3 +1344,8 @@ assumptions reported by workers land here too.
   `claude docs/gate-reports/wave-4.md`. 4F.1 is verified. The UI leg
   (4F.5) stays open on the console track, and 2B.9 and 2B.10 remain open
   as demo-path blockers recorded in the report.
+- **5D.3 (lane 5D), verified:** control, worker, decision, and gateway
+  images build from a clean archive of HEAD with no generated bindings on
+  the host (each image generates them internally with the pinned plugins),
+  pinned non-root bases, no secrets; the gateway and control binaries run
+  from their images and the decision image starts its server entrypoint.

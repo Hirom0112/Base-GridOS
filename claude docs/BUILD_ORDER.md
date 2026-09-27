@@ -1644,7 +1644,7 @@ Owns: `infrastructure/aws/`.
   Verify: `terraform -chdir=infrastructure/aws init -backend=false && terraform -chdir=infrastructure/aws validate`.
 - `[x]` 5D.2 `[P]` Workload Identity Federation for BigQuery with no stored
   long-lived key (TECHSTACK "Warehouse identity"). Verify: `grep -rn "private_key" infrastructure/aws` prints nothing.
-- `[ ]` 5D.3 `[P]` Container images for each service built by Bazel or Docker
+- `[x]` 5D.3 `[P]` Container images for each service built by Bazel or Docker
   with pinned base images. Verify: `docker build -f services/control/Dockerfile .` succeeds for each service.
 - `[x]` 5D.4 `[P]` `terraform plan` recorded against a mock provider; no
   `apply` in this build. Verify: plan output saved to `claude docs/gate-reports/terraform-plan.md`.
