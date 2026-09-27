@@ -181,7 +181,7 @@ test("live approval passes the server-issued step-up assertion without launching
   );
 });
 
-test("live report and replay preserve recorded planning evidence", async ({
+test("live forecasts, unsafe validation, report and replay preserve planning evidence", async ({
   page,
 }, testInfo) => {
   await page.goto("/dispatch/new");
@@ -196,6 +196,26 @@ test("live report and replay preserve recorded planning evidence", async ({
   await expect(
     page.getByRole("heading", { name: "Safety validated", exact: true }),
   ).toBeVisible({ timeout: 45000 });
+  const forecasts = page.getByRole("region", { name: "Forecast intervals" });
+  await expect(forecasts).toContainText("MODELED");
+  await expect(forecasts.getByRole("table")).toContainText("kWh");
+  await expect(forecasts.getByRole("table")).toContainText("DERIVED");
+  await expect(
+    page.getByRole("region", { name: "Solver fallback" }),
+  ).toContainText(/No fallback recorded|Fallback used/);
+  await page
+    .getByRole("button", { name: "Validate unsafe alternative" })
+    .click();
+  const validation = page.getByRole("region", {
+    name: "Unsafe alternative validation",
+  });
+  await expect(validation).toContainText("Alternative rejected");
+  await expect(validation.getByRole("list")).toContainText(
+    /POWER|RESERVE|ENERGY/,
+  );
+  await expect(
+    page.getByRole("heading", { name: "Safety validated", exact: true }),
+  ).toBeVisible();
   await page.getByRole("link", { name: "Report", exact: true }).click();
   const report = page.getByRole("region", {
     name: "Event report",
