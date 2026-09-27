@@ -137,9 +137,17 @@ function OperatingRail({
         ))}
       </ol>
       {connected && (
-        <Link className="secondary-button" to="/map">
-          Explore map
-        </Link>
+        <div className="rail-tools">
+          <Link className="secondary-button" to="/map">
+            Explore map
+          </Link>
+          <Link className="secondary-button" to="/events/compare">
+            Compare reports
+          </Link>
+          <Link className="secondary-button" to="/member">
+            Member view
+          </Link>
+        </div>
       )}
       <div className="event-thread">
         <p className="eyebrow">Event thread</p>

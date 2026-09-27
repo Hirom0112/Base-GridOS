@@ -126,17 +126,21 @@ function ConsoleHeading({
   role: string;
 }) {
   const title =
-    pathname === "/map"
-      ? "Explore the fleet"
-      : pathname === "/fleet"
-        ? "Austin fleet"
-        : pathname === "/dispatch/new"
-          ? "Shape a safe dispatch"
-          : pathname.endsWith("/report")
-            ? "Event evidence"
-            : pathname.startsWith("/events")
-              ? "From command to response"
-              : "Review the plan";
+    pathname === "/events/compare"
+      ? "Compare event evidence"
+      : pathname === "/member"
+        ? "Household access"
+        : pathname === "/map"
+          ? "Explore the fleet"
+          : pathname === "/fleet"
+            ? "Austin fleet"
+            : pathname === "/dispatch/new"
+              ? "Shape a safe dispatch"
+              : pathname.endsWith("/report")
+                ? "Event evidence"
+                : pathname.startsWith("/events")
+                  ? "From command to response"
+                  : "Review the plan";
   return (
     <div className="view-heading">
       <div>

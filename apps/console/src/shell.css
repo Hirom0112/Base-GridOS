@@ -466,3 +466,8 @@ h1 {
   clip-path: none;
   top: 12px;
 }
+
+.rail-tools {
+  display: grid;
+  gap: 8px;
+}
