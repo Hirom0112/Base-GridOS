@@ -59,3 +59,34 @@ func TestOfferSelectionRequiresExactPresentedTerms(t *testing.T) {
 	require.NoError(t, pool.QueryRow(ctx, `SELECT offer_id FROM resilience_plans WHERE resilience_plan_id = $1`, selection.ID).Scan(&storedOffer))
 	require.Equal(t, offer.ID, storedOffer)
 }
+
+func TestOfferTravelFlexRequiresExactFixedCreditAndConsent(t *testing.T) {
+	pool := policyDatabase(t)
+	ctx := context.Background()
+	begin := time.Date(2026, 9, 26, 12, 0, 0, 0, time.UTC)
+	seedPolicyCatalog(t, pool, begin)
+	store := New(pool)
+	_, err := selectWithOffer(t, store, Selection{ID: "selection-flex-offer", MemberID: "member-flex-offer", Market: "TX", CatalogVersion: "catalog-v1", MemberPlanID: "plan-cedar", PolicyVersion: "policy-v1", ConsentText: "I accept Cedar", ConsentVersion: "v1", ExplanationShown: "Backup reserve", EffectiveAt: begin, CorrelationID: "selection-flex-offer"})
+	require.NoError(t, err)
+	reserve := 20.0
+	start := begin.Add(time.Minute)
+	end := start.Add(time.Hour)
+	offer := Offer{ID: "offer-flex", MemberID: "member-flex-offer", Kind: TravelFlexOffer, Market: "TX", CatalogVersion: "catalog-v1", MemberPlanID: "plan-cedar", ContractVersion: "flex-contract-v1", PriceText: "Fixed $12 event credit", ConsentText: "I accept fixed credit", ConsentVersion: "flex-consent-v1", EffectiveAt: start, ExpiresAt: end, TemporaryReservePercent: &reserve, CreditType: FixedEvent, CreditCents: 1200, CorrelationID: "offer-flex"}
+	presented, err := store.PresentOffer(ctx, offer)
+	require.NoError(t, err)
+	require.Equal(t, int64(1200), presented.FlexibilityRewardCents)
+	window := TravelFlex{ID: "window-offer", MemberID: offer.MemberID, Start: start, End: end, Timezone: "UTC", TemporaryReservePercent: reserve, EarlyReturnAction: RestorePlanReserve, CreditType: FixedEvent, CreditCents: 1200, ConsentText: offer.ConsentText, ConsentVersion: offer.ConsentVersion, PolicyVersion: "policy-v1", CorrelationID: "window-offer"}
+	_, err = store.ScheduleTravelFlex(ctx, window)
+	require.Error(t, err)
+	window.OfferID = offer.ID
+	window.CreditCents = 1300
+	_, err = store.ScheduleTravelFlex(ctx, window)
+	require.Error(t, err)
+	window.CreditCents = 1200
+	stored, err := store.ScheduleTravelFlex(ctx, window)
+	require.NoError(t, err)
+	require.Equal(t, offer.ID, stored.OfferID)
+	var storedOffer string
+	require.NoError(t, pool.QueryRow(ctx, `SELECT offer_id FROM travel_flex_windows WHERE travel_flex_window_id = $1`, window.ID).Scan(&storedOffer))
+	require.Equal(t, offer.ID, storedOffer)
+}
