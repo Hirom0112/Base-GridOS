@@ -116,6 +116,9 @@ test("frozen site forecasts retain modeled bounds, lineage, and fallback reason"
   const forecasts = screen.getByRole("region", { name: "Forecast intervals" });
   expect(forecasts).toHaveTextContent("2 kWh");
   expect(forecasts).toHaveTextContent("1–3 kWh");
+  expect(
+    screen.getByRole("img", { name: "Modeled site load and uncertainty" }),
+  ).toHaveTextContent("2 kWh; modeled range 1–3 kWh");
   expect(forecasts).toHaveTextContent("MODELED");
   expect(forecasts).toHaveTextContent("SIMULATED");
   expect(forecasts).toHaveTextContent("load-v1");
