@@ -162,6 +162,7 @@ def forecast_response(
                         device_pb2.DATA_PROVENANCE_DERIVED,
                     )
                 )
+                load_output.load_kwh.interval_coverage = 0.90
                 _stamp_forecast(load_output.load_kwh, issued_at, begin, training[training_key])
             if site.load_zone in seen_zones:
                 continue
