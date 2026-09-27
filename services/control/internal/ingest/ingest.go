@@ -3,6 +3,7 @@ package ingest
 import (
 	"context"
 	"errors"
+	"log"
 	"slices"
 	"time"
 
@@ -38,6 +39,7 @@ func (service *Service) PublishTelemetry(ctx context.Context, request *connect.R
 	slices.SortFunc(ordered, compareObservations)
 	inserted, err := service.store.Write(ctx, request.Msg.GetGatewayId(), ordered)
 	if err != nil {
+		log.Printf("control telemetry ingest failed gateway=%s observations=%d: %v", request.Msg.GetGatewayId(), len(ordered), err)
 		if errors.Is(err, storage.ErrTelemetryExpired) {
 			return nil, connect.NewError(connect.CodeInvalidArgument, err)
 		}

@@ -36,6 +36,9 @@ func TestNetworkFailureBuffersAndReplaysOnNextCadence(t *testing.T) {
 	if len(publisher.batches) < 2 {
 		t.Fatalf("publish attempts=%d", len(publisher.batches))
 	}
+	if fleet.PublishFailures() != 1 {
+		t.Fatalf("publish failures=%d, want 1", fleet.PublishFailures())
+	}
 	replayed := publisher.batches[1]
 	if len(replayed) != 2 {
 		t.Fatalf("replayed observations=%d", len(replayed))

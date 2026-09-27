@@ -8,6 +8,7 @@ import (
 	"log"
 	"math"
 	"strconv"
+	"sync/atomic"
 	"time"
 
 	gridosv1 "github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1"
@@ -41,15 +42,16 @@ type physicalProducer struct {
 }
 
 type Fleet struct {
-	producers  []physicalProducer
-	profiles   Profiles
-	cadence    time.Duration
-	publisher  Publisher
-	store      *gateway.Store
-	effects    Effects
-	sourceStep time.Duration
-	lastSource time.Time
-	rejections uint64
+	producers       []physicalProducer
+	profiles        Profiles
+	cadence         time.Duration
+	publisher       Publisher
+	store           *gateway.Store
+	effects         Effects
+	sourceStep      time.Duration
+	lastSource      time.Time
+	rejections      uint64
+	publishFailures atomic.Uint64
 }
 
 func NewFleet(store *gateway.Store, devices []Device, profiles Profiles, cadence time.Duration, publisher Publisher) (*Fleet, error) {
@@ -91,6 +93,10 @@ func seededEnergy(device Device) float64 {
 
 func (fleet *Fleet) SetEffects(effects Effects) {
 	fleet.effects = effects
+}
+
+func (fleet *Fleet) PublishFailures() uint64 {
+	return fleet.publishFailures.Load()
 }
 
 func (fleet *Fleet) SetSourceStep(step time.Duration) error {
@@ -313,8 +319,12 @@ func (fleet *Fleet) run(ctx context.Context, start, wallStart time.Time) error {
 		if !fleet.lastSource.IsZero() && sourceTime.Sub(fleet.lastSource) > fleet.sourceStep {
 			gapTime = sourceTime.Add(-fleet.sourceStep)
 		}
-		if err := fleet.emit(ctx, sourceTime, gapTime); err != nil && !errors.Is(err, ErrPublishUnavailable) {
-			return err
+		if err := fleet.emit(ctx, sourceTime, gapTime); err != nil {
+			if !errors.Is(err, ErrPublishUnavailable) {
+				return err
+			}
+			fleet.publishFailures.Add(1)
+			log.Printf("gateway telemetry publish failed: %v", err)
 		}
 		elapsed := time.Since(wallStart)
 		nextTick := wallStart.Add((elapsed/fleet.cadence + 1) * fleet.cadence)

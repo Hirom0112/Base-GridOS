@@ -32,6 +32,10 @@ func TestBatchConfirmationIsAtomic(t *testing.T) {
 	if len(buffered) != 2 {
 		t.Fatalf("failed batch removed observations: %d", len(buffered))
 	}
+	count, err := store.BufferedObservationCount(ctx)
+	if err != nil || count != 2 {
+		t.Fatalf("buffered count = %d, %v", count, err)
+	}
 	if err := store.ConfirmObservations(ctx, []string{"first", "second"}); err != nil {
 		t.Fatal(err)
 	}
@@ -41,6 +45,10 @@ func TestBatchConfirmationIsAtomic(t *testing.T) {
 	}
 	if len(buffered) != 0 {
 		t.Fatalf("confirmed observations remain: %d", len(buffered))
+	}
+	count, err = store.BufferedObservationCount(ctx)
+	if err != nil || count != 0 {
+		t.Fatalf("buffered count after confirmation = %d, %v", count, err)
 	}
 }
 

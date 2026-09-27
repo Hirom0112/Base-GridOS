@@ -315,6 +315,12 @@ func (store *Store) BufferedObservations(ctx context.Context) (observations []Bu
 	return observations, rows.Err()
 }
 
+func (store *Store) BufferedObservationCount(ctx context.Context) (int64, error) {
+	var count int64
+	err := store.db.QueryRowContext(ctx, `SELECT count(*) FROM telemetry_buffer`).Scan(&count)
+	return count, err
+}
+
 func (store *Store) ConfirmObservation(ctx context.Context, observationID string) error {
 	result, err := store.db.ExecContext(ctx, `DELETE FROM telemetry_buffer WHERE observation_id = ?`, observationID)
 	if err != nil {

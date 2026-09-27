@@ -9,7 +9,6 @@ import (
 	"io"
 	"log"
 	"math"
-	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -103,27 +102,6 @@ func run() error {
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
-	if address := os.Getenv("GRIDOS_GATEWAY_METRICS_ADDRESS"); address != "" {
-		listener, err := net.Listen("tcp", address)
-		if err != nil {
-			return err
-		}
-		metrics := &http.Server{Handler: http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-			w.Header().Set("Content-Type", "text/plain; version=0.0.4")
-			_, _ = io.WriteString(w, "# TYPE gridos_gateway_up gauge\ngridos_gateway_up 1\n")
-		}), ReadHeaderTimeout: 5 * time.Second}
-		go func() {
-			<-ctx.Done()
-			shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-			defer cancel()
-			_ = metrics.Shutdown(shutdownCtx)
-		}()
-		go func() {
-			if err := metrics.Serve(listener); err != nil && !errors.Is(err, http.ErrServerClosed) {
-				log.Printf("gateway metrics: %v", err)
-			}
-		}()
-	}
 	store, err := gateway.Open(ctx, configuration.databasePath)
 	if err != nil {
 		return err
@@ -160,7 +138,11 @@ func run() error {
 		serveErrors <- server.ListenAndServe()
 	}()
 	telemetryErrors := make(chan error, 1)
-	if err := startTelemetry(ctx, configuration, devices, store, runtime, authorizationToken, telemetryErrors); err != nil {
+	activeFleet, err := startTelemetry(ctx, configuration, devices, store, runtime, authorizationToken, telemetryErrors)
+	if err != nil {
+		return err
+	}
+	if err := startGatewayMetrics(ctx, os.Getenv("GRIDOS_GATEWAY_METRICS_ADDRESS"), store, activeFleet); err != nil {
 		return err
 	}
 	select {
@@ -219,13 +201,13 @@ func failureRuntime(configuration config, devices []fleetDevice) (*failures.Runt
 	return failures.NewRuntime(engine), nil
 }
 
-func startTelemetry(ctx context.Context, configuration config, devices []fleetDevice, store *gateway.Store, runtime *failures.Runtime, authorizationToken string, telemetryErrors chan<- error) error {
+func startTelemetry(ctx context.Context, configuration config, devices []fleetDevice, store *gateway.Store, runtime *failures.Runtime, authorizationToken string, telemetryErrors chan<- error) (*telemetry.Fleet, error) {
 	if configuration.controlAddress == "" {
-		return nil
+		return nil, nil
 	}
 	profiles, err := telemetry.ReadProfiles(filepath.Join("testdata", "fixtures", "public", "load-profiles", "residential-week.csv"))
 	if err != nil {
-		return err
+		return nil, err
 	}
 	physicalDevices := make([]telemetry.Device, 0, len(devices))
 	for _, device := range devices {
@@ -242,20 +224,20 @@ func startTelemetry(ctx context.Context, configuration config, devices []fleetDe
 	publisher := telemetry.NewConnectPublisher(gridosv1connect.NewTelemetryServiceClient(http.DefaultClient, configuration.controlAddress), configuration.gatewayID, authorizationToken)
 	network, err := failures.NewNetwork(publisher)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	fleet, err := telemetry.NewFleet(store, physicalDevices, profiles, configuration.telemetryCadence, network)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if err := fleet.SetSourceStep(configuration.scenarioTick); err != nil {
-		return err
+		return nil, err
 	}
 	if runtime != nil {
 		fleet.SetEffects(runtime)
 	}
 	go runTelemetry(ctx, fleet, configuration.scenarioStart, configuration.scenarioTick, configuration.telemetryCadence, configuration.clock, telemetryErrors)
-	return nil
+	return fleet, nil
 }
 
 func parseConfig(arguments []string) (config, error) {
