@@ -51,13 +51,18 @@ test("selection requires consent and retries the same intent after an uncertain 
       memberId="member-1"
       offerId="offer-1"
       onConfirmed={refreshed}
+      onDismiss={vi.fn()}
     />,
   );
   expect(screen.getByRole("button", { name: "Confirm plan" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Cancel review" })).toBeEnabled();
   await userEvent.click(screen.getByRole("checkbox"));
   await userEvent.click(screen.getByRole("button", { name: "Confirm plan" }));
   expect(await screen.findByRole("alert")).toHaveTextContent("Outcome unknown");
   expect(refreshed).not.toHaveBeenCalled();
+  expect(
+    screen.queryByRole("button", { name: "Cancel review" }),
+  ).not.toBeInTheDocument();
   await userEvent.click(
     screen.getByRole("button", { name: "Retry same selection" }),
   );
