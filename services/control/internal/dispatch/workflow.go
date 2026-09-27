@@ -193,7 +193,8 @@ func runWindow(ctx workflow.Context, input Input, emergency, replacements workfl
 		return err
 	}
 	result.States = append(result.States, Executing)
-	for intervalEnd := begin.Add(reconciliation.ReportingInterval); ; intervalEnd = intervalEnd.Add(reconciliation.ReportingInterval) {
+	interval := reconciliation.VerificationInterval(end.Sub(begin))
+	for intervalEnd := begin.Add(interval); ; intervalEnd = intervalEnd.Add(interval) {
 		if intervalEnd.After(end) {
 			intervalEnd = end
 		}

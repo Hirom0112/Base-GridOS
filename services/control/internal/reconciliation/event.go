@@ -9,6 +9,10 @@ import (
 
 const ReportingInterval = 5 * time.Minute
 
+func VerificationInterval(window time.Duration) time.Duration {
+	return max(5*time.Second, min(ReportingInterval, window/12))
+}
+
 type issuedCommand struct {
 	Command
 	deviceID     string

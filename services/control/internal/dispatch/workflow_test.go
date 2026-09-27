@@ -27,7 +27,7 @@ func TestWindowReportWaitsForEndAndLateMessages(t *testing.T) {
 	environment.ExecuteWorkflow(Workflow, input)
 	require.NoError(t, environment.GetWorkflowError())
 	require.False(t, environment.Now().Before(end.Add(30*time.Second)))
-	environment.AssertNumberOfCalls(t, VerifyDeliveryActivity, 5)
+	environment.AssertNumberOfCalls(t, VerifyDeliveryActivity, 13)
 	environment.AssertNumberOfCalls(t, EndEventActivity, 1)
 	environment.AssertNumberOfCalls(t, ReconcileLateMessagesActivity, 1)
 }
