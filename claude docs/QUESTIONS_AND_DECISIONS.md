@@ -1893,3 +1893,15 @@ blocks), simulated dev offer terms, ListMemberOffers with catalog terms
 and the member's scheduled windows carrying their stored consent versions,
 and PresentOffer rejecting term mismatches. Marked done. The demo gets
 migration 0018 at the next rebuild, which waits for the console's release.
+
+## 2026-09-27 09:32Z — 4B.9 policy version follow-up verified; lock headroom note
+
+Offers and migration tests ok (0.836s) here on 5d4e05e; RED 7b300f6 is
+test only; `offer_terms.policy_version` references the reserve policy
+table. Root saw one transient "out of shared memory" while a hook applied
+migration 0006 (the partitioned telemetry table) against a fresh test
+database; the local PostgreSQL runs with the default
+max_locks_per_transaction of 64 while several isolated test databases can
+migrate at once. Follow-up for the infra lane at the next `make up` (never
+under the standing demo): raise max_locks_per_transaction in the compose
+command; recorded as a plan item under 5D.

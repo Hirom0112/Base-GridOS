@@ -1714,6 +1714,11 @@ Owns: `docs/operations/security/` (threat model and retention),
 - `[x]` 5D.7 `[after 5D.5]` `make generate` also runs `sqlc generate`, and the
   committed `services/control/internal/storage/gen/` matches the migrations.
   Verify: `sqlc diff` prints nothing and `go vet ./services/control/...` passes.
+- `[ ]` 5D.8 `[after 5D.5]` Local PostgreSQL lock headroom. The compose PostgreSQL
+  command sets `max_locks_per_transaction` high enough that migration 0006
+  (partitioned telemetry) applies on several isolated test databases at once
+  without "out of shared memory". Applied at the next `make up`, never under
+  the standing demo. Verify: `docker compose -f infrastructure/local/compose.yaml exec postgres psql -U gridos -Atc 'show max_locks_per_transaction'` prints at least 256.
 - `[x]` 5E.1 `[P]` Role matrix test: every API handler × every role from
   FULL_SPEC §11, asserting allow or deny. Verify: `go test ./services/control/internal/api/ -run RoleMatrix` passes.
 - `[x]` 5E.2 `[P]` Step-up authorization and immutable audit entry required
