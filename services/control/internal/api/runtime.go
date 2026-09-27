@@ -135,7 +135,7 @@ func (snapshotter *FleetSnapshotter) Freeze(ctx context.Context, event *gridosv1
 			siteIDs = append(siteIDs, site.GetSite().GetSiteId())
 		}
 		var err error
-		reserves, err = policy.New(snapshotter.pool).SiteReserves(ctx, siteIDs, now)
+		reserves, err = policy.New(snapshotter.pool).SiteReservesForWindow(ctx, siteIDs, request.GetBeginTime().AsTime(), request.GetEndTime().AsTime())
 		if err != nil {
 			return FrozenSnapshot{}, err
 		}
