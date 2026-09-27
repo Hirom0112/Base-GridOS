@@ -61,11 +61,6 @@ export function ReserveEvidence({ evidence }: { evidence: unknown }) {
             Unobserved devices remain unknown.
           </p>
           <p>{result.data.Provenance.join(" · ")}</p>
-          <p>
-            Margins compare recorded state of energy against the frozen
-            effective reserve. They describe available observations, not
-            continuous coverage.
-          </p>
         </>
       )}
     </section>

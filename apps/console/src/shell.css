@@ -183,9 +183,9 @@
 }
 h1 {
   font-size: clamp(32px, 3vw, 44px);
-  letter-spacing: -0.055em;
+  letter-spacing: -0.04em;
   line-height: 1.15;
-  font-weight: 500;
+  font-weight: 300;
   margin-top: 10px;
 }
 .view-heading p:not(.eyebrow) {
@@ -513,4 +513,40 @@ h1 {
 .rail-tools .secondary-button:hover {
   background: var(--ink-2);
   color: var(--paper-0);
+}
+.evidence-facts {
+  margin: 0;
+  display: grid;
+  gap: 4px;
+}
+.evidence-facts > div {
+  position: relative;
+  display: grid;
+  gap: 2px;
+  padding: 14px 0 14px 52px;
+  border-bottom: 1px solid var(--ink-3);
+}
+.evidence-facts .evidence-icon {
+  top: 14px;
+}
+.evidence-facts dt {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--paper-2);
+}
+.evidence-facts dd {
+  margin: 0;
+  font-family: "Geist Variable", sans-serif;
+  font-size: 30px;
+  font-weight: 200;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  color: var(--paper-0);
+}
+.evidence-source {
+  padding-top: 20px;
+}
+.evidence-source .aggregate-evidence {
+  margin-top: 8px;
 }

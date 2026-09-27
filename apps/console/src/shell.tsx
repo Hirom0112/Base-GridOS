@@ -99,8 +99,6 @@ function OperatingRail({
 }) {
   return (
     <nav className="operating-rail" aria-label="Operating loop">
-      <p className="eyebrow">Operating loop</p>
-      <p className="rail-intro">From insight to impact.</p>
       <ol>
         {stages.map(([name, description], index) => (
           <li key={name}>
@@ -151,17 +149,6 @@ function OperatingRail({
       <div className="event-thread">
         <p className="eyebrow">Event thread</p>
         <p>{eventId ?? "No event selected"}</p>
-        <small>A versioned event connects every stage of the loop.</small>
-      </div>
-      <div className="rail-footnote">
-        <span className="brand-mark" aria-hidden="true">
-          ▦
-        </span>
-        <span>
-          Household resilience.
-          <br />
-          Grid-scale coordination.
-        </span>
       </div>
     </nav>
   );

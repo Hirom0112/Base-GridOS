@@ -7,7 +7,7 @@ export function buildGround(cells: GridCell[], loaded: () => void) {
   const group = new THREE.Group();
   const lattice: number[] = [];
   const shade: number[] = [];
-  const base = new THREE.Color(0x2a4a3a);
+  const base = new THREE.Color(0x24365e);
   for (const boundary of ground.lattice)
     for (const [index, [x, z]] of boundary.entries()) {
       const [nx = x, nz = z] = boundary[(index + 1) % boundary.length] ?? [];
@@ -75,7 +75,7 @@ function outlineRibbon(ring: [number, number][]) {
       new THREE.Mesh(
         lineGeometry(vertices),
         new THREE.MeshBasicMaterial({
-          color: 0x66f2a4,
+          color: 0x4ff0d2,
           transparent: true,
           opacity,
           blending: THREE.AdditiveBlending,
@@ -89,7 +89,7 @@ function outlineRibbon(ring: [number, number][]) {
   group.add(
     new THREE.Line(
       lineGeometry(closed),
-      new THREE.LineBasicMaterial({ color: 0x9ff7c6 }),
+      new THREE.LineBasicMaterial({ color: 0x9ff8ea }),
     ),
   );
   return group;

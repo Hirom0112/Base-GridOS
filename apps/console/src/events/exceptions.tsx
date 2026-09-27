@@ -43,10 +43,7 @@ export function EventExceptions({
         </div>
         <span className="mode-chip">{parsed.data.length} records</span>
       </div>
-      <p className="history-gap">
-        A retry or replacement decision does not prove recovery. Confirm
-        subsequent acknowledgement and measured delivery.
-      </p>
+      <p className="history-gap">A retry does not prove recovery.</p>
       {parsed.data.length ? (
         <>
           <section aria-label="Recorded failures">

@@ -151,11 +151,6 @@ export function ReplayEvidence({
           <AuditRecords entries={data.updates.slice(0, position + 1)} />
         </>
       )}
-      <p className="boundary-note">
-        The replay timestamp controls historical geography. Per-cell command and
-        measured response histories are unavailable; no delivery is inferred
-        from capacity.
-      </p>
     </div>
   );
 }

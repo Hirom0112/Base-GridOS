@@ -22,8 +22,9 @@ export function mountGrid(host: HTMLElement, select: (id: string) => void) {
   overlay.setAttribute("aria-hidden", "true");
   host.append(overlay);
   const scene = new THREE.Scene();
+  scene.fog = new THREE.FogExp2(0x04070d, 0.0032);
   const camera = new THREE.PerspectiveCamera(30, 1, 0.5, 4000);
-  scene.add(new THREE.HemisphereLight(0xdff5e8, 0x040907, 2.2));
+  scene.add(new THREE.HemisphereLight(0xdfe8ff, 0x04070d, 2.2));
   const light = new THREE.DirectionalLight(0xffffff, 2.4);
   light.position.set(-40, 80, 30);
   scene.add(light);
@@ -44,6 +45,10 @@ export function mountGrid(host: HTMLElement, select: (id: string) => void) {
       .replace(
         "#include <color_fragment>",
         "#include <color_fragment>\ndiffuseColor.rgb *= mix(0.28, 1.15, vRise);",
+      )
+      .replace(
+        "#include <opaque_fragment>",
+        "outgoingLight += vec3(0.31, 0.94, 0.82) * pow(1.0 - abs(dot(normal, normalize(vViewPosition))), 2.6) * 0.35;\n#include <opaque_fragment>",
       );
   };
   let cells: GridCell[] = [];
@@ -80,22 +85,14 @@ export function mountGrid(host: HTMLElement, select: (id: string) => void) {
   });
   visibility.observe(host);
   document.addEventListener("visibilitychange", documentVisibility);
-  const ray = new THREE.Raycaster();
-  function pick(event: PointerEvent) {
-    const rect = host.getBoundingClientRect();
-    ray.setFromCamera(
-      new THREE.Vector2(
-        ((event.clientX - rect.left) / rect.width) * 2 - 1,
-        (-(event.clientY - rect.top) / rect.height) * 2 + 1,
-      ),
-      camera,
-    );
-    const hit = ray.intersectObjects([field.columns, field.plates])[0];
-    const cell =
-      hit?.instanceId === undefined ? undefined : field.cells[hit.instanceId];
-    if (cell) select(cell.id);
-  }
-  renderer.domElement.addEventListener("pointerup", pick);
+  const pointer = bindPointer(
+    host,
+    renderer.domElement,
+    camera,
+    () => field,
+    select,
+  );
+  renderer.domElement.addEventListener("pointerup", pointer.pick);
   return {
     update(next: GridCell[], selected: string | null) {
       cancelMotion();
@@ -140,7 +137,8 @@ export function mountGrid(host: HTMLElement, select: (id: string) => void) {
       resize.disconnect();
       visibility.disconnect();
       document.removeEventListener("visibilitychange", documentVisibility);
-      renderer.domElement.removeEventListener("pointerup", pick);
+      renderer.domElement.removeEventListener("pointerup", pointer.pick);
+      pointer.dispose();
       field.dispose();
       ground.dispose();
       bodies.dispose();
@@ -236,7 +234,7 @@ function buildField(
   const fine = cells.filter((cell) => !cell.coarse);
   const plates = new THREE.InstancedMesh(
     plate,
-    new THREE.MeshBasicMaterial({ color: 0x14231c }),
+    new THREE.MeshBasicMaterial({ color: 0x0d1628 }),
     fine.length,
   );
   const columns = new THREE.InstancedMesh(hexagon, bodies, fine.length);
@@ -292,14 +290,14 @@ function buildField(
 const responseColors = {
   sent: 0xf0f7f2,
   acknowledged: 0x6db8ff,
-  delivered: 0x66f2a4,
+  delivered: 0x4ff0d2,
 };
 
 function cellTone(cell: GridCell, selected: string | null) {
-  const ink = new THREE.Color(0x0e1b15);
+  const ink = new THREE.Color(0x0c1322);
   if (cell.id === selected)
     return {
-      body: new THREE.Color(0x8a9a92),
+      body: new THREE.Color(0x9aa6c0),
       edge: new THREE.Color(0xffffff),
     };
   if (cell.response) {
@@ -308,12 +306,12 @@ function cellTone(cell: GridCell, selected: string | null) {
   }
   if (cell.value === null)
     return {
-      body: new THREE.Color(0x303a35),
-      edge: new THREE.Color(0x2c3631),
+      body: new THREE.Color(0x222b3b),
+      edge: new THREE.Color(0x28324a),
     };
   return {
-    body: new THREE.Color(0x3d4a44),
-    edge: new THREE.Color(0x8fc4a8),
+    body: new THREE.Color(0x3a4a66),
+    edge: new THREE.Color(0x6fe9d6),
   };
 }
 
@@ -371,7 +369,7 @@ function coarseOutlines(coarse: GridCell[]) {
   const lines = new THREE.LineSegments(
     lineGeometry(vertices),
     new THREE.LineDashedMaterial({
-      color: 0x66736c,
+      color: 0x5c6678,
       dashSize: 0.8,
       gapSize: 0.6,
       transparent: true,
@@ -380,4 +378,73 @@ function coarseOutlines(coarse: GridCell[]) {
   );
   lines.computeLineDistances();
   return lines;
+}
+
+function bindPointer(
+  host: HTMLElement,
+  canvas: HTMLCanvasElement,
+  camera: THREE.Camera,
+  field: () => ReturnType<typeof buildField>,
+  select: (id: string) => void,
+) {
+  const chip = document.createElement("div");
+  chip.className = "field-chip";
+  chip.hidden = true;
+  chip.setAttribute("aria-hidden", "true");
+  host.append(chip);
+  const ray = new THREE.Raycaster();
+  function cellAt(event: PointerEvent) {
+    const rect = host.getBoundingClientRect();
+    ray.setFromCamera(
+      new THREE.Vector2(
+        ((event.clientX - rect.left) / rect.width) * 2 - 1,
+        (-(event.clientY - rect.top) / rect.height) * 2 + 1,
+      ),
+      camera,
+    );
+    const hit = ray.intersectObjects([field().columns, field().plates])[0];
+    return hit?.instanceId === undefined
+      ? undefined
+      : field().cells[hit.instanceId];
+  }
+  let pressed: { x: number; y: number } | null = null;
+  function press(event: PointerEvent) {
+    pressed = { x: event.clientX, y: event.clientY };
+  }
+  function pick(event: PointerEvent) {
+    const moved = pressed
+      ? Math.hypot(event.clientX - pressed.x, event.clientY - pressed.y)
+      : 0;
+    pressed = null;
+    const cell = moved < 8 ? cellAt(event) : undefined;
+    if (cell) select(cell.id);
+  }
+  function hover(event: PointerEvent) {
+    const cell = event.buttons ? undefined : cellAt(event);
+    canvas.style.cursor = cell ? "pointer" : "default";
+    chip.hidden = !cell;
+    if (!cell) return;
+    const rect = host.getBoundingClientRect();
+    chip.textContent = `${cell.sites.toLocaleString()} batteries · ${
+      cell.value === null ? "unknown" : `${cell.value.toFixed(2)} MW`
+    }`;
+    chip.style.transform = `translate(${event.clientX - rect.left}px, ${
+      event.clientY - rect.top - 16
+    }px)`;
+  }
+  function leave() {
+    chip.hidden = true;
+  }
+  canvas.addEventListener("pointerdown", press);
+  canvas.addEventListener("pointermove", hover);
+  canvas.addEventListener("pointerleave", leave);
+  return {
+    pick,
+    dispose() {
+      canvas.removeEventListener("pointerdown", press);
+      canvas.removeEventListener("pointermove", hover);
+      canvas.removeEventListener("pointerleave", leave);
+      chip.remove();
+    },
+  };
 }

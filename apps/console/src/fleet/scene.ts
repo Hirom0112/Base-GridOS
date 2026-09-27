@@ -60,6 +60,7 @@ export function projectCells(input: H3SiteAggregate[]) {
     coarse: getResolution(cell.h3Cell) < finest,
     area,
     scale,
+    sites: Number(cell.siteCount),
     footprint: 0.9,
     height: density * scale,
   }));
@@ -162,7 +163,7 @@ export function projectResponse(
   const colors = {
     sent: 0xf0f7f2,
     acknowledged: 0x6db8ff,
-    delivered: 0x66f2a4,
+    delivered: 0x4ff0d2,
   };
   const readings = new Map(
     response.h3.map((cell) => [cell.h3Cell, cell.power]),

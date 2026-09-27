@@ -94,10 +94,7 @@ export function HouseholdReserveBasis({
   return (
     <section aria-label="Household reserve basis">
       <h3>Household reserve basis</h3>
-      <p>
-        Frozen at plan creation. The selected plan’s effective reserve is shown
-        as served; independent safety validation remains required.
-      </p>
+      <p>Frozen at plan creation.</p>
       {!parsed.success ? (
         <p role="alert">Frozen reserve basis is invalid.</p>
       ) : !parsed.data.length ? (
@@ -225,10 +222,6 @@ export function TravelFlexEvidence({
   return (
     <section aria-label="Travel Flex eligibility">
       <h3>Travel Flex eligibility</h3>
-      <p>
-        Consented windows in the frozen eligibility snapshot. A bound credit is
-        not proof of selection, settlement or payment.
-      </p>
       {!parsed.success ? (
         <p role="alert">Frozen Travel Flex binding is invalid.</p>
       ) : !parsed.data.length ? (

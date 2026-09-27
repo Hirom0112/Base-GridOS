@@ -3,9 +3,10 @@ import {
   NavigationControl,
   ScaleControl,
   setWorkerUrl,
+  type ExpressionSpecification,
   type GeoJSONSource,
 } from "maplibre-gl";
-import type { MapFeatures, MapMeasure } from "./map-data";
+import { fleetNetwork, type MapFeatures, type MapMeasure } from "./map-data";
 import "maplibre-gl/dist/maplibre-gl.css";
 import workerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
 import groundImagery from "../fleet/austin-ground.jpg";
@@ -51,7 +52,9 @@ export function mountMap(
   async function paint() {
     if (!ready || disposed) return;
     try {
-      await map.getSource<GeoJSONSource>("fleet")?.setData(data);
+      const network = fleetNetwork(data);
+      await map.getSource<GeoJSONSource>("fleet-nodes")?.setData(network.nodes);
+      await map.getSource<GeoJSONSource>("fleet-links")?.setData(network.links);
       if (disposed) return;
       const maximum = Math.max(
         0.001,
@@ -59,14 +62,16 @@ export function mountMap(
           (feature) => feature.properties[measure] / feature.properties.area,
         ),
       );
-      map.setPaintProperty("fleet-fill", "fill-color", [
+      map.setPaintProperty("fleet-node", "circle-color", [
         "interpolate",
         ["linear"],
         ["/", ["get", measure], ["get", "area"]],
         0,
-        "#1c2e25",
+        "#2b4a7a",
+        maximum * 0.5,
+        "#4ff0d2",
         maximum,
-        "#8fe8b8",
+        "#e9fffb",
       ]);
       map.setFilter("fleet-selection", ["==", ["get", "id"], selected ?? ""]);
       if (!fitted && data.features.length) {
@@ -104,7 +109,13 @@ export function mountMap(
     if (disposed) return;
     clearTimeout(timeout);
     addFleetLayers(map, data);
-    map.on("click", "fleet-fill", (event) => {
+    map.on("mouseenter", "fleet-node", () => {
+      map.getCanvas().style.cursor = "pointer";
+    });
+    map.on("mouseleave", "fleet-node", () => {
+      map.getCanvas().style.cursor = "";
+    });
+    map.on("click", "fleet-node", (event) => {
       const id: unknown = event.features?.[0]?.properties.id;
       if (typeof id === "string") select(id);
     });
@@ -128,8 +139,8 @@ export function mountMap(
 }
 
 function addFleetLayers(map: Map, data: MapFeatures) {
-  map.setPaintProperty("background", "background-color", "#050907");
-  map.setPaintProperty("texas-fill", "fill-color", "#09120e");
+  map.setPaintProperty("background", "background-color", "#04070d");
+  map.setPaintProperty("texas-fill", "fill-color", "#070b14");
   map.setPaintProperty("texas-outline", "line-color", "#7f9588");
   map.addSource("ground", {
     type: "image",
@@ -145,46 +156,108 @@ function addFleetLayers(map: Map, data: MapFeatures) {
     id: "ground",
     type: "raster",
     source: "ground",
-    paint: { "raster-opacity": 0.9 },
+    paint: {
+      "raster-opacity": 0.42,
+      "raster-contrast": -0.25,
+      "raster-resampling": "linear",
+    },
   });
   map.setLayoutProperty("weather-zones", "visibility", "none");
   map.setLayoutProperty("load-zones", "visibility", "none");
-  map.addSource("fleet", { type: "geojson", data });
-  map.addLayer({
-    id: "fleet-fill",
-    type: "fill",
-    source: "fleet",
-    paint: {
-      "fill-opacity": ["case", ["get", "coarse"], 0.08, 0.85],
-    },
-  });
-  map.addLayer({
-    id: "fleet-outline",
-    type: "line",
-    source: "fleet",
-    filter: ["!", ["get", "coarse"]],
-    paint: {
-      "line-color": "#66f2a4",
-      "line-width": 0.6,
-      "line-opacity": 0.5,
-    },
-  });
+  const network = fleetNetwork(data);
+  map.addSource("fleet-links", { type: "geojson", data: network.links });
+  map.addSource("fleet-nodes", { type: "geojson", data: network.nodes });
   map.addLayer({
     id: "fleet-privacy",
-    type: "line",
-    source: "fleet",
+    type: "circle",
+    source: "fleet-nodes",
     filter: ["get", "coarse"],
     paint: {
-      "line-color": "#7f9588",
+      "circle-radius": ["interpolate", ["linear"], ["zoom"], 8, 18, 12, 60],
+      "circle-color": "#8492ad",
+      "circle-opacity": 0.06,
+      "circle-blur": 0.8,
+      "circle-stroke-width": 1,
+      "circle-stroke-color": "#8492ad",
+      "circle-stroke-opacity": 0.25,
+    },
+  });
+  map.addLayer({
+    id: "fleet-link-glow",
+    type: "line",
+    source: "fleet-links",
+    layout: { "line-cap": "round" },
+    paint: {
+      "line-color": "#4ff0d2",
+      "line-width": 5,
+      "line-opacity": 0.12,
+      "line-blur": 4,
+    },
+  });
+  map.addLayer({
+    id: "fleet-links",
+    type: "line",
+    source: "fleet-links",
+    layout: { "line-cap": "round" },
+    paint: {
+      "line-color": "#7ff3df",
       "line-width": 1,
-      "line-dasharray": [3, 2],
+      "line-opacity": 0.55,
+    },
+  });
+  map.addLayer({
+    id: "fleet-node-glow",
+    type: "circle",
+    source: "fleet-nodes",
+    filter: ["!", ["get", "coarse"]],
+    paint: {
+      "circle-radius": nodeRadius(3, 0),
+      "circle-color": "#4ff0d2",
+      "circle-opacity": 0.22,
+      "circle-blur": 1,
+    },
+  });
+  map.addLayer({
+    id: "fleet-node",
+    type: "circle",
+    source: "fleet-nodes",
+    filter: ["!", ["get", "coarse"]],
+    paint: {
+      "circle-radius": nodeRadius(1, 0),
+      "circle-stroke-width": 1,
+      "circle-stroke-color": "#04070d",
     },
   });
   map.addLayer({
     id: "fleet-selection",
-    type: "line",
-    source: "fleet",
+    type: "circle",
+    source: "fleet-nodes",
     filter: ["==", ["get", "id"], ""],
-    paint: { "line-color": "#f0f7f2", "line-width": 3 },
+    paint: {
+      "circle-radius": nodeRadius(1, 6),
+      "circle-color": "transparent",
+      "circle-stroke-width": 2,
+      "circle-stroke-color": "#eef3fb",
+    },
   });
+}
+
+function nodeRadius(scale: number, extra: number): ExpressionSpecification {
+  return [
+    "interpolate",
+    ["linear"],
+    ["zoom"],
+    8,
+    [
+      "+",
+      extra,
+      ["*", scale, ["+", 1.5, ["*", 0.45, ["sqrt", ["get", "sites"]]]]],
+    ],
+    12,
+    [
+      "+",
+      extra,
+      ["*", scale, ["+", 3, ["*", 1.1, ["sqrt", ["get", "sites"]]]]],
+    ],
+  ];
 }

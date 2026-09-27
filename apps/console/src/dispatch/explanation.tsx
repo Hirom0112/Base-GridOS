@@ -157,18 +157,9 @@ export function ExplanationEvidence({
           </strong>
         </div>
       </header>
-      <p className="explanation-note">
-        Values belong to the selected event and plan version. Frozen records
-        show their own issue time and provenance; aggregate objective and
-        constraint source metadata are not supplied.
-      </p>
       <FrozenPlanInputs manifest={explanation.manifest} />
       <section aria-label="Constraint margins">
         <h3>Constraint margins</h3>
-        <p>
-          Margins are shown as returned. They do not replace the independent
-          safety result.
-        </p>
         {constraintMargins.length ? (
           <div
             className="explanation-scroll"

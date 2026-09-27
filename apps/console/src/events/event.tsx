@@ -221,12 +221,6 @@ export function EventView({
         </>
       )}
       <AuditTimeline event={event} />
-      {view === "execution" && (
-        <div className="boundary-note">
-          The Report view contains delivery accounting, modeled economics, and
-          replay evidence. Missing measurements remain explicitly unavailable.
-        </div>
-      )}
     </section>
   );
 }

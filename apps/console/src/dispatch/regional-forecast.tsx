@@ -315,10 +315,6 @@ function RegionalRanges({
           </g>
         ))}
       </svg>
-      <p>
-        Dots show recorded forecast values; lines show their returned ranges.
-        Rows follow the interval table.
-      </p>
     </div>
   );
 }

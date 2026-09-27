@@ -97,7 +97,11 @@ export default function LivingGrid({
         </div>
         <div className="field-caption">
           <h2>{measure === "installed" ? stage : stageTitles[measure]}</h2>
-          <p>{stageDescriptions[measure]}</p>
+          <p>
+            {measure === "installed"
+              ? fleetLine(cells)
+              : stageDescriptions[measure]}
+          </p>
         </div>
         {projection.error ? (
           <p role="alert">{projection.error}</p>
@@ -108,15 +112,10 @@ export default function LivingGrid({
         <FieldLegend measure={measure} />
         <div className="spatial-caption">
           <span className="mono">{mode}</span>
-          <span>Height = MW per km² · Dashed = privacy-aggregated region</span>
         </div>
       </div>
       <div className="field-footer">
-        <span>
-          {measure === "installed"
-            ? "Neutral capacity · no availability inferred"
-            : "Missing cells remain unknown · no fleet totals distributed"}
-        </span>
+        <span>Source</span>
         <span>{provenance}</span>
       </div>
       <GeographicTable
@@ -275,18 +274,23 @@ const stageTitles = {
   delivered: "Verify",
 };
 const stageDescriptions = {
-  installed:
-    "Installed capacity across Greater Austin, in place. Taller cells hold more capacity per square kilometre.",
-  sent: "Command intent the server reports as sent. Intent is not delivery.",
-  acknowledged:
-    "Device receipts by cell. Acknowledgement proves receipt, not delivery.",
-  delivered:
-    "Measured delivery from telemetry. Cells without measurements stay unknown.",
+  sent: "Commands sent. Not yet delivered.",
+  acknowledged: "Devices confirmed receipt.",
+  delivered: "Measured power delivered.",
 };
+
+function fleetLine(cells: H3SiteAggregate[]) {
+  const batteries = cells.reduce((total, cell) => total + cell.siteCount, 0n);
+  const megawatts = cells.reduce(
+    (total, cell) => total + (cell.installedMw?.value ?? 0),
+    0,
+  );
+  return `${batteries.toLocaleString()} home batteries · ${megawatts.toFixed(1)} MW installed`;
+}
 const legendEntries = {
   installed: [
-    ["field", "Measured fleet cells"],
-    ["privacy", "Aggregated for privacy"],
+    ["field", "Taller = more capacity"],
+    ["privacy", "Grouped for privacy"],
   ],
   sent: [["sent", "Command intent (sent)"]],
   acknowledged: [["acknowledged", "Acknowledged receipt"]],

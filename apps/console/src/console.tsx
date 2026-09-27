@@ -81,7 +81,7 @@ export function Console({ children }: { children: ReactNode }) {
           </aside>
         ) : (
           <FleetEvidence
-            pathname={pathname}
+            fleet={fleet}
             metadata={metadata}
             selected={selected}
             clear={() => setSelectedCell(null)}
@@ -182,12 +182,7 @@ function ConsoleHeading({
   return (
     <div className="view-heading">
       <div>
-        <p className="eyebrow">
-          Living Grid /{" "}
-          {["/fleet", "/map"].includes(pathname) ? "Observe" : "Event thread"}
-        </p>
         <h1 id="fleet-title">{title}</h1>
-        <p>Greater Austin · A governed fleet, one operating loop.</p>
       </div>
       {role === "operator" && pathname !== "/dispatch/new" && (
         <Link className="action-button" to="/dispatch/new">
@@ -199,105 +194,86 @@ function ConsoleHeading({
 }
 
 function FleetEvidence({
-  pathname,
+  fleet,
   metadata,
   selected,
   clear,
 }: {
-  pathname: string;
+  fleet: FleetSummary | undefined;
   metadata: AggregateMetadata | undefined;
   selected: H3SiteAggregate | undefined;
   clear: () => void;
 }) {
+  const batteries = fleet?.operatingStateCounts.reduce(
+    (total, item) => total + (item.aggregate?.deviceCount ?? 0n),
+    0n,
+  );
+  const online = fleet?.availabilityStateCounts.find(
+    (item) => item.availabilityState === 1,
+  )?.aggregate?.deviceCount;
+  const rows = [
+    ["fleet", "Batteries", batteries?.toLocaleString()],
+    ["online", "Online", online?.toLocaleString()],
+    ["installed", "Installed", megawatts(fleet?.installedMw?.value)],
+    ["available", "Available now", megawatts(fleet?.dispatchableNowMw?.value)],
+    [
+      "reserve",
+      "Backup held",
+      fleet?.reservedForBackupMwh
+        ? `${fleet.reservedForBackupMwh.value.toFixed(1)} MWh`
+        : undefined,
+    ],
+  ] as const;
   return (
     <aside className="evidence-rail" aria-labelledby="evidence-title">
       <div className="evidence-heading">
         <h2 id="evidence-title">Fleet evidence</h2>
         <span className="mono">LZ_AEN</span>
       </div>
-      <section className="evidence-card">
-        <EvidenceIcon kind="observation" />
-        <p className="eyebrow">Observation</p>
-        <h3>Source before certainty.</h3>
+      <dl className="evidence-facts">
+        {rows.map(([icon, label, value]) => (
+          <div key={label}>
+            <EvidenceIcon kind={icon} />
+            <dt>{label}</dt>
+            <dd className="mono">{value ?? "—"}</dd>
+          </div>
+        ))}
+      </dl>
+      {selected && (
+        <section className="evidence-card">
+          <EvidenceIcon kind="focus" />
+          <p className="eyebrow">Selected cell</p>
+          <h3 className="mono">{selected.h3Cell}</h3>
+          <p>{selected.siteCount.toLocaleString()} batteries</p>
+          <Quantity
+            label="Installed power"
+            unit="MW"
+            aggregate={selected.installedMw}
+          />
+          <button className="text-button" onClick={clear}>
+            Clear selection
+          </button>
+        </section>
+      )}
+      <section className="evidence-source">
+        <p className="eyebrow">Source</p>
         <Evidence metadata={metadata} />
-      </section>
-      <section className="evidence-card">
-        <EvidenceIcon kind="focus" />
-        <p className="eyebrow">Operator focus</p>
-        <h3>
-          {pathname === "/map"
-            ? "Regional inspection"
-            : selected
-              ? selected.h3Cell
-              : "Greater Austin"}
-        </h3>
-        {pathname === "/map" ? (
-          <p>
-            Select a cell on the map or in its evidence table. Its timestamped
-            details appear directly below the map.
-          </p>
-        ) : selected ? (
-          <>
-            <p>{selected.siteCount.toLocaleString()} sites in this H3 cell</p>
-            <Quantity
-              label="Installed power"
-              unit="MW"
-              aggregate={selected.installedMw}
-            />
-            <button className="text-button" onClick={clear}>
-              Clear selection
-            </button>
-          </>
-        ) : (
-          <p>
-            Select a region in the grid or its table to inspect the recorded
-            capacity.
-          </p>
-        )}
-      </section>
-      <section className="evidence-card reserve-card">
-        <EvidenceIcon kind="reserve" />
-        <p className="eyebrow">Protected by design</p>
-        <h3>Reserve comes first.</h3>
-        <p>
-          The server validates household backup limits before an operator can
-          approve a plan.
-        </p>
-      </section>
-      <section className="evidence-card">
-        <EvidenceIcon kind="reading" />
-        <p className="eyebrow">Reading the field</p>
-        {pathname === "/map" ? (
-          <p>
-            Cell boundaries: H3 geography
-            <br />
-            Lighter fill: the selected measure
-            <br />
-            White outline: operator selection
-          </p>
-        ) : (
-          <p>
-            Position: H3 location
-            <br />
-            Height: selected power in MW per km²
-            <br />
-            Dashed outline: sparse sites aggregated for privacy
-          </p>
-        )}
-        <p>
-          Missing cell values remain unknown. The field uses only
-          server-supplied evidence for the selected measure.
-        </p>
       </section>
     </aside>
   );
 }
 
+function megawatts(value: number | undefined) {
+  return value === undefined ? undefined : `${value.toFixed(1)} MW`;
+}
+
 const evidenceIcons = {
-  observation: "M3 12h4l3-7 4 14 3-7h4",
+  fleet: "M7 6h10v14H7Z M10 3h4v3 M10 11h4 M10 15h4",
+  online: "M3 12h4l3-7 4 14 3-7h4",
+  installed: "M13 3 5 14h6l-1 7 8-11h-6Z",
+  available: "M4 17l5-5 4 4 7-8 M15 8h5v5",
   focus: "M12 3v4M12 17v4M3 12h4M17 12h4M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z",
   reserve: "M12 3 5 6v6c0 4 3 7.5 7 9 4-1.5 7-5 7-9V6Z M9 12l2 2 4-4",
-  reading: "M12 3 3 8l9 5 9-5Z M3 13l9 5 9-5",
 };
 
 function EvidenceIcon({ kind }: { kind: keyof typeof evidenceIcons }) {

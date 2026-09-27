@@ -93,23 +93,23 @@ export function FleetMap() {
       </div>
       <div className="map-caption">
         <p className="eyebrow">Greater Austin / LZ_AEN</p>
-        <h2>A regional view.</h2>
-        <p>Aggregate locations. Household privacy intact.</p>
+        <h2>Fleet network</h2>
+        <p>
+          Each node is a group of home batteries. Lines join neighbouring
+          groups.
+        </p>
       </div>
       <div className="map-legend">
         <span className="map-ramp" aria-hidden="true" />
         <span>
-          Lighter = higher {mapMeasureLabels[measure].toLowerCase()}. Unknown
-          charge is its own layer.
+          Brighter = more {mapMeasureLabels[measure].toLowerCase()} per km²
         </span>
       </div>
       <p role="status" className="map-status">
         {status} · {projection.cells.length} H3 regions
       </p>
       <p className="map-source">
-        Texas outline: Census · CONFIRMED_PUBLIC. No street or terrain tiles.
-        Simulated zone boundaries are hidden; they are not operational service
-        areas.
+        Ground: NASA Black Marble night lights and ASTER GDEM relief.
       </p>
       {cell && (
         <section className="map-selection" aria-label="Selected map cell">

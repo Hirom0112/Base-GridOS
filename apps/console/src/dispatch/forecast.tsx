@@ -166,10 +166,6 @@ function ForecastRanges({
           </g>
         ))}
       </svg>
-      <p>
-        Dots show expected consumption; lines show the returned modeled range.
-        Rows follow the interval order in the table.
-      </p>
     </div>
   );
 }

@@ -63,3 +63,23 @@ test("map marks privacy-coarsened parents so they never read as dense capacity",
   expect(coarse?.properties.coarse).toBe(true);
   expect(coarse!.properties.area).toBeGreaterThan(fine!.properties.area * 300);
 });
+
+test("fleet network places one node per cell and links only neighbouring measured cells", async () => {
+  const { gridDisk, cellToParent } = await import("h3-js");
+  const { fleetNetwork } = await import("./map-data");
+  const [origin, neighbour] = gridDisk(cell.h3Cell, 1);
+  const far = "87489e346ffffff";
+  const parent = cellToParent(cell.h3Cell, 4);
+  const network = fleetNetwork(
+    mapFeatures([
+      { ...cell, h3Cell: origin! },
+      { ...cell, h3Cell: neighbour! },
+      { ...cell, h3Cell: far },
+      { ...cell, h3Cell: parent },
+    ]),
+  );
+  expect(network.nodes.features).toHaveLength(4);
+  expect(network.links.features).toHaveLength(1);
+  expect(network.nodes.features[0]?.geometry.coordinates[0]).toBeLessThan(-90);
+  expect(network.nodes.features[3]?.properties.coarse).toBe(true);
+});

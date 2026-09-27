@@ -112,8 +112,7 @@ export function AuditRecords({ entries }: { entries: EventTimelineEntry[] }) {
         <p className="history-gap">No audit records returned by the server.</p>
       )}
       <p className="history-gap">
-        Server-recorded actions and decisions. Command acceptance does not prove
-        measured delivery.
+        Command acceptance does not prove measured delivery.
       </p>
     </section>
   );

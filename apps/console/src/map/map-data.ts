@@ -1,6 +1,8 @@
 import {
   cellArea,
   cellToBoundary,
+  cellToLatLng,
+  gridDisk,
   getResolution,
   isValidCell,
   UNITS,
@@ -87,3 +89,41 @@ export function mapFeatures(input: GeoCell[]) {
   };
 }
 export type MapFeatures = ReturnType<typeof mapFeatures>;
+
+export function fleetNetwork(collection: MapFeatures) {
+  const measured = new Set(
+    collection.features
+      .filter((feature) => !feature.properties.coarse)
+      .map((feature) => feature.properties.id),
+  );
+  const point = (id: string) => {
+    const [lat, lng] = cellToLatLng(id);
+    return [lng, lat];
+  };
+  return {
+    nodes: {
+      type: "FeatureCollection" as const,
+      features: collection.features.map((feature) => ({
+        type: "Feature" as const,
+        id: feature.id,
+        properties: feature.properties,
+        geometry: { type: "Point" as const, coordinates: point(feature.id) },
+      })),
+    },
+    links: {
+      type: "FeatureCollection" as const,
+      features: [...measured].flatMap((id) =>
+        gridDisk(id, 1)
+          .filter((other) => other > id && measured.has(other))
+          .map((other) => ({
+            type: "Feature" as const,
+            properties: {},
+            geometry: {
+              type: "LineString" as const,
+              coordinates: [point(id), point(other)],
+            },
+          })),
+      ),
+    },
+  };
+}

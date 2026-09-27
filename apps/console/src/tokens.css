@@ -60,18 +60,18 @@ small {
 }
 
 .console {
-  --ink-0: #050907;
-  --ink-1: #09120e;
-  --ink-2: #0e1b15;
-  --ink-3: #16271f;
-  --paper-0: #f0f7f2;
-  --paper-1: #b9c9bf;
-  --paper-2: #7f9588;
-  --energy: #66f2a4;
+  --ink-0: #04070d;
+  --ink-1: #070b14;
+  --ink-2: #0c1322;
+  --ink-3: #1a2540;
+  --paper-0: #eef3fb;
+  --paper-1: #b3bfd3;
+  --paper-2: #8492ad;
+  --energy: #4ff0d2;
   --forecast: #6db8ff;
   --attention: #f2bc57;
   --critical: #ff6b68;
-  --offline: #66736c;
+  --offline: #5c6678;
   color-scheme: dark;
   background: var(--ink-1);
   color: var(--paper-0);
