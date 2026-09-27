@@ -2,6 +2,7 @@ import { createClient, ConnectError, Code } from "@connectrpc/connect";
 import { createConnectTransport } from "@connectrpc/connect-web";
 import { QueryClient } from "@tanstack/react-query";
 import { z } from "zod";
+import { stepUpAuthorization } from "./step-up";
 import {
   DispatchService,
   FleetService,
@@ -52,6 +53,7 @@ export function createConsoleClient(
         }
         return next(request);
       },
+      stepUpAuthorization(identity, fetcher),
     ],
   });
   return {

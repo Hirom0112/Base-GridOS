@@ -14,6 +14,16 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       proxy: {
+        ...(env.GRIDOS_AUTH_MODE === "local"
+          ? {
+              "/local/step-up": {
+                target: env.GRIDOS_IDENTITY_URL ?? "http://127.0.0.1:8080",
+                changeOrigin: true,
+                timeout: 10000,
+                proxyTimeout: 10000,
+              },
+            }
+          : {}),
         "/geo": {
           target: env.GRIDOS_API_URL ?? "http://127.0.0.1:8080",
           changeOrigin: true,

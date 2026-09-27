@@ -49,7 +49,7 @@ for (const action of ["approve", "stop"] as const) {
     expect(new Headers(command[1]?.headers).get("X-GridOS-Step-Up")).toBe(
       "signed-assertion",
     );
-    expect(JSON.parse(String(command[1]?.body))).toMatchObject({
+    expect(await new Response(command[1]?.body).json()).toMatchObject({
       idempotencyKey: "intent-1",
     });
   });
