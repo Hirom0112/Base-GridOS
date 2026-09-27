@@ -80,7 +80,7 @@ func (bridge *RiskBridge) evaluateSite(ctx context.Context, at time.Time, policy
 		}
 		id := fmt.Sprintf("risk:%s:%s:%s:%d", policy.Version, siteID, decision.Reason, at.UnixNano())
 		command := ReserveOverride{ID: id, MemberID: memberID, Reason: decision.Reason,
-			FloorPercent: decision.FloorPercent, EffectiveAt: at, ExpiresAt: at.Add(5 * time.Minute),
+			FloorPercent: decision.FloorPercent, EffectiveAt: at, ExpiresAt: decision.ExpiresAt,
 			PolicyVersion: policyVersion, EvidenceID: decision.EvidenceID, CorrelationID: id}
 		if err := bridge.store.ApplyOverride(ctx, command); err != nil {
 			return err

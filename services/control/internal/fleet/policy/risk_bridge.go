@@ -35,6 +35,7 @@ type WeatherAreaCodes struct {
 type RiskWeather struct {
 	EvidenceID string
 	AsOf       time.Time
+	Expires    time.Time
 	Active     bool
 	Provenance string
 }
@@ -69,6 +70,7 @@ type RiskDecision struct {
 	FloorPercent float64
 	EvidenceID   string
 	AsOf         time.Time
+	ExpiresAt    time.Time
 }
 
 func (store *Store) RiskPolicyAt(ctx context.Context, at time.Time) (RiskPolicy, error) {
@@ -99,27 +101,28 @@ func (store *Store) RiskPolicyAt(ctx context.Context, at time.Time) (RiskPolicy,
 
 func (policy RiskPolicy) Evaluate(signals RiskSignals) []RiskDecision {
 	var decisions []RiskDecision
-	add := func(reason OverrideReason, floor float64, id string, asOf time.Time) {
+	cycleEnd := signals.At.Add(5 * time.Minute)
+	add := func(reason OverrideReason, floor float64, id string, asOf, expiresAt time.Time) {
 		if id != "" && !asOf.IsZero() && !asOf.After(signals.At) {
-			decisions = append(decisions, RiskDecision{Reason: reason, FloorPercent: floor, EvidenceID: id, AsOf: asOf})
+			decisions = append(decisions, RiskDecision{Reason: reason, FloorPercent: floor, EvidenceID: id, AsOf: asOf, ExpiresAt: expiresAt})
 		}
 	}
 	if weather := signals.Weather; weather != nil && weather.Active {
-		add(OverrideWeather, policy.WeatherFloor, weather.EvidenceID, weather.AsOf)
+		add(OverrideWeather, policy.WeatherFloor, weather.EvidenceID, weather.AsOf, weather.Expires)
 	}
 	if outage := signals.Outage; outage != nil && !math.IsNaN(outage.HourlyProbability) && !math.IsInf(outage.HourlyProbability, 0) && outage.HourlyProbability > policy.OutageProbabilityThreshold && outage.HourlyProbability <= 1 {
-		add(OverrideOutageRisk, policy.OutageFloor, outage.EvidenceID, outage.AsOf)
+		add(OverrideOutageRisk, policy.OutageFloor, outage.EvidenceID, outage.AsOf, cycleEnd)
 	}
 	if telemetry := signals.Telemetry; telemetry != nil {
 		if signals.At.Sub(telemetry.ObservedAt) > policy.TelemetryFreshness {
-			add(OverrideStaleTelemetry, policy.StaleFloor, telemetry.EvidenceID, telemetry.ObservedAt)
+			add(OverrideStaleTelemetry, policy.StaleFloor, telemetry.EvidenceID, telemetry.ObservedAt, cycleEnd)
 		}
 		if telemetry.Alarm {
-			add(OverrideAlarm, policy.AlarmFloor, telemetry.EvidenceID, telemetry.ObservedAt)
+			add(OverrideAlarm, policy.AlarmFloor, telemetry.EvidenceID, telemetry.ObservedAt, cycleEnd)
 		}
 	}
 	if gateway := signals.Gateway; gateway != nil && signals.At.Sub(gateway.LastPublishedAt) > 2*policy.GatewayCadence {
-		add(OverrideCommunications, policy.CommunicationsFloor, gateway.EvidenceID, gateway.LastPublishedAt)
+		add(OverrideCommunications, policy.CommunicationsFloor, gateway.EvidenceID, gateway.LastPublishedAt, cycleEnd)
 	}
 	return decisions
 }
