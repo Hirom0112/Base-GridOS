@@ -3,7 +3,7 @@ import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 import { ListEventCommandsResponseSchema } from "../src/api/gen/gridos/v1/events_pb";
-import { recordedApi } from "./recorded-api";
+import { openEvidence, recordedApi } from "./recorded-api";
 
 for (const width of [390, 1440]) {
   test(`command receipts and measured intervals stay distinct at ${width}`, async ({
@@ -76,6 +76,7 @@ for (const width of [390, 1440]) {
     );
     await page.setViewportSize({ width, height: 900 });
     await page.goto("/events/event_austin_wave2_live_0002");
+    await openEvidence(page);
     const commands = page.getByRole("region", { name: "Command fan-out" });
     await expect(commands).toContainText("ACKNOWLEDGED");
     await expect(commands).toContainText("2026-09-27T12:05:00.000Z");

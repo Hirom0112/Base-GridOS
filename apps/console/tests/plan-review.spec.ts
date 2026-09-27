@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
-import { recordedApi } from "./recorded-api";
+import { openEvidence, recordedApi } from "./recorded-api";
 
 for (const width of [390, 1440]) {
   for (const theme of ["dark", "light"]) {
@@ -20,6 +20,7 @@ for (const width of [390, 1440]) {
         name: "Optimization explanation",
       });
       await expect(explanation).toContainText("51,979.616 kWh");
+      await openEvidence(page);
       const manifest = page.getByRole("region", { name: "Frozen plan inputs" });
       await expect(manifest).toContainText("event-4c10-1790504164-input-1");
       await expect(manifest).toContainText(

@@ -31,14 +31,17 @@
   border-top-width: 3px;
 }
 .response-values span {
-  color: var(--paper-1);
-  font-size: 12px;
+  color: var(--paper-2);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
 }
 .response-values strong {
   display: block;
-  font-family: "Geist Mono Variable", monospace;
-  font-size: clamp(14px, 1.5vw, 23px);
-  font-weight: 400;
+  font-size: clamp(24px, 2.8vw, 44px);
+  font-weight: 200;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
   margin-top: 10px;
 }
 .response-chart {

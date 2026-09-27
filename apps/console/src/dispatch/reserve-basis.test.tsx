@@ -122,11 +122,12 @@ test.each(["consent", "credit", "window"])(
 );
 
 test("older plans keep absent frozen policy evidence explicit", () => {
-  render(
+  const { container } = render(
     <ExplanationEvidence
       explanation={create(GetPlanExplanationResponseSchema)}
     />,
   );
+  container.querySelector("details.evidence-drawer")?.setAttribute("open", "");
   expect(screen.getByText("Frozen reserve basis unavailable.")).toBeVisible();
   expect(
     screen.getByText("Frozen Travel Flex bindings unavailable."),

@@ -5,6 +5,15 @@ import { expect, test } from "vitest";
 import { GetPlanExplanationResponseSchema } from "../api/gen/gridos/v1/api_pb";
 import { ExplanationEvidence } from "./explanation";
 
+function openRender(ui: React.ReactElement) {
+  const result = render(ui);
+  for (const drawer of result.container.querySelectorAll(
+    "details.evidence-drawer",
+  ))
+    drawer.setAttribute("open", "");
+  return result;
+}
+
 const recorded = readFileSync(
   "../../testdata/fixtures/api/DispatchService/GetPlanExplanation.json",
   "utf8",
@@ -13,7 +22,7 @@ const fixture = () =>
   fromJsonString(GetPlanExplanationResponseSchema, recorded);
 
 test("explanation presents recorded reserve, constraints, and interval feasibility", () => {
-  render(<ExplanationEvidence explanation={fixture()} />);
+  openRender(<ExplanationEvidence explanation={fixture()} />);
   expect(
     screen.getByRole("region", { name: "Optimization explanation" }),
   ).toHaveTextContent("51,979.616 kWh");
@@ -40,7 +49,7 @@ test.each([NaN, Infinity, -1])(
   (reserve) => {
     const explanation = fixture();
     explanation.reserveHeldBackKwh = reserve;
-    render(<ExplanationEvidence explanation={explanation} />);
+    openRender(<ExplanationEvidence explanation={explanation} />);
     expect(screen.getByRole("alert")).toHaveTextContent(
       "Plan explanation is invalid",
     );
@@ -53,7 +62,7 @@ test("missing objective and empty constraints remain explicit gaps", () => {
   explanation.objectiveBreakdown = undefined;
   explanation.constraintMargins = [];
   explanation.shortfalls = [];
-  render(<ExplanationEvidence explanation={explanation} />);
+  openRender(<ExplanationEvidence explanation={explanation} />);
   expect(screen.getByText("Objective breakdown unavailable.")).toBeVisible();
   expect(screen.getByText("No constraint margins returned.")).toBeVisible();
   expect(screen.getByText("No interval feasibility returned.")).toBeVisible();
@@ -74,7 +83,7 @@ test("unavailable economic terms remain unknown instead of displaying zero", () 
       },
     }),
   ).marginExplanation;
-  render(<ExplanationEvidence explanation={explanation} />);
+  openRender(<ExplanationEvidence explanation={explanation} />);
   const terms = screen.getByRole("table", { name: "Economic margin terms" });
   expect(
     within(terms).getByRole("row", { name: /Member reward/ }),
@@ -112,7 +121,7 @@ test("frozen site forecasts retain modeled bounds, lineage, and fallback reason"
       },
     }),
   ).evidence;
-  render(<ExplanationEvidence explanation={explanation} />);
+  openRender(<ExplanationEvidence explanation={explanation} />);
   const forecasts = screen.getByRole("region", { name: "Forecast intervals" });
   expect(forecasts).toHaveTextContent("2 kWh");
   expect(forecasts).toHaveTextContent("1–3 kWh");
@@ -131,7 +140,7 @@ test("frozen site forecasts retain modeled bounds, lineage, and fallback reason"
 test("missing frozen evidence does not imply fallback was unused", () => {
   const explanation = fixture();
   explanation.evidence = undefined;
-  render(<ExplanationEvidence explanation={explanation} />);
+  openRender(<ExplanationEvidence explanation={explanation} />);
   expect(
     screen.getByRole("region", { name: "Forecast intervals" }),
   ).toHaveTextContent("Frozen forecast evidence unavailable");
@@ -143,7 +152,7 @@ test("missing frozen evidence does not imply fallback was unused", () => {
 test("forecast site search bounds the selector and never shows a mismatched site", () => {
   const explanation = fixture();
   const target = explanation.evidence!.siteLoads[100]!.siteId;
-  render(<ExplanationEvidence explanation={explanation} />);
+  openRender(<ExplanationEvidence explanation={explanation} />);
   const search = screen.getByLabelText("Find forecast site");
   expect(
     within(
@@ -216,7 +225,7 @@ test("frozen regional forecasts preserve price signs, probabilities, and missing
       },
     }),
   ).evidence;
-  render(<ExplanationEvidence explanation={explanation} />);
+  openRender(<ExplanationEvidence explanation={explanation} />);
   expect(
     screen.getByRole("region", { name: "Frozen regional prices" }),
   ).toHaveTextContent("-5 USD/MWh");
@@ -235,7 +244,7 @@ test("frozen regional forecasts preserve price signs, probabilities, and missing
 });
 
 test("window ranking explains missing interval-matched inputs", () => {
-  render(<ExplanationEvidence explanation={fixture()} />);
+  openRender(<ExplanationEvidence explanation={fixture()} />);
   expect(
     screen.getByRole("region", { name: "Dispatch window ranking" }),
   ).toHaveTextContent("Interval-matched regional load is not supplied");
@@ -262,7 +271,7 @@ test("plan review exposes the stored manifest and fails closed on missing lineag
       },
     }),
   ).manifest;
-  const { rerender } = render(
+  const { rerender } = openRender(
     <ExplanationEvidence explanation={explanation} />,
   );
   const manifest = screen.getByRole("region", { name: "Frozen plan inputs" });

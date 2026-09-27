@@ -50,3 +50,9 @@ export async function recordedApi(page: Page) {
     await route.fulfill({ contentType: "application/json", body });
   });
 }
+
+export async function openEvidence(page: Page) {
+  const closed = page.locator("details.evidence-drawer:not([open]) > summary");
+  await closed.first().waitFor();
+  while (await closed.count()) await closed.first().click();
+}

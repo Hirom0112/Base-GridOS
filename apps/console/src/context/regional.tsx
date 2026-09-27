@@ -165,10 +165,6 @@ export function RegionalContext() {
     >
       <p className="eyebrow">Regional context</p>
       <h3 id="regional-context-title">Austin conditions</h3>
-      <div className="boundary-note">
-        Context snapshots do not establish event feasibility. Ranked dispatch
-        windows require event-specific inputs.
-      </div>
       <MarketContext />
       <details>
         <summary>Inspect weather and historical outage evidence</summary>

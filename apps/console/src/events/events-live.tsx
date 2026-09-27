@@ -212,10 +212,7 @@ export function EventResponse({ samples }: { samples: EventSample[] }) {
       </div>
       <Evidence metadata={latest.metadata} />
       <ResponseChart samples={samples} />
-      <p className="history-gap">
-        Last {samples.length} observations from this session. Gaps mean unknown
-        delivery, not zero. Acknowledgement proves receipt only.
-      </p>
+      <p className="history-gap">Gaps mean unknown delivery, not zero.</p>
       <details className="response-data">
         <summary>Exact response observations</summary>
         <div className="table-scroll">

@@ -141,14 +141,6 @@ export function EventView({
         </Link>
       </div>
       <PendingEvent state={event.state} violations={safetyViolations} />
-      {view === "execution" && (
-        <>
-          <EmergencyStopControl key={eventId} eventId={eventId} />
-          <LiveEvent key={`live-${eventId}`} eventId={eventId} />
-          <EventCommands key={`commands-${eventId}`} eventId={eventId} />
-          <EventReserve key={`reserve-${eventId}`} eventId={eventId} />
-        </>
-      )}
       {safetyViolations.length > 0 && (
         <div className="error-notice">
           <h3>Safety gate rejected the plan</h3>
@@ -159,68 +151,99 @@ export function EventView({
           </ul>
         </div>
       )}
-      <div className="event-summary">
-        <div>
-          <span className="eyebrow">Launch record</span>
-          <p>
-            {event.launch
-              ? `Requested by ${event.launch.requestedBy} · plan v${event.launch.planVersion}`
-              : "No launch record returned"}
-          </p>
-          <small>
-            {event.launch?.requestedAt
-              ? timestampDate(event.launch.requestedAt).toISOString()
-              : "Approval and launch are separate actions."}
-          </small>
-        </div>
-        <div>
-          <span className="eyebrow">Physical response</span>
-          <p>
-            {event.state >= DispatchEventState.SENT
-              ? "Command state alone does not establish measured delivery"
-              : "Commands have not been reported sent"}
-          </p>
-          <small>Acknowledgement proves receipt, not delivered energy.</small>
-        </div>
-      </div>
+      {view === "execution" && (
+        <>
+          <EmergencyStopControl key={eventId} eventId={eventId} />
+          <LiveEvent key={`live-${eventId}`} eventId={eventId} />
+          <EventReserve key={`reserve-${eventId}`} eventId={eventId} />
+        </>
+      )}
       {view === "plan" && (
         <>
-          <PlanExplanation
-            eventId={eventId}
-            planVersion={event.planVersion}
-            state={event.state}
-          />
           <ApprovalActions
             event={event}
             role={identity.role}
             onConfirm={confirm}
           />
+          <PlanExplanation
+            eventId={eventId}
+            planVersion={event.planVersion}
+            state={event.state}
+          />
         </>
       )}
-      <section className="exclusions">
-        <h3>Exclusions by reason</h3>
-        {exclusions.length ? (
-          <ul>
-            {exclusions.map((group) => (
-              <li key={group.reason}>
-                {ExclusionReason[group.reason]?.replaceAll("_", " ") ??
-                  "Unknown reason"}
-                <strong>{group.count.toLocaleString()} devices</strong>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p>No exclusions returned by the server.</p>
-        )}
-      </section>
       {view === "report" && (
         <>
           <EventReport eventId={eventId} />
           <EventReplay key={eventId} eventId={eventId} />
-          <ReportComparison key={`compare-${eventId}`} eventId={eventId} />
         </>
       )}
-      <AuditTimeline event={event} />
+      <LaunchSummary event={event} />
+      <details className="evidence-drawer">
+        <summary>Full evidence</summary>
+        {view === "execution" && (
+          <EventCommands key={`commands-${eventId}`} eventId={eventId} />
+        )}
+        {view === "report" && (
+          <ReportComparison key={`compare-${eventId}`} eventId={eventId} />
+        )}
+        <Exclusions exclusions={exclusions} />
+        <AuditTimeline event={event} />
+      </details>
+    </section>
+  );
+}
+
+function LaunchSummary({ event }: { event: DispatchEvent }) {
+  return (
+    <div className="event-summary">
+      <div>
+        <span className="eyebrow">Launch record</span>
+        <p>
+          {event.launch
+            ? `Requested by ${event.launch.requestedBy} · plan v${event.launch.planVersion}`
+            : "No launch record returned"}
+        </p>
+        <small>
+          {event.launch?.requestedAt
+            ? timestampDate(event.launch.requestedAt).toISOString()
+            : "Approval and launch are separate actions."}
+        </small>
+      </div>
+      <div>
+        <span className="eyebrow">Physical response</span>
+        <p>
+          {event.state >= DispatchEventState.SENT
+            ? "Command state alone does not establish measured delivery"
+            : "Commands have not been reported sent"}
+        </p>
+        <small>Acknowledgement proves receipt, not delivered energy.</small>
+      </div>
+    </div>
+  );
+}
+
+function Exclusions({
+  exclusions,
+}: {
+  exclusions: { reason: ExclusionReason; count: bigint }[];
+}) {
+  return (
+    <section className="exclusions">
+      <h3>Exclusions by reason</h3>
+      {exclusions.length ? (
+        <ul>
+          {exclusions.map((group) => (
+            <li key={group.reason}>
+              {ExclusionReason[group.reason]?.replaceAll("_", " ") ??
+                "Unknown reason"}
+              <strong>{group.count.toLocaleString()} devices</strong>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p>No exclusions returned by the server.</p>
+      )}
     </section>
   );
 }

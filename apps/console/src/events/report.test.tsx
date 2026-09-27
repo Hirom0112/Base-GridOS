@@ -22,13 +22,14 @@ function fixture(variant = "") {
 }
 
 test("report preserves modeled margin, rewards, provenance and explicit gaps", () => {
-  render(
+  const { container } = render(
     <ReportEvidence
       eventId="event-report-a"
       role="operator"
       json={fixture()}
     />,
   );
+  container.querySelector("details.evidence-drawer")?.setAttribute("open", "");
   expect(screen.getByText(/-3.25 USD/)).toBeVisible();
   expect(screen.getByText(/7.25 USD/)).toBeVisible();
   expect(screen.getByText(/SIMULATED/)).toBeVisible();

@@ -107,7 +107,11 @@ function imageryPlane(
       bounds.east - bounds.west,
       bounds.south - bounds.north,
     ),
-    new THREE.MeshBasicMaterial({ map: texture, depthWrite: false }),
+    new THREE.MeshBasicMaterial({
+      map: texture,
+      depthWrite: false,
+      color: 0x9aa4b8,
+    }),
   );
   plane.rotation.x = -Math.PI / 2;
   plane.position.set(

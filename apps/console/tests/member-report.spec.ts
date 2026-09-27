@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { expect, test } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
-import { recordedApi } from "./recorded-api";
+import { openEvidence, recordedApi } from "./recorded-api";
 
 for (const width of [390, 1440]) {
   test(`member household is isolated and usable at ${width}`, async ({
@@ -73,6 +73,7 @@ for (const width of [390, 1440]) {
     });
     await expect(report).toContainText("-3.25 USD");
     await expect(report).toContainText("delivered_energy_unavailable");
+    await openEvidence(page);
     await page.getByLabel("Event B", { exact: true }).fill("event-report-b");
     await page.getByRole("button", { name: "Compare reports" }).click();
     await expect(

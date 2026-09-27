@@ -119,57 +119,63 @@ function DetailedReport({ report }: { report: z.infer<typeof reportSchema> }) {
           ["Approved power", report.ApprovedMW, "MW"],
           ["Commanded power", report.CommandedMW, "MW"],
           ["Acknowledged power", report.AcknowledgedMW, "MW"],
-          [
-            "Requested energy",
-            gaps.has("requested_energy_unavailable")
-              ? null
-              : energy?.RequestedMWh,
-            "MWh",
-          ],
-          [
-            "Approved energy",
-            gaps.has("approved_energy_unavailable")
-              ? null
-              : energy?.ApprovedMWh,
-            "MWh",
-          ],
-          [
-            "Commanded energy",
-            gaps.has("commanded_energy_unavailable")
-              ? null
-              : energy?.CommandedMWh,
-            "MWh",
-          ],
-          [
-            "Acknowledged energy",
-            gaps.has("acknowledged_energy_unavailable")
-              ? null
-              : energy?.AcknowledgedMWh,
-            "MWh",
-          ],
-          [
-            "Reserve violations prevented",
-            gaps.has("reserve_violations_prevented_unavailable")
-              ? null
-              : report.ReserveViolationsPrevented,
-            "violations",
-          ],
-          [
-            "Member rewards",
-            report.MemberRewardsCents == null
-              ? null
-              : report.MemberRewardsCents / 100,
-            "USD",
-          ],
         ]}
       />
       <DeliveryMeasurements report={report} />
-      <p>Tracking error compares measured delivery with commanded power.</p>
       <PlannedShortfall evidence={report.planned_shortfall} />
       <DeliveryShortfall evidence={report.delivery_shortfall} />
       <ReserveEvidence evidence={report.ReserveCompliance} />
-      <ReportEconomics report={report} />
-      <ReportLineage report={report} />
+      <details className="evidence-drawer">
+        <summary>Report detail</summary>
+        <ReportValues
+          entries={[
+            [
+              "Requested energy",
+              gaps.has("requested_energy_unavailable")
+                ? null
+                : energy?.RequestedMWh,
+              "MWh",
+            ],
+            [
+              "Approved energy",
+              gaps.has("approved_energy_unavailable")
+                ? null
+                : energy?.ApprovedMWh,
+              "MWh",
+            ],
+            [
+              "Commanded energy",
+              gaps.has("commanded_energy_unavailable")
+                ? null
+                : energy?.CommandedMWh,
+              "MWh",
+            ],
+            [
+              "Acknowledged energy",
+              gaps.has("acknowledged_energy_unavailable")
+                ? null
+                : energy?.AcknowledgedMWh,
+              "MWh",
+            ],
+            [
+              "Reserve violations prevented",
+              gaps.has("reserve_violations_prevented_unavailable")
+                ? null
+                : report.ReserveViolationsPrevented,
+              "violations",
+            ],
+            [
+              "Member rewards",
+              report.MemberRewardsCents == null
+                ? null
+                : report.MemberRewardsCents / 100,
+              "USD",
+            ],
+          ]}
+        />
+        <ReportEconomics report={report} />
+        <ReportLineage report={report} />
+      </details>
     </>
   );
 }

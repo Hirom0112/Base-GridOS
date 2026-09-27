@@ -157,106 +157,109 @@ export function ExplanationEvidence({
           </strong>
         </div>
       </header>
-      <FrozenPlanInputs manifest={explanation.manifest} />
-      <section aria-label="Constraint margins">
-        <h3>Constraint margins</h3>
-        {constraintMargins.length ? (
-          <div
-            className="explanation-scroll"
-            role="region"
-            aria-label="Constraint margin table"
-            tabIndex={0}
-          >
-            <table>
-              <thead>
-                <tr>
-                  <th>Constraint</th>
-                  <th>Margin</th>
-                  <th>Interval begins (UTC)</th>
-                </tr>
-              </thead>
-              <tbody>
-                {constraintMargins.map((margin, index) => (
-                  <tr key={index}>
-                    <th scope="row">{margin.constraintName}</th>
-                    <td className="mono">
-                      {String(margin.margin)} {margin.units}
-                    </td>
-                    <td>
-                      {margin.intervalBeginTime ? (
-                        <EvidenceTime value={margin.intervalBeginTime} />
-                      ) : (
-                        "Not supplied"
-                      )}
-                    </td>
+      <details className="evidence-drawer">
+        <summary>Planning detail</summary>
+        <FrozenPlanInputs manifest={explanation.manifest} />
+        <section aria-label="Constraint margins">
+          <h3>Constraint margins</h3>
+          {constraintMargins.length ? (
+            <div
+              className="explanation-scroll"
+              role="region"
+              aria-label="Constraint margin table"
+              tabIndex={0}
+            >
+              <table>
+                <thead>
+                  <tr>
+                    <th>Constraint</th>
+                    <th>Margin</th>
+                    <th>Interval begins (UTC)</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <p>No constraint margins returned.</p>
-        )}
-      </section>
-      <section>
-        <h3>Interval feasibility</h3>
-        {shortfalls.length ? (
-          <div
-            className="explanation-scroll"
-            role="region"
-            aria-label="Interval feasibility table"
-            tabIndex={0}
-          >
-            <table aria-label="Interval feasibility">
-              <thead>
-                <tr>
-                  <th>Window (UTC)</th>
-                  <th>Requested kW</th>
-                  <th>Feasible kW</th>
-                  <th>Shortfall kW</th>
-                  <th>Reasons</th>
-                </tr>
-              </thead>
-              <tbody>
-                {shortfalls.map((interval, index) => (
-                  <tr key={index}>
-                    <th scope="row">
-                      <EvidenceTime value={interval.intervalBeginTime} />
-                      <EvidenceTime value={interval.intervalEndTime} />
-                    </th>
-                    <td className="mono">
-                      {quantity.format(interval.requestedKw)}
-                    </td>
-                    <td className="mono">
-                      {quantity.format(interval.feasibleKw)}
-                    </td>
-                    <td className="mono">
-                      {quantity.format(interval.shortfallKw)}
-                    </td>
-                    <td>{interval.reasons.join(" · ") || "None returned"}</td>
+                </thead>
+                <tbody>
+                  {constraintMargins.map((margin, index) => (
+                    <tr key={index}>
+                      <th scope="row">{margin.constraintName}</th>
+                      <td className="mono">
+                        {String(margin.margin)} {margin.units}
+                      </td>
+                      <td>
+                        {margin.intervalBeginTime ? (
+                          <EvidenceTime value={margin.intervalBeginTime} />
+                        ) : (
+                          "Not supplied"
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p>No constraint margins returned.</p>
+          )}
+        </section>
+        <section>
+          <h3>Interval feasibility</h3>
+          {shortfalls.length ? (
+            <div
+              className="explanation-scroll"
+              role="region"
+              aria-label="Interval feasibility table"
+              tabIndex={0}
+            >
+              <table aria-label="Interval feasibility">
+                <thead>
+                  <tr>
+                    <th>Window (UTC)</th>
+                    <th>Requested kW</th>
+                    <th>Feasible kW</th>
+                    <th>Shortfall kW</th>
+                    <th>Reasons</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {shortfalls.map((interval, index) => (
+                    <tr key={index}>
+                      <th scope="row">
+                        <EvidenceTime value={interval.intervalBeginTime} />
+                        <EvidenceTime value={interval.intervalEndTime} />
+                      </th>
+                      <td className="mono">
+                        {quantity.format(interval.requestedKw)}
+                      </td>
+                      <td className="mono">
+                        {quantity.format(interval.feasibleKw)}
+                      </td>
+                      <td className="mono">
+                        {quantity.format(interval.shortfallKw)}
+                      </td>
+                      <td>{interval.reasons.join(" · ") || "None returned"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p>No interval feasibility returned.</p>
+          )}
+        </section>
+        <HouseholdReserveBasis evidence={explanation.evidence} />
+        <TravelFlexEvidence evidence={explanation.evidence} />
+        <ForecastEvidence evidence={explanation.evidence} />
+        <FallbackEvidence evidence={explanation.evidence} />
+        <RegionalForecasts evidence={explanation.evidence} />
+        <ObjectiveEvidence objectiveBreakdown={objectiveBreakdown} />
+        {marginExplanation ? (
+          <EconomicMargin margin={marginExplanation} />
         ) : (
-          <p>No interval feasibility returned.</p>
+          <p className="explanation-note">
+            Economic margin evidence unavailable. Member rewards and
+            conservative incremental margin are not supplied.
+          </p>
         )}
-      </section>
-      <HouseholdReserveBasis evidence={explanation.evidence} />
-      <TravelFlexEvidence evidence={explanation.evidence} />
-      <ForecastEvidence evidence={explanation.evidence} />
-      <FallbackEvidence evidence={explanation.evidence} />
-      <RegionalForecasts evidence={explanation.evidence} />
-      <ObjectiveEvidence objectiveBreakdown={objectiveBreakdown} />
-      {marginExplanation ? (
-        <EconomicMargin margin={marginExplanation} />
-      ) : (
-        <p className="explanation-note">
-          Economic margin evidence unavailable. Member rewards and conservative
-          incremental margin are not supplied.
-        </p>
-      )}
+      </details>
     </section>
   );
 }

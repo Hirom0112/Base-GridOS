@@ -1,6 +1,15 @@
 import * as THREE from "three";
 import type { GridCell } from "./scene";
 import { buildGround, lineGeometry } from "./ground";
+import { buildHomes } from "./homes";
+import {
+  fly,
+  frameCamera,
+  placeOverlay,
+  shouldFly,
+  viewFor,
+  type View,
+} from "./camera";
 import { createRenderQuality } from "./render-quality";
 import { animateResponse } from "./response-motion";
 
@@ -28,33 +37,12 @@ export function mountGrid(host: HTMLElement, select: (id: string) => void) {
   const light = new THREE.DirectionalLight(0xffffff, 2.4);
   light.position.set(-40, 80, 30);
   scene.add(light);
-  const bodies = new THREE.MeshStandardMaterial({
-    color: 0xffffff,
-    metalness: 0.2,
-    roughness: 0.5,
-  });
-  bodies.onBeforeCompile = (shader) => {
-    shader.vertexShader = shader.vertexShader
-      .replace("void main() {", "varying float vRise;\nvoid main() {")
-      .replace(
-        "#include <begin_vertex>",
-        "#include <begin_vertex>\nvRise = position.y + 0.5;",
-      );
-    shader.fragmentShader = shader.fragmentShader
-      .replace("void main() {", "varying float vRise;\nvoid main() {")
-      .replace(
-        "#include <color_fragment>",
-        "#include <color_fragment>\ndiffuseColor.rgb *= mix(0.28, 1.15, vRise);",
-      )
-      .replace(
-        "#include <opaque_fragment>",
-        "outgoingLight += vec3(0.31, 0.94, 0.82) * pow(1.0 - abs(dot(normal, normalize(vViewPosition))), 2.6) * 0.35;\n#include <opaque_fragment>",
-      );
-  };
+  const bodies = beamMaterial();
   let cells: GridCell[] = [];
   let field = buildField([], null, bodies);
   let ground = buildGround([], () => render());
-  let span = 20;
+  let view: View = { x: 0, z: 0, span: 20, pitch: 50 };
+  let cancelFlight = () => {};
   let cancelMotion = () => {};
   scene.add(field.group, ground.group);
   let visible = true;
@@ -72,7 +60,7 @@ export function mountGrid(host: HTMLElement, select: (id: string) => void) {
     const width = host.clientWidth;
     const height = host.clientHeight;
     if (!width || !height) return;
-    frameCamera(camera, span, width / height);
+    frameCamera(camera, view, width / height);
     renderer.setSize(width, height);
     placeOverlay(overlay, camera, ground.places, width, height);
     render();
@@ -111,13 +99,27 @@ export function mountGrid(host: HTMLElement, select: (id: string) => void) {
         ground = buildGround(cells, () => render());
         scene.add(ground.group);
       }
-      span = Math.max(
-        12,
-        ...cells
-          .filter((cell) => !cell.coarse)
-          .map((cell) => Math.hypot(...cell.position) + 3),
-      );
-      resizeFrame();
+      const target = viewFor(field.cells, selected);
+      cancelFlight();
+      if (!shouldFly(view, target)) {
+        view = target;
+        resizeFrame();
+      } else {
+        overlay.classList.add("in-flight");
+        cancelFlight = fly(
+          view,
+          target,
+          (next, at) => {
+            view = next;
+            frameCamera(camera, view, host.clientWidth / host.clientHeight);
+            render(at);
+          },
+          () => {
+            overlay.classList.remove("in-flight");
+            resizeFrame();
+          },
+        );
+      }
       const changed = field.cells.flatMap((cell, index) =>
         cell.response &&
         (cell.value !== previous.get(cell.id)?.value ||
@@ -134,6 +136,7 @@ export function mountGrid(host: HTMLElement, select: (id: string) => void) {
     },
     dispose() {
       cancelMotion();
+      cancelFlight();
       resize.disconnect();
       visibility.disconnect();
       document.removeEventListener("visibilitychange", documentVisibility);
@@ -150,93 +153,21 @@ export function mountGrid(host: HTMLElement, select: (id: string) => void) {
   };
 }
 
-function frameCamera(
-  camera: THREE.PerspectiveCamera,
-  span: number,
-  aspect: number,
-) {
-  const fit = span / Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
-  const distance = fit * (aspect < 1.25 ? 1.3 / aspect : 1.02);
-  const pitch = THREE.MathUtils.degToRad(aspect < 1 ? 58 : 50);
-  const heading = THREE.MathUtils.degToRad(-14);
-  camera.aspect = aspect;
-  camera.far = distance * 4;
-  camera.position.set(
-    Math.sin(heading) * Math.cos(pitch) * distance,
-    Math.sin(pitch) * distance,
-    Math.cos(heading) * Math.cos(pitch) * distance,
-  );
-  camera.lookAt(aspect < 1 ? 0 : -span * 0.26, 0, span * 0.2);
-  camera.updateProjectionMatrix();
-}
-
-function placeOverlay(
-  overlay: HTMLElement,
-  camera: THREE.PerspectiveCamera,
-  places: { name: string; position: [number, number] }[],
-  width: number,
-  height: number,
-) {
-  const screen = (x: number, z: number) => {
-    const point = new THREE.Vector3(x, 0, z).project(camera);
-    return {
-      x: ((point.x + 1) / 2) * width,
-      y: ((1 - point.y) / 2) * height,
-    };
-  };
-  const placements = places
-    .map(({ name, position }) => ({ name, ...screen(...position) }))
-    .filter(
-      ({ x, y }) => x > 40 && x < width - 40 && y > 40 && y < height - 40,
-    );
-  const origin = screen(0, 0);
-  const north = screen(0, -10);
-  const east = screen(10, 0);
-  const pixelsPerKm = Math.hypot(east.x - origin.x, east.y - origin.y) / 10;
-  const kilometers =
-    [5, 10, 20, 40, 80].find((value) => value * pixelsPerKm >= 72) ?? 80;
-  const bearing = Math.atan2(north.x - origin.x, origin.y - north.y);
-  overlay.replaceChildren(
-    ...placements.map(({ name, x, y }) => {
-      const label = document.createElement("span");
-      label.className = "place-label";
-      label.textContent = name;
-      label.style.transform = `translate(${x}px, ${y}px)`;
-      return label;
-    }),
-    compass(bearing),
-    scaleBar(kilometers, kilometers * pixelsPerKm),
-  );
-}
-
-function compass(bearing: number) {
-  const element = document.createElement("span");
-  element.className = "field-compass";
-  element.textContent = "N";
-  element.style.setProperty("--bearing", `${bearing}rad`);
-  return element;
-}
-
-function scaleBar(kilometers: number, pixels: number) {
-  const element = document.createElement("span");
-  element.className = "field-scale";
-  element.textContent = `${kilometers} km`;
-  element.style.width = `${Math.round(pixels)}px`;
-  return element;
-}
-
 function buildField(
   cells: GridCell[],
   selected: string | null,
-  bodies: THREE.MeshStandardMaterial,
+  bodies: THREE.MeshBasicMaterial,
 ) {
   const group = new THREE.Group();
   const fine = cells.filter((cell) => !cell.coarse);
   const plates = new THREE.InstancedMesh(
     plate,
-    new THREE.MeshBasicMaterial({ color: 0x0d1628 }),
+    new THREE.MeshBasicMaterial({ color: 0xffffff }),
     fine.length,
   );
+  const tallest = Math.max(0, ...fine.map((cell) => cell.height));
+  const strength = (cell: GridCell) =>
+    tallest > 0 ? cell.height / tallest : 0;
   const columns = new THREE.InstancedMesh(hexagon, bodies, fine.length);
   const matrix = new THREE.Object3D();
   const edges: number[] = [];
@@ -251,12 +182,21 @@ function buildField(
     plates.setMatrixAt(index, matrix.matrix);
     const height = Math.max(cell.height, 0.001);
     matrix.position.set(x, height / 2, z);
-    matrix.scale.set(radius * cell.footprint, height, radius * cell.footprint);
+    matrix.scale.set(radius * 0.12, height, radius * 0.12);
     matrix.updateMatrix();
     columns.setMatrixAt(index, matrix.matrix);
     const tone = cellTone(cell, selected);
-    columns.setColorAt(index, tone.body);
-    if (cell.height > 0) outlineColumn(cell, tone.edge, edges, edgeColors);
+    columns.setColorAt(index, tone.edge);
+    plates.setColorAt(
+      index,
+      new THREE.Color(0x0b1424).lerp(new THREE.Color(0x1f7a80), strength(cell)),
+    );
+    outlinePad(
+      cell,
+      tone.edge.clone().multiplyScalar(0.3 + 0.7 * strength(cell)),
+      edges,
+      edgeColors,
+    );
   }
   const lines = new THREE.LineSegments(
     lineGeometry(edges, edgeColors),
@@ -269,7 +209,8 @@ function buildField(
     }),
   );
   const privacy = coarseOutlines(cells.filter((cell) => cell.coarse));
-  group.add(plates, columns, lines, privacy);
+  const homes = buildHomes(fine, strength);
+  group.add(plates, homes.group, columns, lines, privacy);
   return {
     group,
     cells: fine,
@@ -283,6 +224,7 @@ function buildField(
       lines.material.dispose();
       privacy.geometry.dispose();
       privacy.material.dispose();
+      homes.dispose();
     },
   };
 }
@@ -329,7 +271,7 @@ function cellRotation(cell: GridCell) {
     : 0;
 }
 
-function outlineColumn(
+function outlinePad(
   cell: GridCell,
   color: THREE.Color,
   edges: number[],
@@ -337,23 +279,13 @@ function outlineColumn(
 ) {
   const [x, z] = cell.position;
   const corners = cell.boundary.map(([cx, cz]) => [
-    x + (cx - x) * cell.footprint,
-    z + (cz - z) * cell.footprint,
+    x + (cx - x) * 0.96,
+    z + (cz - z) * 0.96,
   ]);
-  const dim = color.clone().multiplyScalar(0.28);
   for (const [index, [ax = 0, az = 0]] of corners.entries()) {
     const [bx = 0, bz = 0] = corners[(index + 1) % corners.length] ?? [];
-    edges.push(ax, cell.height, az, bx, cell.height, bz);
+    edges.push(ax, 0.05, az, bx, 0.05, bz);
     colors.push(color.r, color.g, color.b, color.r, color.g, color.b);
-    edges.push(ax, 0, az, ax, cell.height, az);
-    colors.push(
-      dim.r,
-      dim.g,
-      dim.b,
-      color.r * 0.5,
-      color.g * 0.5,
-      color.b * 0.5,
-    );
   }
 }
 
@@ -447,4 +379,28 @@ function bindPointer(
       chip.remove();
     },
   };
+}
+
+function beamMaterial() {
+  const material = new THREE.MeshBasicMaterial({
+    color: 0xffffff,
+    transparent: true,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+  });
+  material.onBeforeCompile = (shader) => {
+    shader.vertexShader = shader.vertexShader
+      .replace("void main() {", "varying float vRise;\nvoid main() {")
+      .replace(
+        "#include <begin_vertex>",
+        "#include <begin_vertex>\nvRise = position.y + 0.5;",
+      );
+    shader.fragmentShader = shader.fragmentShader
+      .replace("void main() {", "varying float vRise;\nvoid main() {")
+      .replace(
+        "#include <color_fragment>",
+        "#include <color_fragment>\ndiffuseColor.a *= mix(0.8, 0.0, vRise);",
+      );
+  };
+  return material;
 }

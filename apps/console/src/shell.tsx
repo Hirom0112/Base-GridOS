@@ -44,7 +44,9 @@ export function Shell({
           Greater Austin <span className="mono">/ LZ_AEN</span>
         </span>
         <span className="scenario mono">
-          {observedAt ?? "Scenario time unavailable"}
+          {observedAt
+            ? `${observedAt.slice(11, 19)} UTC`
+            : "Scenario time unavailable"}
         </span>
         <span className="mode-chip">SIMULATED</span>
         <button
@@ -75,16 +77,7 @@ export function Shell({
             ? "Fleet observation recorded"
             : "Fleet state unavailable"}
         </strong>
-        <span>{eventId ?? "No event selected"}</span>
         <span className="mono">SIMULATED</span>
-        <span>
-          {observedAt ? "Freshness shown per aggregate" : "Freshness unknown"}
-        </span>
-        <span className="truth-tail">
-          {observedAt
-            ? "Acknowledgement is not delivery"
-            : "Awaiting server evidence"}
-        </span>
       </footer>
     </div>
   );
@@ -146,10 +139,12 @@ function OperatingRail({
           </Link>
         </div>
       )}
-      <div className="event-thread">
-        <p className="eyebrow">Event thread</p>
-        <p>{eventId ?? "No event selected"}</p>
-      </div>
+      {eventId && (
+        <div className="event-thread">
+          <p className="eyebrow">Event</p>
+          <p className="mono">{eventId.slice(0, 8)}</p>
+        </div>
+      )}
     </nav>
   );
 }

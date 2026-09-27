@@ -1,14 +1,15 @@
 .local-session {
-  background: #101a2e;
-  color: #b3bfd3;
+  background: #04070d;
+  color: #8492ad;
   font:
-    12px "Geist Mono Variable",
+    11px "Geist Mono Variable",
     monospace;
-  padding: 7px 24px;
+  padding: 4px 24px;
   display: flex;
   align-items: center;
   gap: 24px;
-  min-height: 38px;
+  min-height: 30px;
+  border-bottom: 1px solid #1a2540;
 }
 .local-session > span {
   margin-right: auto;
@@ -101,8 +102,8 @@
 }
 .aggregate-evidence {
   display: flex;
-  flex-direction: column;
-  gap: 3px;
+  flex-wrap: wrap;
+  gap: 2px 10px;
   color: var(--paper-2);
   font-size: 11px;
   line-height: 1.65;
@@ -282,16 +283,6 @@
   margin: 20px 0;
   color: var(--paper-2);
   overflow-wrap: anywhere;
-}
-.event-links {
-  display: flex;
-  gap: 24px;
-  border-block: 1px solid var(--ink-3);
-  padding-block: 15px;
-  font-size: 14px;
-}
-.event-links a[aria-current="page"] {
-  color: var(--energy);
 }
 .event-summary {
   display: grid;
@@ -483,4 +474,66 @@
   .section-heading {
     flex-wrap: wrap;
   }
+}
+.evidence-drawer {
+  margin-top: 28px;
+  border-top: 1px solid var(--ink-3);
+}
+.evidence-drawer > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 0;
+  cursor: pointer;
+  list-style: none;
+  font-size: 14px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--paper-1);
+}
+.evidence-drawer > summary::-webkit-details-marker {
+  display: none;
+}
+.evidence-drawer > summary::after {
+  content: "+" / "";
+  font-size: 20px;
+  font-weight: 200;
+  color: var(--energy);
+}
+.evidence-drawer[open] > summary::after {
+  content: "−" / "";
+}
+.evidence-drawer[open] > summary {
+  color: var(--paper-0);
+}
+.evidence-drawer > :not(summary) + :not(summary) {
+  margin-top: 28px;
+}
+.event-panel {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+}
+.event-panel .section-heading h2 {
+  font-size: clamp(28px, 3vw, 40px);
+  font-weight: 200;
+  letter-spacing: -0.03em;
+}
+.event-links {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--ink-3);
+  border-radius: var(--radius-md);
+}
+.event-links a {
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  color: var(--paper-1);
+}
+.event-links a[aria-current="page"],
+.event-links a.active {
+  background: var(--ink-2);
+  color: var(--paper-0);
 }

@@ -17,7 +17,7 @@ test("geography is evidenced, keyboard accessible, and survives route navigation
       clerkRequests.push(request.url());
   });
   await page.goto("/fleet");
-  await expect(page.getByText("320 H3 cells · LZ_AEN")).toBeVisible();
+  await expect(page.getByText("320 cells ↓")).toBeVisible();
   await expect(page.locator("canvas")).toHaveCount(1);
   const canvas = await page.locator("canvas").elementHandle();
   await page.getByText("Inspect the geographic data").click();

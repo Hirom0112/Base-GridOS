@@ -34,7 +34,7 @@ describe("Provenance", () => {
           provenanceNames[provenance as keyof typeof provenanceNames],
         ),
       ).toBeVisible();
-      expect(screen.getByText(/2s old at observation/)).toBeVisible();
+      expect(screen.getByText("2s old")).toBeVisible();
       expect(screen.getByText(/2026-08-12/)).toBeVisible();
     },
   );

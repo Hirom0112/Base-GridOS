@@ -52,22 +52,25 @@ export function Evidence({
   ).toISOString();
   return (
     <div className="aggregate-evidence">
+      {provenanceMix.map((share) => (
+        <span className="provenance-share" key={share.provenance}>
+          <span>{provenanceNames[share.provenance]}</span> ·{" "}
+          {share.recordCount.toLocaleString()} records
+        </span>
+      ))}
+      <span>{age(Number(freshness.seconds) + freshness.nanos / 1e9)} old</span>
       <time dateTime={observed}>
-        {observed.replace("T", " ").replace(".000Z", " UTC")}
+        {observed.slice(0, 16).replace("T", " ")} UTC
       </time>
-      <span>
-        {Number(freshness.seconds) + freshness.nanos / 1e9}s old at observation
-      </span>
-      <span>
-        {provenanceMix.map((share) => (
-          <span className="provenance-share" key={share.provenance}>
-            <span>{provenanceNames[share.provenance]}</span> ·{" "}
-            {share.recordCount.toLocaleString()} records
-          </span>
-        ))}
-      </span>
     </div>
   );
+}
+
+function age(seconds: number) {
+  if (seconds < 60) return `${Math.round(seconds)}s`;
+  if (seconds < 3600) return `${Math.round(seconds / 60)}m`;
+  if (seconds < 86400) return `${Math.round(seconds / 3600)}h`;
+  return `${Math.round(seconds / 86400)}d`;
 }
 
 export function Quantity({

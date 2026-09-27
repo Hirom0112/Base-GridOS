@@ -2,6 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { fromJsonString } from "@bufbuild/protobuf";
 import { GetPlanExplanationResponseSchema } from "../src/api/gen/gridos/v1/api_pb";
 import { ReserveOverrideReason } from "../src/api/gen/gridos/v1/member_policy_pb";
+import { openEvidence } from "./recorded-api";
 
 test.use({
   baseURL: process.env.GRIDOS_DEMO_CONSOLE_URL ?? "http://127.0.0.1:3000",
@@ -45,6 +46,10 @@ async function reviewFrozenPlan(page: Page, eventId: string) {
     await expect(
       page.getByRole("heading", { name: "Safety validated" }),
     ).toBeVisible();
+    await expect(
+      page.getByRole("region", { name: "Optimization explanation" }),
+    ).toBeVisible({ timeout: 15000 });
+    await openEvidence(page);
     const manifest = page.getByRole("region", {
       name: "Frozen plan inputs",
       exact: true,
@@ -181,6 +186,7 @@ async function approveAndLaunch(page: Page) {
 
 async function verifyExecution(page: Page, end: number) {
   await test.step("10 Inspect persisted commands and gateway receipts", async () => {
+    await openEvidence(page);
     const commands = page.getByRole("region", {
       name: "Command fan-out",
       exact: true,

@@ -96,11 +96,8 @@ export function UnsafeAlternative({
       <h3>Independent safety check</h3>
       {available ? (
         <p>
-          This validation-only example copies the stored schedules and changes
-          the first interval of {schedules![0]!.deviceId} from{" "}
-          {schedules![0]!.intervals[0]!.setpointKw} kW to 1,000,000 kW. The
-          stored plan and household reserves stay unchanged. No dispatch
-          commands are sent.
+          Push one device to 1,000,000 kW and confirm the gate rejects it.
+          Nothing is sent.
         </p>
       ) : (
         <p>

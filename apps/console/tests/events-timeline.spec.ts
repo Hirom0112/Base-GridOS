@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
-import { recordedApi } from "./recorded-api";
+import { openEvidence, recordedApi } from "./recorded-api";
 
 for (const width of [390, 768, 1440]) {
   for (const theme of ["dark", "light"]) {
@@ -12,6 +12,7 @@ for (const width of [390, 768, 1440]) {
       await page.goto("/events/event_austin_wave2_live_0002");
       if (theme === "light")
         await page.getByRole("button", { name: "Use light theme" }).click();
+      await openEvidence(page);
       const records = page.getByRole("list", { name: "Server audit timeline" });
       await expect(records.getByRole("listitem")).toHaveCount(15);
       await expect(records).toContainText("Safety validated → Approved");
@@ -46,6 +47,7 @@ test("event records remain available with reduced motion and no WebGL", async ({
     HTMLCanvasElement.prototype.getContext = () => null;
   });
   await page.goto("/events/event_austin_wave2_live_0002");
+  await openEvidence(page);
   await expect(
     page
       .getByRole("list", { name: "Server audit timeline" })

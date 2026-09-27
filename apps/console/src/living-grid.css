@@ -433,3 +433,26 @@
 .fleet-view .fleet-quantities .aggregate-evidence {
   display: none;
 }
+.legend-mark.homes {
+  width: 12px;
+  height: 10px;
+  margin-inline: 5px;
+  border: 0;
+  background: #ffc27a;
+  clip-path: polygon(50% 0, 100% 45%, 100% 100%, 0 100%, 0 45%);
+}
+.field-overlay {
+  transition: opacity var(--motion-ui) var(--ease-ui);
+}
+.field-overlay.in-flight {
+  opacity: 0;
+}
+.field-legend .field-footer {
+  display: block;
+  padding: 6px 0 0;
+  border: 0;
+  border-top: 1px solid var(--ink-3);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: var(--paper-2);
+}

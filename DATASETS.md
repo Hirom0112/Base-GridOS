@@ -402,3 +402,11 @@ response, and anomaly events for simulation. Backtests may join these synthetic
 behaviors to public market, load, weather, and outage history, but every result
 must remain `SIMULATED` or `DERIVED` as appropriate. Public aggregate load must
 not be used to infer whether a real household is occupied.
+
+## Console ground imagery
+
+`apps/console/src/fleet/austin-ground.jpg` is a 1536×1344 composite for the 3D field and map ground, covering latitude 29.6–31.0 and longitude −98.55 to −96.95 in EPSG:4326.
+
+- VIIRS Black Marble night lights from NASA GIBS WMS (`LAYERS=VIIRS_Black_Marble`). NASA imagery, public domain.
+- ASTER GDEM greyscale shaded relief from NASA GIBS WMS (`LAYERS=ASTER_GDEM_Greyscale_Shaded_Relief`). NASA/METI ASTER GDEM, free use with attribution.
+- Fetched 2026-09-27 at 2048×1792, then blurred, tinted navy with warm lights, and resized. Decorative context only: no fleet, price or outage value is read from it.

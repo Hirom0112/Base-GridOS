@@ -25,11 +25,19 @@ export function mountMap(
     zoom: 9,
     pitch: 0,
     bearing: 0,
+    maxBounds: [
+      [-98.55, 29.6],
+      [-96.95, 31.0],
+    ],
+    minZoom: 8.5,
+    maxZoom: 13,
+    dragRotate: false,
+    pitchWithRotate: false,
+    renderWorldCopies: false,
     pixelRatio: Math.min(devicePixelRatio, 1.5),
     attributionControl: false,
-    maxPitch: 60,
   });
-  map.addControl(new NavigationControl({ visualizePitch: true }), "top-right");
+  map.addControl(new NavigationControl({ showCompass: false }), "top-right");
   map.addControl(new ScaleControl({ unit: "metric" }), "bottom-right");
   let ready = false;
   let fitted = false;

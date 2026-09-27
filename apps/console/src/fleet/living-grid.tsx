@@ -85,10 +85,6 @@ export default function LivingGrid({
     >
       <div className="grid-stage">
         <div className="field-controls">
-          <div className="field-header">
-            <span className="eyebrow">The Living Grid</span>
-            <span className="mono">{cells.length} H3 cells · LZ_AEN</span>
-          </div>
           <FieldMeasure
             measure={measure}
             onChange={setMeasure}
@@ -109,14 +105,10 @@ export default function LivingGrid({
           <Relief cells={projection.cells} />
         )}
         <div className="webgl-host" ref={host} />
-        <FieldLegend measure={measure} />
+        <FieldLegend measure={measure} provenance={provenance} />
         <div className="spatial-caption">
           <span className="mono">{mode}</span>
         </div>
-      </div>
-      <div className="field-footer">
-        <span>Source</span>
-        <span>{provenance}</span>
       </div>
       <GeographicTable
         cells={projection.error ? [] : cells}
@@ -289,7 +281,8 @@ function fleetLine(cells: H3SiteAggregate[]) {
 }
 const legendEntries = {
   installed: [
-    ["field", "Taller = more capacity"],
+    ["field", "Beam height = capacity per km²"],
+    ["homes", "Houses = 1–3 by battery count"],
     ["privacy", "Grouped for privacy"],
   ],
   sent: [["sent", "Command intent (sent)"]],
@@ -297,7 +290,13 @@ const legendEntries = {
   delivered: [["delivered", "Delivered (measured)"]],
 } as const;
 
-function FieldLegend({ measure }: { measure: z.infer<typeof measureSchema> }) {
+function FieldLegend({
+  measure,
+  provenance,
+}: {
+  measure: z.infer<typeof measureSchema>;
+  provenance: string;
+}) {
   return (
     <ul className="field-legend" aria-label="Field key">
       {legendEntries[measure].map(([key, label]) => (
@@ -306,6 +305,7 @@ function FieldLegend({ measure }: { measure: z.infer<typeof measureSchema> }) {
           {label}
         </li>
       ))}
+      <li className="field-footer mono">{provenance}</li>
     </ul>
   );
 }

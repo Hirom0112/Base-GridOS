@@ -170,5 +170,5 @@ test("the historical field rejects a current response instead of displaying it",
   ).toContainText("requested replay time");
   await expect(
     page.getByRole("region", { name: "Living Grid geography" }),
-  ).toContainText("0 H3 cells");
+  ).toContainText("0 cells");
 });
