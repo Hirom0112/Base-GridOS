@@ -1941,3 +1941,14 @@ setting as headroom, not as the fix. The historical geo call also hung
 control at full CPU during the outage; root checks the as_of path for a
 loop over stale observations while fixing the lock (2A.11 must include a
 timing bound on the as_of query).
+
+## 2026-09-27 08:22Z — 2A.11 verified
+
+RED fb394fb (test only, "gateway batch bypassed gateway lock") then GREEN
+d89e865: the ingest transaction takes one advisory lock keyed
+`telemetry:gateway:<id>` instead of one per device; the dedup path is
+unchanged. `go test ./services/control/internal/storage -run Telemetry
+-count=1` ok (1.151s) here. Root's hook could only pass once the demo
+gateway was stopped, because the failing 5,000-lock retries were the lock
+pressure. Marked done; the demo is rebuilt on d89e865 and telemetry flow is
+the readiness check.

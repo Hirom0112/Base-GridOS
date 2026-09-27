@@ -906,7 +906,7 @@ Owns: `services/control/internal/dispatch/`, `services/control/cmd/worker`,
 `services/control/internal/api/` root package only (to retire the Wave 1 dispatcher; `internal/api/events/` is 2F's),
 `services/control/go.mod` (Wave 2 owner).
 
-- `[ ]` 2A.11 `[P]` Telemetry ingest lock per gateway. `PublishTelemetry` takes one
+- `[x]` 2A.11 `[P]` Telemetry ingest lock per gateway. `PublishTelemetry` takes one
   advisory transaction lock keyed by gateway id instead of one per device,
   so a 5,000-device batch cannot exhaust the PostgreSQL lock table, batches
   from one gateway still serialize, and sequence dedup stays exact. Verify:
