@@ -69,11 +69,10 @@ if [ -n "$go_files" ]; then
     printf '%s %s\n' "$mod" "$root/$dir" >> "$pairs"
   done
   for mod in $(cut -d' ' -f1 "$pairs" | sort -u); do
-    [ "$tests_only" -eq 0 ] || continue
     pkgs=$(grep "^$mod " "$pairs" | cut -d' ' -f2 | sort -u | sed "s#^$mod#.#" | tr '\n' ' ')
     (cd "$mod" && go vet $pkgs) || fail "go vet"
     (cd "$mod" && golangci-lint run --config "$root/.golangci.yml" $pkgs) || fail "golangci-lint"
-    (cd "$mod" && go test -count=1 -short -timeout 90s $pkgs) || fail "go test (staged packages)"
+    [ "$tests_only" -eq 1 ] || (cd "$mod" && go test -count=1 -short -timeout 90s $pkgs) || fail "go test (staged packages)"
   done
   rm -f "$pairs"
 fi

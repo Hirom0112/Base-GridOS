@@ -1037,3 +1037,10 @@ assumptions reported by workers land here too.
   plan and Travel Flex offers, plan selection, Travel Flex scheduling and
   early end, and an alert list carrying the fixed anomaly text. Director:
   fixture validator ok, thirteen files inspected.
+- **Hook tightened (director, 2026-09-27):** a tests-only commit skipped
+  vet and lint as well as execution, which let an over-ceiling test
+  function land unseen in a RED commit (found by lane 4F when its next
+  implementation commit tripped the ceiling). The hook now runs vet and
+  golangci-lint on every staged Go package and skips only test execution
+  for tests-only commits. Proven with a scratch nested test that the hook
+  rejected as a tests-only commit; scratch removed.
