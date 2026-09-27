@@ -17,7 +17,6 @@ import (
 	"connectrpc.com/connect"
 	gridosv1 "github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1"
 	"github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1/gridosv1connect"
-	"github.com/Hirom0112/Base-GridOS/tests/integration/stepup"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	_ "modernc.org/sqlite"
@@ -228,9 +227,9 @@ func approveEvent(t *testing.T, ctx context.Context, client gridosv1connect.Disp
 	request.Header().Set("X-GridOS-Role", "approver")
 	key := os.Getenv("GRIDOS_STEP_UP_KEY")
 	if key == "" {
-		key = stepup.LocalStepUpKey
+		key = localStepUpKey
 	}
-	assertion, err := stepup.SignStepUpAssertion(key, "approver", "APPROVE_EVENT", eventID, 1, time.Now())
+	assertion, err := signStepUpAssertion(key, "approver", "APPROVE_EVENT", eventID, 1, time.Now())
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -6,7 +6,6 @@ require (
 	connectrpc.com/connect v1.21.0
 	github.com/Hirom0112/Base-GridOS/contracts/gen/go v0.0.0
 	github.com/Hirom0112/Base-GridOS/services/control v0.0.0
-	github.com/Hirom0112/Base-GridOS/tests/integration v0.0.0
 	github.com/jackc/pgx/v5 v5.11.0
 	google.golang.org/protobuf v1.36.12
 	modernc.org/sqlite v1.59.0
@@ -32,5 +31,3 @@ require (
 replace github.com/Hirom0112/Base-GridOS/contracts/gen/go => ../../contracts/gen/go
 
 replace github.com/Hirom0112/Base-GridOS/services/control => ../../services/control
-
-replace github.com/Hirom0112/Base-GridOS/tests/integration => ../integration
