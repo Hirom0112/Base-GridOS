@@ -82,3 +82,45 @@ test("unknown measured cell power remains a gap even with a numerical payload", 
     projectResponse(projectCells([cell]), response, "delivered")[0]?.value,
   ).toBeNull();
 });
+
+test("height encodes capacity density so privacy-coarsened parents stay low", async () => {
+  const { cellToParent } = await import("h3-js");
+  const fine = create(H3SiteAggregateSchema, {
+    h3Cell: "874898431ffffff",
+    siteCount: 12n,
+    installedMw: { value: 0.1, metadata },
+  });
+  const coarse = { ...fine, h3Cell: cellToParent(fine.h3Cell, 4) };
+  const [projectedFine, projectedCoarse] = projectCells([fine, coarse]);
+  expect(projectedFine?.coarse).toBe(false);
+  expect(projectedCoarse?.coarse).toBe(true);
+  expect(projectedFine!.height / projectedCoarse!.height).toBeCloseTo(
+    projectedCoarse!.area / projectedFine!.area,
+    6,
+  );
+  expect(projectedFine?.footprint).toBe(projectedCoarse?.footprint);
+});
+
+test("ground frame supplies a finite lattice, fleet outline and real nearby places", async () => {
+  const { fieldGround } = await import("./scene");
+  const austin = create(H3SiteAggregateSchema, {
+    h3Cell: "87489e346ffffff",
+    siteCount: 12n,
+    installedMw: { value: 0.1, metadata },
+  });
+  const cells = projectCells([austin]);
+  const ground = fieldGround(cells);
+  expect(ground.lattice.length).toBeGreaterThan(100);
+  expect(ground.lattice.flat(2).every(Number.isFinite)).toBe(true);
+  expect(ground.outline).toHaveLength(1);
+  expect(ground.outline[0]).toHaveLength(6);
+  expect(ground.imagery.west).toBeLessThan(0);
+  expect(ground.imagery.east).toBeGreaterThan(0);
+  expect(ground.imagery.north).toBeLessThan(0);
+  expect(ground.imagery.south).toBeGreaterThan(0);
+  expect(ground.places.map((place) => place.name)).toContain("Austin");
+  expect(ground.places.map((place) => place.name)).not.toContain("San Antonio");
+  expect(
+    ground.places.flatMap((place) => place.position).every(Number.isFinite),
+  ).toBe(true);
+});

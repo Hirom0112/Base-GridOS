@@ -50,7 +50,7 @@ test("refreshes geography without replacing the renderer or losing selection", a
   expect(engine.dispose).not.toHaveBeenCalled();
   expect(engine.update).toHaveBeenLastCalledWith(
     expect.arrayContaining([
-      expect.objectContaining({ id: cell.h3Cell, height: 3.6 }),
+      expect.objectContaining({ id: cell.h3Cell, value: 0.2 }),
     ]),
     cell.h3Cell,
   );
