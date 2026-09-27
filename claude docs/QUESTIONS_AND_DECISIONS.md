@@ -2067,3 +2067,18 @@ binding, and the explanation serves the plan-selected effective reserve.
 `go test ./services/control/internal/api -run 'ReserveBasis|Explanation'`
 ok (1.378s) here. The fixture recording waits for the demo rebuild on
 c47f87a after the steps 11/12 proof window closes.
+
+## 2026-09-27 09:05Z — Steps 11/12 on the demo: live faults last one tick
+
+Second proof event live-proof-1790499234 (window from 08:54:24Z, gateway
+re-armed): MISSING_TELEMETRY appeared at 08:55:30Z for one device with
+exactly one missing observation, the device resumed on the next cadence,
+and the verification tick at 08:59:24Z found it fresh, so no recovery ran
+and, with no replacement command, the delayed next-command fault never had
+a command to delay: no UNCERTAIN, RETRY or REBALANCE. In the integration
+test the compressed clock hides this because the tick lands inside the
+one-tick gap. Decision: 2A.13 makes live per-device faults persist until
+the end of the live window; determinism unchanged; canonical scenario
+proven three times isolated and once on the standing demo. Root owns it
+after the 4C.9 fixture seed. The demo is rebuilt on c47f87a now and root's
+exclusive seeding window opens.
