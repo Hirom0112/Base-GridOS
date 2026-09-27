@@ -82,6 +82,23 @@ export function RegionalForecasts({
   const missing = [...new Set(values.unavailableSources)];
   return (
     <>
+      <section aria-label="Dispatch window ranking">
+        <h3>Dispatch window ranking unavailable</h3>
+        <p>
+          Interval-matched regional load is not supplied in the frozen input.
+        </p>
+        {!values.regionalPrices.length && (
+          <p>Frozen regional prices unavailable.</p>
+        )}
+        {!values.outageRisks.length && (
+          <p>Frozen outage probabilities unavailable.</p>
+        )}
+        <p>
+          Window scoring requires matching price, regional load, outage
+          probability, and feasible capacity. Historical context cannot
+          substitute for missing event-window inputs.
+        </p>
+      </section>
       <ForecastSeries
         title="Frozen regional prices"
         subjectLabel="Load zone"
