@@ -1319,3 +1319,9 @@ assumptions reported by workers land here too.
   TypeScript bindings into a temporary app tree from the checked-in
   contracts before running the console tests, matching the Go, Python,
   and container boundaries: no host generation step on a fresh checkout.
+- **Span identity fallback (5C, 2026-09-27):** the privacy validator
+  rejects any exported identifier containing travel or away words, and a
+  test-authored event id "travel-flex-..." tripped it inside an activity.
+  Rule: an activity never fails on a trace attribute; an identifier that
+  fails the validator is replaced on the span by a stable derived value
+  (a SHA-256 prefix) marked as derived, and the scrub boundary stays.
