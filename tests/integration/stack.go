@@ -102,7 +102,7 @@ func startStack(t *testing.T, scenarioName string) *stack {
 	stack.pool = pool
 	decisionAddress, gatewayAddress, controlAddress := freeAddress(t), freeAddress(t), freeAddress(t)
 	stack.decisionURL, stack.gatewayURL, stack.controlURL = "http://"+decisionAddress, "http://"+gatewayAddress, "http://"+controlAddress
-	var decisionEnv []string
+	decisionEnv := []string{"GRIDOS_DECISION_METRICS_ADDRESS=127.0.0.1:0"}
 	if scenario.Name == "optimizer-timeout-fallback" {
 		decisionEnv = []string{"GRIDOS_SOLVER_BUDGET_SECONDS=0.000001"}
 	}
@@ -110,9 +110,10 @@ func startStack(t *testing.T, scenarioName string) *stack {
 		decisionEnv = append(decisionEnv, "GRIDOS_PUBLIC_FIXTURES_DIR="+writeNegativePriceFixture(t, stack.logDir, scenario))
 	}
 	stack.start(t, "decision", decisionAddress, decisionEnv, "uv", "run", "--project", "services/decision", "python", "-m", "gridos.server", "--port", port(t, decisionAddress))
-	stack.start(t, "gateway", gatewayAddress, []string{"GRIDOS_GATEWAY_TOKEN=" + gatewayToken}, built.gateway,
+	stack.start(t, "gateway", gatewayAddress, []string{"GRIDOS_GATEWAY_TOKEN=" + gatewayToken, "GRIDOS_GATEWAY_METRICS_ADDRESS=127.0.0.1:0"}, built.gateway,
 		"--scenario", runtimeScenarioPath, "--address", gatewayAddress, "--database", stack.gatewayDB, "--gateway-id", gatewayID, "--cadence", "5s", "--control-address", stack.controlURL)
 	controlEnv := []string{
+		"GRIDOS_CONTROL_METRICS_ADDRESS=127.0.0.1:0",
 		"GRIDOS_CONTROL_ADDRESS=" + controlAddress, "GRIDOS_DATABASE_URL=" + stack.databaseURL, "GRIDOS_GATEWAY_ADDR=" + stack.gatewayURL,
 		"GRIDOS_DECISION_ADDR=" + stack.decisionURL, "GRIDOS_FLEET=" + scenario.Fleet.Path, "GRIDOS_GATEWAY_TOKEN=" + gatewayToken, "TEMPORAL_ADDRESS=" + temporalAddress,
 		"GRIDOS_TASK_QUEUE=" + name, "GRIDOS_SCENARIO=" + runtimeScenarioPath, "GRIDOS_STEP_UP_KEY=gridos-local-step-up-key-32-bytes-minimum",
@@ -121,7 +122,8 @@ func startStack(t *testing.T, scenarioName string) *stack {
 		controlEnv = append(controlEnv, "GRIDOS_PUBLIC_CONTEXT_DIR="+writeWeatherRiskFixture(t, root, stack.logDir))
 	}
 	stack.start(t, "control", controlAddress, controlEnv, built.control)
-	stack.start(t, "worker", "", controlEnv, built.worker)
+	workerEnv := append(append([]string{}, controlEnv...), "GRIDOS_WORKER_METRICS_ADDRESS=127.0.0.1:0")
+	stack.start(t, "worker", "", workerEnv, built.worker)
 	for _, name := range []string{"decision", "gateway", "control"} {
 		stack.waitListening(t, name, stack.processes[name].address)
 	}
