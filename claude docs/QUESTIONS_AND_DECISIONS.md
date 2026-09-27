@@ -2282,7 +2282,7 @@ the lane's twelve corrections printed `2 failed`, `76 passed (1.1m)`:
 audit records at 390 in dark, and the dispatch-flow confirmations at 390;
 posted for correction.
 
-## 2026-09-27 10:12Z — Recorded console gate GREEN
+## 2026-09-27 10:05Z — Recorded console gate GREEN
 
 The two remaining failures were document reloads: the console lane's
 traces showed the Vite dev server reconnecting mid-test while root's
