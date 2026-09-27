@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { render, screen } from "@testing-library/react";
 import { expect, test } from "vitest";
+import { z } from "zod";
 import { ReportEvidence } from "./report";
 
 function fixture(variant = "") {
@@ -82,4 +83,48 @@ test("partner rejects a private report response", () => {
     "Report evidence is invalid",
   );
   expect(screen.queryByText(/REWARD_LEDGER/)).not.toBeInTheDocument();
+});
+
+test("zero coverage withholds delivery while measured zero remains valid", () => {
+  const report = z.record(z.string(), z.unknown()).parse(JSON.parse(fixture()));
+  const delivered = {
+    DeliveredMW: 0,
+    DeliveredMWh: 0,
+    Completeness: 1,
+    TrackingErrorMW: -1,
+    ResponseLatency: 0,
+  };
+  const json = (completeness: number) =>
+    JSON.stringify({
+      ...report,
+      DataGaps: [],
+      Delivered: { ...delivered, Completeness: completeness },
+    });
+  const { rerender } = render(
+    <ReportEvidence eventId="event-report-a" role="operator" json={json(1)} />,
+  );
+  expect(screen.getByText("Delivered power").parentElement).toHaveTextContent(
+    "0.000 MW",
+  );
+  expect(screen.getByText("Delivered energy").parentElement).toHaveTextContent(
+    "0.000 MWh",
+  );
+  expect(screen.getByText("Tracking error").parentElement).toHaveTextContent(
+    "-1.000 MW",
+  );
+  rerender(
+    <ReportEvidence eventId="event-report-a" role="operator" json={json(0)} />,
+  );
+  for (const label of [
+    "Delivered power",
+    "Delivered energy",
+    "Tracking error",
+  ]) {
+    expect(screen.getByText(label).parentElement).toHaveTextContent(
+      "Unavailable",
+    );
+  }
+  expect(
+    screen.getByText("Measurement completeness").parentElement,
+  ).toHaveTextContent("0.000 %");
 });
