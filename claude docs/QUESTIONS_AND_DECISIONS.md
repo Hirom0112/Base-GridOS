@@ -1543,3 +1543,18 @@ GREEN for the new scope lands, at the Gate 5 window.
 printed nothing (exit 0) on d421e8b, which adds `sqlc generate` to the
 generate target and commits the regenerated models. Marked done. The README
 quickstart therefore lists sqlc among the prerequisites (lane 5F).
+
+## 2026-09-27 05:06Z — 2B.10 and 2F.11 verified
+
+Independent rerun on an isolated stack:
+`GRIDOS_DATABASE_URL=... GOFLAGS=-p=1 go test ./tests/integration/ -run '^TestHeatEventCanonical$' -count=1 -timeout 10m -v`
+printed `--- PASS: TestHeatEventCanonical (115.53s)` and
+`ok github.com/Hirom0112/Base-GridOS/tests/integration 115.940s`. The test
+hard-fails without MISSING, UNCERTAIN, RETRY, REMOVE_STALE_CAPACITY and
+REBALANCE exception entries and checks WatchEvent parity with the timeline.
+Focused verifies: `-run Recovery` in dispatch (TestRecoveryReplacesDroppedDeviceOnce)
+and `-run Exceptions` in api/events (TestExceptionsFromDurableEvidence) both
+ok. Every RED commit in the trail (214ca9a, 721d63b, 4a0c0c2, 00e4175,
+7aa9477, dbbab2f, 1c64c3a, 0b829e4) stages test files only. Both items
+marked done; Wave 2 backend is closed. The standing demo gateway binary
+predates the next_command scope and gets rebuilt next.

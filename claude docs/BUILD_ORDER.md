@@ -930,7 +930,7 @@ Owns: `services/control/internal/dispatch/`, `services/control/cmd/worker`,
   physical intent (FULL_SPEC §10 "Resume an in-flight event"). Verify: `go test ./services/control/tests -run WorkerRestart` passes.
 - `[x]` 2B.7 `[after 2B.6]` Remove the Wave 1 straight-line dispatcher from
   `internal/api` and report the stub as retired. Verify: `grep -rn REPLACED-IN-WAVE-2 services` prints nothing.
-- `[ ]` 2B.10 `[after 2B.9]` Automatic recovery inside the envelope.
+- `[x]` 2B.10 `[after 2B.9]` Automatic recovery inside the envelope.
   Nothing in production ever sends the replacement signal; recovery
   exists only in tests. At each VerifyDelivery interval during EXECUTING
   the workflow identifies dropped devices (telemetry MISSING past the
@@ -1155,7 +1155,7 @@ for the same item.
 - `claude docs/gate-reports/wave-2.md` written.
 
 ---
-- `[ ]` 2F.11 `[P]` Event exceptions in the timeline. The control plane
+- `[x]` 2F.11 `[P]` Event exceptions in the timeline. The control plane
   sees only effects, never injections, so `GetEventTimeline` and
   `WatchEvent` gain typed exception entries derived from durable truth:
   devices whose telemetry went MISSING inside the window, commands that
