@@ -20,6 +20,7 @@ from gridos.fallback.planner import (
 from gridos.fallback.replacement import replace_dropped
 from gridos.forecasting.serve import forecast_response
 from gridos.observability import new_provider, start_metrics_server, traced_rpc
+from gridos.optimization.home_load import home_loads_kw
 from gridos.optimization.model import OptimizedPlan, optimize
 from gridos.solver.bounded import Decision, Planner, resolve, solve_within_budget
 from gridos.v1 import dispatch_pb2, optimization_pb2, telemetry_pb2
@@ -42,29 +43,6 @@ def _planning_intervals(
         end = interval.end_time.seconds + interval.end_time.nanos / 1_000_000_000
         intervals.append(PlanningInterval(interval.target_kw, (end - begin) / 3600.0))
     return intervals
-
-
-def _home_load_kw(request: optimization_pb2.OptimizationRequest, site_id: str) -> float | None:
-    if request.measurement_boundary != telemetry_pb2.MEASUREMENT_BOUNDARY_METER_NET_EXPORT:
-        return 0.0
-    forecasts: list[tuple[float, float]] = []
-    for load in request.forecast.site_loads:
-        kwh = max(load.load_kwh.value, load.load_kwh.upper)
-        if not isfinite(kwh) or kwh < 0.0 or load.load_kwh.lower < 0.0:
-            raise ValueError("invalid site load forecast")
-        if load.site_id == site_id:
-            begin = load.interval_begin_time
-            forecasts.append((begin.seconds + begin.nanos / 1_000_000_000, kwh))
-    peak_kw = 0.0
-    for interval in request.intervals:
-        begin = interval.begin_time.seconds + interval.begin_time.nanos / 1_000_000_000
-        end = interval.end_time.seconds + interval.end_time.nanos / 1_000_000_000
-        covering = [item for item in forecasts if item[0] <= begin]
-        if not site_id or not covering:
-            return None
-        kwh = max(covering)[1]
-        peak_kw = max(peak_kw, kwh / ((end - begin) / 3600.0))
-    return peak_kw
 
 
 def _device_states(request: optimization_pb2.OptimizationRequest) -> list[DeviceState]:
@@ -96,9 +74,7 @@ def _device_states(request: optimization_pb2.OptimizationRequest) -> list[Device
         forecast_availability_by_id[prediction.device_id] = min(
             forecast_availability_by_id.get(prediction.device_id, 1.0), probability
         )
-    home_load_by_site = {
-        device.site_id: _home_load_kw(request, device.site_id) for device in request.devices
-    }
+    home_load_by_site = home_loads_kw(request)
     return [
         DeviceState(
             device_id=device.device_id,
