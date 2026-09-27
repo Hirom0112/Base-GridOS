@@ -2,9 +2,11 @@ package main
 
 import (
 	"context"
+	"errors"
 	"log"
 	"net/http"
 	"os"
+	"runtime/debug"
 	"time"
 
 	"connectrpc.com/connect"
@@ -14,6 +16,7 @@ import (
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/dispatch"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/fleet"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/reconciliation"
+	"github.com/Hirom0112/Base-GridOS/services/control/internal/replay"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/storage"
 	storagepublisher "github.com/Hirom0112/Base-GridOS/services/control/internal/storage/publisher"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -28,9 +31,18 @@ func main() {
 		log.Fatal(err)
 	}
 	defer pool.Close()
-	sites, twin, telemetry, err := loadFleet(environment("GRIDOS_FLEET", "testdata/fleets/austin-5000.jsonl"))
+	fleetPath := environment("GRIDOS_FLEET", "testdata/fleets/austin-5000.jsonl")
+	sites, twin, telemetry, err := loadFleet(fleetPath)
 	if err != nil {
 		log.Fatal(err)
+	}
+	seed, err := fleetSeed(sites)
+	if err != nil {
+		log.Fatal(err)
+	}
+	build, ok := debug.ReadBuildInfo()
+	if !ok || build.Main.Version == "" {
+		log.Fatal("worker build version required")
 	}
 	httpClient := h2Client()
 	events := controlapi.NewPostgresEventStore(pool)
@@ -45,7 +57,11 @@ func main() {
 		Safety:    controlapi.IndependentSafetyGate{}, Approval: controlapi.NewStoredApprovalGate(events),
 		Commands: controlapi.NewCommandPipeline(pool, publisher), Now: time.Now,
 	}
-	activities := &dispatch.Activities{Dispatcher: dispatcher, Events: events, Pool: pool, Reports: controlapi.NewPostgresReportSource(pool), Now: time.Now}
+	activities := &dispatch.Activities{
+		Dispatcher: dispatcher, Events: events, Pool: pool, Reports: controlapi.NewPostgresReportSource(pool), Now: time.Now,
+		ReplayDirectory: environment("GRIDOS_REPLAY_DIR", ".local/replay"),
+		ReplayInput:     replay.Input{Seed: seed, FleetFile: fleetPath, ScenarioFile: os.Getenv("GRIDOS_SCENARIO"), SolverVersion: "highs", FallbackVersion: "1", CodeVersion: build.Main.Version},
+	}
 	temporalClient, err := client.Dial(client.Options{HostPort: environment("TEMPORAL_ADDRESS", client.DefaultHostPort)})
 	if err != nil {
 		log.Fatal(err)
@@ -64,6 +80,24 @@ func loadFleet(path string) ([]*gridosv1.AuthorizedSite, *fleet.Twin, *fleet.Tel
 	twin := fleet.NewTwin(30 * time.Second)
 	sites, telemetry, err := fleet.Load(path, twin, time.Now())
 	return sites, twin, telemetry, err
+}
+
+func fleetSeed(sites []*gridosv1.AuthorizedSite) (int64, error) {
+	var seed int64
+	for _, site := range sites {
+		provenance := site.GetSite().GetProvenance()
+		if provenance == nil || provenance.SimulationSeed == nil || provenance.GetSimulationSeed() == 0 {
+			return 0, errors.New("fleet simulation seed required")
+		}
+		if seed != 0 && provenance.GetSimulationSeed() != seed {
+			return 0, errors.New("mixed simulation seeds")
+		}
+		seed = provenance.GetSimulationSeed()
+	}
+	if seed == 0 {
+		return 0, errors.New("fleet simulation seed required")
+	}
+	return seed, nil
 }
 
 func environment(name, fallback string) string {

@@ -13,6 +13,7 @@ import (
 	"connectrpc.com/connect"
 	gridosv1 "github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1"
 	controlapi "github.com/Hirom0112/Base-GridOS/services/control/internal/api"
+	"github.com/Hirom0112/Base-GridOS/services/control/internal/replay"
 	reporting "github.com/Hirom0112/Base-GridOS/services/control/internal/report"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/storage"
 	"github.com/jackc/pgx/v5"
@@ -22,11 +23,13 @@ import (
 )
 
 type Activities struct {
-	Dispatcher *controlapi.Dispatcher
-	Events     controlapi.LifecycleStore
-	Pool       *pgxpool.Pool
-	Reports    reporting.Source
-	Now        func() time.Time
+	Dispatcher      *controlapi.Dispatcher
+	Events          controlapi.LifecycleStore
+	Pool            *pgxpool.Pool
+	Reports         reporting.Source
+	Now             func() time.Time
+	ReplayDirectory string
+	ReplayInput     replay.Input
 }
 
 type FrozenEvent struct {
@@ -79,6 +82,16 @@ func (activities *Activities) FreezeInputs(ctx context.Context, input Input) (Fr
 	}
 	if !proto.Equal(stored, snapshot.Optimization) {
 		return FrozenEvent{}, errors.New("frozen snapshot changed on retry")
+	}
+	if activities.ReplayDirectory != "" {
+		manifestInput := activities.ReplayInput
+		manifestInput.EventID = input.EventID
+		manifestInput.InputSnapshotID = inputID
+		manifestInput.EligibilitySnapshotID = eligibilityID
+		manifestInput.PolicyVersion = stored.GetReservePolicy().GetPolicyVersion()
+		if _, err = replay.Create(activities.ReplayDirectory, manifestInput); err != nil {
+			return FrozenEvent{}, err
+		}
 	}
 	digest, err := snapshotDigest(stored)
 	return FrozenEvent{Input: input, InputSnapshotID: inputID, EligibilitySnapshotID: eligibilityID, SnapshotDigest: digest}, err
