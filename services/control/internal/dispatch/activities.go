@@ -142,6 +142,9 @@ func (activities *Activities) requestFreshPlan(ctx context.Context, request *gri
 	plan, err := activities.Dispatcher.RequestPlan(planCtx, controlapi.FrozenSnapshot{Optimization: request})
 	_ = observability.ProcessMetrics.ObserveSolverTime(time.Since(started))
 	cancel()
+	if err == nil && plan.GetFallbackUsed() {
+		observability.ProcessMetrics.RecordFallback()
+	}
 	if errors.Is(err, context.DeadlineExceeded) || connect.CodeOf(err) == connect.CodeDeadlineExceeded {
 		if auditErr := activities.recordPlanningDecision(ctx, request, "OPTIMIZATION_TIMEOUT", "TRANSPORT_TIMEOUT"); auditErr != nil {
 			return nil, errors.Join(err, auditErr)
