@@ -91,6 +91,34 @@ func TestFixturesCaptureRegionalExplanationEvidence(t *testing.T) {
 	}
 }
 
+func TestFixturesCaptureReserveBasisAndTravelFlexBinding(t *testing.T) {
+	root := filepath.Join(repositoryRoot(t), "testdata", "fixtures", "api")
+	explanation := new(gridosv1.GetPlanExplanationResponse)
+	readPlanningFixture(t, root, "DispatchService/GetPlanExplanation.json", explanation)
+	evidence := explanation.GetEvidence()
+	if len(evidence.GetDeviceSchedules()) == 0 || len(evidence.GetReserveBases()) == 0 {
+		t.Fatal("recorded plan lacks frozen reserve basis")
+	}
+	var overrideFound bool
+	for _, basis := range evidence.GetReserveBases() {
+		if basis.OverrideFloorKwh != nil && basis.GetOverrideReason() != gridosv1.ReserveOverrideReason_RESERVE_OVERRIDE_REASON_UNSPECIFIED && basis.GetOverrideSourceId() != "" && basis.GetOverridePolicyVersion() != "" && basis.GetIssuedAt() != nil && basis.GetProvenance() == gridosv1.DataProvenance_DATA_PROVENANCE_SIMULATED {
+			overrideFound = true
+		}
+	}
+	if !overrideFound {
+		t.Fatal("recorded plan lacks a sourced frozen reserve override")
+	}
+	var creditFound bool
+	for _, binding := range evidence.GetTravelFlexBindings() {
+		if binding.GetWindowId() != "" && binding.GetCreditType() != gridosv1.TravelFlexCreditType_TRAVEL_FLEX_CREDIT_TYPE_UNSPECIFIED && binding.GetCreditCents() > 0 && binding.GetIssuedAt() != nil && binding.GetProvenance() == gridosv1.DataProvenance_DATA_PROVENANCE_SIMULATED {
+			creditFound = true
+		}
+	}
+	if !creditFound {
+		t.Fatal("recorded plan lacks a consented Travel Flex credit binding")
+	}
+}
+
 func TestFixturesCaptureContext(t *testing.T) {
 	root := filepath.Join(repositoryRoot(t), "testdata", "fixtures", "api")
 	market := new(gridosv1.GetMarketContextResponse)
