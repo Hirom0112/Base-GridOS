@@ -13,15 +13,23 @@ func TestMetricsExposeDashboardNames(t *testing.T) {
 	if err := metrics.RecordCommand("SENT"); err != nil {
 		t.Fatal(err)
 	}
-	metrics.ObserveAckLatency(120 * time.Millisecond)
-	metrics.SetTelemetryFreshness(3 * time.Second)
+	if err := metrics.ObserveAckLatency(120 * time.Millisecond); err != nil {
+		t.Fatal(err)
+	}
+	if err := metrics.SetTelemetryFreshness(3 * time.Second); err != nil {
+		t.Fatal(err)
+	}
 	if err := metrics.SetTelemetryPopulation(100, 4); err != nil {
 		t.Fatal(err)
 	}
 	metrics.RecordSafetyRejection()
-	metrics.ObserveSolverTime(240 * time.Millisecond)
+	if err := metrics.ObserveSolverTime(240 * time.Millisecond); err != nil {
+		t.Fatal(err)
+	}
 	metrics.RecordFallback()
-	metrics.SetUncertainCommands(2)
+	if err := metrics.SetUncertainCommands(2); err != nil {
+		t.Fatal(err)
+	}
 	response := httptest.NewRecorder()
 	metrics.Handler().ServeHTTP(response, httptest.NewRequest("GET", "/metrics", nil))
 	if response.Code != 200 {
