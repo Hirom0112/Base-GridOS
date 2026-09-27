@@ -938,3 +938,7 @@ assumptions reported by workers land here too.
   deterministic simulated implementations and eleven PENDING-LIVE markers;
   the stub register now has thirteen rows matching thirteen markers in
   the tree. Director: connectors package ok.
+- **5A.2 (lane 5A), verified:** a contract test compiles every simulated
+  connector and an independent fixture-backed future-live adapter against
+  the same typed interface and compares their outputs for the same request
+  across all eleven connectors. Director: connectors package ok.

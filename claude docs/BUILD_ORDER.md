@@ -1531,7 +1531,7 @@ Owns: `services/control/internal/connectors/`, `tests/contract/`, `docs/data/`.
   and Travel Flex behaviour, commands, settlement, pricing and rewards. Each
   has the simulated implementation and a `PENDING-LIVE` slot reported for
   `STUBS.md`. Verify: `go test ./services/control/internal/connectors/` passes.
-- `[ ]` 5A.2 `[P]` Contract tests asserting a simulated connector and a
+- `[x]` 5A.2 `[P]` Contract tests asserting a simulated connector and a
   future live connector produce identical schema output for the same request.
   Verify: `go test ./services/control/internal/connectors/... -run Connector` passes.
 - `[ ]` 5A.3 `[P]` `docs/data/integration-notes.md` listing every field that
