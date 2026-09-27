@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"errors"
+	"log"
 	"math"
 	"strconv"
 	"time"
@@ -48,6 +49,7 @@ type Fleet struct {
 	effects    Effects
 	sourceStep time.Duration
 	lastSource time.Time
+	rejections uint64
 }
 
 func NewFleet(store *gateway.Store, devices []Device, profiles Profiles, cadence time.Duration, publisher Publisher) (*Fleet, error) {
@@ -111,6 +113,9 @@ func (fleet *Fleet) emit(ctx context.Context, sourceTime, gapTime time.Time) err
 	if sourceTime.IsZero() {
 		return errors.New("source time is required")
 	}
+	if sourceTime.Equal(fleet.lastSource) {
+		return nil
+	}
 	duration := fleet.sourceStep
 	if !fleet.lastSource.IsZero() {
 		duration = sourceTime.Sub(fleet.lastSource)
@@ -170,7 +175,8 @@ func (fleet *Fleet) bufferPhysical(ctx context.Context, active map[string]gatewa
 	for _, item := range fleet.producers {
 		sample, err := fleet.physicalSample(item, active, sourceTime, duration)
 		if err != nil {
-			return nil, err
+			fleet.recordRejection()
+			continue
 		}
 		producer := item.producer
 		offline := fleet.affected("OFFLINE_DEVICES", producer.deviceID) || fleet.affected("PARTIAL_REGION_OUTAGE", producer.deviceID)
@@ -181,7 +187,8 @@ func (fleet *Fleet) bufferPhysical(ctx context.Context, active map[string]gatewa
 			} else {
 				observation, err = producer.sampleObservation(sequence, sample)
 				if err != nil {
-					return gateway.BufferedObservation{}, err
+					fleet.recordRejection()
+					observation = producer.gapObservation(sequence, sourceTime)
 				}
 			}
 			payload, err := protojson.Marshal(observation)
@@ -192,10 +199,18 @@ func (fleet *Fleet) bufferPhysical(ctx context.Context, active map[string]gatewa
 			return gateway.BufferedObservation{ObservationID: observation.GetObservationId(), Payload: payload}, nil
 		}})
 	}
+	if len(drafts) == 0 {
+		return observations, nil
+	}
 	if err := fleet.store.BufferObservationBatch(ctx, drafts); err != nil {
 		return nil, err
 	}
 	return observations, nil
+}
+
+func (fleet *Fleet) recordRejection() {
+	fleet.rejections++
+	log.Printf("telemetry producer rejections=%d", fleet.rejections)
 }
 
 func (fleet *Fleet) activeCommands(ctx context.Context, sourceTime time.Time) (map[string]gateway.Command, error) {
