@@ -22,6 +22,13 @@ func TestSimulatedConnectorRows(t *testing.T) {
 		Settlements: map[string]SettlementSnapshot{"event-1": {EventID: "event-1", AmountCents: 1200}},
 		Pricing:     map[string]PricingSnapshot{"member-1": {MemberID: "member-1", CatalogVersion: "v1", RewardCents: 500}},
 	})
+	assertPublicSnapshots(t, sim)
+	assertSiteSnapshots(t, sim)
+	assertCommandsAndFailures(t, sim, now)
+}
+
+func assertPublicSnapshots(t *testing.T, sim *Simulated) {
+	t.Helper()
 	ctx := context.Background()
 	if got, err := sim.Market(ctx, "houston"); err != nil || got.LoadMW != 1000 {
 		t.Fatalf("market: %+v, %v", got, err)
@@ -32,6 +39,11 @@ func TestSimulatedConnectorRows(t *testing.T) {
 	if got, err := sim.OutageRisk(ctx, "houston"); err != nil || got.Probability != 0.2 {
 		t.Fatalf("outage: %+v, %v", got, err)
 	}
+}
+
+func assertSiteSnapshots(t *testing.T, sim *Simulated) {
+	t.Helper()
+	ctx := context.Background()
 	if got, err := sim.HouseholdLoad(ctx, "site-1"); err != nil || got.HomeKW != 2 {
 		t.Fatalf("load: %+v, %v", got, err)
 	}
@@ -53,6 +65,11 @@ func TestSimulatedConnectorRows(t *testing.T) {
 	if got, err := sim.PricingAndRewards(ctx, "member-1"); err != nil || got.RewardCents != 500 {
 		t.Fatalf("pricing: %+v, %v", got, err)
 	}
+}
+
+func assertCommandsAndFailures(t *testing.T, sim *Simulated, now time.Time) {
+	t.Helper()
+	ctx := context.Background()
 	command := CommandRequest{ID: "command-1", DeviceID: "device-1", PowerKW: 1, ExpiresAt: time.Date(2100, 1, 1, 0, 0, 0, 0, time.UTC)}
 	if got, err := sim.SendCommand(ctx, command); err != nil || !got.Accepted || got.ID != command.ID {
 		t.Fatalf("command: %+v, %v", got, err)
