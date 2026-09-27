@@ -60,16 +60,17 @@ func TestStepUpApprovalRequiresBoundAssertionAndAuditsIt(t *testing.T) {
 
 func TestStepUpRejectsTamperingExpiryAndReplay(t *testing.T) {
 	pool := apiTestDatabase(t)
+	seedAPIEvent(t, pool)
 	now := time.Date(2026, 9, 27, 2, 0, 0, 0, time.UTC)
 	key := []byte("local-step-up-test-key-32-bytes-long")
 	verifier := stepup.New(pool, key, func() time.Time { return now })
-	claims := stepUpTestClaims{Subject: "approver-1", Action: "APPROVE_EVENT", EventID: "event-1", PlanVersion: 3,
+	claims := stepUpTestClaims{Subject: "approver-1", Action: "APPROVE_EVENT", EventID: "event-restart", PlanVersion: 3,
 		IssuedAt: now.Add(-time.Minute), ExpiresAt: now.Add(time.Minute), Nonce: "nonce-replay"}
 	ctx := context.Background()
-	_, err := verifier.Verify(ctx, signedStepUpTest(t, []byte("wrong-step-up-test-key-32-bytes-long"), claims), "APPROVE_EVENT", "event-1", 3)
+	_, err := verifier.Verify(ctx, signedStepUpTest(t, []byte("wrong-step-up-test-key-32-bytes-long"), claims), "APPROVE_EVENT", "event-restart", 3)
 	require.Error(t, err)
 	token := signedStepUpTest(t, key, claims)
-	_, err = verifier.Verify(ctx, token, "EMERGENCY_STOP", "event-1", 3)
+	_, err = verifier.Verify(ctx, token, "EMERGENCY_STOP", "event-restart", 3)
 	require.Error(t, err)
 	_, err = verifier.Verify(ctx, token, "APPROVE_EVENT", "event-2", 3)
 	require.Error(t, err)
@@ -78,18 +79,18 @@ func TestStepUpRejectsTamperingExpiryAndReplay(t *testing.T) {
 	payload, err := base64.RawURLEncoding.DecodeString(encoded)
 	require.NoError(t, err)
 	noncanonical := base64.RawURLEncoding.EncodeToString(append([]byte{' '}, payload...)) + "." + signature
-	_, err = verifier.Verify(ctx, noncanonical, "APPROVE_EVENT", "event-1", 3)
+	_, err = verifier.Verify(ctx, noncanonical, "APPROVE_EVENT", "event-restart", 3)
 	require.Error(t, err)
 	claims.ExpiresAt = now.Add(-time.Second)
-	_, err = verifier.Verify(ctx, signedStepUpTest(t, key, claims), "APPROVE_EVENT", "event-1", 3)
+	_, err = verifier.Verify(ctx, signedStepUpTest(t, key, claims), "APPROVE_EVENT", "event-restart", 3)
 	require.Error(t, err)
 	claims.ExpiresAt = now.Add(6 * time.Minute)
-	_, err = verifier.Verify(ctx, signedStepUpTest(t, key, claims), "APPROVE_EVENT", "event-1", 3)
+	_, err = verifier.Verify(ctx, signedStepUpTest(t, key, claims), "APPROVE_EVENT", "event-restart", 3)
 	require.Error(t, err)
-	subject, err := verifier.Verify(ctx, token, "APPROVE_EVENT", "event-1", 3)
+	subject, err := verifier.Verify(ctx, token, "APPROVE_EVENT", "event-restart", 3)
 	require.NoError(t, err)
 	require.Equal(t, "approver-1", subject)
-	_, err = verifier.Verify(ctx, token, "APPROVE_EVENT", "event-1", 3)
+	_, err = verifier.Verify(ctx, token, "APPROVE_EVENT", "event-restart", 3)
 	require.Error(t, err)
 	var assertions, audits int
 	require.NoError(t, pool.QueryRow(ctx, `SELECT count(*) FROM step_up_assertions`).Scan(&assertions))
