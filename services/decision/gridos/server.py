@@ -1,4 +1,5 @@
 import argparse
+import os
 from concurrent.futures import ThreadPoolExecutor
 from math import isfinite
 
@@ -153,8 +154,15 @@ def _response(
 
 
 class OptimizationServer:
-    def __init__(self, solver: Planner = optimize) -> None:
+    def __init__(
+        self, solver: Planner = optimize, solver_budget_seconds: float | None = None
+    ) -> None:
+        if solver_budget_seconds is not None and (
+            not isfinite(solver_budget_seconds) or solver_budget_seconds <= 0.0
+        ):
+            raise ValueError("solver budget must be positive and finite")
         self._solver = solver
+        self._solver_budget_seconds = solver_budget_seconds
 
     def Forecast(
         self,
@@ -184,7 +192,12 @@ class OptimizationServer:
             context.abort(grpc.StatusCode.INTERNAL, "fallback validation failed")
         if "forecast_transport_timeout" in request.forecast.unavailable_sources:
             return _response(request, devices, Decision(fallback, "FORECAST_TIMEOUT"))
-        outcome = solve_within_budget(self._solver, devices, intervals, budget)
+        solver_budget = (
+            min(budget, self._solver_budget_seconds)
+            if self._solver_budget_seconds is not None
+            else budget
+        )
+        outcome = solve_within_budget(self._solver, devices, intervals, solver_budget)
         return _response(request, devices, resolve(outcome, fallback, devices, intervals))
 
     def Replace(
@@ -260,20 +273,34 @@ def _port(value: str) -> int:
     return port
 
 
+def _solver_budget_from_env() -> float | None:
+    raw = os.getenv("GRIDOS_SOLVER_BUDGET_SECONDS")
+    if raw is None:
+        return None
+    try:
+        budget = float(raw)
+    except ValueError as error:
+        raise ValueError("solver budget must be positive and finite") from error
+    if not isfinite(budget) or budget <= 0.0:
+        raise ValueError("solver budget must be positive and finite")
+    return budget
+
+
 def serve(port: int) -> None:
     server = grpc.server(ThreadPoolExecutor())
+    optimizer = OptimizationServer(solver_budget_seconds=_solver_budget_from_env())
     optimize_handler = grpc.unary_unary_rpc_method_handler(
-        OptimizationServer().Optimize,
+        optimizer.Optimize,
         request_deserializer=optimization_pb2.OptimizeRequest.FromString,
         response_serializer=optimization_pb2.OptimizeResponse.SerializeToString,
     )
     forecast_handler = grpc.unary_unary_rpc_method_handler(
-        OptimizationServer().Forecast,
+        optimizer.Forecast,
         request_deserializer=optimization_pb2.ForecastRequest.FromString,
         response_serializer=optimization_pb2.ForecastResponse.SerializeToString,
     )
     replace_handler = grpc.unary_unary_rpc_method_handler(
-        OptimizationServer().Replace,
+        optimizer.Replace,
         request_deserializer=optimization_pb2.ReplaceRequest.FromString,
         response_serializer=optimization_pb2.ReplaceResponse.SerializeToString,
     )
