@@ -25,6 +25,8 @@ import (
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/storage"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -52,6 +54,40 @@ func TestPublisherAgainstGatewaySimulator(t *testing.T) {
 		t.Fatal(err)
 	}
 	assertPublisherState(t, pool, command.CommandID, "ACKNOWLEDGED", "PUBLISHED")
+}
+
+func TestPublisherBatchEmitsTraceIdentity(t *testing.T) {
+	pool := publisherDatabase(t)
+	exporter := tracetest.NewInMemoryExporter()
+	provider := observability.NewTracerProvider(exporter)
+	previous := otel.GetTracerProvider()
+	otel.SetTracerProvider(provider)
+	t.Cleanup(func() {
+		_ = provider.Shutdown(context.Background())
+		otel.SetTracerProvider(previous)
+	})
+	ctx, err := observability.WithTraceIDs(context.Background(), "correlation-publisher", "workflow-publisher")
+	if err != nil {
+		t.Fatal(err)
+	}
+	publisher := New(Config{Pool: pool, BatchSize: 1, LeaseDuration: time.Second, Now: time.Now})
+	if err := publisher.PublishBatch(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if err := provider.ForceFlush(ctx); err != nil {
+		t.Fatal(err)
+	}
+	spans := exporter.GetSpans()
+	if len(spans) != 1 {
+		t.Fatalf("publisher spans = %d, want 1", len(spans))
+	}
+	values := map[string]string{}
+	for _, item := range spans[0].Attributes {
+		values[string(item.Key)] = item.Value.AsString()
+	}
+	if values["correlation_id"] != "correlation-publisher" || values["workflow_id"] != "workflow-publisher" {
+		t.Fatalf("publisher trace identity = %v", values)
+	}
 }
 
 func TestPublisherRetriesSameCommandID(t *testing.T) {
