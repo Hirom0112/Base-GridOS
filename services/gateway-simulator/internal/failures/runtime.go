@@ -30,11 +30,11 @@ func (runtime *Runtime) Advance(now time.Time) {
 	runtime.advance(now, "")
 }
 
-func (runtime *Runtime) TargetCommand(now time.Time, eventID, deviceID string, setpointKW float64) map[Kind]bool {
+func (runtime *Runtime) TargetCommand(now time.Time, eventID, deviceID string) map[Kind]bool {
 	runtime.mutex.Lock()
 	defer runtime.mutex.Unlock()
 	runtime.advance(now, "")
-	return runtime.targetCommand(eventID, deviceID, setpointKW)
+	return runtime.targetCommand(eventID, deviceID)
 }
 
 func (runtime *Runtime) RecordCommand(now time.Time, eventID, deviceID string, setpointKW float64) map[Kind]bool {
@@ -50,11 +50,11 @@ func (runtime *Runtime) RecordCommand(now time.Time, eventID, deviceID string, s
 	}
 	runtime.engine.recordCommand(eventID, deviceID, setpointKW)
 	runtime.advance(now, eventID)
-	return runtime.targetCommand(eventID, deviceID, setpointKW)
+	return runtime.targetCommand(eventID, deviceID)
 }
 
-func (runtime *Runtime) targetCommand(eventID, deviceID string, setpointKW float64) map[Kind]bool {
-	if eventID == "" || deviceID == "" || setpointKW == 0 {
+func (runtime *Runtime) targetCommand(eventID, deviceID string) map[Kind]bool {
+	if eventID == "" || deviceID == "" {
 		return nil
 	}
 	var targeted map[Kind]bool
