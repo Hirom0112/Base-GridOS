@@ -40,6 +40,14 @@ const (
 	MissingStateOfCharge        ViolationCode = "MISSING_STATE_OF_CHARGE"
 	MissingFreshness            ViolationCode = "MISSING_FRESHNESS"
 	ContradictoryInput          ViolationCode = "CONTRADICTORY_INPUT"
+	ReserveSelectionMismatch    ViolationCode = "RESERVE_SELECTION_MISMATCH"
+)
+
+type ReserveSelection string
+
+const (
+	BaseReserveSelection       ReserveSelection = "BASE"
+	TravelFlexReserveSelection ReserveSelection = "TRAVEL_FLEX"
 )
 
 type Plan struct {
@@ -55,11 +63,13 @@ type Plan struct {
 }
 
 type DevicePlan struct {
-	DeviceID      string
-	ChargeKW      []float64
-	DischargeKW   []float64
-	EnergyKWh     []float64
-	MeterExportKW []float64
+	DeviceID           string
+	ReserveSelection   ReserveSelection
+	SelectedReserveKWh float64
+	ChargeKW           []float64
+	DischargeKW        []float64
+	EnergyKWh          []float64
+	MeterExportKW      []float64
 }
 
 type TravelFlexWindow struct {
@@ -76,6 +86,7 @@ type DeviceState struct {
 	PlanReserveKWh         float64
 	DynamicReserveKWh      float64
 	TravelFlex             *TravelFlexWindow
+	TravelFlexReserveKWh   *float64
 	MaxChargeKW            float64
 	MaxDischargeKW         float64
 	ChargeEfficiency       float64
@@ -194,7 +205,11 @@ func validateDevice(plan Plan, proposed DevicePlan, state DeviceState, now time.
 	if math.Abs(proposed.EnergyKWh[0]-energy) > comparisonTolerance {
 		violations = append(violations, Violation{Code: EnergyBalanceDrift, DeviceID: proposed.DeviceID})
 	}
-	reserve := EffectiveReserve(state, now)
+	reserve, selected := selectedReserve(proposed, state, now)
+	if !selected {
+		violations = append(violations, Violation{Code: ReserveSelectionMismatch, DeviceID: proposed.DeviceID})
+		return violations, actual
+	}
 	previousExport := state.PreviousMeterExportKW
 	for interval := 0; interval < intervals; interval++ {
 		stepViolations, next := validateInterval(plan.Interval, proposed, state, energy, reserve, interval)
@@ -207,6 +222,25 @@ func validateDevice(plan Plan, proposed DevicePlan, state DeviceState, now time.
 		actual[interval] = proposed.MeterExportKW[interval]
 	}
 	return violations, actual
+}
+
+func selectedReserve(proposed DevicePlan, state DeviceState, now time.Time) (float64, bool) {
+	if proposed.ReserveSelection == "" {
+		return EffectiveReserve(state, now), true
+	}
+	reserve := math.Max(state.HardwareReserveKWh, math.Max(state.PlanReserveKWh, state.DynamicReserveKWh))
+	switch proposed.ReserveSelection {
+	case BaseReserveSelection:
+	case TravelFlexReserveSelection:
+		flex := state.TravelFlexReserveKWh
+		if flex == nil || !finite(*flex) || *flex < state.HardwareReserveKWh || *flex > state.PlanReserveKWh {
+			return 0, false
+		}
+		reserve = math.Max(state.HardwareReserveKWh, math.Max(*flex, state.DynamicReserveKWh))
+	default:
+		return 0, false
+	}
+	return reserve, finite(proposed.SelectedReserveKWh) && math.Abs(proposed.SelectedReserveKWh-reserve) <= comparisonTolerance
 }
 
 func validateDeviceState(deviceID string, state DeviceState, now time.Time) []Violation {
