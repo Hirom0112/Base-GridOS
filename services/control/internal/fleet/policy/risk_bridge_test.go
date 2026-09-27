@@ -263,3 +263,66 @@ func TestRiskBridgeWeatherFloorCoversEventsWithinTheAlert(t *testing.T) {
 	require.Equal(t, 1, count)
 	require.Equal(t, time.Date(2100, 1, 1, 0, 0, 0, 0, time.UTC), expires.UTC())
 }
+
+func TestRiskBridgeKeepsPersistentRiskCoveredAcrossCycles(t *testing.T) {
+	pool := policyDatabase(t)
+	ctx := context.Background()
+	now := time.Now().UTC().Truncate(time.Second)
+	seedPolicyCatalog(t, pool, now.Add(-48*time.Hour))
+	_, err := pool.Exec(ctx, `INSERT INTO risk_policy(version,effective_at,expires_at,outage_probability_threshold,
+		telemetry_freshness_seconds,gateway_cadence_seconds,weather_floor_percent,outage_floor_percent,
+		stale_floor_percent,alarm_floor_percent,communications_floor_percent,health_floor_percent,weather_zone_ugc,provenance)
+		VALUES ('risk-continuity',$1,$2,0.01,3600,15,60,60,40,100,40,100,'{}','{"provenance":"SIMULATED"}')`, now.Add(-time.Hour), now.Add(time.Hour))
+	require.NoError(t, err)
+	_, err = pool.Exec(ctx, `INSERT INTO member_sites(site_id,member_id,bound_at,source,provenance)
+		VALUES ('site-continuity','member-continuity',$1,'SIMULATED','{"provenance":"SIMULATED"}')`, now.Add(-time.Hour))
+	require.NoError(t, err)
+	store := New(pool)
+	_, err = selectWithOffer(t, store, Selection{ID: "continuity-selection", MemberID: "member-continuity",
+		Market: "TX", CatalogVersion: "catalog-v2", MemberPlanID: "plan-cedar", PolicyVersion: "policy-v2",
+		ConsentText: "I consent", ConsentVersion: "v1", ExplanationShown: "Backup reserve",
+		EffectiveAt: now.Add(-time.Minute), CorrelationID: "continuity-selection"})
+	require.NoError(t, err)
+	published := now.Add(-2 * time.Minute)
+	telemetry := storage.NewTelemetryStoreAt(pool, func() time.Time { return published })
+	_, err = telemetry.Write(ctx, "gateway-continuity", []*gridosv1.TelemetryObservation{{ObservationId: "device-continuity:observation",
+		DeviceId: "device-continuity", Sequence: 1, ObservationTime: timestamppb.New(published),
+		OperatingState: &gridosv1.TelemetryObservation_OnGrid{OnGrid: &gridosv1.OnGrid{ObservedAt: timestamppb.New(published)}}}})
+	require.NoError(t, err)
+	sites := []*gridosv1.AuthorizedSite{{Site: &gridosv1.Site{SiteId: "site-continuity", WeatherZone: "SCENT"},
+		Devices: []*gridosv1.Device{{DeviceId: "device-continuity"}}}}
+	bridge := NewRiskBridge(pool, sites, "", "risk-test.jsonl")
+	cycles := []time.Time{now, now.Add(5*time.Minute - 3*time.Millisecond), now.Add(10*time.Minute - 7*time.Millisecond)}
+	for _, at := range cycles {
+		require.NoError(t, bridge.Evaluate(ctx, at))
+		require.NoError(t, bridge.Evaluate(ctx, at))
+	}
+
+	rows, err := pool.Query(ctx, `SELECT reason, effective_at, expires_at FROM reserve_overrides
+		WHERE member_id = 'member-continuity' AND reserve_floor_percent >= 40 ORDER BY effective_at, expires_at`)
+	require.NoError(t, err)
+	defer rows.Close()
+	coveredThrough := now
+	for rows.Next() {
+		var reason OverrideReason
+		var effective, expires time.Time
+		require.NoError(t, rows.Scan(&reason, &effective, &expires))
+		require.Equal(t, OverrideCommunications, reason)
+		require.False(t, effective.After(coveredThrough), "risk floor lapses from %s until %s", coveredThrough, effective)
+		coveredThrough = maxTime(coveredThrough, expires)
+	}
+	require.NoError(t, rows.Err())
+	require.False(t, coveredThrough.Before(now.Add(15*time.Minute-7*time.Millisecond)), "risk floor lapses at %s", coveredThrough)
+	for _, at := range []time.Time{now, now.Add(5 * time.Minute), now.Add(10 * time.Minute), now.Add(15*time.Minute - 8*time.Millisecond)} {
+		state, err := store.ReserveAt(ctx, "member-continuity", at)
+		require.NoError(t, err)
+		require.Equal(t, 40.0, state.EffectivePercent, "reserve at %s", at)
+	}
+}
+
+func maxTime(left, right time.Time) time.Time {
+	if right.After(left) {
+		return right
+	}
+	return left
+}
