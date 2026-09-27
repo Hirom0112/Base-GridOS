@@ -55,3 +55,23 @@ test("client preserves permission failures and never retries mutations", async (
   ).rejects.toMatchObject({ code: 7 });
   expect(fetcher).toHaveBeenCalledTimes(1);
 });
+
+test("local member requests carry their explicit member principal", async () => {
+  const fetcher = vi
+    .fn<typeof fetch>()
+    .mockResolvedValue(
+      new Response("{}", { headers: { "content-type": "application/json" } }),
+    );
+  const client = createConsoleClient(
+    "http://localhost/rpc",
+    { mode: "local", role: "member", permissions: [], memberId: "member-1" },
+    fetcher,
+  );
+  await client.member.getMemberStatus({
+    memberId: "member-1",
+    siteId: "site-1",
+  });
+  const headers = new Headers(fetcher.mock.calls[0]?.[1]?.headers);
+  expect(headers.get("X-GridOS-Member-ID")).toBe("member-1");
+  expect(headers.get("X-GridOS-Role")).toBe("member");
+});
