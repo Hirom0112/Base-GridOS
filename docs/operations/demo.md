@@ -14,6 +14,11 @@ demo:
 GRIDOS_DEMO_SCENARIO=testdata/scenarios/heat-event-canonical.yaml make demo
 ```
 
+`make test-go` also runs the five host-only Go checks omitted from the Bazel
+sandbox run: analytics isolation, gateway restart, command publisher,
+API lifecycle, and replacement server. These checks need the host workspace
+or process behavior and remain part of the Go gate.
+
 Open the console URL printed by the demo process. Use the local demo identity.
 Keep the event identifier visible as you move through **Plan & approval**,
 **Execution**, and **Report**. The fleet and scenario are marked **SIMULATED**;
