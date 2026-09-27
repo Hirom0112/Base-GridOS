@@ -955,3 +955,9 @@ assumptions reported by workers land here too.
   stored plan margin appears only when all eight §5.11 terms are sourced,
   otherwise margin_unavailable; both fields join the comparison and the
   published copy stays immutable. Director: report and api selectors pass.
+- **5A.4 (lane 5A), verified; lane 5A complete:** a typed notification
+  connector with a simulated implementation writes append-only delivery
+  attempts with idempotent retry and changed-payload conflict; no live
+  channel is claimed; the stub register gains its row and the member
+  policy row records that authorized bindings await a live entitlement.
+  Director: connectors ok, markers equal rows.
