@@ -2239,3 +2239,13 @@ confirmation cases (toBeVisible at 390 and 1440), the shell static-truth
 case, and the cinematic-frame composition budget (toBeLessThan). Posted to
 the console lane for correction; the UI gate stays red until a director
 rerun prints zero failed.
+
+## 2026-09-27 09:56Z — 5F.5 verified live
+
+Three minutes after the rebuild on 4d54e57 the demo holds active WEATHER
+override rows (reserve floor 60 percent, evidence
+`simulated-austin-severe-weather`) raised by the risk bridge from the
+assembled public context directory; `select count(*) from
+reserve_overrides where reason='WEATHER' and expires_at > now()` returned
+2. Marked done. The console's step 7 proof can now show the WEATHER floor
+on a fresh plan.

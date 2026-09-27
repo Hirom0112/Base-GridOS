@@ -1810,7 +1810,7 @@ Owns: `README.md`, `docs/operations/` (except `security/`), `AGENTS.md`.
   with the full FULL_SPEC §10 acceptance table and STUBS.md reviewed.
   Verify: every bullet under FULL_SPEC §10 "The MVP is complete when it can"
   has a table row naming the command that proves it and its passing output.
-- `[ ]` 5F.5 `[after 2A.13]` Demo weather risk through the public path. When
+- `[x]` 5F.5 `[after 2A.13]` Demo weather risk through the public path. When
   `GRIDOS_DEMO_SCENARIO` is set, `make demo` assembles `.local/demo/public`
   from `testdata/fixtures/public` with the `weather/` directory replaced by
   `testdata/scenarios/weather/` (a clearly SIMULATED severe-weather alert for
