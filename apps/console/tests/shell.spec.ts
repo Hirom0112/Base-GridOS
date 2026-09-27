@@ -12,6 +12,7 @@ test("shell keeps its static truth and keyboard path", async ({ page }) => {
   const response = await page.goto("/");
   expect(response?.status()).toBe(200);
   await expect(page.getByRole("main")).toHaveAccessibleName("Austin fleet");
+  await expect(page.getByRole("combobox", { name: "Demo role" })).toBeEnabled();
   await page.keyboard.press("Tab");
   await page.keyboard.press("Tab");
   await page.keyboard.press("Tab");
