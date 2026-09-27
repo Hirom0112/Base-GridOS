@@ -68,6 +68,11 @@ export function ForecastEvidence({
                   ))}
                 </select>
               </label>
+              <ForecastRanges
+                rows={parsed.data.siteLoads.filter(
+                  (row) => row.siteId === site,
+                )}
+              />
               <div
                 className="explanation-scroll"
                 role="region"
@@ -89,7 +94,10 @@ export function ForecastEvidence({
                       .map((row, index) => (
                         <tr key={index}>
                           <td>
-                            {timestampDate(row.intervalBeginTime).toISOString()}
+                            {timestampDate({
+                              $typeName: "google.protobuf.Timestamp",
+                              ...row.intervalBeginTime,
+                            }).toISOString()}
                           </td>
                           <td>{row.loadKwh.value} kWh</td>
                           <td>
@@ -103,7 +111,10 @@ export function ForecastEvidence({
                               ]
                             }
                             <br />
-                            {timestampDate(row.loadKwh.issuedAt).toISOString()}
+                            {timestampDate({
+                              $typeName: "google.protobuf.Timestamp",
+                              ...row.loadKwh.issuedAt,
+                            }).toISOString()}
                             <br />
                             Model {row.loadKwh.modelVersion}
                             <br />
@@ -147,5 +158,49 @@ export function FallbackEvidence({
         <p>No fallback recorded.</p>
       )}
     </section>
+  );
+}
+
+function ForecastRanges({
+  rows,
+}: {
+  rows: z.infer<typeof forecastSchema>["siteLoads"];
+}) {
+  const maximum = Math.max(1, ...rows.map((row) => row.loadKwh.upper));
+  const x = (value: number) => 24 + (value / maximum) * 272;
+  return (
+    <div className="forecast-ranges">
+      <svg
+        role="img"
+        aria-label="Modeled site load and uncertainty"
+        viewBox={`0 0 320 ${rows.length * 40 + 32}`}
+      >
+        <text x="24" y="16">
+          0 kWh
+        </text>
+        <text x="296" y="16" textAnchor="end">
+          {maximum} kWh
+        </text>
+        {rows.map((row, index) => (
+          <g key={index}>
+            <title>
+              {row.loadKwh.value} kWh; modeled range {row.loadKwh.lower}–
+              {row.loadKwh.upper} kWh
+            </title>
+            <line
+              x1={x(row.loadKwh.lower)}
+              x2={x(row.loadKwh.upper)}
+              y1={40 + index * 40}
+              y2={40 + index * 40}
+            />
+            <circle cx={x(row.loadKwh.value)} cy={40 + index * 40} r="4" />
+          </g>
+        ))}
+      </svg>
+      <p>
+        Dots show expected consumption; lines show the returned modeled range.
+        Rows follow the interval order in the table.
+      </p>
+    </div>
   );
 }

@@ -92,3 +92,25 @@
 .plan-explanation td.mono {
   white-space: nowrap;
 }
+
+.forecast-ranges {
+  max-width: 520px;
+  margin-block: 20px;
+}
+.forecast-ranges svg {
+  display: block;
+  width: 100%;
+  color: var(--paper-1);
+}
+.forecast-ranges text {
+  fill: currentColor;
+  font-size: 14px;
+}
+.forecast-ranges line {
+  stroke: currentColor;
+  stroke-width: 3px;
+  opacity: 0.6;
+}
+.forecast-ranges circle {
+  fill: var(--paper-0);
+}
