@@ -27,14 +27,32 @@ func TestHeatEventCanonical(t *testing.T) {
 		t.Fatal(err)
 	}
 	missing := false
+	uncertain := false
+	recovery := make(map[gridosv1.EventExceptionKind]bool)
 	for _, exception := range timeline.Msg.GetExceptions() {
 		if exception.GetEventId() != eventID || exception.GetOccurredAt() == nil || exception.GetEvidenceId() == "" {
 			t.Fatalf("incomplete event exception: %v", exception)
 		}
 		missing = missing || exception.GetKind() == gridosv1.EventExceptionKind_EVENT_EXCEPTION_KIND_MISSING_TELEMETRY
+		uncertain = uncertain || exception.GetKind() == gridosv1.EventExceptionKind_EVENT_EXCEPTION_KIND_UNCERTAIN_COMMAND
+		recovery[exception.GetKind()] = true
 	}
 	if !missing {
 		t.Fatal("heat event has no MISSING telemetry exception")
+	}
+	if !uncertain {
+		t.Fatal("heat event has no UNCERTAIN command exception")
+	}
+	actions := map[string]gridosv1.EventExceptionKind{
+		"RETRY":                 gridosv1.EventExceptionKind_EVENT_EXCEPTION_KIND_COMMAND_RETRY,
+		"REMOVE_STALE_CAPACITY": gridosv1.EventExceptionKind_EVENT_EXCEPTION_KIND_STALE_CAPACITY_REMOVED,
+		"REBALANCE":             gridosv1.EventExceptionKind_EVENT_EXCEPTION_KIND_REBALANCED_COMMAND,
+	}
+	for _, action := range stack.scenario.Expected.RequiredRecoveryActions {
+		kind, known := actions[action]
+		if !known || !recovery[kind] {
+			t.Fatalf("required recovery action %q missing from event exceptions", action)
+		}
 	}
 	watchRequest := connect.NewRequest(&gridosv1.WatchEventRequest{EventId: eventID})
 	watchRequest.Header().Set("X-GridOS-Role", "operator")
