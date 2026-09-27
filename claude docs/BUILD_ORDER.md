@@ -1332,7 +1332,7 @@ Owns: `services/control/internal/fleet/policy/`,
   Flex window or an explicit away flag) and the member opted in; the alert
   text is the fixed "energy anomaly signal" wording (FULL_SPEC §5.10).
   Verify: `-run Anomaly` passes.
-- `[ ]` 4A.7 `[after 4A.5]` Connect service `internal/api/member` with
+- `[x]` 4A.7 `[after 4A.5]` Connect service `internal/api/member` with
   `SelectResiliencePlan`, `ScheduleTravelFlex`, `EndTravelFlexEarly`,
   `GetMemberStatus` (operating state, `state_of_energy_percent`, backup
   hours at current usage and at 750 W, the recent `GridEvent` list, current

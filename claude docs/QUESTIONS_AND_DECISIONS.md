@@ -980,3 +980,11 @@ assumptions reported by workers land here too.
   rejections, fallback rate, uncertain commands, stale telemetry share)
   are listed by Grafana on 33000. They query these metric names, which
   5C.1 must emit exactly: gridos_fallback_total gridos_safety_rejections_total gridos_telemetry_devices gridos_telemetry_stale_devices gridos_uncertain_commands 
+- **4A.7 (lane 4A), verified:** `MemberService` in its own `member.proto`
+  exposes offer presentation, plan selection, Travel Flex scheduling and
+  early end, anomaly preference, away scheduling and end, and member
+  status (operating state, state of energy, backup hours at current usage
+  and at 750 W, own recent events, plan and reserve); every call is scoped
+  to the authenticated member id through `member_sites`, the operator may
+  only read status, and no self-service site binding exists. Director:
+  contracts clean, four member tests pass, control builds.
