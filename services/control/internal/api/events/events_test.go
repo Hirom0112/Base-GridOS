@@ -2,6 +2,7 @@ package events
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"sync"
@@ -156,5 +157,36 @@ func eventUpdate(state gridosv1.DispatchEventState, sentMW, acknowledgedMW, deli
 			H3Cell: "cell-1",
 			Power:  proto.Clone(power).(*gridosv1.EventPowerAggregate),
 		}},
+	}
+}
+
+type expiringSource struct{ changingSource }
+
+func (source *expiringSource) Snapshot(ctx context.Context, _ string) (*gridosv1.WatchEventResponse, error) {
+	<-ctx.Done()
+	return nil, fmt.Errorf("timeout: %w", ctx.Err())
+}
+
+func TestWatchEndsWithDeadlineExceededWhenSnapshotOutlivesTheCall(t *testing.T) {
+	service := NewService(&expiringSource{}, time.Hour)
+	path, handler := gridosv1connect.NewEventsServiceHandler(service)
+	mux := http.NewServeMux()
+	mux.Handle(path, handler)
+	server := httptest.NewServer(mux)
+	defer server.Close()
+
+	client := gridosv1connect.NewEventsServiceClient(server.Client(), server.URL)
+	request := connect.NewRequest(&gridosv1.WatchEventRequest{EventId: "event-1"})
+	request.Header().Set("X-GridOS-Role", "operator")
+	request.Header().Set("Connect-Timeout-Ms", "50")
+	stream, err := client.WatchEvent(context.Background(), request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if stream.Receive() {
+		t.Fatal("expected the stream to end without a snapshot")
+	}
+	if code := connect.CodeOf(stream.Err()); code != connect.CodeDeadlineExceeded {
+		t.Fatalf("code = %v, want %v: %v", code, connect.CodeDeadlineExceeded, stream.Err())
 	}
 }
