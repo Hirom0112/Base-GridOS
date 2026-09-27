@@ -1,0 +1,12 @@
+.git
+.local
+**/.venv
+**/node_modules
+**/.terraform
+**/__pycache__
+**/*.pyc
+**/*.egg-info
+control
+gateway-simulator
+services/control/control
+presentation
