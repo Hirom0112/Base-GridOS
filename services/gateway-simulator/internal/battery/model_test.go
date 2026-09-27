@@ -13,26 +13,6 @@ func closeTo(t *testing.T, got, want float64) {
 	}
 }
 
-func TestWorkedExample(t *testing.T) {
-	result, err := Estimate(Parameters{
-		UsableEnergyKWh:     39.2,
-		ReservePercent:      40,
-		MaxDischargeKW:      10,
-		DischargeEfficiency: 0.95,
-	}, 74, 3.1, 2*time.Hour)
-	if err != nil {
-		t.Fatal(err)
-	}
-	closeTo(t, result.StoredKWh, 29.0080)
-	closeTo(t, result.ReserveKWh, 15.6800)
-	closeTo(t, result.AboveReserveKWh, 13.3280)
-	closeTo(t, result.ACAvailableKWh, 12.6616)
-	closeTo(t, result.DischargeKW, 6.3308)
-	closeTo(t, result.NetExportKW, 3.2308)
-	closeTo(t, result.BackupHoursCurrentUsage, 4.8052)
-	closeTo(t, result.BackupHours750W, 19.8613)
-}
-
 func TestStepEnergyAndLimits(t *testing.T) {
 	model, err := New(Parameters{
 		UsableEnergyKWh:     20,

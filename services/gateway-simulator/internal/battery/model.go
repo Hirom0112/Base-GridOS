@@ -31,54 +31,6 @@ type Parameters struct {
 	TemperatureDerate   func(float64) float64
 }
 
-type EstimateResult struct {
-	StoredKWh               float64
-	ReserveKWh              float64
-	AboveReserveKWh         float64
-	ACAvailableKWh          float64
-	DischargeKW             float64
-	NetExportKW             float64
-	BackupHoursCurrentUsage float64
-	BackupHours750W         float64
-}
-
-func Estimate(parameters Parameters, stateOfEnergyPercent, homeLoadKW float64, duration time.Duration) (EstimateResult, error) {
-	if err := validateEstimate(parameters, stateOfEnergyPercent, homeLoadKW, duration); err != nil {
-		return EstimateResult{}, err
-	}
-	stored := parameters.UsableEnergyKWh * stateOfEnergyPercent / 100
-	reserve := parameters.UsableEnergyKWh * parameters.ReservePercent / 100
-	aboveReserve := stored - reserve
-	available := aboveReserve * parameters.DischargeEfficiency
-	discharge := min(parameters.MaxDischargeKW, available/duration.Hours())
-	return EstimateResult{
-		StoredKWh:               stored,
-		ReserveKWh:              reserve,
-		AboveReserveKWh:         aboveReserve,
-		ACAvailableKWh:          available,
-		DischargeKW:             discharge,
-		NetExportKW:             discharge - homeLoadKW,
-		BackupHoursCurrentUsage: reserve * parameters.DischargeEfficiency / homeLoadKW,
-		BackupHours750W:         reserve * parameters.DischargeEfficiency / 0.75,
-	}, nil
-}
-
-func validateEstimate(parameters Parameters, stateOfEnergyPercent, homeLoadKW float64, duration time.Duration) error {
-	values := []float64{parameters.UsableEnergyKWh, parameters.ReservePercent, parameters.MaxDischargeKW, parameters.DischargeEfficiency, stateOfEnergyPercent, homeLoadKW}
-	for _, value := range values {
-		if math.IsNaN(value) || math.IsInf(value, 0) {
-			return errors.New("parameters must be finite")
-		}
-	}
-	if parameters.UsableEnergyKWh <= 0 || parameters.MaxDischargeKW <= 0 || parameters.DischargeEfficiency <= 0 || parameters.DischargeEfficiency > 1 {
-		return errors.New("invalid battery parameters")
-	}
-	if stateOfEnergyPercent < parameters.ReservePercent || stateOfEnergyPercent > 100 || parameters.ReservePercent < 0 || homeLoadKW <= 0 || duration <= 0 {
-		return errors.New("invalid estimate inputs")
-	}
-	return nil
-}
-
 type Input struct {
 	ChargeKW               float64
 	DischargeKW            float64
