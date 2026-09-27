@@ -44,6 +44,29 @@ def _planning_intervals(
     return intervals
 
 
+def _home_load_kw(request: optimization_pb2.OptimizationRequest, site_id: str) -> float | None:
+    if request.measurement_boundary != telemetry_pb2.MEASUREMENT_BOUNDARY_METER_NET_EXPORT:
+        return 0.0
+    forecasts: list[tuple[float, float]] = []
+    for load in request.forecast.site_loads:
+        kwh = max(load.load_kwh.value, load.load_kwh.upper)
+        if not isfinite(kwh) or kwh < 0.0 or load.load_kwh.lower < 0.0:
+            raise ValueError("invalid site load forecast")
+        if load.site_id == site_id:
+            begin = load.interval_begin_time
+            forecasts.append((begin.seconds + begin.nanos / 1_000_000_000, kwh))
+    peak_kw = 0.0
+    for interval in request.intervals:
+        begin = interval.begin_time.seconds + interval.begin_time.nanos / 1_000_000_000
+        end = interval.end_time.seconds + interval.end_time.nanos / 1_000_000_000
+        covering = [item for item in forecasts if item[0] <= begin]
+        if not site_id or not covering:
+            return None
+        kwh = max(covering)[1]
+        peak_kw = max(peak_kw, kwh / ((end - begin) / 3600.0))
+    return peak_kw
+
+
 def _device_states(request: optimization_pb2.OptimizationRequest) -> list[DeviceState]:
     if (
         not isfinite(request.conservative_margin)
@@ -73,6 +96,9 @@ def _device_states(request: optimization_pb2.OptimizationRequest) -> list[Device
         forecast_availability_by_id[prediction.device_id] = min(
             forecast_availability_by_id.get(prediction.device_id, 1.0), probability
         )
+    home_load_by_site = {
+        device.site_id: _home_load_kw(request, device.site_id) for device in request.devices
+    }
     return [
         DeviceState(
             device_id=device.device_id,
@@ -89,11 +115,12 @@ def _device_states(request: optimization_pb2.OptimizationRequest) -> list[Device
             dynamic_override_percent=0.0,
             max_discharge_kw=device.max_discharge_kw,
             discharge_efficiency=device.discharge_efficiency,
-            home_load_kw=0.0,
+            home_load_kw=home_load_by_site[device.site_id] or 0.0,
             availability_probability=forecast_availability_by_id.get(
                 device.device_id, device.availability_probability
             ),
-            available=not eligible_ids or device.device_id in eligible_ids,
+            available=(not eligible_ids or device.device_id in eligible_ids)
+            and home_load_by_site[device.site_id] is not None,
             stale=device.stale,
         )
         for device in request.devices
@@ -224,6 +251,7 @@ def _response(
         if request.conservative_margin != 0
         else _conservative_public_margin(request)[0]
     )
+    durations = [interval.duration_hours for interval in _planning_intervals(request)]
     for schedule in plan.schedules:
         device = by_id[schedule.device_id]
         output_schedule = response.plan.device_schedules.add()
@@ -241,14 +269,18 @@ def _response(
             else optimization_pb2.RESERVE_SELECTION_BASE
         )
         output_schedule.selected_reserve_kwh = selected
+        exported_energy = device.energy_kwh
         for index, planned in enumerate(schedule.intervals):
+            exported_energy -= (
+                planned.grid_service_kw * durations[index] / device.discharge_efficiency
+            )
             output_interval = output_schedule.intervals.add()
             output_interval.begin_time.CopyFrom(request.intervals[index].begin_time)
             output_interval.end_time.CopyFrom(request.intervals[index].end_time)
-            output_interval.setpoint_kw = planned.discharge_kw
-            output_interval.expected_energy_kwh = planned.expected_energy_kwh
+            output_interval.setpoint_kw = planned.grid_service_kw
+            output_interval.expected_energy_kwh = exported_energy
             output_interval.expected_state_of_energy_percent = (
-                planned.expected_energy_kwh / device.usable_energy_kwh * 100.0
+                exported_energy / device.usable_energy_kwh * 100.0
                 if device.usable_energy_kwh > 0.0
                 else 0.0
             )
