@@ -12,8 +12,9 @@ user's request. Commit at writing: `c4595c1`, 1,480 commits on `main`.
   demo and all gate runs, and writes `claude docs/gate-reports/`. It does
   not write feature code.
 - **Codex orchestrator ("worker", `worker:` lines).** The only backend
-  implementer. Runs up to three subagents. Its root agent currently owns
-  the remaining backend items.
+  implementer, thread `01a0dfbe-fa37-7aa0-b09c-c96d3c89070b`. Runs up to
+  three subagents. Its root agent currently owns the remaining backend
+  items.
 - **Console agent (`ui:` lines).** Owns `apps/console/`.
 - **Channel.** `.local/mailbox.log`, append only. The director writes
   `director:` lines. Watch it with a Monitor that prints new `worker:` and
@@ -33,6 +34,9 @@ all verified except the ones below.
 | 3 | 33 | 1 |
 | 4 | 46 | 2 |
 | 5 | 26 | 2 |
+
+That is 247 of 254 backend plan items done. The console track keeps its
+own list in `claude docs/UI_TRACK.md`.
 
 Open items:
 
@@ -99,6 +103,62 @@ Seeded data currently on the demo: VALIDATED event
 `event-4c10-1790504164` (not launched), Travel Flex window
 `seed-4c10-1790504134-window` active through 13:15Z, two WEATHER overrides
 from the simulated Austin alert.
+
+## Commands the next director needs
+
+Mailbox watch (run as a Monitor, re-arm on its 30-minute expiry):
+
+```sh
+f=.local/mailbox.log; seen=$(wc -l < "$f" | tr -d ' ')
+while true; do now=$(wc -l < "$f" | tr -d ' ')
+  if [ "$now" -gt "$seen" ]; then sed -n "$((seen+1)),${now}p" "$f" | grep -E '^(worker|ui):'; seen=$now
+  elif [ "$now" -lt "$seen" ]; then seen=$now; fi; sleep 2; done
+```
+
+Launch a proof event on the standing demo (create, approve with a signed
+step-up assertion, launch; the window starts 30 s after creation):
+
+```sh
+C=http://127.0.0.1:28080; E="live-proof-$(date -u +%s)"; NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+BEGIN=$(date -u -v+30S +%Y-%m-%dT%H:%M:%SZ); END=$(date -u -v+62M +%Y-%m-%dT%H:%M:%SZ)
+curl -fsS -X POST -H 'Content-Type: application/json' -H 'X-GridOS-Role: operator' \
+  --data "{\"eventRequest\":{\"requestId\":\"$E\",\"eventType\":\"GRID_SERVICE\",\"beginTime\":\"$BEGIN\",\"endTime\":\"$END\",\"targetKw\":20000,\"measurementBoundary\":\"MEASUREMENT_BOUNDARY_METER_NET_EXPORT\",\"loadZones\":[\"LZ_AEN\"],\"correlationId\":\"$E\"},\"idempotencyKey\":\"create-$E\"}" \
+  $C/gridos.v1.DispatchService/CreateEventRequest
+# wait until GetEvent reports DISPATCH_EVENT_STATE_VALIDATED, then:
+A=$(curl -fsS -X POST -H 'Content-Type: application/json' -H 'X-GridOS-Role: approver' \
+  --data "{\"action\":\"APPROVE_EVENT\",\"event_id\":\"$E\",\"plan_version\":1}" http://127.0.0.1:8080/local/step-up | jq -r .assertion)
+curl -fsS -X POST -H 'Content-Type: application/json' -H 'X-GridOS-Role: approver' -H "X-GridOS-Step-Up: $A" \
+  --data "{\"eventId\":\"$E\",\"planVersion\":1,\"idempotencyKey\":\"approve-$E\",\"approvedBy\":\"director\",\"approvedAt\":\"$NOW\"}" \
+  $C/gridos.v1.DispatchService/ApproveEvent
+curl -fsS -X POST -H 'Content-Type: application/json' -H 'X-GridOS-Role: approver' \
+  --data "{\"eventId\":\"$E\",\"planVersion\":1,\"idempotencyKey\":\"launch-$E\",\"requestedBy\":\"director\",\"requestedAt\":\"$NOW\"}" \
+  $C/gridos.v1.DispatchService/LaunchEvent
+```
+
+Verify the five exception kinds for an event (expect MISSING_TELEMETRY,
+UNCERTAIN_COMMAND, COMMAND_RETRY, STALE_CAPACITY_REMOVED and
+REBALANCED_COMMAND within about fifteen minutes of the window start):
+
+```sh
+curl -s -X POST -H 'Content-Type: application/json' -H 'X-GridOS-Role: operator' \
+  --data "{\"eventId\":\"$E\"}" http://127.0.0.1:28080/gridos.v1.EventsService/GetEventTimeline \
+  | jq -r '[.exceptions[]?.kind] | unique | join(",")'
+```
+
+If a kind is missing, look at `command_outbox` attempts and states for the
+event's intents and at `ERROR` lines in `.local/demo/worker.log`; both
+earlier gaps were found that way.
+
+## Standing working agreements
+
+- The user's standing instruction is to keep going without stopping and
+  without asking unless something is truly the user's call.
+- Many small commits, by exact path, subjects under 72 characters with no
+  prefix, RED and GREEN as separate commits. No worktrees, no `git add -A`,
+  no reset, stash or checkout in the shared tree, never `--no-verify`.
+- Only fast checks run in the hook; the full suite runs only at gates, by
+  the director.
+- Timestamps in the decisions log are real UTC from `date -u`.
 
 ## Rules learned the hard way
 
