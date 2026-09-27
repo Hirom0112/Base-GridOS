@@ -54,10 +54,12 @@ INSERT INTO risk_policy (
     version, effective_at, expires_at, outage_probability_threshold,
     telemetry_freshness_seconds, gateway_cadence_seconds, weather_floor_percent,
     outage_floor_percent, stale_floor_percent, alarm_floor_percent,
-    communications_floor_percent, health_floor_percent, provenance
+    communications_floor_percent, health_floor_percent, weather_zone_ugc, provenance
 ) VALUES (
     'risk-policy-sim-1', '2020-01-01T00:00:00Z', '2100-01-01T00:00:00Z', 0.01,
-    30, 15, 60, 60, 40, 100, 40, 100, '{"provenance":"SIMULATED"}'
+    30, 15, 60, 60, 40, 100, 40, 100,
+    '{"austin-5000.jsonl":{"SCENT":{"ugc":["TXZ192"],"same":["048453"]}}}',
+    '{"provenance":"SIMULATED","weather_zone_ugc":"SIMULATED"}'
 ) ON CONFLICT (version) DO NOTHING;
 
 COMMIT;

@@ -2,6 +2,7 @@ package policy
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"math"
 	"time"
@@ -23,6 +24,12 @@ type RiskPolicy struct {
 	CommunicationsFloor        float64
 	HealthFloor                float64
 	Provenance                 string
+	WeatherZoneUGC             map[string]map[string]WeatherAreaCodes
+}
+
+type WeatherAreaCodes struct {
+	UGC  []string `json:"ugc"`
+	SAME []string `json:"same"`
 }
 
 type RiskWeather struct {
@@ -66,18 +73,22 @@ type RiskDecision struct {
 func (store *Store) RiskPolicyAt(ctx context.Context, at time.Time) (RiskPolicy, error) {
 	var value RiskPolicy
 	var freshness, cadence float64
+	var encoded []byte
 	err := store.pool.QueryRow(ctx, `SELECT version,effective_at,expires_at,outage_probability_threshold,
 		telemetry_freshness_seconds,gateway_cadence_seconds,weather_floor_percent,outage_floor_percent,
 		stale_floor_percent,alarm_floor_percent,communications_floor_percent,
-		health_floor_percent,provenance->>'provenance'
+		health_floor_percent,weather_zone_ugc,provenance->>'provenance'
 		FROM risk_policy WHERE effective_at <= $1 AND expires_at > $1`, at).Scan(
 		&value.Version, &value.EffectiveAt, &value.ExpiresAt, &value.OutageProbabilityThreshold,
 		&freshness, &cadence, &value.WeatherFloor, &value.OutageFloor, &value.StaleFloor,
-		&value.AlarmFloor, &value.CommunicationsFloor, &value.HealthFloor, &value.Provenance)
+		&value.AlarmFloor, &value.CommunicationsFloor, &value.HealthFloor, &encoded, &value.Provenance)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return RiskPolicy{}, errors.New("risk policy is not effective")
 	}
 	if err != nil {
+		return RiskPolicy{}, err
+	}
+	if err := json.Unmarshal(encoded, &value.WeatherZoneUGC); err != nil {
 		return RiskPolicy{}, err
 	}
 	value.TelemetryFreshness = time.Duration(freshness * float64(time.Second))

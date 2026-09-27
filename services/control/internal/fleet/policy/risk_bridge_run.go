@@ -45,7 +45,7 @@ func (bridge *RiskBridge) Evaluate(ctx context.Context, at time.Time) error {
 func (bridge *RiskBridge) evaluateSite(ctx context.Context, at time.Time, policy RiskPolicy, source riskSource, site *gridosv1.AuthorizedSite) error {
 	siteID := site.GetSite().GetSiteId()
 	memberID := source.members[siteID]
-	evidence, decisions := riskForSite(at, policy, source, site)
+	evidence, decisions := riskForSite(at, policy, source, site, bridge.fleetFile)
 	if memberID == "" {
 		evidence.Missing = append(evidence.Missing, "member_binding_unavailable")
 	}
@@ -129,12 +129,16 @@ func (bridge *RiskBridge) recordEvaluation(ctx context.Context, siteID, memberID
 	return frozen, nil
 }
 
-func riskForSite(at time.Time, policy RiskPolicy, source riskSource, site *gridosv1.AuthorizedSite) (riskEvidence, []RiskDecision) {
+func riskForSite(at time.Time, policy RiskPolicy, source riskSource, site *gridosv1.AuthorizedSite, fleetFile string) (riskEvidence, []RiskDecision) {
 	evidence := riskEvidence{}
 	if source.publicError != "" {
 		evidence.Missing = append(evidence.Missing, source.publicError)
 	}
-	evidence.Missing = append(evidence.Missing, "weather_source_unmatched")
+	var weatherGap string
+	evidence.Weather, weatherGap = weatherForSite(at, policy, source, site, fleetFile)
+	if weatherGap != "" {
+		evidence.Missing = append(evidence.Missing, weatherGap)
+	}
 	if county := site.GetSite().GetCounty(); county != "" && source.publicError == "" {
 		for _, rate := range source.public.OutageRates {
 			if strings.EqualFold(rate.County, county) {

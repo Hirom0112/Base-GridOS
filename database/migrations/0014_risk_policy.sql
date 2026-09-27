@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS risk_policy (
     alarm_floor_percent double precision NOT NULL CHECK (alarm_floor_percent BETWEEN 0 AND 100),
     communications_floor_percent double precision NOT NULL CHECK (communications_floor_percent BETWEEN 0 AND 100),
     health_floor_percent double precision NOT NULL CHECK (health_floor_percent BETWEEN 0 AND 100),
+    weather_zone_ugc jsonb NOT NULL CHECK (jsonb_typeof(weather_zone_ugc) = 'object'),
     provenance jsonb NOT NULL CHECK (provenance->>'provenance' IN ('SIMULATED', 'AUTHORIZED_OPERATIONAL')),
     CHECK (expires_at > effective_at),
     EXCLUDE USING gist (tstzrange(effective_at, expires_at, '[)') WITH &&)

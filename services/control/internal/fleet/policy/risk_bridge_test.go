@@ -7,6 +7,7 @@ import (
 	"time"
 
 	gridosv1 "github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1"
+	publiccontext "github.com/Hirom0112/Base-GridOS/services/control/internal/context"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/storage"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -19,8 +20,8 @@ func TestRiskBridgeUsesVersionedThresholdsAndEvidence(t *testing.T) {
 	_, err := pool.Exec(ctx, `INSERT INTO risk_policy
 		(version,effective_at,expires_at,outage_probability_threshold,telemetry_freshness_seconds,
 		gateway_cadence_seconds,weather_floor_percent,outage_floor_percent,stale_floor_percent,
-		alarm_floor_percent,communications_floor_percent,health_floor_percent,provenance)
-		VALUES ('risk-v1',$1,$2,0.01,30,5,85,82,80,95,88,100,'{"provenance":"SIMULATED"}')`, now.Add(-time.Hour), now.Add(time.Hour))
+		alarm_floor_percent,communications_floor_percent,health_floor_percent,weather_zone_ugc,provenance)
+		VALUES ('risk-v1',$1,$2,0.01,30,5,85,82,80,95,88,100,'{}','{"provenance":"SIMULATED"}')`, now.Add(-time.Hour), now.Add(time.Hour))
 	require.NoError(t, err)
 	selected, err := New(pool).RiskPolicyAt(ctx, now)
 	require.NoError(t, err)
@@ -53,8 +54,8 @@ func TestRiskBridgeAppliesStaleOnlyWithConsentedPlan(t *testing.T) {
 	seedPolicyCatalog(t, pool, now.Add(-48*time.Hour))
 	_, err := pool.Exec(ctx, `INSERT INTO risk_policy(version,effective_at,expires_at,outage_probability_threshold,
 		telemetry_freshness_seconds,gateway_cadence_seconds,weather_floor_percent,outage_floor_percent,
-		stale_floor_percent,alarm_floor_percent,communications_floor_percent,health_floor_percent,provenance)
-		VALUES ('risk-test',$1,$2,0.01,30,15,60,60,40,100,40,100,'{"provenance":"SIMULATED"}')`, now.Add(-time.Hour), now.Add(time.Hour))
+		stale_floor_percent,alarm_floor_percent,communications_floor_percent,health_floor_percent,weather_zone_ugc,provenance)
+		VALUES ('risk-test',$1,$2,0.01,30,15,60,60,40,100,40,100,'{}','{"provenance":"SIMULATED"}')`, now.Add(-time.Hour), now.Add(time.Hour))
 	require.NoError(t, err)
 	_, err = pool.Exec(ctx, `INSERT INTO member_sites(site_id,member_id,bound_at,source,provenance)
 		VALUES ('site-consented','member-consented',$1,'SIMULATED','{"provenance":"SIMULATED"}'),
@@ -84,6 +85,27 @@ func TestRiskBridgeAppliesStaleOnlyWithConsentedPlan(t *testing.T) {
 	require.Zero(t, count)
 	require.NoError(t, pool.QueryRow(ctx, `SELECT count(*) FROM risk_policy_evaluations WHERE evaluated_at = $1`, now).Scan(&count))
 	require.Equal(t, 2, count)
+}
+
+func TestRiskBridgeWeatherMatchesOnlyMappedFleetAndZone(t *testing.T) {
+	now := time.Now().UTC().Truncate(time.Second)
+	policy := RiskPolicy{WeatherFloor: 60, WeatherZoneUGC: map[string]map[string]WeatherAreaCodes{
+		"austin-5000.jsonl": {"SCENT": {UGC: []string{"TXZ192"}, SAME: []string{"048453"}}},
+	}}
+	site := &gridosv1.AuthorizedSite{Site: &gridosv1.Site{SiteId: "austin-site", WeatherZone: "SCENT"}}
+	alert := publiccontext.Alert{ID: "nws-travis-1", UGC: []string{"TXZ192"}, SAME: []string{"048453"},
+		Effective: now.Add(-time.Minute), Expires: now.Add(time.Hour), Source: publiccontext.Source{AsOf: now.Add(-time.Minute)}}
+	source := riskSource{public: publiccontext.Snapshot{Alerts: []publiccontext.Alert{alert}}}
+	evidence, decisions := riskForSite(now, policy, source, site, "testdata/fleets/austin-5000.jsonl")
+	require.Len(t, decisions, 1)
+	require.Equal(t, OverrideWeather, decisions[0].Reason)
+	require.Equal(t, "nws-travis-1", evidence.Weather.EvidenceID)
+	evidence, decisions = riskForSite(now, policy, source, site, "testdata/fleets/texas-50.jsonl")
+	require.Empty(t, decisions)
+	require.Contains(t, evidence.Missing, "weather_source_unmatched")
+	evidence, decisions = riskForSite(now, policy, riskSource{}, site, "testdata/fleets/austin-5000.jsonl")
+	require.Empty(t, decisions)
+	require.Contains(t, evidence.Missing, "weather_no_active_alert")
 }
 
 func TestRiskBridgeMigrationReapplies(t *testing.T) {
