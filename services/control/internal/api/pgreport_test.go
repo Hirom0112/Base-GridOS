@@ -171,6 +171,24 @@ func TestLiveReportRewardsAndMarginUseStoredEvidence(t *testing.T) {
 	require.True(t, hasLiveReportGap(incomplete.DataGaps, "margin_unavailable"))
 }
 
+func TestSourcedMarginShowsNegativeUpperBoundWithUnknownCosts(t *testing.T) {
+	explanation := &gridosv1.MarginExplanation{ConservativeMargin: -3.25, Terms: []*gridosv1.MarginTerm{
+		{Name: "DISPATCH_VALUE", Low: -3.25, High: -3.25, Source: "FROZEN_SIMULATED_PRICE"},
+		{Name: "AVOIDED_PEAK_COST", Low: 0, High: 0, Source: "FROZEN_ZERO_VALUE"},
+		{Name: "COMMITMENT_RELIABILITY_VALUE", Low: 0, High: 0, Source: "FROZEN_ZERO_VALUE"},
+	}}
+	for _, name := range []string{"CHARGING_ENERGY", "INCREMENTAL_DEGRADATION", "PENALTY_EXPOSURE", "MEMBER_REWARD", "SUPPORT_AND_RISK_COST"} {
+		explanation.Terms = append(explanation.Terms, &gridosv1.MarginTerm{Name: name, Source: "UNAVAILABLE", Unavailable: true})
+	}
+	margin, valid := sourcedMargin(explanation)
+	require.True(t, valid)
+	require.Equal(t, -3.25, margin.ValueUSD)
+
+	explanation.Terms[1].Unavailable = true
+	_, valid = sourcedMargin(explanation)
+	require.False(t, valid)
+}
+
 func hasLiveReportGap(gaps []report.DataGap, reason string) bool {
 	for _, gap := range gaps {
 		if gap.Reason == reason && gap.End.After(gap.Begin) {
