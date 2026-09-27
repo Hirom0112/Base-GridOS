@@ -86,6 +86,24 @@ func LoadPublishedReport(ctx context.Context, pool *pgxpool.Pool, eventID string
 	return &value, nil
 }
 
+func LoadPublishedReportVersion(ctx context.Context, pool *pgxpool.Pool, eventID string, version uint64) (*report.EventReport, error) {
+	if pool == nil || eventID == "" || version == 0 {
+		return nil, errors.New("report store, event identifier, and positive version required")
+	}
+	value, err := scanPublishedReport(pool.QueryRow(ctx, `SELECT report, sha256 FROM event_reports
+		WHERE event_id = $1 AND version = $2`, eventID, version))
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	if value.EventID != eventID || value.PlanVersion != version {
+		return nil, errors.New("published report identity or version mismatch")
+	}
+	return &value, nil
+}
+
 func scanPublishedReport(row pgx.Row) (report.EventReport, error) {
 	var encoded []byte
 	var expected string
