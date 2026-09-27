@@ -18,6 +18,7 @@ var ErrTelemetryExpired = errors.New("observation outside telemetry retention")
 
 type TelemetryStore struct {
 	pool *pgxpool.Pool
+	now  func() time.Time
 }
 
 type telemetryRow struct {
@@ -27,7 +28,11 @@ type telemetryRow struct {
 }
 
 func NewTelemetryStore(pool *pgxpool.Pool) *TelemetryStore {
-	return &TelemetryStore{pool: pool}
+	return NewTelemetryStoreAt(pool, time.Now)
+}
+
+func NewTelemetryStoreAt(pool *pgxpool.Pool, now func() time.Time) *TelemetryStore {
+	return &TelemetryStore{pool: pool, now: now}
 }
 
 func (store *TelemetryStore) Write(ctx context.Context, observations []*gridosv1.TelemetryObservation) ([]*gridosv1.TelemetryObservation, error) {
@@ -43,7 +48,7 @@ func (store *TelemetryStore) Write(ctx context.Context, observations []*gridosv1
 	if _, err = tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtextextended('telemetry:' || key, 0)) FROM (SELECT unnest($1::text[]) AS key ORDER BY key) AS ordered`, keys); err != nil {
 		return nil, err
 	}
-	cutoff := retentionStart(time.Now().UTC())
+	cutoff := retentionStart(store.now())
 	expired := false
 	for _, row := range rows {
 		if row.observation.GetObservationTime().AsTime().Before(cutoff) {

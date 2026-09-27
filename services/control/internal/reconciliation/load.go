@@ -71,9 +71,9 @@ func loadCommands(ctx context.Context, pool *pgxpool.Pool, event *Event, eventID
 
 func loadTelemetry(ctx context.Context, pool *pgxpool.Pool, event *Event, boundary string) error {
 	window := event.measurement
-	rows, err := pool.Query(ctx, `SELECT new_values FROM audit_journal
-		WHERE action = 'TELEMETRY_RECEIVED' AND actor_id = ANY($1) AND occurred_at BETWEEN $2 AND $3
-		ORDER BY sequence`, event.deviceIDs(), window.Begin.Add(-window.MaxGap), window.End.Add(window.MaxGap))
+	rows, err := pool.Query(ctx, `SELECT payload FROM telemetry_observations
+		WHERE device_id = ANY($1) AND observed_at BETWEEN $2 AND $3
+		ORDER BY observed_at, sequence`, event.deviceIDs(), window.Begin.Add(-window.MaxGap), window.End.Add(window.MaxGap))
 	if err != nil {
 		return err
 	}
