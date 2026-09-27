@@ -150,3 +150,26 @@ func TestRiskBridgeMigrationReapplies(t *testing.T) {
 	_, err = pool.Exec(context.Background(), string(forward))
 	require.NoError(t, err)
 }
+
+func TestRiskPolicyMigrationLabelsExistingCatalogAsDerived(t *testing.T) {
+	pool := policyDatabase(t)
+	ctx := context.Background()
+	seedPolicyCatalog(t, pool, time.Now().UTC())
+	rollback, err := os.ReadFile("../../../../../database/rollback/0014_risk_policy.sql")
+	require.NoError(t, err)
+	forward, err := os.ReadFile("../../../../../database/migrations/0014_risk_policy.sql")
+	require.NoError(t, err)
+	_, err = pool.Exec(ctx, string(rollback))
+	require.NoError(t, err)
+	_, err = pool.Exec(ctx, string(forward))
+	require.NoError(t, err)
+	for _, table := range []string{"reserve_policies", "pricing_catalog_snapshots"} {
+		var count int
+		require.NoError(t, pool.QueryRow(ctx, "SELECT count(*) FROM "+table+" WHERE provenance->>'provenance' = 'DERIVED'").Scan(&count))
+		require.Positive(t, count)
+		var definition string
+		require.NoError(t, pool.QueryRow(ctx, `SELECT pg_get_constraintdef(c.oid) FROM pg_constraint c
+			WHERE c.conrelid = $1::regclass AND c.conname = $1 || '_provenance_check'`, table).Scan(&definition))
+		require.Contains(t, definition, "SIMULATED")
+	}
+}
