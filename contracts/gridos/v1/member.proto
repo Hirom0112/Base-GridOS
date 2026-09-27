@@ -1,0 +1,220 @@
+syntax = "proto3";
+
+package gridos.v1;
+
+import "google/protobuf/timestamp.proto";
+import "gridos/v1/api.proto";
+import "gridos/v1/dispatch.proto";
+
+option go_package = "github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1;gridosv1";
+
+enum MemberOfferKind {
+  MEMBER_OFFER_KIND_UNSPECIFIED = 0;
+  MEMBER_OFFER_KIND_PLAN = 1;
+  MEMBER_OFFER_KIND_TRAVEL_FLEX = 2;
+}
+
+enum MemberCreditType {
+  MEMBER_CREDIT_TYPE_UNSPECIFIED = 0;
+  MEMBER_CREDIT_TYPE_FIXED_DAILY = 1;
+  MEMBER_CREDIT_TYPE_FIXED_EVENT = 2;
+  MEMBER_CREDIT_TYPE_FIXED_ANNUAL = 3;
+}
+
+enum MemberEarlyReturnAction {
+  MEMBER_EARLY_RETURN_ACTION_UNSPECIFIED = 0;
+  MEMBER_EARLY_RETURN_ACTION_RESTORE_PLAN_RESERVE = 1;
+  MEMBER_EARLY_RETURN_ACTION_RESTORE_MAXIMUM_RESERVE = 2;
+}
+
+message MemberOffer {
+  string offer_id = 1;
+  string member_id = 2;
+  MemberOfferKind kind = 3;
+  string market = 4;
+  string catalog_version = 5;
+  string member_plan_id = 6;
+  string contract_version = 7;
+  string price_text = 8;
+  string consent_text = 9;
+  string consent_version = 10;
+  google.protobuf.Timestamp effective_at = 11;
+  google.protobuf.Timestamp expires_at = 12;
+  optional double temporary_reserve_percent = 13;
+  MemberCreditType credit_type = 14;
+  int64 fixed_credit_cents = 15;
+  int64 energy_monthly_charge_cents = 16;
+  int64 battery_monthly_charge_cents = 17;
+  int64 flexibility_reward_cents = 18;
+}
+
+message SelectedMemberPlan {
+  string selection_id = 1;
+  string offer_id = 2;
+  string catalog_version = 3;
+  string member_plan_id = 4;
+  string display_name = 5;
+  double reserve_floor_percent = 6;
+  string policy_version = 7;
+  google.protobuf.Timestamp effective_at = 8;
+  int64 energy_monthly_charge_cents = 9;
+  int64 battery_monthly_charge_cents = 10;
+  int64 flexibility_reward_cents = 11;
+  bool terms_known = 12;
+}
+
+message PresentOfferRequest {
+  string member_id = 1;
+  string idempotency_key = 2;
+  MemberOfferKind kind = 3;
+  string market = 4;
+  string catalog_version = 5;
+  string member_plan_id = 6;
+  string contract_version = 7;
+  string price_text = 8;
+  string consent_text = 9;
+  string consent_version = 10;
+  google.protobuf.Timestamp effective_at = 11;
+  google.protobuf.Timestamp expires_at = 12;
+  optional double temporary_reserve_percent = 13;
+  MemberCreditType credit_type = 14;
+  int64 fixed_credit_cents = 15;
+  string correlation_id = 16;
+}
+
+message PresentOfferResponse {
+  MemberOffer offer = 1;
+}
+
+message SelectResiliencePlanRequest {
+  string member_id = 1;
+  string idempotency_key = 2;
+  string offer_id = 3;
+  string market = 4;
+  string catalog_version = 5;
+  string member_plan_id = 6;
+  string policy_version = 7;
+  string consent_text = 8;
+  string consent_version = 9;
+  string explanation_shown = 10;
+  google.protobuf.Timestamp effective_at = 11;
+  string correlation_id = 12;
+}
+
+message SelectResiliencePlanResponse {
+  SelectedMemberPlan plan = 1;
+}
+
+message ScheduleTravelFlexRequest {
+  string member_id = 1;
+  string idempotency_key = 2;
+  string offer_id = 3;
+  google.protobuf.Timestamp start_time = 4;
+  google.protobuf.Timestamp end_time = 5;
+  string timezone = 6;
+  double temporary_reserve_percent = 7;
+  MemberEarlyReturnAction early_return_action = 8;
+  MemberCreditType credit_type = 9;
+  int64 fixed_credit_cents = 10;
+  string consent_text = 11;
+  string consent_version = 12;
+  string policy_version = 13;
+  string correlation_id = 14;
+}
+
+message ScheduleTravelFlexResponse {
+  string window_id = 1;
+  google.protobuf.Timestamp start_time = 2;
+  google.protobuf.Timestamp end_time = 3;
+  double temporary_reserve_percent = 4;
+  int64 fixed_credit_cents = 5;
+}
+
+message EndTravelFlexEarlyRequest {
+  string member_id = 1;
+  string idempotency_key = 2;
+  string window_id = 3;
+  google.protobuf.Timestamp returned_at = 4;
+  string consent_version = 5;
+  string correlation_id = 6;
+}
+
+message EndTravelFlexEarlyResponse {
+  string window_id = 1;
+  google.protobuf.Timestamp returned_at = 2;
+}
+
+message SetAnomalyPreferenceRequest {
+  string member_id = 1;
+  string idempotency_key = 2;
+  bool opted_in = 3;
+  string consent_text = 4;
+  string consent_version = 5;
+  double baseline_upper_kw = 6;
+  google.protobuf.Timestamp baseline_begin = 7;
+  google.protobuf.Timestamp baseline_end = 8;
+  google.protobuf.Timestamp effective_at = 9;
+  google.protobuf.Timestamp expires_at = 10;
+  string correlation_id = 11;
+}
+
+message SetAnomalyPreferenceResponse {
+  string preference_id = 1;
+}
+
+message ScheduleAwayRequest {
+  string member_id = 1;
+  string idempotency_key = 2;
+  google.protobuf.Timestamp start_time = 3;
+  google.protobuf.Timestamp end_time = 4;
+  string consent_version = 5;
+  string correlation_id = 6;
+}
+
+message ScheduleAwayResponse {
+  string away_period_id = 1;
+}
+
+message EndAwayRequest {
+  string member_id = 1;
+  string idempotency_key = 2;
+  string away_period_id = 3;
+  google.protobuf.Timestamp returned_at = 4;
+  string consent_version = 5;
+  string correlation_id = 6;
+}
+
+message EndAwayResponse {
+  string away_period_id = 1;
+  google.protobuf.Timestamp returned_at = 2;
+}
+
+message GetMemberStatusRequest {
+  string member_id = 1;
+  string site_id = 2;
+}
+
+message GetMemberStatusResponse {
+  string member_id = 1;
+  string site_id = 2;
+  FleetOperatingState operating_state = 3;
+  FleetAvailabilityState availability = 4;
+  double state_of_energy_percent = 5;
+  double backup_hours_current = 6;
+  double backup_hours_750w = 7;
+  SelectedMemberPlan current_plan = 8;
+  double effective_reserve_percent = 9;
+  repeated GridEvent recent_events = 10;
+  google.protobuf.Timestamp observed_at = 11;
+}
+
+service MemberService {
+  rpc PresentOffer(PresentOfferRequest) returns (PresentOfferResponse);
+  rpc SelectResiliencePlan(SelectResiliencePlanRequest) returns (SelectResiliencePlanResponse);
+  rpc ScheduleTravelFlex(ScheduleTravelFlexRequest) returns (ScheduleTravelFlexResponse);
+  rpc EndTravelFlexEarly(EndTravelFlexEarlyRequest) returns (EndTravelFlexEarlyResponse);
+  rpc SetAnomalyPreference(SetAnomalyPreferenceRequest) returns (SetAnomalyPreferenceResponse);
+  rpc ScheduleAway(ScheduleAwayRequest) returns (ScheduleAwayResponse);
+  rpc EndAway(EndAwayRequest) returns (EndAwayResponse);
+  rpc GetMemberStatus(GetMemberStatusRequest) returns (GetMemberStatusResponse);
+}
