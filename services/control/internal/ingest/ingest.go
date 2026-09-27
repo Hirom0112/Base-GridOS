@@ -8,6 +8,7 @@ import (
 
 	"connectrpc.com/connect"
 	gridosv1 "github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1"
+	"github.com/Hirom0112/Base-GridOS/services/control/internal/storage"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -37,6 +38,9 @@ func (service *Service) PublishTelemetry(ctx context.Context, request *connect.R
 	slices.SortFunc(ordered, compareObservations)
 	inserted, err := service.store.Write(ctx, ordered)
 	if err != nil {
+		if errors.Is(err, storage.ErrTelemetryExpired) {
+			return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		}
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 	slices.SortFunc(inserted, compareObservations)
