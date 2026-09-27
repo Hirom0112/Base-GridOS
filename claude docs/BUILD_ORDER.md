@@ -1387,7 +1387,7 @@ Owns: `services/decision/` (whole package this wave, including
   explicit zero-valued costs on the high side, and a public-price-only
   positive margin is capped at zero; the plan explanation lists the terms
   used and the ones unavailable. Verify: `-k public_price_margin` passes.
-- `[ ]` 4B.8 `[after 4B.7, 4A.3]` Flex reserve selection through the safety
+- `[x]` 4B.8 `[after 4B.7, 4A.3]` Flex reserve selection through the safety
   gate. Today the frozen effective reserve and the canonical safety state
   stay at the base reserve, so a positive margin can never consume Travel
   Flex without a second roundtrip. Make the choice representable: the

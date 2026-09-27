@@ -913,3 +913,11 @@ assumptions reported by workers land here too.
   variants and an authorized drill-down; the mock API validator maps
   named variants. Director: mockapi fixtures test ok; standing demo
   untouched.
+- **4B.8 (lane 4B), verified; lane 4B complete:** the canonical device
+  state carries base and consented flex reserves, each schedule declares a
+  reserve selection with its selected value, the gate enforces TRAVEL_FLEX
+  only when consent exists and never below hardware, the decision server
+  checks equality against the selected value, and one reconstruction path
+  serves the workflow gate and the alternative validator. Director:
+  contracts clean, safety, api, dispatch selectors and 16 decision flex
+  and margin tests pass.
