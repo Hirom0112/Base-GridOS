@@ -2,6 +2,7 @@ package report
 
 import (
 	"context"
+	"errors"
 	"math"
 	"reflect"
 	"testing"
@@ -12,7 +13,32 @@ type storedReportSource struct {
 	eventID   string
 	data      StoredEvent
 	published *EventReport
+	versions  map[uint64]*EventReport
 	reads     int
+}
+
+func TestBuildPublishedSelectsVersionAndRejectsMissingHistory(t *testing.T) {
+	older := &EventReport{EventID: "event-history", PlanVersion: 2, RequestedMW: 1}
+	latest := &EventReport{EventID: "event-history", PlanVersion: 3, RequestedMW: 2}
+	source := &storedReportSource{published: latest, versions: map[uint64]*EventReport{2: older, 3: latest}}
+	version := uint64(2)
+	got, err := BuildPublished(context.Background(), source, "event-history", &version)
+	if err != nil || got.PlanVersion != 2 || got.RequestedMW != 1 {
+		t.Fatalf("historical report = %+v, error = %v", got, err)
+	}
+	got.RequestedMW = 99
+	if older.RequestedMW != 1 {
+		t.Fatal("historical report aliases published evidence")
+	}
+	got, err = BuildPublished(context.Background(), source, "event-history", nil)
+	if err != nil || got.PlanVersion != 3 {
+		t.Fatalf("latest published report = %+v, error = %v", got, err)
+	}
+	version = 4
+	_, err = BuildPublished(context.Background(), source, "event-history", &version)
+	if !errors.Is(err, ErrNotPublished) || source.reads != 0 {
+		t.Fatalf("missing history used live data: %v, reads = %d", err, source.reads)
+	}
 }
 
 func TestFullEventReportPreservesAccountingAndModeledEconomics(t *testing.T) {
@@ -92,6 +118,10 @@ func (source *storedReportSource) EventReportData(_ context.Context, eventID str
 
 func (source *storedReportSource) StoredReport(context.Context, string) (*EventReport, error) {
 	return source.published, nil
+}
+
+func (source *storedReportSource) StoredReportVersion(_ context.Context, _ string, version uint64) (*EventReport, error) {
+	return source.versions[version], nil
 }
 
 func TestImmutableReportReturnsPublishedVersion(t *testing.T) {
