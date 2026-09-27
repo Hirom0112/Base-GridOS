@@ -91,3 +91,37 @@ func TestInsertCommandRecordsPersistedStateOnlyOnce(t *testing.T) {
 		t.Fatalf("retried zero insert count = %v, want %v", got, before+2)
 	}
 }
+
+func TestAcknowledgementRecordsCommittedState(t *testing.T) {
+	pool := testDatabase(t)
+	insertPlan(t, pool, "event-metric-ack")
+	command := testCommand("metric-ack", "event-metric-ack")
+	if err := InsertCommand(context.Background(), pool, command); err != nil {
+		t.Fatal(err)
+	}
+	_, err := TransitionCommand(context.Background(), pool, CommandTransition{
+		CommandID: command.CommandID, ExpectedState: "PERSISTED", NextState: "SENT",
+		OccurredAt: time.Now().UTC(), CorrelationID: command.CorrelationID,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	before := commandMetricValue(t, "ACKNOWLEDGED")
+	ack := Acknowledgement{
+		AcknowledgementID: "ack-metric", CommandID: command.CommandID,
+		IdempotencyKey: "ack-metric-key", ReceiptStatus: "ACCEPTED",
+		ReceivedAt: time.Now().UTC(), GatewayID: "gateway-metric", CorrelationID: command.CorrelationID,
+	}
+	if err := RecordAcknowledgement(context.Background(), pool, ack); err != nil {
+		t.Fatal(err)
+	}
+	if got := commandMetricValue(t, "ACKNOWLEDGED"); got != before+1 {
+		t.Fatalf("acknowledged count = %v, want %v", got, before+1)
+	}
+	if err := RecordAcknowledgement(context.Background(), pool, ack); err == nil {
+		t.Fatal("repeated acknowledgement accepted")
+	}
+	if got := commandMetricValue(t, "ACKNOWLEDGED"); got != before+1 {
+		t.Fatalf("repeated acknowledged count = %v, want %v", got, before+1)
+	}
+}
