@@ -19,7 +19,7 @@ injections:
     scope: scheduled
   - at: 2026-08-12T18:20:00-05:00
     kind: DELAYED_GATEWAY
-    scope: scheduled
+    scope: next_command
 expected:
   final_event_state: REPORTED
   reserve_violations: 0

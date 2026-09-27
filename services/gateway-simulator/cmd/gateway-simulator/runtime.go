@@ -22,8 +22,9 @@ func newRuntimeCommandHandler(next gridosv1connect.CommandServiceHandler, runtim
 }
 
 func (handler *runtimeCommandHandler) SubmitCommand(ctx context.Context, request *connect.Request[gridosv1.SubmitCommandRequest]) (*connect.Response[gridosv1.SubmitCommandResponse], error) {
-	handler.runtime.Advance(handler.now())
-	deviceID := request.Msg.GetCommandIntent().GetDeviceId()
+	intent := request.Msg.GetCommandIntent()
+	deviceID := intent.GetDeviceId()
+	handler.runtime.TargetCommand(handler.now(), intent.GetEventId(), deviceID, intent.GetSetpointKw())
 	if handler.affected(deviceID, failures.OfflineDevices, failures.PartialRegionOutage) {
 		return nil, connect.NewError(connect.CodeUnavailable, errors.New("device unavailable"))
 	}

@@ -19,6 +19,7 @@ type Device struct {
 type Effect struct {
 	At        time.Time
 	Kind      Kind
+	Scope     Scope
 	DeviceIDs []string
 	Region    string
 	LostMW    float64
@@ -60,11 +61,11 @@ func validateInjection(injection Injection, scenario Scenario, devices []Device)
 	if !validKind(injection.Kind) {
 		return fmt.Errorf("unsupported injection %q", injection.Kind)
 	}
-	if injection.Scope != "" && injection.Scope != Scheduled {
+	if injection.Scope != "" && injection.Scope != Scheduled && injection.Scope != NextCommand {
 		return fmt.Errorf("unsupported injection scope %q", injection.Scope)
 	}
-	if injection.Scope == Scheduled && (globalKind(injection.Kind) || injection.Kind == PartialRegionOutage) {
-		return fmt.Errorf("scheduled scope cannot target %q", injection.Kind)
+	if injection.Scope != "" && (globalKind(injection.Kind) || injection.Kind == PartialRegionOutage) {
+		return fmt.Errorf("%s scope cannot target %q", injection.Scope, injection.Kind)
 	}
 	if injection.Region != "" && injection.Kind != PartialRegionOutage {
 		return fmt.Errorf("region cannot target %q", injection.Kind)
@@ -134,8 +135,11 @@ func (engine *Engine) advance(now time.Time, eventID string) []Effect {
 }
 
 func (engine *Engine) effect(injection Injection, commanded map[string]struct{}) Effect {
-	effect := Effect{At: injection.At, Kind: injection.Kind}
+	effect := Effect{At: injection.At, Kind: injection.Kind, Scope: injection.Scope}
 	if globalKind(injection.Kind) {
+		return effect
+	}
+	if injection.Scope == NextCommand {
 		return effect
 	}
 	if injection.Scope == Scheduled {

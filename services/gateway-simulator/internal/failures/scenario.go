@@ -14,7 +14,10 @@ type Kind string
 
 type Scope string
 
-const Scheduled Scope = "scheduled"
+const (
+	Scheduled   Scope = "scheduled"
+	NextCommand Scope = "next_command"
+)
 
 const (
 	OfflineDevices      Kind = "OFFLINE_DEVICES"
