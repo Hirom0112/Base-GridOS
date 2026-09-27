@@ -5,6 +5,14 @@ bazel_dep(name = "gazelle", version = "0.54.0")
 bazel_dep(name = "rules_python", version = "2.3.4")
 bazel_dep(name = "rules_proto", version = "7.1.0")
 bazel_dep(name = "rules_buf", version = "0.5.4")
+bazel_dep(name = "rules_shell", version = "0.6.1")
+
+buf = use_extension("@rules_buf//buf:extensions.bzl", "buf")
+buf.toolchains(
+    sha256 = "18f603d3b418f6a1259da4425b04bbe2fbaf60c2b796b98114d961e8736198b9",
+    version = "v1.73.0",
+)
+use_repo(buf, "rules_buf_toolchains")
 
 go_sdk = use_extension("@rules_go//go:extensions.bzl", "go_sdk")
 go_sdk.from_file(go_work = "//:go.work")

@@ -1,0 +1,21 @@
+load("@rules_shell//shell:sh_test.bzl", "sh_test")
+
+sh_test(
+    name = "vitest",
+    srcs = ["vitest.sh"],
+    data = glob([
+        "*.json",
+        "*.yaml",
+        "*.ts",
+        "*.js",
+        "src/**",
+        "tests/**",
+    ]) + [
+        "//:proto_inputs",
+        "//testdata:fixtures",
+        "@rules_buf_toolchains//:buf",
+    ],
+    args = ["$(location @rules_buf_toolchains//:buf)"],
+    env = {"PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"},
+    tags = ["local"],
+)

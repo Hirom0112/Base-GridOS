@@ -1,5 +1,26 @@
 load("@gazelle//:def.bzl", "gazelle")
 
-exports_files(["go.work"])
+exports_files(["go.work", "MODULE.bazel"])
+
+filegroup(
+    name = "proto_files",
+    srcs = glob(["contracts/**/*.proto"]),
+    visibility = ["//visibility:public"],
+)
+
+filegroup(
+    name = "proto_inputs",
+    srcs = [":proto_files", "contracts/buf.yaml"],
+    visibility = ["//visibility:public"],
+)
+
+filegroup(
+    name = "container_inputs",
+    srcs = [":proto_inputs"] + glob([
+        "infrastructure/aws/go.gen.yaml",
+        "database/**",
+    ]),
+    visibility = ["//visibility:public"],
+)
 
 gazelle(name = "gazelle")

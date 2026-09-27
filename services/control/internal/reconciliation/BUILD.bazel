@@ -11,6 +11,7 @@ go_library(
         "load.go",
         "persist.go",
         "reallocation.go",
+        "recovery.go",
         "uncertain.go",
     ],
     importpath = "github.com/Hirom0112/Base-GridOS/services/control/internal/reconciliation",

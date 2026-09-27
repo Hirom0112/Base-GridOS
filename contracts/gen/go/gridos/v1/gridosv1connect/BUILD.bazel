@@ -1,14 +1,32 @@
 load("@rules_go//go:def.bzl", "go_library")
 
+genrule(
+    name = "connect_bindings",
+    srcs = ["//:proto_inputs"],
+    outs = [
+        "_generated/api.connect.go",
+        "_generated/dispatch.connect.go",
+        "_generated/geo.connect.go",
+        "_generated/member.connect.go",
+        "_generated/optimization.connect.go",
+    ],
+    tools = [
+        "@com_connectrpc_connect//cmd/protoc-gen-connect-go:protoc-gen-connect-go",
+        "@rules_buf_toolchains//:buf",
+    ],
+    cmd = """set -e
+temporary=$$(mktemp -d)
+plugin=$$(realpath $(location @com_connectrpc_connect//cmd/protoc-gen-connect-go:protoc-gen-connect-go))
+printf '{"version":"v2","plugins":[{"local":"%s","out":".","opt":"paths=source_relative"}]}' "$$plugin" > "$$temporary/template.json"
+$(location @rules_buf_toolchains//:buf) generate contracts --template "$$temporary/template.json" --output "$$temporary/out"
+mkdir -p "$(RULEDIR)/_generated"
+cp "$$temporary"/out/gridos/v1/gridosv1connect/*.connect.go "$(RULEDIR)/_generated/"
+""",
+)
+
 go_library(
     name = "gridosv1connect",
-    srcs = [
-        "api.connect.go",
-        "dispatch.connect.go",
-        "geo.connect.go",
-        "member.connect.go",
-        "optimization.connect.go",
-    ],
+    srcs = [":connect_bindings"],
     importpath = "github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1/gridosv1connect",
     visibility = ["//visibility:public"],
     deps = [

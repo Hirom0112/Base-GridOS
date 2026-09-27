@@ -1,4 +1,26 @@
 exports_files([
+    "Dockerfile",
     "go.mod",
     "go.sum",
 ])
+
+genrule(
+    name = "image",
+    srcs = [
+        ":Dockerfile",
+        "//:MODULE.bazel",
+        "//:container_inputs",
+        "//services/gateway-simulator/cmd/gateway-simulator:gateway-simulator",
+        "//testdata:fixtures",
+    ],
+    outs = ["gateway-image.tar"],
+    local = True,
+    tags = ["manual"],
+    cmd = """set -e
+workspace=$$(dirname $$(realpath $(location //:MODULE.bazel)))
+output=$$(pwd)/$@
+cd $$workspace
+docker build --target gateway -f services/gateway-simulator/Dockerfile -t gridos-gateway-bazel:latest . >/dev/null
+docker save -o $$output gridos-gateway-bazel:latest
+""",
+)

@@ -1,15 +1,75 @@
-load("@rules_python//python:defs.bzl", "py_test")
+load("@rules_python//python:defs.bzl", "py_binary", "py_library", "py_test")
 
 exports_files(["uv.lock"])
 
+py_binary(
+    name = "bazel_protoc",
+    srcs = ["bazel_protoc.py"],
+    legacy_create_init = 0,
+    deps = ["@gridos_pypi//grpcio_tools:pkg"],
+)
+
+genrule(
+    name = "python_bindings_generated",
+    srcs = ["//:proto_files"],
+    outs = [
+        "gridos/gen/gridos/v1/%s_pb2.py" % name
+        for name in ["api", "device", "dispatch", "events", "geo", "member", "member_policy", "optimization", "pricing", "telemetry", "verification"]
+    ] + [
+        "gridos/gen/gridos/v1/%s_pb2_grpc.py" % name
+        for name in ["api", "device", "dispatch", "events", "geo", "member", "member_policy", "optimization", "pricing", "telemetry", "verification"]
+    ],
+    tools = [":bazel_protoc"],
+    cmd = "$(location :bazel_protoc) $(RULEDIR)/gridos/gen $(locations //:proto_files)",
+)
+
+py_library(
+    name = "python_bindings",
+    srcs = [":python_bindings_generated"],
+    imports = ["gridos/gen"],
+)
+
+filegroup(
+    name = "image_sources",
+    srcs = glob(
+        ["gridos/**", "pyproject.toml", "uv.lock"],
+        exclude = ["gridos/gen/**", "gridos/**/__pycache__/**", "gridos/**/*.pyc"],
+    ),
+)
+
+genrule(
+    name = "image",
+    srcs = [
+        ":Dockerfile",
+        ":image_sources",
+        "//:MODULE.bazel",
+        "//:container_inputs",
+        "//testdata:fixtures",
+    ],
+    outs = ["decision-image.tar"],
+    local = True,
+    tags = ["manual"],
+    cmd = """set -e
+workspace=$$(dirname $$(realpath $(location //:MODULE.bazel)))
+output=$$(pwd)/$@
+cd $$workspace
+docker build --target decision -f services/decision/Dockerfile -t gridos-decision-bazel:latest . >/dev/null
+docker save -o $$output gridos-decision-bazel:latest
+""",
+)
+
 py_test(
     name = "decision_test",
-    srcs = ["bazel_test.py"] + glob(["gridos/**/*.py", "tests/**/*.py"]),
+    srcs = ["bazel_test.py"] + glob(
+        ["gridos/**/*.py", "tests/**/*.py"],
+        exclude = ["gridos/gen/**"],
+    ),
     data = ["//testdata:fixtures"],
     imports = [".", "gridos/gen"],
     legacy_create_init = 0,
     main = "bazel_test.py",
     deps = [
+        ":python_bindings",
         "@gridos_pypi//grpcio:pkg",
         "@gridos_pypi//highspy:pkg",
         "@gridos_pypi//hypothesis:pkg",

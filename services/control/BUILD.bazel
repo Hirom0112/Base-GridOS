@@ -1,4 +1,28 @@
 exports_files([
+    "Dockerfile",
     "go.mod",
     "go.sum",
 ])
+
+genrule(
+    name = "image",
+    srcs = [
+        ":Dockerfile",
+        "//:MODULE.bazel",
+        "//:container_inputs",
+        "//services/control/cmd/control:control",
+        "//services/control/cmd/migrate:migrate",
+        "//services/control/cmd/worker:worker",
+        "//testdata:fixtures",
+    ],
+    outs = ["control-image.tar"],
+    local = True,
+    tags = ["manual"],
+    cmd = """set -e
+workspace=$$(dirname $$(realpath $(location //:MODULE.bazel)))
+output=$$(pwd)/$@
+cd $$workspace
+docker build --target control -f services/control/Dockerfile -t gridos-control-bazel:latest . >/dev/null
+docker save -o $$output gridos-control-bazel:latest
+""",
+)

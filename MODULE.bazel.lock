@@ -247,7 +247,7 @@
     "@@rules_buf+//buf:extensions.bzl%buf": {
       "general": {
         "bzlTransitiveDigest": "IjW2he5lp+L/zEfsBKIilXijyHH6PC4Lf3y19MA6G4c=",
-        "usagesDigest": "5uMICEDbDRnRYbApnq7+HC+26Vac1KBWulso37GohHc=",
+        "usagesDigest": "aPuP8iwX9QiVS4rHBmqVbBR/9SIrJdg/dNSAalcdcCE=",
         "recordedInputs": [
           "REPO_MAPPING:rules_buf+,bazel_tools bazel_tools"
         ],
@@ -255,8 +255,8 @@
           "rules_buf_toolchains": {
             "repoRuleId": "@@rules_buf+//buf/internal:toolchain.bzl%buf_download_releases",
             "attributes": {
-              "version": "v1.47.2",
-              "sha256": "1b37b75dc0a777a0cba17fa2604bc9906e55bb4c578823d8b7a8fe3fc9fe4439"
+              "version": "v1.73.0",
+              "sha256": "18f603d3b418f6a1259da4425b04bbe2fbaf60c2b796b98114d961e8736198b9"
             }
           }
         }

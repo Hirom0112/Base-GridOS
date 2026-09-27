@@ -1,20 +1,38 @@
 load("@rules_go//go:def.bzl", "go_library")
 
+genrule(
+    name = "go_bindings",
+    srcs = ["//:proto_inputs"],
+    outs = [
+        "_generated/api.pb.go",
+        "_generated/device.pb.go",
+        "_generated/dispatch.pb.go",
+        "_generated/events.pb.go",
+        "_generated/geo.pb.go",
+        "_generated/member.pb.go",
+        "_generated/member_policy.pb.go",
+        "_generated/optimization.pb.go",
+        "_generated/pricing.pb.go",
+        "_generated/telemetry.pb.go",
+        "_generated/verification.pb.go",
+    ],
+    tools = [
+        "@org_golang_google_protobuf//cmd/protoc-gen-go:protoc-gen-go",
+        "@rules_buf_toolchains//:buf",
+    ],
+    cmd = """set -e
+temporary=$$(mktemp -d)
+plugin=$$(realpath $(location @org_golang_google_protobuf//cmd/protoc-gen-go:protoc-gen-go))
+printf '{"version":"v2","plugins":[{"local":"%s","out":".","opt":"paths=source_relative"}]}' "$$plugin" > "$$temporary/template.json"
+$(location @rules_buf_toolchains//:buf) generate contracts --template "$$temporary/template.json" --output "$$temporary/out"
+mkdir -p "$(RULEDIR)/_generated"
+cp "$$temporary"/out/gridos/v1/*.pb.go "$(RULEDIR)/_generated/"
+""",
+)
+
 go_library(
     name = "gridos",
-    srcs = [
-        "api.pb.go",
-        "device.pb.go",
-        "dispatch.pb.go",
-        "events.pb.go",
-        "geo.pb.go",
-        "member.pb.go",
-        "member_policy.pb.go",
-        "optimization.pb.go",
-        "pricing.pb.go",
-        "telemetry.pb.go",
-        "verification.pb.go",
-    ],
+    srcs = [":go_bindings"],
     importpath = "github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1",
     visibility = ["//visibility:public"],
     deps = [
