@@ -56,6 +56,29 @@ func TestContextServicePublicResponses(t *testing.T) {
 	}
 }
 
+func TestGetMarketContextAustinRegion(t *testing.T) {
+	now := time.Date(2026, 9, 26, 18, 0, 0, 0, time.UTC)
+	root := filepath.Join("..", "..", "..", "..", "..", "testdata", "fixtures", "public")
+	service := NewService(root, func() time.Time { return now })
+	response, err := service.GetMarketContext(context.Background(), operatorRequest(&gridosv1.GetMarketContextRequest{SettlementPoint: "LZ_AEN", WeatherZone: "SOUTH_C"}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(response.Msg.GetDayAheadPrices()) == 0 || len(response.Msg.GetRealTimePrices()) == 0 || len(response.Msg.GetSystemLoads()) == 0 {
+		t.Fatalf("Austin market context = %#v", response.Msg)
+	}
+	for _, price := range append(response.Msg.GetDayAheadPrices(), response.Msg.GetRealTimePrices()...) {
+		if price.GetSettlementPoint() != "LZ_AEN" || price.GetIntervalEnd() == nil || price.GetSource().GetAsOf() == nil {
+			t.Fatalf("unlabelled Austin price = %#v", price)
+		}
+	}
+	for _, load := range response.Msg.GetSystemLoads() {
+		if load.GetWeatherZone() != "SOUTH_C" || load.GetIntervalEnd() == nil || load.GetSource().GetAsOf() == nil {
+			t.Fatalf("unlabelled Austin load = %#v", load)
+		}
+	}
+}
+
 func TestContextServiceRejectsInvalidWindows(t *testing.T) {
 	service := NewService("testdata/fixtures/public", time.Now)
 	begin := time.Now().Add(time.Hour)

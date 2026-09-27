@@ -58,6 +58,40 @@ func TestLoadPublicContextProvenanceFreshness(t *testing.T) {
 	}
 }
 
+func TestLoadPublicAustinRegion(t *testing.T) {
+	now := time.Date(2026, 9, 26, 18, 0, 0, 0, time.UTC)
+	root := filepath.Join("..", "..", "..", "..", "testdata", "fixtures", "public")
+	snapshot, err := LoadPublic(root, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var dayAhead, realTime, systemLoad bool
+	for _, price := range snapshot.DayAheadPrices {
+		if price.SettlementPoint == "LZ_AEN" {
+			dayAhead = price.USDPerMWh == 22.8 && price.Source.AsOf.Equal(price.At)
+			assertSource(t, price.Source, "CONFIRMED_PUBLIC")
+			break
+		}
+	}
+	for _, price := range snapshot.RealTimePrices {
+		if price.SettlementPoint == "LZ_AEN" {
+			realTime = price.Source.AsOf.Equal(price.At)
+			assertSource(t, price.Source, "CONFIRMED_PUBLIC")
+			break
+		}
+	}
+	for _, load := range snapshot.SystemLoads {
+		if load.Zone == "SOUTH_C" {
+			systemLoad = load.MW == 10967.35 && load.Source.AsOf.Equal(load.At)
+			assertSource(t, load.Source, "CONFIRMED_PUBLIC")
+			break
+		}
+	}
+	if !dayAhead || !realTime || !systemLoad {
+		t.Fatalf("Austin region evidence: day-ahead=%t real-time=%t load=%t", dayAhead, realTime, systemLoad)
+	}
+}
+
 func TestWeatherAlertCarriesNWSAreaEvidence(t *testing.T) {
 	now := time.Date(2026, 9, 26, 18, 0, 0, 0, time.UTC)
 	root := filepath.Join("..", "..", "..", "..", "testdata", "fixtures", "public")
