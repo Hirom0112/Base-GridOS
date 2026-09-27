@@ -173,3 +173,30 @@
     font-size: 24px;
   }
 }
+
+.geographic-hierarchy {
+  margin-block: 24px;
+  font-size: 14px;
+}
+.geographic-hierarchy h3 {
+  font-size: 18px;
+  margin-bottom: 12px;
+}
+.geographic-hierarchy nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-block: 16px;
+}
+.hierarchy-nodes {
+  padding: 0;
+  list-style: none;
+}
+.hierarchy-nodes li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid var(--ink-3);
+  padding-block: 12px;
+}

@@ -12,6 +12,7 @@ import {
 import type { mountMap } from "./map-renderer";
 import type { GeoCell } from "../api/gen/gridos/v1/geo_pb";
 import "./map.css";
+import { GeographicHierarchy } from "./hierarchy";
 
 export function FleetMap() {
   const { client, identity } = useSession();
@@ -141,6 +142,7 @@ export function FleetMap() {
           </button>
         </section>
       )}
+      <GeographicHierarchy />
       <MapTable
         cells={projection.cells}
         features={projection.features}
