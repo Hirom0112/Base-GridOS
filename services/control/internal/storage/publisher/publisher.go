@@ -11,6 +11,7 @@ import (
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/observability"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/storage"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"go.opentelemetry.io/otel"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -34,6 +35,8 @@ func New(config Config) *Publisher {
 }
 
 func (publisher *Publisher) PublishBatch(ctx context.Context) error {
+	ctx, span := otel.Tracer("gridos.control").Start(ctx, "publisher.batch")
+	defer span.End()
 	now := publisher.config.Now()
 	commands, err := storage.ClaimOutbox(ctx, publisher.config.Pool, storage.OutboxClaim{
 		AvailableAt: now,
