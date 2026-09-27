@@ -1566,7 +1566,7 @@ Owns: `services/control/internal/context/`, `services/control/internal/api/conte
   issue time. Verify: `go test ./services/control/internal/api/ -run ReserveBasis`
   passes and the recorded fixture carries at least one override and one
   Travel Flex binding from a demo plan.
-- `[ ]` 4C.10 `[after 4C.6]` Frozen manifest in the explanation.
+- `[x]` 4C.10 `[after 4C.6]` Frozen manifest in the explanation.
   `GetPlanExplanation` carries the plan version's stored
   `input_snapshot_id`, `eligibility_snapshot_id`, policy, solver, model and
   code versions read from the plan row and frozen inputs (never recomputed),

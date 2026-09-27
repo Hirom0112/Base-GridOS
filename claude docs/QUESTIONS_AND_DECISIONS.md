@@ -2317,3 +2317,16 @@ live anchor is armed and hands the demo to the console, whose integrated
 proof; the director verifies MISSING, UNCERTAIN, COMMAND_RETRY,
 STALE_CAPACITY_REMOVED and REBALANCED_COMMAND from the durable rows of
 that event to close 2A.13 and the demo-path items together.
+
+## 2026-09-27 10:22Z — 4C.10 verified; 4E.10 report fixture RED pending
+
+API RED ce546c4 and fixture RED 9b90366 stage tests only; GREEN 628351b
+adds the stored snapshot ids and policy, solver, model and code versions to
+GetPlanExplanation; fixture GREEN 69d905e records them from the API-seeded
+VALIDATED event event-4c10-1790504164 with a fresh consented Travel Flex
+window (FIXED_DAILY 500, through 13:15Z) and the two WEATHER overrides.
+Manifest and ReserveBasis fixture tests ok here; the seeded event and
+window rows match on the demo. Marked done. The mockapi package
+deliberately carries a RED (4643a56: the report fixture must hold measured
+shortfalls) until the report fixture is recorded from a completed event
+after the next rebuild.
