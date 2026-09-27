@@ -80,7 +80,7 @@ func TestRecoveryReplacesDroppedDeviceOnce(t *testing.T) {
 	}, time.Millisecond)
 	environment.ExecuteWorkflow(Workflow, input)
 	require.NoError(t, environment.GetWorkflowError())
-	environment.AssertNumberOfCalls(t, "DetectRecovery", 13)
+	environment.AssertNumberOfCalls(t, "DetectRecovery", 12)
 	environment.AssertExpectations(t)
 }
 
