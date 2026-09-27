@@ -182,6 +182,36 @@ def _exclusion_reason(reason: str) -> dispatch_pb2.ExclusionReason:
     }.get(reason, dispatch_pb2.EXCLUSION_REASON_UNSPECIFIED)
 
 
+def _margin_explanation(
+    request: optimization_pb2.OptimizationRequest,
+) -> optimization_pb2.MarginExplanation:
+    explicit = request.conservative_margin != 0
+    public_margin = _conservative_public_margin(request) if not explicit else Decimal(0)
+    margin = Decimal(str(request.conservative_margin)) if explicit else public_margin
+    explanation = optimization_pb2.MarginExplanation(
+        conservative_margin=float(margin), margin_hurdle=request.margin_hurdle
+    )
+    dispatch = explanation.terms.add(name="DISPATCH_VALUE", low=float(margin), high=float(margin))
+    if explicit:
+        dispatch.source = "FROZEN_REQUEST_MARGIN"
+    elif public_margin < 0:
+        dispatch.source = "FROZEN_PUBLIC_PRICE"
+    else:
+        dispatch.source = "UNAVAILABLE"
+        dispatch.unavailable = True
+    for name in (
+        "AVOIDED_PEAK_COST",
+        "COMMITMENT_RELIABILITY_VALUE",
+        "CHARGING_ENERGY",
+        "INCREMENTAL_DEGRADATION",
+        "PENALTY_EXPOSURE",
+        "MEMBER_REWARD",
+        "SUPPORT_AND_RISK_COST",
+    ):
+        explanation.terms.add(name=name, source="UNAVAILABLE", unavailable=True)
+    return explanation
+
+
 def _response(
     request: optimization_pb2.OptimizationRequest,
     devices: list[DeviceState],
@@ -199,6 +229,7 @@ def _response(
     response.plan.solver_version = "highs" if optimized else "fallback"
     response.plan.model_version = "1"
     response.plan.created_at.CopyFrom(request.requested_at)
+    response.plan.margin_explanation.CopyFrom(_margin_explanation(request))
     if isinstance(plan, OptimizedPlan):
         response.plan.objective_breakdown.degradation_cost = plan.objective.cycling_cost
         response.plan.objective_breakdown.penalty_exposure = plan.objective.shortfall_penalty
