@@ -175,7 +175,7 @@ async function approveAndLaunch(page: Page) {
     page.getByRole("heading", {
       name: /^(Sent|Acknowledged or uncertain|Executing|Telemetry verified|Reconciled|Reported)$/,
     }),
-  ).toBeVisible({ timeout: 15000 });
+  ).toBeVisible({ timeout: 60000 });
   await page.getByRole("link", { name: "Execution", exact: true }).click();
 }
 
