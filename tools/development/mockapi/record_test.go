@@ -164,3 +164,29 @@ func TestRecordSendsStepUpForApproval(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestRecordSendsIndexedPermissions(t *testing.T) {
+	fixtureRoot := t.TempDir()
+	index := []byte(`{"screens":{"geo":["gridos.v1.GeoService.Drilldown"]},"requests":{"gridos.v1.GeoService.Drilldown":{"role":"operator","permissions":"site_location","body":{"parentId":"feeder:one"}}}}`)
+	if err := os.WriteFile(filepath.Join(fixtureRoot, "INDEX.json"), index, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	called := false
+	stub := httptest.NewServer(http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+		called = true
+		if request.Header.Get("X-GridOS-Permissions") != "site_location" {
+			http.Error(response, "site_location permission required", http.StatusForbidden)
+			return
+		}
+		response.Header().Set("Content-Type", "application/json")
+		_, _ = response.Write([]byte(`{"recorded":true}`))
+	}))
+	defer stub.Close()
+	err := recordFixtures(fixtureRoot, stub.URL, &http.Client{Timeout: time.Second})
+	if !called {
+		t.Fatal("recorder did not call the permission-protected method")
+	}
+	if err != nil {
+		t.Fatal(err)
+	}
+}
