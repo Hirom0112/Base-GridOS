@@ -276,6 +276,17 @@ async function verifyReport(page: Page, eventId: string) {
     await expect(report).toContainText(label);
   await expect(report).toContainText("SIMULATED");
   await expect(report).toContainText("not settled revenue");
+  await expect(
+    report
+      .getByRole("table", { name: "Planned shortfall" })
+      .locator("tbody tr"),
+  ).not.toHaveCount(0);
+  await expect(
+    report.getByRole("table", { name: "Delivery shortfall" }),
+  ).toContainText("MEASURED");
+  await expect(
+    report.getByRole("table", { name: "Delivery shortfall" }),
+  ).toContainText("kWh");
 }
 
 async function verifyReplay(page: Page) {
