@@ -37,9 +37,6 @@ func TestFixturesCapturePlanningCases(t *testing.T) {
 	if explanation.GetObjectiveBreakdown() == nil || explanation.GetReserveHeldBackKwh() <= 0 || len(explanation.GetConstraintMargins()) == 0 {
 		t.Fatal("recorded explanation lacks objective, reserve, or margins")
 	}
-	if len(explanation.GetEvidence().GetSiteLoads()) == 0 || explanation.GetEvidence().GetSiteLoadUnits() != "kWh" || explanation.GetEvidence().GetSiteLoads()[0].GetLoadKwh().GetIssuedAt() == nil {
-		t.Fatal("recorded explanation lacks frozen forecast intervals, units, or source time")
-	}
 	forecast := new(gridosv1.ForecastResponse)
 	readPlanningFixture(t, root, "OptimizationService/Forecast.json", forecast)
 	if len(forecast.GetSiteLoads()) == 0 || len(forecast.GetDeviceAvailability()) == 0 || forecast.GetSiteLoads()[0].GetIntervalBeginTime() == nil ||
@@ -55,6 +52,23 @@ func TestFixturesCapturePlanningCases(t *testing.T) {
 	readPlanningFixture(t, root, "DispatchService/ValidateUnsafeAlternative.json", unsafe)
 	if unsafe.GetApproved() || len(unsafe.GetViolations()) == 0 || unsafe.GetOperatorExplanation() == "" {
 		t.Fatal("recorded unsafe alternative lacks a violation explanation")
+	}
+}
+
+func TestFixturesCaptureExplanationEvidence(t *testing.T) {
+	root := filepath.Join(repositoryRoot(t), "testdata", "fixtures", "api")
+	explanation := new(gridosv1.GetPlanExplanationResponse)
+	readPlanningFixture(t, root, "DispatchService/GetPlanExplanation.json", explanation)
+	if explanation.GetObjectiveBreakdown() == nil || explanation.GetReserveHeldBackKwh() <= 0 {
+		t.Fatal("recorded explanation lacks a live plan")
+	}
+	evidence := explanation.GetEvidence()
+	if len(evidence.GetSiteLoads()) == 0 || evidence.GetSiteLoadUnits() != "kWh" || len(evidence.GetDeviceSchedules()) == 0 {
+		t.Fatal("recorded explanation lacks forecast intervals, units, or stored schedules")
+	}
+	load := evidence.GetSiteLoads()[0].GetLoadKwh()
+	if load.GetIssuedAt() == nil || load.GetValueKind() != "modeled_estimate" || load.GetProvenance() == gridosv1.DataProvenance_DATA_PROVENANCE_UNSPECIFIED {
+		t.Fatal("recorded explanation lacks modeled source evidence")
 	}
 }
 

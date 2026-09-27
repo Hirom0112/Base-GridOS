@@ -122,7 +122,7 @@
     "gridos.v1.DispatchService.GetPlanExplanation": {
       "role": "analyst",
       "body": {
-        "eventId": "event_dir_1790468067",
+        "eventId": "aaf4d4ba-0f03-4b8c-8321-f1ce43631a18",
         "planVersion": "1"
       }
     },
