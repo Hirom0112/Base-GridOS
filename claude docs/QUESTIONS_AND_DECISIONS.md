@@ -2430,3 +2430,5 @@ Integrated step 10 failed because ListEventCommands hit its own 5 s
 deadline (commands.go:22): command_acknowledgements had no command_id
 index. 7a90689/f5fbfa9 add migration 0021; applied to the demo database,
 the RPC through the console went from 4.2 s or more to 0.097 s.
+
+Deleted `services/control/internal/analytics` (3E) and `services/control/internal/connectors` (5A): `go list -deps -test` over every go.work module and a repo-wide import grep found no importer, so their PENDING-LIVE slots described seams nothing used. The live seams are `GRIDOS_FLEET` and `GRIDOS_PUBLIC_CONTEXT_DIR`; STUBS.md now points there and `golang.org/x/oauth2` left go.mod. The `GRIDOS_ANALYTICS`/`GRIDOS_BIGQUERY_*` env in `infrastructure/aws/main.tf` is now unread.
