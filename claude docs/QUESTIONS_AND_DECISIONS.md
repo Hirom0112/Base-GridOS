@@ -830,3 +830,21 @@ assumptions reported by workers land here too.
   against the base reserve. Director: contracts lint and breaking clean,
   77 decision tests, mypy clean, control builds against the regenerated
   contracts. Control-side population of the fields is 4A.3.
+- **4E.6 (lane 4E), verified at the source:** the PostgreSQL report source
+  loads the exact frozen snapshot, sums unique site-interval load into the
+  baseline, averages device availability, carries model versions with
+  FROZEN_FORECAST provenance, reads delivered energy from durable
+  verification, and lists baseline_confidence_unavailable,
+  delivery_method_unavailable, and the economics gap explicitly. The demo
+  curl in the item's verify line is not yet possible because `GetEvent`
+  exposes only the basic report; that is new item 4E.7.
+- **Forecast interval coverage (lane 4B), accepted:** `ForecastValue`
+  gains optional `interval_coverage`; the load baseline emits 0.90 and
+  other forecasts omit it. Director: contracts breaking-clean, decision
+  suite green, control builds.
+- **4C.2 hierarchy (2026-09-27):** the offline fleet has no utility,
+  substation, or feeder, so the drill-down uses ERCOT as market, the site
+  load zone, and deterministic synthetic utility, substation, and feeder
+  ids derived from H3 and site metadata, every node labelled SIMULATED, no
+  street or home coordinates. `GeoService` is additive in `api.proto` with
+  one registration line.
