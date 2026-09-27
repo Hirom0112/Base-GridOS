@@ -1624,7 +1624,7 @@ Owns: `docs/operations/security/` (threat model and retention),
   `docs/operations/security/retention.md` with retention and deletion rules
   for household data and travel state (FULL_SPEC §11 and §12 Phase 5).
   Verify: both docs exist and each FULL_SPEC §11 bullet maps to a section.
-- `[ ]` 5E.4 `[P]` Secrets scan added to the pre-commit hook as the
+- `[x]` 5E.4 `[P]` Secrets scan added to the pre-commit hook as the
   enforcement of FULL_SPEC §11 "never commit operational credentials".
   Verify: `gitleaks detect` passes and a scratch commit containing a fake AWS key is rejected.
 

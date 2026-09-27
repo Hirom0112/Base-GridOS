@@ -1104,3 +1104,9 @@ assumptions reported by workers land here too.
   more specific COMMUNICATIONS reason at the same floor, which is the
   correct precedence. Isolated proof and migration 0014 re-apply also
   pass here.
+- **5E.4 (lane 5E), verified:** the pre-commit hook runs gitleaks on
+  staged content before the language gates and fails closed when the tool
+  is missing; a narrow allowlist with a description per entry covers the
+  eight historical false positives (fixture keys, test ids, a dataset
+  digest, the localhost Grafana default). Director: full-history scan
+  reports no leaks over 949 commits; a scratch fake key is rejected.
