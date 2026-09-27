@@ -27,6 +27,7 @@ export async function recordedApi(page: Page) {
         [
           "EventsService/GetEventTimeline",
           "EventsService/ListEventCommands",
+          "MemberService/ListMemberOffers",
         ].includes(path) &&
         error instanceof Error &&
         "code" in error &&
