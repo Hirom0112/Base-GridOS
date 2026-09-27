@@ -177,6 +177,25 @@ func TestFixturesCapturePublishedReportViews(t *testing.T) {
 	}
 }
 
+func TestFixturesCaptureMemberOperatingStates(t *testing.T) {
+	root := filepath.Join(repositoryRoot(t), "testdata", "fixtures", "api")
+	states := map[string]gridosv1.FleetOperatingState{
+		"on_grid":                      gridosv1.FleetOperatingState_FLEET_OPERATING_STATE_ON_GRID,
+		"off_grid_outage":              gridosv1.FleetOperatingState_FLEET_OPERATING_STATE_OFF_GRID_OUTAGE,
+		"off_grid_no_home_power":       gridosv1.FleetOperatingState_FLEET_OPERATING_STATE_OFF_GRID_NO_HOME_POWER,
+		"off_grid_overcurrent":         gridosv1.FleetOperatingState_FLEET_OPERATING_STATE_OFF_GRID_OVERCURRENT,
+		"off_grid_overcurrent_standby": gridosv1.FleetOperatingState_FLEET_OPERATING_STATE_OFF_GRID_OVERCURRENT_STANDBY,
+		"telemetry_unavailable":        gridosv1.FleetOperatingState_FLEET_OPERATING_STATE_TELEMETRY_UNAVAILABLE,
+	}
+	for name, state := range states {
+		response := new(gridosv1.GetMemberStatusResponse)
+		readPlanningFixture(t, root, "MemberService/GetMemberStatus."+name+".json", response)
+		if response.GetMemberId() == "" || response.GetSiteId() == "" || response.GetOperatingState() != state {
+			t.Fatalf("recorded member state %s does not match request", name)
+		}
+	}
+}
+
 func readPlanningFixture(t *testing.T, root, name string, message proto.Message) {
 	t.Helper()
 	content, err := os.ReadFile(filepath.Join(root, name))
