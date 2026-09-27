@@ -18,6 +18,7 @@ import (
 type reportSource struct {
 	published     *core.EventReport
 	publishedByID map[string]*core.EventReport
+	versions      map[string]map[uint64]*core.EventReport
 	live          core.StoredEvent
 	liveReads     int
 }
@@ -29,11 +30,17 @@ func (source *reportSource) StoredReport(_ context.Context, eventID string) (*co
 	return source.published, nil
 }
 
+func (source *reportSource) StoredReportVersion(_ context.Context, eventID string, version uint64) (*core.EventReport, error) {
+	return source.versions[eventID][version], nil
+}
+
 func TestCompareEventReportsRequiresRoleAndReturnsDifferences(t *testing.T) {
 	rewardsA, rewardsB := int64(100), int64(250)
 	source := &reportSource{publishedByID: map[string]*core.EventReport{
 		"event-a": {EventID: "event-a", PlanVersion: 2, RequestedMW: 1, MemberRewardsCents: &rewardsA},
 		"event-b": {EventID: "event-b", PlanVersion: 3, RequestedMW: 2, MemberRewardsCents: &rewardsB},
+	}, versions: map[string]map[uint64]*core.EventReport{
+		"event-a": {1: {EventID: "event-a", PlanVersion: 1, RequestedMW: 0.5, MemberRewardsCents: &rewardsA}},
 	}}
 	_, handler := gridosv1connect.NewReportServiceHandler(NewService(source))
 	server := httptest.NewServer(handler)
@@ -52,6 +59,19 @@ func TestCompareEventReportsRequiresRoleAndReturnsDifferences(t *testing.T) {
 	require.Equal(t, "member_rewards_cents", response.Msg.GetDifferences()[0].GetField())
 	require.Equal(t, "100", response.Msg.GetDifferences()[0].GetBefore())
 	require.Equal(t, "250", response.Msg.GetDifferences()[0].GetAfter())
+	require.Equal(t, 0, source.liveReads)
+	version := uint64(1)
+	request.Msg.PlanVersionA = &version
+	response, err = client.CompareEventReports(context.Background(), request)
+	require.NoError(t, err)
+	require.Equal(t, "0.5", response.Msg.GetDifferences()[2].GetBefore())
+	version = 99
+	_, err = client.CompareEventReports(context.Background(), request)
+	require.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
+	request.Msg.PlanVersionA = nil
+	request.Msg.EventIdB = "event-unpublished"
+	_, err = client.CompareEventReports(context.Background(), request)
+	require.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
 	require.Equal(t, 0, source.liveReads)
 }
 
