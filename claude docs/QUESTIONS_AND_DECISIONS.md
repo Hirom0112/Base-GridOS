@@ -1119,3 +1119,10 @@ assumptions reported by workers land here too.
   retention document states that and names post-end reduction as a
   data-owner decision and production gate. The director's earlier line
   claiming reduction to audit was wrong; the document is the truth.
+- **5E.3 (lane 5E), verified:** the threat model covers the six
+  boundaries in a table and carries one section per FULL_SPEC §11 topic
+  (authorization, step-up and audit, secrets, household minimization and
+  partner views, exact location, retention and access review, consent
+  versions, travel and away state, logs and analytics, source licenses);
+  the retention document states enforced facts and open data-owner
+  decisions without invented periods. Director: both files inspected.
