@@ -1,4 +1,15 @@
-import { cellToBoundary, cellToLatLng, isValidCell } from "h3-js";
+import {
+  cellArea,
+  cellsToMultiPolygon,
+  cellToBoundary,
+  cellToLatLng,
+  getHexagonAreaAvg,
+  getResolution,
+  gridDisk,
+  isValidCell,
+  latLngToCell,
+  UNITS,
+} from "h3-js";
 import { z } from "zod";
 import { evidenceSchema } from "../api/Provenance";
 import type {
@@ -18,29 +29,125 @@ const cellSchema = z.object({
 export function projectCells(input: H3SiteAggregate[]) {
   const cells = z.array(cellSchema).max(10000).parse(input);
   if (!cells.length) return [];
-  const positions = cells.map((cell) => cellToLatLng(cell.h3Cell));
-  const center = positions.reduce(
-    ([lat, lon], point) => [
-      lat + point[0] / cells.length,
-      lon + point[1] / cells.length,
-    ],
-    [0, 0] as [number, number],
+  const finest = Math.max(...cells.map((cell) => getResolution(cell.h3Cell)));
+  const origin = fieldOrigin(
+    cells
+      .map((cell) => cell.h3Cell)
+      .filter((id) => getResolution(id) === finest),
   );
-  const project = ([lat, lon]: number[]): [number, number] => [
-    ((lon ?? 0) - center[1]) * Math.cos((center[0] * Math.PI) / 180) * 111.32,
-    -((lat ?? 0) - center[0]) * 111.32,
-  ];
-  const maximum = Math.max(...cells.map((cell) => Number(cell.siteCount)));
-  return cells.map((cell, index) => ({
+  const project = projector(origin);
+  const measured = cells.map((cell) => {
+    const area = cellArea(cell.h3Cell, UNITS.km2);
+    const position = project(cellToLatLng(cell.h3Cell));
+    return { cell, area, position, density: cell.installedMw.value / area };
+  });
+  const extent = Math.max(
+    20,
+    ...measured
+      .filter(({ cell }) => getResolution(cell.h3Cell) === finest)
+      .map(({ position }) => Math.hypot(...position) * 2),
+  );
+  const densest = Math.max(...measured.map(({ density }) => density));
+  const scale = densest > 0 ? (extent * 0.16) / densest : 0;
+  return measured.map(({ cell, area, position, density }) => ({
     id: cell.h3Cell,
+    origin,
     color: 0xa6b9ae,
     response: null as ResponseMeasure | null,
     value: cell.installedMw.value as number | null,
-    position: project(positions[index] ?? center),
+    position,
     boundary: cellToBoundary(cell.h3Cell).map(project),
-    footprint: Math.sqrt(Number(cell.siteCount) / maximum) * 0.9,
-    height: cell.installedMw.value * 18,
+    coarse: getResolution(cell.h3Cell) < finest,
+    area,
+    scale,
+    footprint: 0.9,
+    height: density * scale,
   }));
+}
+
+function fieldOrigin(ids: string[]): [number, number] {
+  return ids
+    .map((id) => cellToLatLng(id))
+    .reduce(
+      ([lat, lon], point) => [
+        lat + point[0] / ids.length,
+        lon + point[1] / ids.length,
+      ],
+      [0, 0] as [number, number],
+    );
+}
+
+function projector([originLat, originLon]: [number, number]) {
+  return ([lat, lon]: number[]): [number, number] => [
+    ((lon ?? 0) - originLon) * Math.cos((originLat * Math.PI) / 180) * 111.32,
+    -((lat ?? 0) - originLat) * 111.32,
+  ];
+}
+
+const imageryBounds = {
+  north: 31.0,
+  south: 29.6,
+  west: -98.55,
+  east: -96.95,
+};
+
+const places = [
+  ["Austin", 30.2672, -97.7431],
+  ["Round Rock", 30.5083, -97.6789],
+  ["Georgetown", 30.6333, -97.677],
+  ["Pflugerville", 30.4394, -97.62],
+  ["Cedar Park", 30.5052, -97.8203],
+  ["Leander", 30.5788, -97.8531],
+  ["Lakeway", 30.3632, -97.9795],
+  ["Dripping Springs", 30.1902, -98.0867],
+  ["Manor", 30.3405, -97.5567],
+  ["Bastrop", 30.1105, -97.3153],
+  ["Buda", 30.0852, -97.8403],
+  ["Kyle", 29.9891, -97.8772],
+  ["San Marcos", 29.8833, -97.9414],
+  ["San Antonio", 29.4241, -98.4936],
+] as const;
+
+export function fieldGround(cells: GridCell[]) {
+  const first = cells[0];
+  if (!first)
+    return {
+      lattice: [],
+      outline: [],
+      places: [],
+      radius: 0,
+      imagery: { west: 0, east: 0, north: 0, south: 0 },
+    };
+  const project = projector(first.origin);
+  const [west, north] = project([imageryBounds.north, imageryBounds.west]);
+  const [east, south] = project([imageryBounds.south, imageryBounds.east]);
+  const finest = Math.max(...cells.map((cell) => getResolution(cell.id)));
+  const resolution = Math.min(finest, 7);
+  const spacing = Math.sqrt(
+    (2 * getHexagonAreaAvg(resolution, UNITS.km2)) / Math.sqrt(3),
+  );
+  const reach = Math.max(...cells.map((cell) => Math.hypot(...cell.position)));
+  const rings = Math.min(40, Math.ceil((reach + 20) / spacing));
+  const radius = rings * spacing;
+  const lattice = gridDisk(
+    latLngToCell(first.origin[0], first.origin[1], resolution),
+    rings,
+  ).map((id) => cellToBoundary(id).map(project));
+  const outline = cellsToMultiPolygon(
+    cells.filter((cell) => !cell.coarse).map((cell) => cell.id),
+  ).map(([outer]) => (outer ?? []).map(project));
+  return {
+    lattice,
+    outline,
+    radius,
+    imagery: { west, east, north, south },
+    places: places.flatMap(([name, lat, lon]) => {
+      const position = project([lat, lon]);
+      return Math.hypot(...position) <= radius * 0.9
+        ? [{ name, position }]
+        : [];
+    }),
+  };
 }
 
 export type GridCell = ReturnType<typeof projectCells>[number];
@@ -73,7 +180,7 @@ export function projectResponse(
       ...cell,
       value,
       response: value !== null && value !== 0 ? measure : null,
-      height: value === null ? 0 : Math.abs(value) * 18,
+      height: value === null ? 0 : (Math.abs(value) / cell.area) * cell.scale,
       color: value === null ? 0x66736c : colors[measure],
     };
   });
