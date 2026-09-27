@@ -961,3 +961,9 @@ assumptions reported by workers land here too.
   channel is claimed; the stub register gains its row and the member
   policy row records that authorized bindings await a live entitlement.
   Director: connectors ok, markers equal rows.
+- **Regression found by 5B.2, reproduced on the demo (2026-09-27):**
+  `GetEvent` on a freshly created event returns Connect internal "no rows
+  in result set" until a plan row exists; the report source introduced in
+  4E.6 reads snapshots that do not exist yet. Assigned to lane 4E ahead of
+  the versioned path: the event returns with an empty basic report and no
+  error, and the live full report lists plan_unavailable as a gap.
