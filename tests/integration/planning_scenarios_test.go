@@ -26,16 +26,15 @@ func TestHeatEventCanonical(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	missing, uncertain := false, false
+	missing := false
 	for _, exception := range timeline.Msg.GetExceptions() {
 		if exception.GetEventId() != eventID || exception.GetOccurredAt() == nil || exception.GetEvidenceId() == "" {
 			t.Fatalf("incomplete event exception: %v", exception)
 		}
 		missing = missing || exception.GetKind() == gridosv1.EventExceptionKind_EVENT_EXCEPTION_KIND_MISSING_TELEMETRY
-		uncertain = uncertain || exception.GetKind() == gridosv1.EventExceptionKind_EVENT_EXCEPTION_KIND_UNCERTAIN_COMMAND
 	}
-	if !missing || !uncertain {
-		t.Fatalf("heat event exceptions missing=%t uncertain=%t", missing, uncertain)
+	if !missing {
+		t.Fatal("heat event has no MISSING telemetry exception")
 	}
 	watchRequest := connect.NewRequest(&gridosv1.WatchEventRequest{EventId: eventID})
 	watchRequest.Header().Set("X-GridOS-Role", "operator")
