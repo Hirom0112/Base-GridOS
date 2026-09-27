@@ -1539,7 +1539,7 @@ Owns: `services/control/internal/report/`.
 Owns: `tests/integration/`, `testdata/scenarios/`, `tests/end-to-end/`,
 `testdata/fixtures/api/`.
 
-- `[ ]` 4F.1 `[after 4A.7, 4B.6]` Scenario files and `tests/integration`
+- `[x]` 4F.1 `[after 4A.7, 4B.6]` Scenario files and `tests/integration`
   cases for TECHSTACK e2e scenarios 12 to 17: `travel-flex-lifecycle`
   (activation, automatic expiry, early-return cancellation),
   `weather-stale-alarm-raise-floor`, `zero-percent-reserve-hardware-floor`,

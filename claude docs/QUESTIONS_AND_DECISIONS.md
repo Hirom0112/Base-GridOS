@@ -1338,3 +1338,9 @@ assumptions reported by workers land here too.
   identity fixes the canonical heat event passes with its MISSING
   exception asserted (112 s) and Travel Flex passes (105 s) on the
   director's machine.
+- **Gate 4 backend GREEN (2026-09-27):** all seventeen required scenarios
+  plus the harness and audit chain pass on the director's machine in five
+  groups and four reruns inside a declared window; the report is
+  `claude docs/gate-reports/wave-4.md`. 4F.1 is verified. The UI leg
+  (4F.5) stays open on the console track, and 2B.9 and 2B.10 remain open
+  as demo-path blockers recorded in the report.
