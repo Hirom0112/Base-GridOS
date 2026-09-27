@@ -22,6 +22,7 @@ const reportSchema = z.object({
       Completeness: number.min(0).max(1),
       TrackingErrorMW: number,
       ResponseLatency: number.nonnegative(),
+      Responded: z.number().int().nonnegative().safe().optional(),
     })
     .nullable(),
   Energy: z
@@ -195,9 +196,9 @@ function DeliveryMeasurements({
         ["Tracking error", delivered?.TrackingErrorMW, "MW"],
         [
           "Response latency",
-          report.Delivered == null
-            ? null
-            : report.Delivered.ResponseLatency / 1e9,
+          report.Delivered?.Responded
+            ? report.Delivered.ResponseLatency / 1e9
+            : null,
           "s",
         ],
       ]}
