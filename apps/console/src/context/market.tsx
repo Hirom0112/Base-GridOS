@@ -88,7 +88,7 @@ export function MarketEvidence({ data }: { data: GetMarketContextResponse }) {
               </thead>
               <tbody>
                 {rows
-                  .toSorted(
+                  .sort(
                     (a, b) =>
                       Number(b.at.seconds - a.at.seconds) ||
                       b.at.nanos - a.at.nanos,
