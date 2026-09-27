@@ -1391,3 +1391,15 @@ assumptions reported by workers land here too.
   green. The demo worker restart runbook rehearsal lost the new worker
   process once and lane 5C restored it; the runbook must use the detached
   launch the Makefile uses.
+- **2B.9 (lane 5C), verified on the demo:** on the rebuilt demo, whose
+  fleet carried generations from earlier events, a fresh event launched
+  166 commands at per-device generations 3 and 4, all ACCEPTED, and the
+  emergency stop persisted 166 zero commands at generations 4 and 5, all
+  ACCEPTED within a minute (04:37Z); the stop path now drains every
+  batch with zero-setpoint claims taking priority. The consecutive-events
+  scenario passes here (generations 1/3/4). The physical stop is proven.
+- **Bazel sandbox rules (5D.5, 2026-09-27):** tests that shell out to the
+  Go toolchain or fork their own test binary run on the host only and are
+  tagged manual in BUILD (explicit attribute); database harness tests
+  resolve the repository root from the Bazel test source directory when
+  present, falling back to the caller path on the host.
