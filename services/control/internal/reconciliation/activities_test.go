@@ -2,7 +2,6 @@ package reconciliation
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"math"
 	"os"
@@ -196,29 +195,14 @@ func TestDetectRecoveryUsesScheduledDevicesAndStoredEnvelope(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	method := reflect.ValueOf(harness.activities).MethodByName("DetectRecovery")
-	if !method.IsValid() {
-		t.Fatal("DetectRecovery activity is missing")
-	}
-	result := method.Call([]reflect.Value{reflect.ValueOf(ctx), reflect.ValueOf(Input{EventID: "event-1"})})
-	if !result[1].IsNil() {
-		t.Fatal(result[1].Interface())
-	}
-	encoded, err := json.Marshal(result[0].Interface())
+	recovery, err := harness.activities.DetectRecovery(ctx, Input{EventID: "event-1"})
 	if err != nil {
-		t.Fatal(err)
-	}
-	var recovery struct {
-		EnvelopeDeviceIDs []string
-		Dropped           []struct{ DeviceID, Reason string }
-	}
-	if err := json.Unmarshal(encoded, &recovery); err != nil {
 		t.Fatal(err)
 	}
 	if !reflect.DeepEqual(recovery.EnvelopeDeviceIDs, []string{"device-1", "device-2", "device-3"}) {
 		t.Fatalf("stored eligible envelope = %v", recovery.EnvelopeDeviceIDs)
 	}
-	if !reflect.DeepEqual(recovery.Dropped, []struct{ DeviceID, Reason string }{{DeviceID: "device-1", Reason: "MISSING"}, {DeviceID: "device-2", Reason: "UNCERTAIN"}}) {
+	if !reflect.DeepEqual(recovery.Dropped, []RecoveryDrop{{DeviceID: "device-1", Reason: "MISSING"}, {DeviceID: "device-2", Reason: "UNCERTAIN"}}) {
 		t.Fatalf("scheduled drops = %+v", recovery.Dropped)
 	}
 }
