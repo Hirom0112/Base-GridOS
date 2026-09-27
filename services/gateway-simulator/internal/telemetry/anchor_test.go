@@ -59,3 +59,23 @@ func TestAnchorRecordsOneGapBeforeCurrentPhysicalSample(t *testing.T) {
 		t.Fatalf("current physical sample = %#v", latest[1])
 	}
 }
+
+func TestRepeatedSlotPublishesOnceWithoutError(t *testing.T) {
+	ctx := context.Background()
+	store := openStore(t, ctx)
+	publisher := &recoveringBatchPublisher{}
+	fleet, err := NewFleet(store, []Device{testPhysicalDevice("device-repeat")}, Profiles{"home": {}}, time.Minute, publisher)
+	if err != nil {
+		t.Fatal(err)
+	}
+	slot := time.Date(2026, 9, 26, 12, 0, 0, 0, time.UTC)
+	if err := fleet.Emit(ctx, slot); err != nil {
+		t.Fatal(err)
+	}
+	if err := fleet.Emit(ctx, slot); err != nil {
+		t.Fatalf("repeated slot stopped scheduler: %v", err)
+	}
+	if len(publisher.batches) != 1 {
+		t.Fatalf("published batches = %d, want 1", len(publisher.batches))
+	}
+}
