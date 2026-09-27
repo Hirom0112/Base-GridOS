@@ -1,15 +1,50 @@
 package main
 
 import (
+	"encoding/base64"
+	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
 	"time"
 )
+
+func TestRecordSignsEmergencyStopWithoutPlanVersion(t *testing.T) {
+	t.Setenv("GRIDOS_STEP_UP_KEY", "gridos-local-step-up-key-32-bytes-minimum")
+	approval, err := recordStepUpAssertion("gridos.v1.DispatchService.ApproveEvent", []byte(`{"eventId":"event-1","planVersion":"1","approvedBy":"approver"}`))
+	if err != nil || approval == "" {
+		t.Fatalf("approval assertion = %q, %v", approval, err)
+	}
+	stop, err := recordStepUpAssertion("gridos.v1.DispatchService.EmergencyStop", []byte(`{"eventId":"event-1","requestedBy":"operator"}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	encoded, _, found := strings.Cut(stop, ".")
+	if !found {
+		t.Fatal("missing signature")
+	}
+	payload, err := base64.RawURLEncoding.DecodeString(encoded)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var assertion struct {
+		Subject     string `json:"subject"`
+		Action      string `json:"action"`
+		EventID     string `json:"event_id"`
+		PlanVersion uint64 `json:"plan_version"`
+	}
+	if err := json.Unmarshal(payload, &assertion); err != nil {
+		t.Fatal(err)
+	}
+	if assertion.Subject != "operator" || assertion.Action != "EMERGENCY_STOP" || assertion.EventID != "event-1" || assertion.PlanVersion != 0 {
+		t.Fatalf("stop assertion = %+v", assertion)
+	}
+}
 
 func TestRecordWritesEveryIndexedMethod(t *testing.T) {
 	fixtureRoot := t.TempDir()
