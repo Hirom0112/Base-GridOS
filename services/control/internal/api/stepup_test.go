@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
+	"strings"
 	"testing"
 	"time"
 
@@ -71,6 +72,13 @@ func TestStepUpRejectsTamperingExpiryAndReplay(t *testing.T) {
 	_, err = verifier.Verify(ctx, token, "EMERGENCY_STOP", "event-1", 3)
 	require.Error(t, err)
 	_, err = verifier.Verify(ctx, token, "APPROVE_EVENT", "event-2", 3)
+	require.Error(t, err)
+	encoded, signature, found := strings.Cut(token, ".")
+	require.True(t, found)
+	payload, err := base64.RawURLEncoding.DecodeString(encoded)
+	require.NoError(t, err)
+	noncanonical := base64.RawURLEncoding.EncodeToString(append([]byte{' '}, payload...)) + "." + signature
+	_, err = verifier.Verify(ctx, noncanonical, "APPROVE_EVENT", "event-1", 3)
 	require.Error(t, err)
 	claims.ExpiresAt = now.Add(-time.Second)
 	_, err = verifier.Verify(ctx, signedStepUpTest(t, key, claims), "APPROVE_EVENT", "event-1", 3)
