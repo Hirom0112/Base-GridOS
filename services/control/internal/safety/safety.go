@@ -101,6 +101,7 @@ type DeviceState struct {
 	InterconnectionLimitKW float64
 	MaxRampKWPerMinute     float64
 	PreviousMeterExportKW  float64
+	HomeLoadKW             float64
 }
 
 type CanonicalState struct {
@@ -216,7 +217,7 @@ func validateDevice(plan Plan, proposed DevicePlan, state DeviceState, now time.
 	}
 	previousExport := state.PreviousMeterExportKW
 	for interval := 0; interval < intervals; interval++ {
-		stepViolations, next := validateInterval(plan.Interval, proposed, state, energy, reserve, interval)
+		stepViolations, next := validateInterval(plan, proposed, state, energy, reserve, interval)
 		violations = append(violations, stepViolations...)
 		if state.MaxRampKWPerMinute > 0 && math.Abs(proposed.MeterExportKW[interval]-previousExport) > state.MaxRampKWPerMinute*plan.Interval.Minutes()+comparisonTolerance {
 			violations = append(violations, Violation{Code: RampRate, DeviceID: proposed.DeviceID, Interval: interval})
@@ -269,7 +270,7 @@ func validateDeviceState(deviceID string, state DeviceState, now time.Time) []Vi
 	return violations
 }
 
-func validateInterval(duration time.Duration, proposed DevicePlan, state DeviceState, energy, reserve float64, interval int) ([]Violation, float64) {
+func validateInterval(plan Plan, proposed DevicePlan, state DeviceState, energy, reserve float64, interval int) ([]Violation, float64) {
 	violations := make([]Violation, 0)
 	charge := proposed.ChargeKW[interval]
 	discharge := proposed.DischargeKW[interval]
@@ -287,8 +288,12 @@ func validateInterval(duration time.Duration, proposed DevicePlan, state DeviceS
 	if charge > 0 && discharge > 0 {
 		violations = append(violations, Violation{Code: SimultaneousChargeDischarge, DeviceID: proposed.DeviceID, Interval: interval})
 	}
-	hours := duration.Hours()
-	next := energy + state.ChargeEfficiency*charge*hours - discharge*hours/state.DischargeEfficiency
+	draw := discharge
+	if plan.Boundary == MeterNetExport && discharge > 0 {
+		draw += state.HomeLoadKW
+	}
+	hours := plan.Interval.Hours()
+	next := energy + state.ChargeEfficiency*charge*hours - draw*hours/state.DischargeEfficiency
 	if math.Abs(next-claimedEnergy) > comparisonTolerance {
 		violations = append(violations, Violation{Code: EnergyBalanceDrift, DeviceID: proposed.DeviceID, Interval: interval})
 	}
@@ -312,7 +317,7 @@ func intervalCount(plan Plan) int {
 }
 
 func invalidPhysics(state DeviceState) bool {
-	values := []float64{state.UsableCapacityKWh, state.HardwareReserveKWh, state.PlanReserveKWh, state.DynamicReserveKWh, state.MaxChargeKW, state.MaxDischargeKW, state.ChargeEfficiency, state.DischargeEfficiency, state.MeterExportLimitKW, state.InterconnectionLimitKW, state.MaxRampKWPerMinute, state.PreviousMeterExportKW}
+	values := []float64{state.UsableCapacityKWh, state.HardwareReserveKWh, state.PlanReserveKWh, state.DynamicReserveKWh, state.MaxChargeKW, state.MaxDischargeKW, state.ChargeEfficiency, state.DischargeEfficiency, state.MeterExportLimitKW, state.InterconnectionLimitKW, state.MaxRampKWPerMinute, state.PreviousMeterExportKW, state.HomeLoadKW}
 	if !finite(values...) || invalidNonnegativeBounds(state) {
 		return true
 	}
@@ -323,7 +328,7 @@ func invalidPhysics(state DeviceState) bool {
 }
 
 func invalidNonnegativeBounds(state DeviceState) bool {
-	return state.UsableCapacityKWh <= 0 || state.HardwareReserveKWh < 0 || state.PlanReserveKWh < 0 || state.DynamicReserveKWh < 0 || state.MaxChargeKW < 0 || state.MaxDischargeKW < 0 || state.MeterExportLimitKW < 0 || state.InterconnectionLimitKW < 0 || state.MaxRampKWPerMinute < 0
+	return state.UsableCapacityKWh <= 0 || state.HardwareReserveKWh < 0 || state.PlanReserveKWh < 0 || state.DynamicReserveKWh < 0 || state.MaxChargeKW < 0 || state.MaxDischargeKW < 0 || state.MeterExportLimitKW < 0 || state.InterconnectionLimitKW < 0 || state.MaxRampKWPerMinute < 0 || state.HomeLoadKW < 0
 }
 
 func EffectiveReserve(state DeviceState, now time.Time) float64 {
