@@ -17,6 +17,22 @@ fail() {
   exit 1
 }
 
+python_project() {
+  project=$(dirname "$1")
+  while [ "$project" != "." ] && [ ! -f "$project/pyproject.toml" ]; do project=$(dirname "$project"); done
+  [ -f "$project/pyproject.toml" ] && printf '%s\n' "$project"
+  return 0
+}
+
+python_tests_importing() {
+  project=$(python_project "$1")
+  [ -n "$project" ] || return 0
+  rel=${1#"$project"/}; rel=${rel%.py}; rel=${rel%/__init__}
+  pattern="^(from|import)[[:space:]]+([A-Za-z0-9_.]*\.)?$(printf '%s' "$rel" | tr / . | sed 's/\./\\./g')([[:space:]]|,|$)"
+  case "$rel" in */*) pattern="$pattern|^from[[:space:]]+([A-Za-z0-9_.]*\.)?$(printf '%s' "${rel%/*}" | tr / . | sed 's/\./\\./g')[[:space:]]+import[[:space:]].*\b${rel##*/}\b" ;; esac
+  git ls-files -- "$project" | grep -E '(^|/)test_[^/]+\.py$' | xargs grep -lE "$pattern" 2>/dev/null || true
+}
+
 command -v gitleaks >/dev/null || fail "gitleaks is not installed"
 gitleaks protect --staged --redact --no-banner || fail "gitleaks staged secrets"
 
@@ -98,18 +114,19 @@ if [ -n "$py_files" ]; then
   $RUFF check $py_files || fail "ruff check"
   tests=$(printf '%s\n' $py_files | grep -E '(^|/)test_[^/]+\.py$' || true)
   for f in $(printf '%s\n' $py_files | grep -vE '(^|/)test_[^/]+\.py$' || true); do
-    name=$(basename "$f" .py)
-    candidates=$(find "$(dirname "$f")" "$(dirname "$f")/tests" "$(dirname "$(dirname "$f")")/tests" -maxdepth 1 -name "test_${name}.py" 2>/dev/null || true)
-    tests="$tests $candidates"
+    tests="$tests $(python_tests_importing "$f")"
   done
-  tests=$(printf '%s\n' $tests | sort -u | tr '\n' ' ')
-  if [ "$tests_only" -eq 0 ] && [ -n "$(printf '%s' "$tests" | tr -d ' ')" ]; then
-    for t in $tests; do
-      project=$(dirname "$t")
-      while [ "$project" != "." ] && [ ! -f "$project/pyproject.toml" ]; do project=$(dirname "$project"); done
-      [ -f "$project/pyproject.toml" ] || fail "no pyproject.toml above $t"
-      uv run --quiet --project "$project" pytest -q -x "$t" || fail "pytest $t"
+  if [ "$tests_only" -eq 0 ] && [ -n "$(printf '%s' "$tests" | tr -d ' \n')" ]; then
+    runs=$(mktemp)
+    for t in $(printf '%s\n' $tests | sort -u); do
+      project=$(python_project "$t")
+      [ -n "$project" ] || fail "no pyproject.toml above $t"
+      printf '%s %s\n' "$project" "$t" >> "$runs"
     done
+    for project in $(cut -d' ' -f1 "$runs" | sort -u); do
+      uv run --quiet --project "$project" pytest -q -x $(grep "^$project " "$runs" | cut -d' ' -f2) || fail "pytest $project"
+    done
+    rm -f "$runs"
   fi
 fi
 
