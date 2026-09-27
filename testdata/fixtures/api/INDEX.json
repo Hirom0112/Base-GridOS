@@ -618,6 +618,12 @@
         "body": {
           "eventId": "event-report-b"
         }
+      },
+      "live": {
+        "role": "analyst",
+        "body": {
+          "eventId": "fixture-4e10-1790520318"
+        }
       }
     },
     "gridos.v1.MemberService.GetMemberStatus": {
