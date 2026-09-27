@@ -1,0 +1,44 @@
+import { render, screen } from "@testing-library/react";
+import { expect, test } from "vitest";
+import { ReserveEvidence } from "./reserve";
+
+const evidence = {
+  DevicesExpected: 100,
+  DevicesObserved: 99,
+  MinimumMarginKWh: -0.25,
+  DevicesTouchedFloor: 1,
+  ObservationGaps: 1,
+  ValueKind: "MEASURED",
+  Provenance: ["TELEMETRY_OBSERVATIONS", "FROZEN_EFFECTIVE_RESERVE"],
+};
+
+test("measured reserve margins retain breaches and observation gaps", () => {
+  render(<ReserveEvidence evidence={evidence} />);
+  const reserve = screen.getByRole("region", {
+    name: "Reserve protection evidence",
+  });
+  expect(reserve).toHaveTextContent("-0.250 kWh");
+  expect(reserve).toHaveTextContent("99 of 100 devices observed");
+  expect(reserve).toHaveTextContent("1 devices without observations");
+  expect(reserve).toHaveTextContent(
+    "1 devices touched or crossed the reserve floor",
+  );
+  expect(reserve).toHaveTextContent("FROZEN_EFFECTIVE_RESERVE");
+  expect(reserve).toHaveTextContent("Unobserved devices remain unknown");
+});
+
+test("missing reserve measurements never imply compliance", () => {
+  render(<ReserveEvidence evidence={null} />);
+  expect(
+    screen.getByRole("region", { name: "Reserve protection evidence" }),
+  ).toHaveTextContent("Measured reserve evidence unavailable");
+  expect(screen.queryByText(/0.000 kWh/)).not.toBeInTheDocument();
+});
+
+test("inconsistent reserve observation counts fail closed", () => {
+  render(<ReserveEvidence evidence={{ ...evidence, ObservationGaps: 0 }} />);
+  expect(screen.getByRole("alert")).toHaveTextContent(
+    "Reserve evidence is invalid",
+  );
+  expect(screen.queryByText(/-0.250 kWh/)).not.toBeInTheDocument();
+});
