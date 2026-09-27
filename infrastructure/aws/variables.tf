@@ -65,3 +65,31 @@ variable "db_instance_class" {
   type    = string
   default = "db.t4g.small"
 }
+
+variable "aws_account_id" {
+  type = string
+  validation {
+    condition     = can(regex("^[0-9]{12}$", var.aws_account_id))
+    error_message = "AWS account ID must contain twelve digits."
+  }
+}
+
+variable "google_project_id" {
+  type = string
+}
+
+variable "google_project_number" {
+  type = string
+  validation {
+    condition     = can(regex("^[0-9]+$", var.google_project_number))
+    error_message = "Google project number must contain digits."
+  }
+}
+
+variable "bigquery_dataset_id" {
+  type = string
+}
+
+variable "bigquery_table_id" {
+  type = string
+}

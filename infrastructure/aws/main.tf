@@ -5,6 +5,10 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 6.64"
     }
+    google = {
+      source  = "hashicorp/google"
+      version = "~> 7.0"
+    }
   }
 }
 
@@ -27,8 +31,17 @@ locals {
     { name = "GRIDOS_GATEWAY_ADDR", value = "http://gateway.gridos.internal:8081" },
   ]
   service_environment = {
-    control  = concat(local.common_environment, [{ name = "GRIDOS_CONTROL_ADDRESS", value = ":8080" }])
-    worker   = concat(local.common_environment, [{ name = "GRIDOS_CODE_VERSION", value = var.build_revision }])
+    control = concat(local.common_environment, [{ name = "GRIDOS_CONTROL_ADDRESS", value = ":8080" }])
+    worker = concat(local.common_environment, [
+      { name = "GRIDOS_CODE_VERSION", value = var.build_revision },
+      { name = "GRIDOS_ANALYTICS", value = "bigquery" },
+      { name = "GRIDOS_BIGQUERY_PROJECT", value = var.google_project_id },
+      { name = "GRIDOS_BIGQUERY_DATASET", value = var.bigquery_dataset_id },
+      { name = "GRIDOS_BIGQUERY_TABLE", value = var.bigquery_table_id },
+      { name = "GRIDOS_WIF_AUDIENCE", value = "//iam.googleapis.com/projects/${var.google_project_number}/locations/global/workloadIdentityPools/${google_iam_workload_identity_pool.aws.workload_identity_pool_id}/providers/${google_iam_workload_identity_pool_provider.aws.workload_identity_pool_provider_id}" },
+      { name = "GRIDOS_WIF_SERVICE_ACCOUNT", value = google_service_account.telemetry_writer.email },
+      { name = "AWS_REGION", value = var.region },
+    ])
     decision = [{ name = "GRIDOS_DECISION_ADDRESS", value = ":50061" }]
     gateway = [
       { name = "GRIDOS_CONTROL_ADDR", value = "http://control.gridos.internal:8080" },
