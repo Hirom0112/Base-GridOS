@@ -32,6 +32,8 @@ message DeviceState {
   string load_zone = 13;
   string site_id = 14;
   string reliability_trait = 15;
+  optional double base_reserve_kwh = 16;
+  optional double travel_flex_reserve_kwh = 17;
 }
 
 message ForecastSite {
@@ -106,6 +108,8 @@ message OptimizationRequest {
   repeated DeviceState devices = 11;
   repeated ForecastSite sites = 12;
   ForecastResponse forecast = 13;
+  double conservative_margin = 14;
+  double margin_hurdle = 15;
 }
 
 message ObjectiveBreakdown {

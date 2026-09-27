@@ -1,10 +1,12 @@
 import argparse
 import os
 from concurrent.futures import ThreadPoolExecutor
+from decimal import Decimal
 from math import isfinite
 
 import grpc
 
+from gridos.economics.margin import eligible_additional_capacity
 from gridos.fallback.planner import (
     DeviceSchedule,
     DeviceState,
@@ -40,6 +42,12 @@ def _planning_intervals(
 
 
 def _device_states(request: optimization_pb2.OptimizationRequest) -> list[DeviceState]:
+    if (
+        not isfinite(request.conservative_margin)
+        or not isfinite(request.margin_hurdle)
+        or request.margin_hurdle < 0
+    ):
+        raise ValueError("margin bounds must be finite and hurdle nonnegative")
     eligible_ids = set(request.eligibility_snapshot.eligible_device_ids)
     known_ids = {device.device_id for device in request.devices}
     forecast_availability_by_id: dict[str, float] = {}
@@ -62,7 +70,9 @@ def _device_states(request: optimization_pb2.OptimizationRequest) -> list[Device
             device_id=device.device_id,
             usable_energy_kwh=device.usable_energy_kwh,
             energy_kwh=device.energy_kwh,
-            reserve_percent=device.effective_reserve_kwh / device.usable_energy_kwh * 100.0
+            reserve_percent=_selected_reserve_kwh(request, device)
+            / device.usable_energy_kwh
+            * 100.0
             if device.usable_energy_kwh > 0.0
             else 0.0,
             hardware_floor_percent=device.hardware_floor_kwh / device.usable_energy_kwh * 100.0
@@ -80,6 +90,41 @@ def _device_states(request: optimization_pb2.OptimizationRequest) -> list[Device
         )
         for device in request.devices
     ]
+
+
+def _selected_reserve_kwh(
+    request: optimization_pb2.OptimizationRequest, device: optimization_pb2.DeviceState
+) -> float:
+    base = (
+        device.base_reserve_kwh
+        if device.HasField("base_reserve_kwh")
+        else device.effective_reserve_kwh
+    )
+    if not isfinite(base) or base < device.hardware_floor_kwh:
+        raise ValueError("base reserve must honor the hardware floor")
+    selected = base
+    if device.HasField("travel_flex_reserve_kwh"):
+        flex = device.travel_flex_reserve_kwh
+        if (
+            not device.HasField("base_reserve_kwh")
+            or not isfinite(flex)
+            or not device.hardware_floor_kwh <= flex <= base
+        ):
+            raise ValueError("active Travel Flex reserve must be between hardware and base reserve")
+        available = Decimal(str(base - flex))
+        selected -= float(
+            eligible_additional_capacity(
+                available,
+                Decimal(str(request.conservative_margin)),
+                Decimal(str(request.margin_hurdle)),
+            )
+        )
+    if (
+        not isfinite(device.effective_reserve_kwh)
+        or abs(device.effective_reserve_kwh - selected) > 1e-9
+    ):
+        raise ValueError("effective reserve does not match margin-gated reserve")
+    return selected
 
 
 def _exclusion_reason(reason: str) -> dispatch_pb2.ExclusionReason:

@@ -5,7 +5,6 @@ from decimal import Decimal
 import pytest
 from gridos.economics.margin import (
     MarginComponents,
-    MarginEstimate,
     MoneyRange,
     eligible_additional_capacity,
     estimate_margin,
@@ -157,18 +156,9 @@ def test_margin_hurdle_blocks_negative_and_uncertain_capacity() -> None:
     capacity = Decimal("5")
     hurdle = Decimal("10")
 
-    assert eligible_additional_capacity(
-        capacity, MarginEstimate(Decimal("-1"), Decimal("100")), hurdle
-    ) == Decimal(0)
-    assert eligible_additional_capacity(
-        capacity, MarginEstimate(hurdle, Decimal("100")), hurdle
-    ) == Decimal(0)
-    assert (
-        eligible_additional_capacity(
-            capacity, MarginEstimate(Decimal("11"), Decimal("100")), hurdle
-        )
-        == capacity
-    )
+    assert eligible_additional_capacity(capacity, Decimal("-1"), hurdle) == Decimal(0)
+    assert eligible_additional_capacity(capacity, hurdle, hurdle) == Decimal(0)
+    assert eligible_additional_capacity(capacity, Decimal("11"), hurdle) == capacity
 
 
 def test_no_fee_market_uses_fixed_reward() -> None:
