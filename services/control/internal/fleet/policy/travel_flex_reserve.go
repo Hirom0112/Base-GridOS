@@ -46,14 +46,16 @@ func (store *Store) ReserveAt(ctx context.Context, memberID string, at time.Time
 	state := ReserveState{BasePercent: base, EffectivePercent: base}
 	var temporary float64
 	var policyVersion string
-	err = store.pool.QueryRow(ctx, `SELECT temporary_reserve_percent, policy_version FROM travel_flex_windows
-		WHERE member_id = $1 AND start_time <= $2 AND end_time > $2
-		AND (cancelled_at IS NULL OR cancelled_at > $2)
-		ORDER BY start_time DESC, travel_flex_window_id DESC LIMIT 1`, memberID, at).Scan(&temporary, &policyVersion)
+	err = store.pool.QueryRow(ctx, `SELECT w.temporary_reserve_percent, w.policy_version
+		FROM travel_flex_windows w JOIN flexibility_offers f
+		ON f.offer_id = w.offer_id AND f.offer_type = 'TRAVEL_FLEX' AND f.member_id = w.member_id
+		WHERE w.member_id = $1 AND w.start_time <= $2 AND w.end_time > $2
+		AND (w.cancelled_at IS NULL OR w.cancelled_at > $2)
+		ORDER BY w.start_time DESC, w.travel_flex_window_id DESC LIMIT 1`, memberID, at).Scan(&temporary, &policyVersion)
 	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 		return ReserveState{}, err
 	}
-	if err == nil && policyVersion == plan.PolicyVersion {
+	if err == nil && policyVersion == plan.PolicyVersion && plan.OfferID != "" {
 		flex := max(temporary, hardware, dynamic)
 		if override != nil {
 			flex = max(flex, *override)

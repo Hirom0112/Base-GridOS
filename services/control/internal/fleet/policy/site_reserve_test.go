@@ -21,7 +21,7 @@ func TestTravelFlexSiteReservesRequireBindingPlanAndActiveConsent(t *testing.T) 
 	_, err = selectWithOffer(t, store, Selection{ID: "selection-flex", MemberID: "member-flex", Market: "TX", CatalogVersion: "catalog-v1", MemberPlanID: "plan-cedar", PolicyVersion: "policy-v1", ConsentText: "I consent", ConsentVersion: "v1", ExplanationShown: "Backup reserve", EffectiveAt: begin, CorrelationID: "selection-flex"})
 	require.NoError(t, err)
 	start := begin.Add(time.Hour)
-	_, err = store.ScheduleTravelFlex(ctx, TravelFlex{ID: "window-flex", MemberID: "member-flex", Start: start, End: start.Add(time.Hour), Timezone: "UTC", TemporaryReservePercent: 20, EarlyReturnAction: RestorePlanReserve, CreditType: "FIXED_EVENT", CreditCents: 500, ConsentText: "I consent to the credit", ConsentVersion: "v1", PolicyVersion: "policy-v1", CorrelationID: "window-flex"})
+	_, err = scheduleWithOffer(t, store, TravelFlex{ID: "window-flex", MemberID: "member-flex", Start: start, End: start.Add(time.Hour), Timezone: "UTC", TemporaryReservePercent: 20, EarlyReturnAction: RestorePlanReserve, CreditType: "FIXED_EVENT", CreditCents: 500, ConsentText: "I consent to the credit", ConsentVersion: "v1", PolicyVersion: "policy-v1", CorrelationID: "window-flex"})
 	require.NoError(t, err)
 	sites := []string{"site-flex", "site-no-plan", "site-unbound"}
 	before, err := store.SiteReserves(ctx, sites, start.Add(-time.Nanosecond))

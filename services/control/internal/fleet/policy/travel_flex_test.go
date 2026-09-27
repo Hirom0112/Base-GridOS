@@ -16,7 +16,7 @@ func TestTravelFlexAppliesOnlyInsideConsentedLocalWindow(t *testing.T) {
 	ctx := context.Background()
 	zone, err := time.LoadLocation("America/Chicago")
 	require.NoError(t, err)
-	begin := time.Date(2026, 10, 31, 12, 0, 0, 0, time.UTC)
+	begin := time.Date(2026, 11, 1, 12, 0, 0, 0, time.UTC)
 	seedPolicyCatalog(t, pool, begin)
 	store := New(pool)
 	_, err = selectWithOffer(t, store, Selection{
@@ -37,7 +37,7 @@ func TestTravelFlexAppliesOnlyInsideConsentedLocalWindow(t *testing.T) {
 	before, err := store.EffectiveReserve(ctx, window.MemberID, start.Add(-time.Nanosecond))
 	require.NoError(t, err)
 	require.Equal(t, 65.0, before)
-	stored, err := store.ScheduleTravelFlex(ctx, window)
+	stored, err := scheduleWithOffer(t, store, window)
 	require.NoError(t, err)
 	require.Equal(t, CreditType("FIXED_DAILY"), stored.CreditType)
 	require.Equal(t, int64(750), stored.CreditCents)
@@ -70,7 +70,7 @@ func TestTravelFlexEarlyReturnRestoresPlanReserveOnce(t *testing.T) {
 	require.NoError(t, err)
 	start := begin.Add(time.Hour)
 	window := TravelFlex{ID: "flex-return", MemberID: "member-return", Start: start, End: start.Add(72 * time.Hour), Timezone: "UTC", TemporaryReservePercent: 20, EarlyReturnAction: "RESTORE_PLAN_RESERVE", CreditType: "FIXED_EVENT", CreditCents: 1200, ConsentText: "I accept fixed event credit", ConsentVersion: "flex-consent-v1", PolicyVersion: "policy-v1", CorrelationID: "flex-return"}
-	_, err = store.ScheduleTravelFlex(ctx, window)
+	_, err = scheduleWithOffer(t, store, window)
 	require.NoError(t, err)
 	returnedAt := start.Add(24 * time.Hour)
 	command := EarlyReturn{ID: "return-1", WindowID: window.ID, MemberID: window.MemberID, At: returnedAt, CorrelationID: "return-correlation"}
@@ -99,7 +99,7 @@ func TestTravelFlexMaximumReturnUsesCatalogBandUntilWindowEnd(t *testing.T) {
 	require.NoError(t, err)
 	start := begin.Add(time.Hour)
 	end := start.Add(8 * time.Hour)
-	_, err = store.ScheduleTravelFlex(ctx, TravelFlex{ID: "flex-max", MemberID: "member-max", Start: start, End: end, Timezone: "UTC", TemporaryReservePercent: 20, EarlyReturnAction: "RESTORE_MAXIMUM_RESERVE", CreditType: "FIXED_EVENT", CreditCents: 1200, ConsentText: "I accept fixed event credit", ConsentVersion: "flex-consent-v1", PolicyVersion: "policy-v1", CorrelationID: "flex-max"})
+	_, err = scheduleWithOffer(t, store, TravelFlex{ID: "flex-max", MemberID: "member-max", Start: start, End: end, Timezone: "UTC", TemporaryReservePercent: 20, EarlyReturnAction: "RESTORE_MAXIMUM_RESERVE", CreditType: "FIXED_EVENT", CreditCents: 1200, ConsentText: "I accept fixed event credit", ConsentVersion: "flex-consent-v1", PolicyVersion: "policy-v1", CorrelationID: "flex-max"})
 	require.NoError(t, err)
 	returnedAt := start.Add(time.Hour)
 	require.NoError(t, store.EndTravelFlexEarly(ctx, EarlyReturn{ID: "return-max", WindowID: "flex-max", MemberID: "member-max", At: returnedAt, CorrelationID: "return-max"}))
@@ -168,4 +168,23 @@ func TestTravelFlexMemberSiteMigrationUpgradesExistingDatabase(t *testing.T) {
 	var exists bool
 	require.NoError(t, pool.QueryRow(context.Background(), `SELECT to_regclass('member_sites') IS NOT NULL`).Scan(&exists))
 	require.True(t, exists)
+}
+
+func scheduleWithOffer(t *testing.T, store *Store, window TravelFlex) (*TravelFlex, error) {
+	t.Helper()
+	plan, err := store.Current(context.Background(), window.MemberID, window.Start)
+	require.NoError(t, err)
+	require.NotNil(t, plan)
+	window.OfferID = window.ID + ":offer"
+	reserve := window.TemporaryReservePercent
+	_, err = store.PresentOffer(context.Background(), Offer{
+		ID: window.OfferID, MemberID: window.MemberID, Kind: TravelFlexOffer, Market: plan.Market,
+		CatalogVersion: plan.CatalogVersion, MemberPlanID: plan.MemberPlanID,
+		ContractVersion: window.ConsentVersion, PriceText: "fixed credit shown",
+		ConsentText: window.ConsentText, ConsentVersion: window.ConsentVersion,
+		EffectiveAt: window.Start, ExpiresAt: window.End, TemporaryReservePercent: &reserve,
+		CreditType: window.CreditType, CreditCents: window.CreditCents, CorrelationID: window.CorrelationID,
+	})
+	require.NoError(t, err)
+	return store.ScheduleTravelFlex(context.Background(), window)
 }

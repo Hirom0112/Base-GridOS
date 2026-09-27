@@ -27,6 +27,7 @@ const (
 
 type TravelFlex struct {
 	ID                      string
+	OfferID                 string
 	MemberID                string
 	Start                   time.Time
 	End                     time.Time
@@ -53,7 +54,7 @@ type EarlyReturn struct {
 }
 
 func (window TravelFlex) validateWindow() error {
-	if window.ID == "" || window.MemberID == "" || window.PolicyVersion == "" || window.CorrelationID == "" || window.Start.IsZero() || !window.End.After(window.Start) {
+	if window.ID == "" || window.OfferID == "" || window.MemberID == "" || window.PolicyVersion == "" || window.CorrelationID == "" || window.Start.IsZero() || !window.End.After(window.Start) {
 		return errors.New("travel window identity, policy, and ordered times are required")
 	}
 	zone, err := time.LoadLocation(window.Timezone)
@@ -111,6 +112,9 @@ func (store *Store) ScheduleTravelFlex(ctx context.Context, window TravelFlex) (
 	if plan == nil || plan.PolicyVersion != window.PolicyVersion || window.TemporaryReservePercent > plan.ReserveFloorPercent {
 		return nil, errors.New("travel window requires a consented plan and no higher reserve")
 	}
+	if err = requireTravelOffer(ctx, tx, window, plan); err != nil {
+		return nil, err
+	}
 	var overlaps bool
 	err = tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM travel_flex_windows
 		WHERE member_id = $1 AND start_time < $2 AND COALESCE(cancelled_at, end_time) > $3)`, window.MemberID, window.End, window.Start).Scan(&overlaps)
@@ -122,18 +126,18 @@ func (store *Store) ScheduleTravelFlex(ctx context.Context, window TravelFlex) (
 	}
 	_, err = tx.Exec(ctx, `INSERT INTO travel_flex_windows
 		(travel_flex_window_id, member_id, start_time, end_time, timezone, temporary_reserve_percent,
-		early_return_action, credit_type, credit_cents, consent_text, consent_version, policy_version, correlation_id)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
+		early_return_action, credit_type, credit_cents, consent_text, consent_version, policy_version, correlation_id, offer_id)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
 		window.ID, window.MemberID, window.Start, window.End, window.Timezone, window.TemporaryReservePercent,
-		window.EarlyReturnAction, window.CreditType, window.CreditCents, window.ConsentText, window.ConsentVersion, window.PolicyVersion, window.CorrelationID)
+		window.EarlyReturnAction, window.CreditType, window.CreditCents, window.ConsentText, window.ConsentVersion, window.PolicyVersion, window.CorrelationID, window.OfferID)
 	if err != nil {
 		return nil, err
 	}
 	_, err = tx.Exec(ctx, `INSERT INTO audit_journal (actor_id, action, resource_type, resource_id, new_values, correlation_id)
 		VALUES ($1, 'TRAVEL_FLEX_SCHEDULED', 'travel_flex_window', $2,
 		jsonb_build_object('start_time', $3::timestamptz, 'end_time', $4::timestamptz, 'timezone', $5::text,
-		'credit_type', $6::text, 'credit_cents', $7::bigint), $8)`,
-		window.MemberID, window.ID, window.Start, window.End, window.Timezone, window.CreditType, window.CreditCents, window.CorrelationID)
+		'credit_type', $6::text, 'credit_cents', $7::bigint, 'offer_id', $8::text), $9)`,
+		window.MemberID, window.ID, window.Start, window.End, window.Timezone, window.CreditType, window.CreditCents, window.OfferID, window.CorrelationID)
 	if err != nil {
 		return nil, err
 	}
@@ -143,8 +147,25 @@ func (store *Store) ScheduleTravelFlex(ctx context.Context, window TravelFlex) (
 	return &window, nil
 }
 
+func requireTravelOffer(ctx context.Context, tx pgx.Tx, window TravelFlex, plan *Plan) error {
+	offer, err := presentedOffer(ctx, tx, window.OfferID)
+	if err != nil {
+		return err
+	}
+	if offer == nil || offer.Kind != TravelFlexOffer || offer.MemberID != window.MemberID ||
+		offer.Market != plan.Market || offer.CatalogVersion != plan.CatalogVersion ||
+		offer.MemberPlanID != plan.MemberPlanID || offer.TemporaryReservePercent == nil ||
+		*offer.TemporaryReservePercent != window.TemporaryReservePercent ||
+		offer.CreditType != window.CreditType || offer.CreditCents != window.CreditCents ||
+		offer.ConsentText != window.ConsentText || offer.ConsentVersion != window.ConsentVersion ||
+		window.Start.Before(offer.EffectiveAt) || !window.Start.Before(offer.ExpiresAt) {
+		return errors.New("travel window does not match presented offer")
+	}
+	return nil
+}
+
 func sameTravelWindow(stored, requested TravelFlex) bool {
-	return stored.ID == requested.ID && stored.MemberID == requested.MemberID && stored.Start.Equal(requested.Start) && stored.End.Equal(requested.End) &&
+	return stored.ID == requested.ID && stored.OfferID == requested.OfferID && stored.MemberID == requested.MemberID && stored.Start.Equal(requested.Start) && stored.End.Equal(requested.End) &&
 		stored.Timezone == requested.Timezone && stored.TemporaryReservePercent == requested.TemporaryReservePercent &&
 		stored.EarlyReturnAction == requested.EarlyReturnAction && stored.CreditType == requested.CreditType &&
 		stored.CreditCents == requested.CreditCents && stored.ConsentText == requested.ConsentText &&
@@ -153,15 +174,15 @@ func sameTravelWindow(stored, requested TravelFlex) bool {
 
 func travelWindow(ctx context.Context, tx pgx.Tx, id, memberID string) (*TravelFlex, error) {
 	window := &TravelFlex{}
-	var endKey, endCorrelation *string
+	var endKey, endCorrelation, offerID *string
 	err := tx.QueryRow(ctx, `SELECT travel_flex_window_id, member_id, start_time, end_time, timezone,
 		temporary_reserve_percent, early_return_action, credit_type, credit_cents, consent_text,
-		consent_version, policy_version, correlation_id, cancelled_at, end_idempotency_key, end_correlation_id
+		consent_version, policy_version, correlation_id, cancelled_at, end_idempotency_key, end_correlation_id, offer_id
 		FROM travel_flex_windows WHERE travel_flex_window_id = $1 AND member_id = $2`, id, memberID).
 		Scan(&window.ID, &window.MemberID, &window.Start, &window.End, &window.Timezone,
 			&window.TemporaryReservePercent, &window.EarlyReturnAction, &window.CreditType, &window.CreditCents,
 			&window.ConsentText, &window.ConsentVersion, &window.PolicyVersion, &window.CorrelationID,
-			&window.CancelledAt, &endKey, &endCorrelation)
+			&window.CancelledAt, &endKey, &endCorrelation, &offerID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
 	}
@@ -173,6 +194,9 @@ func travelWindow(ctx context.Context, tx pgx.Tx, id, memberID string) (*TravelF
 	}
 	if endCorrelation != nil {
 		window.EndCorrelationID = *endCorrelation
+	}
+	if offerID != nil {
+		window.OfferID = *offerID
 	}
 	window.Start, window.End = window.Start.UTC(), window.End.UTC()
 	if window.CancelledAt != nil {

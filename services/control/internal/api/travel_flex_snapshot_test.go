@@ -31,7 +31,10 @@ func TestTravelFlexFreezeRequiresBoundActiveConsent(t *testing.T) {
 	require.NoError(t, err)
 	_, err = store.Select(ctx, policy.Selection{ID: "selection-freeze", OfferID: "offer-freeze", MemberID: "member-flex", Market: "TX", CatalogVersion: "catalog-freeze", MemberPlanID: "plan-freeze", PolicyVersion: "policy-freeze", ConsentText: "I consent", ConsentVersion: "v1", ExplanationShown: "Backup reserve", EffectiveAt: now.Add(-time.Hour), CorrelationID: "freeze"})
 	require.NoError(t, err)
-	_, err = store.ScheduleTravelFlex(ctx, policy.TravelFlex{ID: "window-freeze", MemberID: "member-flex", Start: now.Add(-time.Minute), End: now.Add(time.Minute), Timezone: "UTC", TemporaryReservePercent: 20, EarlyReturnAction: policy.RestorePlanReserve, CreditType: "FIXED_EVENT", CreditCents: 100, ConsentText: "I consent to fixed credit", ConsentVersion: "v1", PolicyVersion: "policy-freeze", CorrelationID: "freeze"})
+	reserve := 20.0
+	_, err = store.PresentOffer(ctx, policy.Offer{ID: "offer-window-freeze", MemberID: "member-flex", Kind: policy.TravelFlexOffer, Market: "TX", CatalogVersion: "catalog-freeze", MemberPlanID: "plan-freeze", ContractVersion: "v1", PriceText: "Fixed $1 event credit", ConsentText: "I consent to fixed credit", ConsentVersion: "v1", EffectiveAt: now.Add(-time.Minute), ExpiresAt: now.Add(time.Minute), TemporaryReservePercent: &reserve, CreditType: policy.FixedEvent, CreditCents: 100, CorrelationID: "freeze"})
+	require.NoError(t, err)
+	_, err = store.ScheduleTravelFlex(ctx, policy.TravelFlex{ID: "window-freeze", OfferID: "offer-window-freeze", MemberID: "member-flex", Start: now.Add(-time.Minute), End: now.Add(time.Minute), Timezone: "UTC", TemporaryReservePercent: 20, EarlyReturnAction: policy.RestorePlanReserve, CreditType: "FIXED_EVENT", CreditCents: 100, ConsentText: "I consent to fixed credit", ConsentVersion: "v1", PolicyVersion: "policy-freeze", CorrelationID: "freeze"})
 	require.NoError(t, err)
 	twin := fleet.NewTwin(time.Minute)
 	sites := make([]*gridosv1.AuthorizedSite, 0, 2)
