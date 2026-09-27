@@ -1519,7 +1519,7 @@ authorized operational data that DATASETS §14 shows does not exist here.
 
 Owns: `services/control/internal/connectors/`, `tests/contract/`, `docs/data/`.
 
-- `[ ]` 5A.1 `[P]` Connector interfaces for all eleven rows of the FULL_SPEC
+- `[x]` 5A.1 `[P]` Connector interfaces for all eleven rows of the FULL_SPEC
   §8 table: market prices and regional load, weather and alerts, outage risk,
   household load, battery telemetry, grid topology, member policy, resilience
   and Travel Flex behaviour, commands, settlement, pricing and rewards. Each

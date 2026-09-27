@@ -934,3 +934,7 @@ assumptions reported by workers land here too.
   reference their offer and legacy null-offer windows cannot unlock flex;
   the reward ledger is append-only with the offer on every entry.
   Director: policy and api selectors pass, migration 0012 re-applies.
+- **5A.1 (lane 5A), verified:** eleven typed connector interfaces with
+  deterministic simulated implementations and eleven PENDING-LIVE markers;
+  the stub register now has thirteen rows matching thirteen markers in
+  the tree. Director: connectors package ok.
