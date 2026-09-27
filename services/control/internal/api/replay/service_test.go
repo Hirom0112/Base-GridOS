@@ -46,7 +46,7 @@ func TestReplayEventReturnsManifestTimelineAndDiff(t *testing.T) {
 	}
 	stamp := timestamppb.New(time.Unix(100, 0))
 	source := replaySource{expected: &gridosv1.DispatchPlan{EventId: "event-1", PlanVersion: 1}, updates: []*gridosv1.EventTimelineEntry{{Sequence: 1, OccurredAt: stamp, Action: "CREATED"}}}
-	service := NewService(directory, source, replayPlanner{actual: &gridosv1.DispatchPlan{EventId: "event-1", PlanVersion: 1, DeviceSchedules: []*gridosv1.DeviceSchedule{{DeviceId: "device-1"}}}})
+	service := NewService(directory, source, source, replayPlanner{actual: &gridosv1.DispatchPlan{EventId: "event-1", PlanVersion: 1, DeviceSchedules: []*gridosv1.DeviceSchedule{{DeviceId: "device-1"}}}})
 	request := connect.NewRequest(&gridosv1.ReplayEventRequest{EventId: "event-1"})
 	request.Header().Set("X-GridOS-Role", "analyst")
 	response, err := service.ReplayEvent(context.Background(), request)
@@ -54,11 +54,7 @@ func TestReplayEventReturnsManifestTimelineAndDiff(t *testing.T) {
 		t.Fatal(err)
 	}
 	result := response.Msg
-	if result.GetSeed() != 42 || result.GetInputSnapshotId() != "input-1" || result.GetEligibilitySnapshotId() != "eligible-1" ||
-		result.GetPolicyVersion() != "policy-1" || result.GetSolverVersion() != "solver-1" || result.GetFallbackVersion() != "fallback-1" ||
-		result.GetCodeVersion() != "build-1" || len(result.GetFleetSha256()) != 64 || result.GetScenarioSha256() != "" {
-		t.Fatalf("manifest provenance missing: %+v", result)
-	}
+	assertReplayProvenance(t, result)
 	if len(result.GetUpdates()) != 1 || result.GetUpdates()[0].GetSequence() != 1 || !result.GetUpdates()[0].GetOccurredAt().AsTime().Equal(stamp.AsTime()) {
 		t.Fatalf("timeline missing: %+v", result.GetUpdates())
 	}
@@ -67,8 +63,17 @@ func TestReplayEventReturnsManifestTimelineAndDiff(t *testing.T) {
 	}
 }
 
+func assertReplayProvenance(t *testing.T, result *gridosv1.ReplayEventResponse) {
+	t.Helper()
+	if result.GetSeed() != 42 || result.GetInputSnapshotId() != "input-1" || result.GetEligibilitySnapshotId() != "eligible-1" ||
+		result.GetPolicyVersion() != "policy-1" || result.GetSolverVersion() != "solver-1" || result.GetFallbackVersion() != "fallback-1" ||
+		result.GetCodeVersion() != "build-1" || len(result.GetFleetSha256()) != 64 || result.GetScenarioSha256() != "" {
+		t.Fatalf("manifest provenance missing: %+v", result)
+	}
+}
+
 func TestReplayEventRequiresAuthorizedRole(t *testing.T) {
-	service := NewService(t.TempDir(), replaySource{}, replayPlanner{})
+	service := NewService(t.TempDir(), replaySource{}, replaySource{}, replayPlanner{})
 	request := connect.NewRequest(&gridosv1.ReplayEventRequest{EventId: "event-1"})
 	_, err := service.ReplayEvent(context.Background(), request)
 	if connect.CodeOf(err) != connect.CodeUnauthenticated {

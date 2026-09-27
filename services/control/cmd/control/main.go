@@ -10,12 +10,16 @@ import (
 	"syscall"
 	"time"
 
+	"connectrpc.com/connect"
+	"github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1/gridosv1connect"
 	controlapi "github.com/Hirom0112/Base-GridOS/services/control/internal/api"
 	apievents "github.com/Hirom0112/Base-GridOS/services/control/internal/api/events"
 	apigeo "github.com/Hirom0112/Base-GridOS/services/control/internal/api/geo"
+	apireplay "github.com/Hirom0112/Base-GridOS/services/control/internal/api/replay"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/dispatch"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/fleet"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/ingest"
+	"github.com/Hirom0112/Base-GridOS/services/control/internal/replay"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/storage"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.temporal.io/sdk/client"
@@ -72,8 +76,16 @@ func main() {
 		log.Fatal("control runtime is incomplete")
 	}
 	telemetry := ingest.NewService(storage.NewTelemetryStore(pool), telemetryTwin, time.Now)
-	events := apievents.NewService(apievents.NewPostgresSource(pool, service, sites, time.Now, 30*time.Second), 250*time.Millisecond)
+	eventSource := apievents.NewPostgresSource(pool, service, sites, time.Now, 30*time.Second)
+	events := apievents.NewService(eventSource, 250*time.Millisecond)
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	protocols := new(http.Protocols)
+	protocols.SetUnencryptedHTTP2(true)
+	transport.Protocols = protocols
+	decisionClient := gridosv1connect.NewOptimizationServiceClient(&http.Client{Transport: transport, Timeout: 20 * time.Second}, environment("GRIDOS_DECISION_ADDR", "http://localhost:50061"), connect.WithGRPC())
 	mux := http.NewServeMux()
+	replayPath, replayHandler := gridosv1connect.NewReplayServiceHandler(apireplay.NewService(environment("GRIDOS_REPLAY_DIR", ".local/replay"), replay.PostgresSource{Pool: pool}, eventSource, controlapi.NewConnectOptimizer(decisionClient)))
+	mux.Handle(replayPath, replayHandler)
 	geoAssets, err := apigeo.AssetHandler(os.DirFS("testdata/fixtures/geo"))
 	if err != nil {
 		log.Fatal(err)
