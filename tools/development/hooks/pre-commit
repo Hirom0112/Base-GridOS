@@ -25,7 +25,7 @@ code_files=$(printf '%s\n' "$staged" | grep -E '\.(go|py|ts|tsx|js|mjs|sql|proto
 tests_only=1
 for f in $code_files; do
   case "$f" in
-    *_test.go|*/test_*.py|test_*.py|*/tests/*|*.test.ts|*.test.tsx|*.spec.ts) ;;
+    *_test.go|*/test_*.py|test_*.py|*.test.ts|*.test.tsx|*.spec.ts) ;;
     *) tests_only=0 ;;
   esac
 done
@@ -34,7 +34,9 @@ done
 if [ -n "$code_files" ]; then
   added=$(git diff --cached -U0 -- $code_files | grep -E '^\+[^+]' | sed 's/^+//' || true)
 
-  cstyle=$(git diff --cached -U0 -- $(printf '%s\n' $code_files | grep -E '\.(go|ts|tsx|js|mjs|proto)$') 2>/dev/null | grep -E '^\+[^+]' | sed 's/^+//' || true)
+  cstyle_files=$(printf '%s\n' $code_files | grep -E '\.(go|ts|tsx|js|mjs|proto)$' || true)
+  cstyle=""
+  [ -z "$cstyle_files" ] || cstyle=$(git diff --cached -U0 -- $cstyle_files | grep -E '^\+[^+]' | sed 's/^+//' || true)
   starred=$(printf '%s\n' "$cstyle" | grep -E '^[[:space:]]*\*[[:space:]]' || true)
   comments=$(printf '%s\n' "$added" \
     | grep -E '^[[:space:]]*(//|#|/\*|--[[:space:]]|--$|\{/\*)' \
@@ -53,8 +55,16 @@ $suppressions"
   [ -z "$anys" ] || fail "no any / Any / bare interface{}:
 $anys"
 
+  go_code=$(printf '%s\n' $code_files | grep -E '\.go$' || true)
+  go_anys=""
+  [ -z "$go_code" ] || go_anys=$(git diff --cached -U0 -- $go_code | grep -E '^\+[^+]' | sed 's/^+//' \
+    | sed -E 's/"([^"\\]|\\.)*"//g; s/`[^`]*`//g; s#//.*##; s/((func|type)[[:space:]]+[A-Za-z_][A-Za-z0-9_]*)\[[^]]*\]/\1/' \
+    | grep -nE '(^|[^A-Za-z0-9_.])any([^A-Za-z0-9_]|$)' || true)
+  [ -z "$go_anys" ] || fail "no any as a Go type outside type-parameter constraints:
+$go_anys"
+
   for f in $code_files; do
-    lines=$(wc -l < "$f" | tr -d ' ')
+    lines=$(git show ":$f" | wc -l | tr -d ' ')
     [ "$lines" -le 500 ] || fail "$f has $lines lines (ceiling 500). Extract along a real seam."
   done
 fi
