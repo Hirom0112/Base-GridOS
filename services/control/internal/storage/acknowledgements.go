@@ -5,6 +5,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/Hirom0112/Base-GridOS/services/control/internal/observability"
 	storagegen "github.com/Hirom0112/Base-GridOS/services/control/internal/storage/gen"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -93,7 +94,11 @@ func RecordAcknowledgement(ctx context.Context, pool *pgxpool.Pool, acknowledgem
 	if !changed {
 		return ErrIllegalCommandTransition
 	}
-	return tx.Commit(ctx)
+	if err = tx.Commit(ctx); err != nil {
+		return err
+	}
+	_ = observability.ProcessMetrics.RecordCommand(nextState)
+	return nil
 }
 
 func MarkAcknowledgementUncertain(ctx context.Context, pool *pgxpool.Pool, deadline, now time.Time, interval FeasiblePowerInterval) (bool, error) {
