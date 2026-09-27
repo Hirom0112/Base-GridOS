@@ -1495,10 +1495,13 @@ Owns: `services/control/internal/fleet/geo/`,
 
 Owns: `services/control/internal/context/`, `services/control/internal/api/context/`.
 
-- `[ ]` 4C.6 `[after 4C.2]` Frozen forecast in the explanation. `GetPlanExplanation`
+- `[ ]` 4C.6 `[after 4C.2]` Plan evidence in the explanation. `GetPlanExplanation`
   returns the forecast intervals the plan was built from, read from the
   frozen input snapshot per site, each with provenance, source time, units,
-  and `MODELED` value kind; the 3F.3 fixture is refreshed from the demo.
+  and `MODELED` value kind, plus the stored plan's `fallback_used`,
+  `fallback_reason` and device schedules for that plan version, so the
+  console can build a device-level alternative for `ValidateUnsafeAlternative`;
+  the 3F.3 fixture is refreshed from the demo.
   Verify: `go test ./services/control/internal/api/ -run Explanation` passes
   and the recorded fixture carries at least one interval.
 - `[ ]` 4C.7 `[after 4C.5]` `ListCells` and `Drilldown` accept a request `as_of`
@@ -1564,6 +1567,19 @@ Owns: `services/control/internal/report/`.
 Owns: `tests/integration/`, `testdata/scenarios/`, `tests/end-to-end/`,
 `testdata/fixtures/api/`.
 
+- `[ ]` 4E.8 `[after 4E.2]` Per-command truth for the console. `ListEventCommands`
+  on `EventsService` returns every command intent of an event with device,
+  generation, setpoint, issued, effective and expiry times, the latest
+  durable state (PERSISTED, SENT, ACKNOWLEDGED, UNCERTAIN, EXPIRED,
+  REJECTED), the gateway receipt, and whether delivery was verified, so
+  intent, acknowledgement and verified delivery are distinguishable in the
+  browser (FULL_SPEC §10) and expiry and safe return are shown from durable
+  rows, never inferred. Verify: `go test ./services/control/internal/api/events/ -run Commands` passes.
+- `[ ]` 4E.9 `[after 4E.2]` Measured reserve compliance in the report.
+  `GetEventReport` carries per-event reserve compliance from telemetry in
+  the window: devices observed, minimum margin above the effective reserve,
+  devices that touched the floor, and observation gaps, each MEASURED with
+  provenance. Verify: `go test ./services/control/internal/api/report/ -run Reserve` passes.
 - `[x]` 4F.1 `[after 4A.7, 4B.6]` Scenario files and `tests/integration`
   cases for TECHSTACK e2e scenarios 12 to 17: `travel-flex-lifecycle`
   (activation, automatic expiry, early-return cancellation),

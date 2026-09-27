@@ -1711,3 +1711,17 @@ the supplied terms against the stored row for that catalog version, plan
 and kind, rejecting any mismatch with InvalidArgument, so no client can
 bind invented terms. The console copies terms from ListMemberOffers into
 PresentOffer.
+
+## 2026-09-27 07:05Z — Evidence boundaries for demo steps 8, 14, 15
+
+The console lane cannot show per-command expiry and safe return or
+measured reserve-floor compliance from any browser-reachable response, and
+GetPlanExplanation omits the plan's fallback fields and device schedules.
+Decisions: 4C.6 extended to carry fallback_used, fallback_reason and the
+stored device schedules (the console derives an unsafe alternative from the
+real plan instead of inventing one); new 4E.8 ListEventCommands exposing
+every command intent with its latest durable state, receipt and
+verification; new 4E.9 measured reserve compliance in the event report.
+Root's post-gate order becomes 4D.8, 4C.6, 4E.8, 4E.9, 4B.9, 4C.7. Until
+they land the console states these as missing evidence rather than
+inferring success from plan or audit state.
