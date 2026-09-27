@@ -130,6 +130,16 @@ func TestGetEventTimelineReturnsOrderedAuditDecisions(t *testing.T) {
 	}
 }
 
+func TestListEventCommandsContract(t *testing.T) {
+	methods := gridosv1.File_gridos_v1_api_proto.Services().ByName("EventsService").Methods()
+	if methods.ByName("GetEventTimeline") == nil {
+		t.Fatal("events contract is unavailable")
+	}
+	if methods.ByName("ListEventCommands") == nil {
+		t.Fatal("ListEventCommands is missing from EventsService")
+	}
+}
+
 func eventUpdate(state gridosv1.DispatchEventState, sentMW, acknowledgedMW, deliveredMW float64) *gridosv1.WatchEventResponse {
 	power := &gridosv1.EventPowerAggregate{
 		SentMw: sentMW, AcknowledgedMw: acknowledgedMW, DeliveredMw: deliveredMW, DeliveredState: gridosv1.ValueState_VALUE_STATE_PRESENT,
