@@ -59,12 +59,15 @@ def test_server_forecast_uses_public_profile_and_marks_missing_source(
     assert response.site_loads[0].site_id == "known"
     assert response.site_loads[0].load_kwh.value > 0
     assert response.site_loads[0].load_kwh.model_version == "load-baseline-v1"
+    assert response.site_loads[0].load_kwh.HasField("interval_coverage")
+    assert response.site_loads[0].load_kwh.interval_coverage == 0.90
     assert response.site_loads[0].load_kwh.HasField("training_window_begin")
     assert response.site_loads[0].load_kwh.HasField("training_window_end")
     assert response.site_loads[0].load_kwh.issued_at == request.requested_at
     assert response.site_loads[0].load_kwh.horizon.seconds == 0
     assert len(response.device_availability) == 1
     assert response.device_availability[0].probability.value > 0
+    assert not response.device_availability[0].probability.HasField("interval_coverage")
     assert "site_load:missing" in response.unavailable_sources
 
 
