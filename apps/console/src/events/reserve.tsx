@@ -35,6 +35,13 @@ export function ReserveEvidence({ evidence }: { evidence: unknown }) {
         <p role="alert">Reserve evidence is invalid.</p>
       ) : (
         <>
+          {result.data.MinimumMarginKWh < 0 && (
+            <p className="error-notice" role="alert">
+              Reserve breach observed. A recorded device fell below its frozen
+              effective reserve. Review the event’s measurements before another
+              dispatch.
+            </p>
+          )}
           <p>
             {result.data.DevicesObserved} of {result.data.DevicesExpected}{" "}
             devices observed · MEASURED
