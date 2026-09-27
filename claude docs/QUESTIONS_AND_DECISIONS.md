@@ -1382,3 +1382,12 @@ assumptions reported by workers land here too.
   of which exactly 100 were accepted and 66 never published: the stop path
   sends a single batch, the defect 2F.9 removed from the launch path. Lane
   5C owns the drain under 2B.9; the physical-stop proof is still open.
+- **5D.5 and 5D.6 rejected as posted (2026-09-27):** under Bazel 18 of
+  34 service test targets fail because fixtures and the migrations
+  directory are not sandbox data (a telemetry test cannot open the public
+  load profile; database-backed tests find no schema). The console test
+  and the control image target are accepted; the service test verify line
+  stays red until the data dependencies are declared and the full run is
+  green. The demo worker restart runbook rehearsal lost the new worker
+  process once and lane 5C restored it; the runbook must use the detached
+  launch the Makefile uses.
