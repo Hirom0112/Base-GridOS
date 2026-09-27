@@ -17,7 +17,8 @@ const reserveSchema = z
     (value) =>
       value.DevicesObserved <= value.DevicesExpected &&
       value.DevicesTouchedFloor <= value.DevicesObserved &&
-      value.ObservationGaps === value.DevicesExpected - value.DevicesObserved,
+      value.ObservationGaps >= value.DevicesExpected - value.DevicesObserved &&
+      value.ObservationGaps <= value.DevicesExpected,
   );
 
 export function ReserveEvidence({ evidence }: { evidence: unknown }) {
@@ -49,7 +50,7 @@ export function ReserveEvidence({ evidence }: { evidence: unknown }) {
             reserve floor.
           </p>
           <p>
-            {result.data.ObservationGaps} devices without observations.
+            {result.data.ObservationGaps} devices with observation gaps.
             Unobserved devices remain unknown.
           </p>
           <p>{result.data.Provenance.join(" · ")}</p>
