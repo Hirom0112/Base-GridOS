@@ -1356,3 +1356,10 @@ assumptions reported by workers land here too.
   04:06Z, which reached ACKNOWLEDGED_OR_UNCERTAIN; the retimed offline and
   delayed-gateway injections fire from the first accepted command, and the
   typed exception entries are read from the timeline afterwards.
+- **2B.9 storage accepted (ce3856e):** a per-device generation counter
+  backfilled from the durable intents, allocated in the insert
+  transaction after the idempotency lookup; the outbox blocks unpublished
+  same-device predecessors, releases uncertain or terminal ones, and lets
+  emergency zeros bypass. Its migration failed the twice-apply gate
+  (relation already exists) and goes back for idempotency before the
+  consecutive-events stack run.
