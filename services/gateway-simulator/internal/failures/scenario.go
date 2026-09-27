@@ -44,6 +44,8 @@ type Scenario struct {
 	Tick       time.Duration
 	FleetPath  string
 	FleetSize  int
+	EventStart time.Time
+	EventEnd   time.Time
 	Injections []Injection
 }
 
@@ -92,11 +94,52 @@ func parseScenarioLine(scenario *Scenario, section *string, line string) error {
 		return parseClockField(scenario, key, value)
 	case "fleet":
 		return parseFleetField(scenario, key, value)
+	case "event":
+		if key == "start_at" {
+			var err error
+			scenario.EventStart, err = time.Parse(time.RFC3339Nano, value)
+			if err != nil {
+				return fmt.Errorf("event start: %w", err)
+			}
+		}
+		if key == "end_at" {
+			var err error
+			scenario.EventEnd, err = time.Parse(time.RFC3339Nano, value)
+			if err != nil {
+				return fmt.Errorf("event end: %w", err)
+			}
+		}
+		return nil
 	case "injections":
 		return parseInjectionField(scenario, key, value)
 	default:
 		return nil
 	}
+}
+
+func (scenario Scenario) RetimeLive(anchor time.Time, window, cadence time.Duration) (Scenario, error) {
+	if anchor.IsZero() || window < cadence || cadence <= 0 || !scenario.EventEnd.After(scenario.EventStart) {
+		return Scenario{}, errors.New("live scenario requires an event window and positive cadence")
+	}
+	originalWindow := scenario.EventEnd.Sub(scenario.EventStart)
+	scenario.Injections = append([]Injection(nil), scenario.Injections...)
+	for index := range scenario.Injections {
+		offset := scenario.Injections[index].At.Sub(scenario.EventStart)
+		if offset < 0 || offset > originalWindow {
+			return Scenario{}, errors.New("live injection outside event window")
+		}
+		mapped := time.Duration(float64(offset) / float64(originalWindow) * float64(window))
+		slots := mapped / cadence
+		if mapped > 0 && slots == 0 {
+			slots = 1
+		}
+		scenario.Injections[index].At = anchor.Add(slots * cadence)
+	}
+	scenario.Start = anchor
+	scenario.Tick = cadence
+	scenario.EventStart = anchor
+	scenario.EventEnd = anchor.Add(window)
+	return scenario, nil
 }
 
 func splitField(line string) (string, string, bool) {

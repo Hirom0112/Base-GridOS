@@ -38,6 +38,8 @@ type config struct {
 	scenarioStart    time.Time
 	telemetryCadence time.Duration
 	scenarioTick     time.Duration
+	liveWindow       time.Duration
+	clock            telemetryClock
 }
 
 type telemetryClock string
@@ -132,10 +134,7 @@ func run() error {
 		}
 	}()
 	startedAt := time.Now()
-	scenarioNow := func() time.Time {
-		ticks := time.Since(startedAt) / configuration.telemetryCadence
-		return configuration.scenarioStart.Add(time.Duration(ticks) * configuration.scenarioTick)
-	}
+	scenarioNow := configuration.commandClock(startedAt)
 	commandHandler := protocol.NewCommandHandler(store, configuration.gatewayID, authorizationToken, scenarioNow)
 	commandService := gridosv1connect.CommandServiceHandler(commandHandler)
 	if runtime != nil {
@@ -179,6 +178,16 @@ func run() error {
 	}
 }
 
+func (configuration config) commandClock(startedAt time.Time) func() time.Time {
+	if configuration.clock == liveClock {
+		return time.Now
+	}
+	return func() time.Time {
+		ticks := time.Since(startedAt) / configuration.telemetryCadence
+		return configuration.scenarioStart.Add(time.Duration(ticks) * configuration.scenarioTick)
+	}
+}
+
 func failureRuntime(configuration config, devices []fleetDevice) (*failures.Runtime, error) {
 	if configuration.scenarioPath == "" {
 		return nil, nil
@@ -190,6 +199,12 @@ func failureRuntime(configuration config, devices []fleetDevice) (*failures.Runt
 	if err != nil {
 		return nil, err
 	}
+	if configuration.clock == liveClock {
+		scenario, err = scenario.RetimeLive(configuration.scenarioStart, configuration.liveWindow, configuration.telemetryCadence)
+		if err != nil {
+			return nil, err
+		}
+	}
 	failureDevices := make([]failures.Device, 0, len(devices))
 	for _, device := range devices {
 		failureDevices = append(failureDevices, failures.Device{ID: device.DeviceID, Region: device.LoadZone})
@@ -197,6 +212,9 @@ func failureRuntime(configuration config, devices []fleetDevice) (*failures.Runt
 	engine, err := failures.NewEngine(scenario, failureDevices)
 	if err != nil {
 		return nil, err
+	}
+	if configuration.clock == liveClock {
+		return failures.NewLiveRuntime(engine), nil
 	}
 	return failures.NewRuntime(engine), nil
 }
@@ -236,11 +254,7 @@ func startTelemetry(ctx context.Context, configuration config, devices []fleetDe
 	if runtime != nil {
 		fleet.SetEffects(runtime)
 	}
-	clock := liveClock
-	if configuration.scenarioPath != "" {
-		clock = scenarioClock
-	}
-	go runTelemetry(ctx, fleet, configuration.scenarioStart, configuration.scenarioTick, configuration.telemetryCadence, clock, telemetryErrors)
+	go runTelemetry(ctx, fleet, configuration.scenarioStart, configuration.scenarioTick, configuration.telemetryCadence, configuration.clock, telemetryErrors)
 	return nil
 }
 
@@ -248,12 +262,15 @@ func parseConfig(arguments []string) (config, error) {
 	flags := flag.NewFlagSet("gateway-simulator", flag.ContinueOnError)
 	var configuration config
 	var scenarioStart string
+	var live bool
 	flags.StringVar(&configuration.address, "address", ":8081", "")
 	flags.StringVar(&configuration.controlAddress, "control-address", os.Getenv("GRIDOS_CONTROL_ADDR"), "")
 	flags.StringVar(&configuration.databasePath, "database", "gateway.db", "")
 	flags.StringVar(&configuration.fleetPath, "fleet", "", "")
 	flags.StringVar(&configuration.gatewayID, "gateway-id", "", "")
 	flags.StringVar(&configuration.scenarioPath, "scenario", "", "")
+	flags.BoolVar(&live, "live", false, "")
+	flags.DurationVar(&configuration.liveWindow, "live-window", 10*time.Minute, "")
 	flags.StringVar(&scenarioStart, "scenario-start", "", "")
 	flags.DurationVar(&configuration.telemetryCadence, "cadence", 0, "")
 	if err := flags.Parse(arguments); err != nil {
@@ -261,6 +278,16 @@ func parseConfig(arguments []string) (config, error) {
 	}
 	if configuration.gatewayID == "" {
 		return config{}, errors.New("gateway-id is required")
+	}
+	if live {
+		if configuration.scenarioPath == "" || configuration.liveWindow <= 0 {
+			return config{}, errors.New("live scenario requires a scenario and positive live-window")
+		}
+		configuration.clock = liveClock
+	} else if configuration.scenarioPath != "" {
+		configuration.clock = scenarioClock
+	} else {
+		configuration.clock = liveClock
 	}
 	return configureScenario(configuration, scenarioStart)
 }
@@ -277,6 +304,14 @@ func configureScenario(configuration config, scenarioStart string) (config, erro
 		return config{}, err
 	}
 	configuration.fleetPath = scenario.FleetPath
+	if configuration.clock == liveClock {
+		configuration.scenarioStart = time.Now()
+		if configuration.telemetryCadence == 0 {
+			configuration.telemetryCadence = 15 * time.Second
+		}
+		configuration.scenarioTick = configuration.telemetryCadence
+		return configuration, nil
+	}
 	configuration.scenarioStart = scenario.Start
 	configuration.scenarioTick = scenario.Tick
 	if configuration.telemetryCadence == 0 {
