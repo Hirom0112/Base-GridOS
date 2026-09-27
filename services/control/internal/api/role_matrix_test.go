@@ -24,6 +24,12 @@ type roleMatrixCase struct {
 	body    string
 }
 
+type roleMatrixTelemetry struct{}
+
+func (roleMatrixTelemetry) PublishTelemetry(_ context.Context, _ *connect.Request[gridosv1.PublishTelemetryRequest]) (*connect.Response[gridosv1.PublishTelemetryResponse], error) {
+	return connect.NewResponse(&gridosv1.PublishTelemetryResponse{}), nil
+}
+
 func assertRoleMatrix(t *testing.T, server *httptest.Server, cases []roleMatrixCase) {
 	t.Helper()
 	roles := []string{"operator", "approver", "analyst", "partner", "service", "member", "", "unknown"}
@@ -119,5 +125,40 @@ func TestRoleMatrixReadServices(t *testing.T) {
 		if connect.CodeOf(err) != wanted {
 			t.Errorf("EventsService/WatchEvent %q code = %v, want %v", role, connect.CodeOf(err), wanted)
 		}
+	}
+}
+
+func TestRoleMatrixTelemetryCredential(t *testing.T) {
+	server := httptest.NewServer(NewControlHandler(NewService(NewMemoryEventStore(), nil, nil, time.Now), roleMatrixTelemetry{}, "Bearer gateway-token"))
+	defer server.Close()
+	for _, role := range []string{"operator", "approver", "analyst", "partner", "service", "member", "", "unknown"} {
+		request, err := http.NewRequest(http.MethodPost, server.URL+"/gridos.v1.TelemetryService/PublishTelemetry", strings.NewReader("{}"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		request.Header.Set("Content-Type", "application/json")
+		request.Header.Set(roleHeader, role)
+		response, err := server.Client().Do(request)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_ = response.Body.Close()
+		if response.StatusCode != http.StatusUnauthorized {
+			t.Errorf("telemetry role %q without gateway credential status = %d, want 401", role, response.StatusCode)
+		}
+	}
+	request, err := http.NewRequest(http.MethodPost, server.URL+"/gridos.v1.TelemetryService/PublishTelemetry", strings.NewReader("{}"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("Authorization", "Bearer gateway-token")
+	response, err := server.Client().Do(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = response.Body.Close()
+	if response.StatusCode != http.StatusOK {
+		t.Errorf("gateway credential status = %d, want 200", response.StatusCode)
 	}
 }
