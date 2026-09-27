@@ -1,6 +1,6 @@
 {
-  "command": "pnpm --dir apps/console playwright test golden-review.spec.ts --workers 1 --output /tmp/gridos-golden-visible-field",
-  "last_line": "8 passed (48.5s)",
+  "command": "pnpm --dir apps/console playwright test golden-review.spec.ts shell.spec.ts -g 'golden|shell (dark|light) at (768|1440)' --workers 1 --update-snapshots --output /tmp/gridos-composition-final-evidence",
+  "last_line": "12 passed (1.1m)",
   "mode": "Local identity; recorded, explicitly SIMULATED fleet and context fixtures",
   "checks": [
     "Single active renderer",
@@ -21,7 +21,7 @@
       "profile": "desktop-dark",
       "state": "fleet",
       "file": "desktop-dark-fleet.png",
-      "sha256": "ffe9b4b65a6e93407979dcb8e340eb50cf002b4c6a230ca58d19712970993fa6"
+      "sha256": "ef2e580c3762ceb575a893a03b4c3f8a9797d676d8bd59b4cb7a66b93d703e0c"
     },
     {
       "profile": "desktop-dark",
@@ -33,7 +33,7 @@
       "profile": "tablet-light",
       "state": "fleet",
       "file": "tablet-light-fleet.png",
-      "sha256": "35a3132c1a4836719d566648f99a34f06fc12c77d99ad17a7c0a4c49c54ded7e"
+      "sha256": "b093f1d90c722f2ceaf558d6af4cac36cd4cd115d9b79b3a0b297594e9652abc"
     },
     {
       "profile": "tablet-light",
@@ -69,7 +69,7 @@
       "profile": "short-screen",
       "state": "fleet",
       "file": "short-screen-fleet.png",
-      "sha256": "ae3ec8027763f887b2c5b9ae9a661109ad4c6e7e6841a7c20ff9d59b60e531a3"
+      "sha256": "82768ddc0ebe0cfafb324a58f816e56ffe11718b3e73a9ce5939ff43941532fb"
     },
     {
       "profile": "short-screen",
@@ -81,7 +81,7 @@
       "profile": "zoom-200-reflow",
       "state": "fleet",
       "file": "zoom-200-reflow-fleet.png",
-      "sha256": "eb00cc9152309cdbcc4f69315b3ac64f61674d211105d1252cd50e4ee7d21d6c"
+      "sha256": "08b282000cdbd68b6fe1e4efdbc6e7c6363b6adb9703e9e4a2ccd99238b00c38"
     },
     {
       "profile": "zoom-200-reflow",
@@ -93,7 +93,7 @@
       "profile": "no-webgl",
       "state": "fleet",
       "file": "no-webgl-fleet.png",
-      "sha256": "52b9d76a5514c7d25f25ab7fab766b5d9434a3f9d91bf67f895e338d10dcb365"
+      "sha256": "3881ee84721cee40f981eb5b42472e59af281dabf4e20811a586d808c82f9147"
     },
     {
       "profile": "no-webgl",
