@@ -2318,7 +2318,7 @@ proof; the director verifies MISSING, UNCERTAIN, COMMAND_RETRY,
 STALE_CAPACITY_REMOVED and REBALANCED_COMMAND from the durable rows of
 that event to close 2A.13 and the demo-path items together.
 
-## 2026-09-27 10:22Z — 4C.10 verified; 4E.10 report fixture RED pending
+## 2026-09-27 10:18Z — 4C.10 verified; 4E.10 report fixture RED pending
 
 API RED ce546c4 and fixture RED 9b90366 stage tests only; GREEN 628351b
 adds the stored snapshot ids and policy, solver, model and code versions to
@@ -2331,7 +2331,7 @@ deliberately carries a RED (4643a56: the report fixture must hold measured
 shortfalls) until the report fixture is recorded from a completed event
 after the next rebuild.
 
-## 2026-09-27 10:21Z — Armed demo released for the integrated run
+## 2026-09-27 10:19Z — Armed demo released for the integrated run
 
 Rebuilt on 53dd8be (includes the 4E.10 approved-plan correction): fresh
 gateway with no launch since restart, telemetry lag 14 s, no publish
