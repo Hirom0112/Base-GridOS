@@ -4,13 +4,16 @@ import (
 	"context"
 	"errors"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 
 	"connectrpc.com/connect"
+	gridosv1 "github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1"
 	"github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1/gridosv1connect"
 	controlapi "github.com/Hirom0112/Base-GridOS/services/control/internal/api"
 	apicontext "github.com/Hirom0112/Base-GridOS/services/control/internal/api/context"
@@ -22,9 +25,13 @@ import (
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/dispatch"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/fleet"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/ingest"
+	"github.com/Hirom0112/Base-GridOS/services/control/internal/observability"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/replay"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/storage"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/exporters/stdout/stdouttrace"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.temporal.io/sdk/client"
 )
 
@@ -69,6 +76,11 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	tracer, err := startObservability(ctx, pool, twin, telemetryTwin, sites)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer func() { _ = tracer.Shutdown(context.Background()) }()
 	if err = fleet.SeedSimulatedMemberSites(ctx, pool, sites); err != nil {
 		log.Fatal(err)
 	}
@@ -120,6 +132,43 @@ func main() {
 	if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		log.Fatal(err)
 	}
+}
+
+func startObservability(ctx context.Context, pool *pgxpool.Pool, twin *fleet.Twin, telemetryTwin *fleet.TelemetryTwin, sites []*gridosv1.AuthorizedSite) (*sdktrace.TracerProvider, error) {
+	slog.SetDefault(slog.New(observability.NewScrubbedLogHandler(slog.NewJSONHandler(os.Stdout, nil))))
+	exporter, err := stdouttrace.New(stdouttrace.WithWriter(os.Stdout))
+	if err != nil {
+		return nil, err
+	}
+	tracer := observability.NewTracerProvider(exporter)
+	otel.SetTracerProvider(tracer)
+	if address := os.Getenv("GRIDOS_CONTROL_METRICS_ADDRESS"); address != "" {
+		snapshotter := controlapi.NewDurableFleetSnapshotter(pool, twin, telemetryTwin, sites, time.Now)
+		var scrapeMu sync.Mutex
+		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			scrapeMu.Lock()
+			defer scrapeMu.Unlock()
+			count, err := storage.UncertainCommandCount(r.Context(), pool)
+			if err != nil {
+				http.Error(w, "metrics unavailable", http.StatusServiceUnavailable)
+				return
+			}
+			total, stale, freshness, err := snapshotter.TelemetryMetrics(r.Context())
+			if err != nil {
+				http.Error(w, "metrics unavailable", http.StatusServiceUnavailable)
+				return
+			}
+			_ = observability.ProcessMetrics.SetUncertainCommands(count)
+			_ = observability.ProcessMetrics.SetTelemetryPopulation(total, stale)
+			_ = observability.ProcessMetrics.SetTelemetryFreshness(freshness)
+			observability.ProcessMetrics.Handler().ServeHTTP(w, r)
+		})
+		if err := observability.ServeMetrics(ctx, address, handler); err != nil {
+			_ = tracer.Shutdown(ctx)
+			return nil, err
+		}
+	}
+	return tracer, nil
 }
 
 func environment(name, fallback string) string {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"runtime/debug"
@@ -17,11 +18,14 @@ import (
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/dispatch"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/fleet"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/fleet/policy"
+	"github.com/Hirom0112/Base-GridOS/services/control/internal/observability"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/reconciliation"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/replay"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/storage"
 	storagepublisher "github.com/Hirom0112/Base-GridOS/services/control/internal/storage/publisher"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/exporters/stdout/stdouttrace"
 	"go.temporal.io/api/enums/v1"
 	"go.temporal.io/api/serviceerror"
 	"go.temporal.io/sdk/client"
@@ -30,6 +34,20 @@ import (
 
 func main() {
 	ctx := context.Background()
+	slog.SetDefault(slog.New(observability.NewScrubbedLogHandler(slog.NewJSONHandler(os.Stdout, nil))))
+	exporter, err := stdouttrace.New(stdouttrace.WithWriter(os.Stdout))
+	if err != nil {
+		log.Fatal(err)
+	}
+	tracer := observability.NewTracerProvider(exporter)
+	otel.SetTracerProvider(tracer)
+	defer func() { _ = tracer.Shutdown(context.Background()) }()
+	observability.ProcessMetrics = observability.NewEventMetrics()
+	if metricsAddress := os.Getenv("GRIDOS_WORKER_METRICS_ADDRESS"); metricsAddress != "" {
+		if err := observability.ServeMetrics(ctx, metricsAddress, observability.ProcessMetrics.Handler()); err != nil {
+			log.Fatal(err)
+		}
+	}
 	pool, err := pgxpool.New(ctx, environment("GRIDOS_DATABASE_URL", "postgres://gridos:gridos@localhost:5432/gridos?sslmode=disable"))
 	if err != nil {
 		log.Fatal(err)
