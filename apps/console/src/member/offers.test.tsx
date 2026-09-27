@@ -79,3 +79,41 @@ test("empty offers remain explicitly unavailable", async () => {
     screen.queryByRole("button", { name: /View .* plan/ }),
   ).not.toBeInTheDocument();
 });
+
+test("the current plan is identified while a different policy remains selectable", async () => {
+  const offer = {
+    kind: 1,
+    market: "ERCOT",
+    catalogVersion: "catalog-1",
+    memberPlanId: "balanced",
+    displayName: "Balanced",
+    policyVersion: "old-policy",
+    contractVersion: "contract-1",
+    consentVersion: "consent-1",
+    consentText: "Consent",
+    priceText: "Price",
+    reserveFloorPercent: 30,
+    effectiveAt: timestampFromDate(new Date("2020-01-01")),
+    expiresAt: timestampFromDate(new Date("2100-01-01")),
+  };
+  session.client.member.listMemberOffers.mockResolvedValue(
+    create(ListMemberOffersResponseSchema, {
+      offers: [
+        offer,
+        {
+          ...offer,
+          memberPlanId: "maximum",
+          displayName: "Maximum",
+          policyVersion: "maximum-policy",
+        },
+      ],
+    }),
+  );
+  mount();
+  expect(
+    await screen.findByRole("button", { name: "Current plan: Balanced" }),
+  ).toBeDisabled();
+  expect(
+    screen.getByRole("button", { name: "View Maximum plan" }),
+  ).toBeEnabled();
+});
