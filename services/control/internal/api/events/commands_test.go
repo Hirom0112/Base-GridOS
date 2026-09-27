@@ -84,3 +84,14 @@ func TestListEventCommandsAuthorization(t *testing.T) {
 	_, err = service.ListEventCommands(context.Background(), request)
 	require.NoError(t, err)
 }
+
+func TestEventCommandLifecycleEnum(t *testing.T) {
+	fields := (&gridosv1.EventCommand{}).ProtoReflect().Descriptor().Fields()
+	if fields.ByName("state") == nil {
+		t.Fatal("event command contract is unavailable")
+	}
+	field := fields.ByName("lifecycle_state")
+	if field == nil || field.Kind().String() != "enum" {
+		t.Fatal("event command lifecycle must be a closed enum")
+	}
+}
