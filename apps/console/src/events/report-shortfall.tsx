@@ -60,7 +60,8 @@ export function PlannedShortfall({ evidence }: { evidence: unknown }) {
           aria-label="Planned shortfall table"
           tabIndex={0}
         >
-          <table aria-label="Planned shortfall">
+          <table className="shortfall-table" aria-label="Planned shortfall">
+            <caption>Scroll horizontally for all interval columns.</caption>
             <thead>
               <tr>
                 <th>Interval</th>
@@ -114,7 +115,8 @@ export function DeliveryShortfall({ evidence }: { evidence: unknown }) {
           aria-label="Delivery shortfall table"
           tabIndex={0}
         >
-          <table aria-label="Delivery shortfall">
+          <table className="shortfall-table" aria-label="Delivery shortfall">
+            <caption>Scroll horizontally for all interval columns.</caption>
             <thead>
               <tr>
                 <th>Interval</th>

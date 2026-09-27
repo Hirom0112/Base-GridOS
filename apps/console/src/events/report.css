@@ -63,3 +63,21 @@
 .replay-power-table th {
   white-space: nowrap;
 }
+.shortfall-table {
+  min-width: 880px;
+}
+.shortfall-table th,
+.shortfall-table td {
+  white-space: nowrap;
+}
+.shortfall-table caption {
+  text-align: left;
+  padding-block: 8px;
+}
+.shortfall-table th[scope="row"] {
+  white-space: normal;
+  min-width: 215px;
+}
+.shortfall-table time {
+  white-space: nowrap;
+}
