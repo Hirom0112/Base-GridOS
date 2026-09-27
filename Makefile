@@ -1,9 +1,10 @@
-.PHONY: up down generate test-go test-e2e test-py test-web test-all hooks ui-mock plugins decision demo
+.PHONY: up down generate test-go test-e2e test-py test-web test-all hooks ui-mock plugins decision demo demo-public
 
 GRIDOS_DEMO_CONTROL_PORT ?= 28080
 GRIDOS_DEMO_DECISION_PORT ?= 25061
 GRIDOS_DEMO_GATEWAY_PORT ?= 28081
 GRIDOS_DEMO_DIR ?= .local/demo
+GRIDOS_DEMO_PUBLIC_CONTEXT_DIR = $(if $(GRIDOS_DEMO_SCENARIO),$(GRIDOS_DEMO_DIR)/public,testdata/fixtures/public)
 GRIDOS_DEMO_TASK_QUEUE ?= gridos-dispatch
 DEMO_DATABASE_URL ?= postgres://gridos:gridos@localhost:5432/gridos?sslmode=disable
 
@@ -64,11 +65,21 @@ plugins:
 decision:
 	uv run --project services/decision python -m gridos.server --port "$${GRIDOS_DECISION_PORT:-50061}"
 
+demo-public:
+	@set -e; if test -n '$(GRIDOS_DEMO_SCENARIO)'; then \
+		mkdir -p '$(GRIDOS_DEMO_DIR)'; \
+		rm -rf '$(GRIDOS_DEMO_DIR)/public'; \
+		cp -R testdata/fixtures/public '$(GRIDOS_DEMO_DIR)/public'; \
+		rm -rf '$(GRIDOS_DEMO_DIR)/public/weather'; \
+		cp -R testdata/scenarios/weather '$(GRIDOS_DEMO_DIR)/public/weather'; \
+	fi
+
 demo: up
 	env GRIDOS_DATABASE_URL='$(DEMO_DATABASE_URL)' go run ./services/control/cmd/migrate up
 	psql '$(DEMO_DATABASE_URL)' -v ON_ERROR_STOP=1 -f database/seeds/dev.sql
 	mkdir -p $(GRIDOS_DEMO_DIR)
 	@if test -f $(GRIDOS_DEMO_DIR)/pids; then while read -r pid; do kill "$$pid" 2>/dev/null || true; done < $(GRIDOS_DEMO_DIR)/pids; fi
+	$(MAKE) --no-print-directory demo-public
 	go build -o $(GRIDOS_DEMO_DIR)/gateway ./services/gateway-simulator/cmd/gateway-simulator
 	go build -o $(GRIDOS_DEMO_DIR)/control ./services/control/cmd/control
 	go build -o $(GRIDOS_DEMO_DIR)/worker ./services/control/cmd/worker
@@ -78,8 +89,8 @@ demo: up
 		if test -n "$${GRIDOS_DEMO_SCENARIO:-}"; then set -- --scenario "$$GRIDOS_DEMO_SCENARIO" --live; fi; \
 		env GRIDOS_GATEWAY_METRICS_ADDRESS=$${GRIDOS_GATEWAY_METRICS_ADDRESS:-0.0.0.0:9466} GRIDOS_GATEWAY_TOKEN='Bearer local-gateway' $(GRIDOS_DEMO_DIR)/gateway --address :$(GRIDOS_DEMO_GATEWAY_PORT) --control-address http://localhost:$(GRIDOS_DEMO_CONTROL_PORT) --database $(GRIDOS_DEMO_DIR)/gateway.db "$$@" --gateway-id demo-gateway --cadence 15s > $(GRIDOS_DEMO_DIR)/gateway.log 2>&1 & echo $$! >> $(GRIDOS_DEMO_DIR)/pids; \
 		env GRIDOS_DECISION_METRICS_ADDRESS=$${GRIDOS_DECISION_METRICS_ADDRESS:-0.0.0.0:9467} uv run --project services/decision python -m gridos.server --port $(GRIDOS_DEMO_DECISION_PORT) > $(GRIDOS_DEMO_DIR)/decision.log 2>&1 & echo $$! >> $(GRIDOS_DEMO_DIR)/pids; \
-		env GRIDOS_CONTROL_METRICS_ADDRESS=$${GRIDOS_CONTROL_METRICS_ADDRESS:-0.0.0.0:9464} GRIDOS_DATABASE_URL='$(DEMO_DATABASE_URL)' GRIDOS_CONTROL_ADDRESS=:$(GRIDOS_DEMO_CONTROL_PORT) GRIDOS_GATEWAY_TOKEN='Bearer local-gateway' GRIDOS_GATEWAY_ADDR=http://localhost:$(GRIDOS_DEMO_GATEWAY_PORT) GRIDOS_DECISION_ADDR=http://localhost:$(GRIDOS_DEMO_DECISION_PORT) GRIDOS_FLEET=testdata/fleets/austin-5000.jsonl GRIDOS_TASK_QUEUE=$(GRIDOS_DEMO_TASK_QUEUE) $(GRIDOS_DEMO_DIR)/control > $(GRIDOS_DEMO_DIR)/control.log 2>&1 & echo $$! >> $(GRIDOS_DEMO_DIR)/pids; \
-		env GRIDOS_WORKER_METRICS_ADDRESS=$${GRIDOS_WORKER_METRICS_ADDRESS:-0.0.0.0:9465} GRIDOS_DATABASE_URL='$(DEMO_DATABASE_URL)' GRIDOS_GATEWAY_TOKEN='Bearer local-gateway' GRIDOS_GATEWAY_ADDR=http://localhost:$(GRIDOS_DEMO_GATEWAY_PORT) GRIDOS_DECISION_ADDR=http://localhost:$(GRIDOS_DEMO_DECISION_PORT) GRIDOS_FLEET=testdata/fleets/austin-5000.jsonl GRIDOS_TASK_QUEUE=$(GRIDOS_DEMO_TASK_QUEUE) $(GRIDOS_DEMO_DIR)/worker > $(GRIDOS_DEMO_DIR)/worker.log 2>&1 & worker_pid=$$!; echo $$worker_pid >> $(GRIDOS_DEMO_DIR)/pids; \
+		env GRIDOS_CONTROL_METRICS_ADDRESS=$${GRIDOS_CONTROL_METRICS_ADDRESS:-0.0.0.0:9464} GRIDOS_PUBLIC_CONTEXT_DIR='$(GRIDOS_DEMO_PUBLIC_CONTEXT_DIR)' GRIDOS_DATABASE_URL='$(DEMO_DATABASE_URL)' GRIDOS_CONTROL_ADDRESS=:$(GRIDOS_DEMO_CONTROL_PORT) GRIDOS_GATEWAY_TOKEN='Bearer local-gateway' GRIDOS_GATEWAY_ADDR=http://localhost:$(GRIDOS_DEMO_GATEWAY_PORT) GRIDOS_DECISION_ADDR=http://localhost:$(GRIDOS_DEMO_DECISION_PORT) GRIDOS_FLEET=testdata/fleets/austin-5000.jsonl GRIDOS_TASK_QUEUE=$(GRIDOS_DEMO_TASK_QUEUE) $(GRIDOS_DEMO_DIR)/control > $(GRIDOS_DEMO_DIR)/control.log 2>&1 & echo $$! >> $(GRIDOS_DEMO_DIR)/pids; \
+		env GRIDOS_WORKER_METRICS_ADDRESS=$${GRIDOS_WORKER_METRICS_ADDRESS:-0.0.0.0:9465} GRIDOS_PUBLIC_CONTEXT_DIR='$(GRIDOS_DEMO_PUBLIC_CONTEXT_DIR)' GRIDOS_DATABASE_URL='$(DEMO_DATABASE_URL)' GRIDOS_GATEWAY_TOKEN='Bearer local-gateway' GRIDOS_GATEWAY_ADDR=http://localhost:$(GRIDOS_DEMO_GATEWAY_PORT) GRIDOS_DECISION_ADDR=http://localhost:$(GRIDOS_DEMO_DECISION_PORT) GRIDOS_FLEET=testdata/fleets/austin-5000.jsonl GRIDOS_TASK_QUEUE=$(GRIDOS_DEMO_TASK_QUEUE) $(GRIDOS_DEMO_DIR)/worker > $(GRIDOS_DEMO_DIR)/worker.log 2>&1 & worker_pid=$$!; echo $$worker_pid >> $(GRIDOS_DEMO_DIR)/pids; \
 		if test -f apps/console/package.json && test "$(GRIDOS_DEMO_DIR)" = ".local/demo"; then env GRIDOS_AUTH_MODE=local GRIDOS_IDENTITY_URL=$${GRIDOS_IDENTITY_URL:-http://127.0.0.1:8080} GRIDOS_API_URL=http://127.0.0.1:$(GRIDOS_DEMO_CONTROL_PORT) pnpm --dir apps/console dev > $(GRIDOS_DEMO_DIR)/console.log 2>&1 & echo $$! >> $(GRIDOS_DEMO_DIR)/pids; fi; \
 		if test -n "$${GRIDOS_STEP_UP_KEY:-}"; then go build -o $(GRIDOS_DEMO_DIR)/mockapi ./tools/development/mockapi && env GRIDOS_AUTH_MODE=local GRIDOS_MOCKAPI_ADDRESS=127.0.0.1:8080 $(GRIDOS_DEMO_DIR)/mockapi > $(GRIDOS_DEMO_DIR)/mockapi.log 2>&1 & echo $$! >> $(GRIDOS_DEMO_DIR)/pids; fi; \
 		trap 'while read -r pid; do kill "$$pid" 2>/dev/null || true; done < $(GRIDOS_DEMO_DIR)/pids' INT TERM EXIT; \
