@@ -123,6 +123,20 @@ message ObjectiveBreakdown {
   double objective_value = 7;
 }
 
+message MarginTerm {
+  string name = 1;
+  double low = 2;
+  double high = 3;
+  string source = 4;
+  bool unavailable = 5;
+}
+
+message MarginExplanation {
+  double conservative_margin = 1;
+  double margin_hurdle = 2;
+  repeated MarginTerm terms = 3;
+}
+
 message ConstraintMargin {
   string constraint_name = 1;
   double margin = 2;
@@ -166,6 +180,7 @@ message DispatchPlan {
   string model_version = 11;
   google.protobuf.Timestamp created_at = 12;
   string fallback_reason = 13;
+  MarginExplanation margin_explanation = 14;
 }
 
 message OptimizeRequest {

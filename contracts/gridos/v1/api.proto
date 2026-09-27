@@ -162,6 +162,7 @@ message GetPlanExplanationResponse {
   repeated ConstraintMargin constraint_margins = 3;
   repeated DeviceExclusion exclusions = 4;
   repeated ShortfallReport shortfalls = 5;
+  MarginExplanation margin_explanation = 6;
 }
 
 message ValidateUnsafeAlternativeRequest {
