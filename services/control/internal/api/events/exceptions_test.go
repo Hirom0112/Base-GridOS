@@ -14,6 +14,7 @@ import (
 	gridosv1 "github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/stretchr/testify/require"
 )
 
 func TestExceptionsFromDurableEvidence(t *testing.T) {
@@ -38,8 +39,11 @@ func TestExceptionsFromDurableEvidence(t *testing.T) {
 		VALUES ('command-2', 'key-command-2', 'device-2', 'event-exception', 2, 6, 10, $1::timestamptz + interval '5 minutes', $1::timestamptz + interval '5 minutes', $1::timestamptz + interval '1 hour', 'policy-1', 'exception');
 		INSERT INTO command_intents (command_id, idempotency_key, device_id, event_id, plan_version, generation, setpoint_kw, issued_at, effective_at, expires_at, policy_version, correlation_id)
 		VALUES ('command-3', 'key-command-3', 'device-2', 'event-exception', 2, 7, 0, $1::timestamptz + interval '6 minutes', $1::timestamptz + interval '6 minutes', $1::timestamptz + interval '1 hour', 'policy-1', 'exception');
+		INSERT INTO command_intents (command_id, idempotency_key, device_id, event_id, plan_version, generation, setpoint_kw, issued_at, effective_at, expires_at, policy_version, correlation_id)
+		VALUES ('command-4', 'key-command-4', 'device-3', 'event-exception', 1, 8, 10, $1, $1, $1::timestamptz + interval '1 hour', 'policy-1', 'exception');
 		INSERT INTO command_states (command_id, state, recorded_at, correlation_id)
-		VALUES ('command-1', 'SENT', $1, 'exception'), ('command-1', 'UNCERTAIN', $1::timestamptz + interval '2 minutes', 'exception'), ('command-1', 'ACKNOWLEDGED', $1::timestamptz + interval '4 minutes', 'exception');
+		VALUES ('command-1', 'SENT', $1, 'exception'), ('command-1', 'UNCERTAIN', $1::timestamptz + interval '2 minutes', 'exception'), ('command-1', 'ACKNOWLEDGED', $1::timestamptz + interval '4 minutes', 'exception'),
+		('command-4', 'REJECTED', $1::timestamptz + interval '2 minutes', 'exception');
 		INSERT INTO command_acknowledgements (acknowledgement_id, command_id, idempotency_key, receipt_status, received_at, gateway_id, correlation_id)
 		VALUES ('ack-1', 'command-1', 'ack-key-1', 'ACCEPTED', $1::timestamptz + interval '3 minutes', 'gateway-1', 'exception');
 		INSERT INTO command_outbox (command_id, state, attempts, published_at, correlation_id)
@@ -72,6 +76,8 @@ func TestExceptionsFromDurableEvidence(t *testing.T) {
 
 func assertExceptionEvidence(t *testing.T, exceptions []*gridosv1.EventException) {
 	t.Helper()
+	require.Contains(t, gridosv1.EventExceptionKind_value, "EVENT_EXCEPTION_KIND_REJECTED_COMMAND")
+	rejected := gridosv1.EventExceptionKind_value["EVENT_EXCEPTION_KIND_REJECTED_COMMAND"]
 	want := map[gridosv1.EventExceptionKind]string{
 		gridosv1.EventExceptionKind_EVENT_EXCEPTION_KIND_MISSING_TELEMETRY:      "observation-1",
 		gridosv1.EventExceptionKind_EVENT_EXCEPTION_KIND_UNCERTAIN_COMMAND:      "command-1",
@@ -80,6 +86,7 @@ func assertExceptionEvidence(t *testing.T, exceptions []*gridosv1.EventException
 		gridosv1.EventExceptionKind_EVENT_EXCEPTION_KIND_REPLACEMENT_PLANNED:    "",
 		gridosv1.EventExceptionKind_EVENT_EXCEPTION_KIND_STALE_CAPACITY_REMOVED: "",
 		gridosv1.EventExceptionKind_EVENT_EXCEPTION_KIND_REBALANCED_COMMAND:     "command-2",
+		gridosv1.EventExceptionKind(rejected):                                   "command-4",
 	}
 	for _, exception := range exceptions {
 		if exception.GetKind() == gridosv1.EventExceptionKind_EVENT_EXCEPTION_KIND_STALE_CAPACITY_REMOVED && exception.GetDeviceId() == "device-3" {
