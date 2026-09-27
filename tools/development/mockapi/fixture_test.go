@@ -55,7 +55,7 @@ func TestFixturesCapturePlanningCases(t *testing.T) {
 	}
 }
 
-func TestFixturesCaptureContextGeo(t *testing.T) {
+func TestFixturesCaptureContext(t *testing.T) {
 	root := filepath.Join(repositoryRoot(t), "testdata", "fixtures", "api")
 	market := new(gridosv1.GetMarketContextResponse)
 	readPlanningFixture(t, root, "ContextService/GetMarketContext.json", market)
@@ -77,6 +77,10 @@ func TestFixturesCaptureContextGeo(t *testing.T) {
 	if len(windows.GetWindows()) < 2 || windows.GetWindows()[0].GetValueKind() != "modeled_estimate" {
 		t.Fatal("recorded dispatch windows lack modeled ranking")
 	}
+}
+
+func TestFixturesCaptureGeo(t *testing.T) {
+	root := filepath.Join(repositoryRoot(t), "testdata", "fixtures", "api")
 	for _, resolution := range []uint64{5, 6, 7} {
 		cells := new(gridosv1.ListCellsResponse)
 		readPlanningFixture(t, root, "GeoService/ListCells.res"+strconv.FormatUint(resolution, 10)+".json", cells)
@@ -92,6 +96,10 @@ func TestFixturesCaptureContextGeo(t *testing.T) {
 			t.Fatalf("recorded resolution %d has no cells at the requested resolution", resolution)
 		}
 	}
+}
+
+func TestFixturesCaptureGeoDrilldown(t *testing.T) {
+	root := filepath.Join(repositoryRoot(t), "testdata", "fixtures", "api")
 	path := []string{"market:ERCOT", "load_zone:LZ_AEN", "utility:LZ_AEN", "substation:LZ_AEN:85489e37fffffff", "feeder:LZ_AEN:86489e367ffffff"}
 	for index, level := range []string{"root", "market", "load_zone", "utility", "substation", "feeder"} {
 		response := new(gridosv1.DrilldownResponse)
