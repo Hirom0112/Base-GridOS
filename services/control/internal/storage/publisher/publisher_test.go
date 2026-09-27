@@ -169,6 +169,7 @@ func TestPublisherMarksDeadlineUncertain(t *testing.T) {
 		t.Fatal(err)
 	}
 	assertPublisherState(t, pool, command.CommandID, "UNCERTAIN", "PUBLISHING")
+	assertPublisherState(t, pool, following.CommandID, "PERSISTED", "PENDING")
 	assertPublisherState(t, pool, following.CommandID, "ACKNOWLEDGED", "PUBLISHED")
 }
 
