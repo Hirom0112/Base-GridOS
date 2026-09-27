@@ -95,3 +95,24 @@ func TestEventCommandLifecycleEnum(t *testing.T) {
 		t.Fatal("event command lifecycle must be a closed enum")
 	}
 }
+
+func TestListEventCommandsLookupsUseIndexes(t *testing.T) {
+	pool := exceptionDatabase(t)
+	ctx := context.Background()
+	lookups := map[string]string{
+		"command_states":           `SELECT state FROM command_states WHERE command_id = 'command' ORDER BY recorded_at DESC LIMIT 1`,
+		"command_intents":          `SELECT command_id FROM command_intents WHERE event_id = 'event' ORDER BY issued_at, command_id`,
+		"command_acknowledgements": `SELECT acknowledgement_id FROM command_acknowledgements WHERE command_id = 'command' ORDER BY received_at DESC, acknowledgement_id DESC LIMIT 1`,
+	}
+	for table, lookup := range lookups {
+		transaction, err := pool.Begin(ctx)
+		require.NoError(t, err)
+		_, err = transaction.Exec(ctx, `SET LOCAL enable_seqscan = off`)
+		require.NoError(t, err)
+		var plan string
+		require.NoError(t, transaction.QueryRow(ctx, `EXPLAIN (FORMAT JSON) `+lookup).Scan(&plan))
+		require.NoError(t, transaction.Rollback(ctx))
+		require.Contains(t, plan, table)
+		require.NotContains(t, plan, "Seq Scan", table)
+	}
+}
