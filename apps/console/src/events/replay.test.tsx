@@ -7,6 +7,7 @@ import {
   EventTimelineEntrySchema,
 } from "../api/gen/gridos/v1/api_pb";
 import { ReplayEvidence } from "./replay";
+import { ReplayClockProvider } from "./replay-clock";
 
 function fixture() {
   return create(ReplayEventResponseSchema, {
@@ -36,7 +37,11 @@ function fixture() {
 }
 
 test("one replay position controls the visible audit history and timestamp", () => {
-  render(<ReplayEvidence data={fixture()} />);
+  render(
+    <ReplayClockProvider>
+      <ReplayEvidence data={fixture()} eventId="event-1" />
+    </ReplayClockProvider>,
+  );
   expect(screen.getByText("IDENTICAL")).toBeVisible();
   expect(screen.getByText("ACTION 1")).toBeVisible();
   expect(screen.queryByText("ACTION 2")).not.toBeInTheDocument();
@@ -60,7 +65,11 @@ test("contradictory identical status with differences is rejected", () => {
       actualJson: "[]",
     },
   ];
-  render(<ReplayEvidence data={data} />);
+  render(
+    <ReplayClockProvider>
+      <ReplayEvidence data={data} eventId="event-1" />
+    </ReplayClockProvider>,
+  );
   expect(screen.getByRole("alert")).toHaveTextContent(
     "Replay evidence is invalid",
   );
@@ -71,7 +80,11 @@ test("reversed replay update times are rejected", () => {
   data.updates[1]!.occurredAt = timestampFromDate(
     new Date("2026-09-26T12:00:00Z"),
   );
-  render(<ReplayEvidence data={data} />);
+  render(
+    <ReplayClockProvider>
+      <ReplayEvidence data={data} eventId="event-1" />
+    </ReplayClockProvider>,
+  );
   expect(screen.getByRole("alert")).toHaveTextContent(
     "Replay evidence is invalid",
   );
@@ -81,7 +94,11 @@ test("reversed replay update times are rejected", () => {
 test("an event without a scenario manifest retains its valid replay and names the gap", () => {
   const data = fixture();
   data.scenarioSha256 = "";
-  render(<ReplayEvidence data={data} />);
+  render(
+    <ReplayClockProvider>
+      <ReplayEvidence data={data} eventId="event-1" />
+    </ReplayClockProvider>,
+  );
   expect(screen.getByText("IDENTICAL")).toBeVisible();
   expect(screen.getByText("Scenario SHA-256").parentElement).toHaveTextContent(
     "Not supplied",
