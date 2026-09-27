@@ -1,20 +1,16 @@
+import { ContextEvidence, sourceSchema } from "./source";
+import { MarketContext } from "./market";
 import "./regional.css";
 import { useQuery } from "@tanstack/react-query";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { z } from "zod";
 import { useSession } from "../api/auth";
-import { evidenceSchema, provenanceNames } from "../api/Provenance";
+import { evidenceSchema } from "../api/Provenance";
 import type {
   GetWeatherContextResponse,
   GetOutageRiskResponse,
-  ContextSource,
 } from "../api/gen/gridos/v1/api_pb";
 
-const sourceSchema = z.object({
-  provenance: evidenceSchema.shape.provenanceMix.element.shape.provenance,
-  asOf: evidenceSchema.shape.timestamp,
-  freshness: evidenceSchema.shape.freshness,
-});
 const forecastSchema = z.object({
   city: z.literal("austin"),
   beginTime: evidenceSchema.shape.timestamp,
@@ -46,24 +42,6 @@ const outageSchema = z.object({
     }),
   ),
 });
-
-function ContextEvidence({ source }: { source: ContextSource | undefined }) {
-  const result = sourceSchema.safeParse(source);
-  if (!result.success) return <span>Source evidence unavailable</span>;
-  const { asOf, freshness, provenance } = result.data;
-  const at = new Date(
-    Number(asOf.seconds) * 1000 + asOf.nanos / 1e6,
-  ).toISOString();
-  return (
-    <div className="aggregate-evidence">
-      <span>{provenanceNames[provenance]}</span>
-      <time dateTime={at}>{at}</time>
-      <span>
-        {Number(freshness.seconds) + freshness.nanos / 1e9}s old at observation
-      </span>
-    </div>
-  );
-}
 
 export function WeatherEvidence({ data }: { data: GetWeatherContextResponse }) {
   if (!weatherSchema.safeParse(data).success)
@@ -188,9 +166,10 @@ export function RegionalContext() {
       <p className="eyebrow">Regional context</p>
       <h3 id="regional-context-title">Austin conditions</h3>
       <div className="boundary-note">
-        Austin market prices, regional load, and ranked dispatch windows are
-        unavailable here. Context snapshots do not establish event feasibility.
+        Context snapshots do not establish event feasibility. Ranked dispatch
+        windows require event-specific inputs.
       </div>
+      <MarketContext />
       <details>
         <summary>Inspect weather and historical outage evidence</summary>
         {weather.isPending && <p role="status">Loading Austin weather…</p>}
