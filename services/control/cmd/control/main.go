@@ -31,6 +31,7 @@ import (
 const (
 	LOCAL_GATEWAY_CREDENTIAL        = "Bearer local-gateway"
 	LOCAL_GATEWAY_CREDENTIAL_STATUS = "STUBBED"
+	LOCAL_STEP_UP_STATUS            = "STUBBED"
 )
 
 func main() {
@@ -49,6 +50,11 @@ func main() {
 	defer cancelStartup()
 	if err = pool.Ping(startupContext); err != nil {
 		log.Fatal(err)
+	}
+	if key := os.Getenv("GRIDOS_STEP_UP_KEY"); key == "" {
+		log.Printf("%s: dispatch approval and emergency stop step-up is disabled until GRIDOS_STEP_UP_KEY is set", LOCAL_STEP_UP_STATUS)
+	} else if len(key) < 32 {
+		log.Fatal("GRIDOS_STEP_UP_KEY must contain at least 32 bytes")
 	}
 	address := os.Getenv("GRIDOS_CONTROL_ADDRESS")
 	if address == "" {

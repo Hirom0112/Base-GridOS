@@ -7,6 +7,7 @@ by the director. A marked stub is honest; a silent one is not.
 | --- | --- | --- | --- |
 | `STUBBED` | `tools/development/mockapi/main.go` (`localAuthStatus`) | Local dev identities and roles for the mock API in place of Clerk sessions | An authorized identity provider on the mock, or the mock's retirement |
 | `STUBBED` | `services/control/cmd/control/main.go` (`LOCAL_GATEWAY_CREDENTIAL_STATUS`) | Default local bearer token for gateway telemetry in place of issued gateway credentials | Wave 5 connector work (5A.1) or an authorized gateway identity |
+| `STUBBED` | `services/control/cmd/control/main.go` (`LOCAL_STEP_UP_STATUS`) | Local HMAC step-up key, or an explicit startup warning while the key is unset, in place of identity-provider assertions | An authorized identity provider and operator approval policy |
 | `PENDING-LIVE` | `services/control/internal/connectors/connectors.go` (`MarketLiveSlot`) | Simulated market prices and regional load | A validated live market feed |
 | `PENDING-LIVE` | `services/control/internal/connectors/connectors.go` (`WeatherLiveSlot`) | Simulated weather and alerts | A refreshed NWS feed |
 | `PENDING-LIVE` | `services/control/internal/connectors/connectors.go` (`OutageLiveSlot`) | Simulated outage risk | An approved current outage feed |

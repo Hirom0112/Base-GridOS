@@ -8,6 +8,7 @@ import (
 
 	"connectrpc.com/connect"
 	gridosv1 "github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1"
+	"github.com/Hirom0112/Base-GridOS/services/control/internal/api/stepup"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -20,10 +21,17 @@ type Source interface {
 type Service struct {
 	source       Source
 	pollInterval time.Duration
+	stepUp       *stepup.Verifier
 }
 
 func NewService(source Source, pollInterval time.Duration) *Service {
-	return &Service{source: source, pollInterval: pollInterval}
+	service := &Service{source: source, pollInterval: pollInterval}
+	if postgres, ok := source.(*PostgresSource); ok {
+		service.stepUp = stepup.FromEnvironment(postgres.pool, time.Now)
+	} else {
+		service.stepUp = stepup.FromEnvironment(nil, time.Now)
+	}
+	return service
 }
 
 func (service *Service) GetEventTimeline(ctx context.Context, request *connect.Request[gridosv1.GetEventTimelineRequest]) (*connect.Response[gridosv1.GetEventTimelineResponse], error) {
@@ -44,9 +52,19 @@ func (service *Service) EmergencyStop(ctx context.Context, request *connect.Requ
 	if err := authorize(request.Header().Get("X-GridOS-Role"), "operator", "approver"); err != nil {
 		return nil, err
 	}
-	stop := request.Msg
-	if stop.GetEventId() == "" || stop.GetIdempotencyKey() == "" || stop.GetRequestedBy() == "" || stop.GetReason() == "" || stop.GetRequestedAt() == nil || !stop.GetRequestedAt().IsValid() || stop.GetCorrelationId() == "" {
+	stop := proto.Clone(request.Msg).(*gridosv1.EmergencyStopRequest)
+	if stop.GetEventId() == "" || stop.GetIdempotencyKey() == "" || stop.GetReason() == "" || stop.GetRequestedAt() == nil || !stop.GetRequestedAt().IsValid() || stop.GetCorrelationId() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("complete emergency stop is required"))
+	}
+	if service.stepUp != nil {
+		subject, err := service.stepUp.Verify(ctx, request.Header().Get("X-GridOS-Step-Up"), "EMERGENCY_STOP", stop.GetEventId(), 0)
+		if err != nil {
+			return nil, connect.NewError(connect.CodePermissionDenied, err)
+		}
+		stop.RequestedBy = subject
+	}
+	if stop.GetRequestedBy() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("requester required"))
 	}
 	response, err := service.source.RequestStop(ctx, stop)
 	if err != nil {

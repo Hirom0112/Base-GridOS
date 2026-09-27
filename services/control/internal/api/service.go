@@ -12,11 +12,13 @@ import (
 	"connectrpc.com/connect"
 	gridosv1 "github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1"
 	"github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1/gridosv1connect"
+	"github.com/Hirom0112/Base-GridOS/services/control/internal/api/stepup"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/fleet"
 	reporting "github.com/Hirom0112/Base-GridOS/services/control/internal/report"
 	"go.temporal.io/api/enums/v1"
 	"go.temporal.io/api/serviceerror"
 	"go.temporal.io/sdk/client"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -33,6 +35,7 @@ type Service struct {
 	sites             []*gridosv1.AuthorizedSite
 	now               func() time.Time
 	reports           reporting.Source
+	stepUp            *stepup.Verifier
 	startWorkflow     func(context.Context, string, dispatchWorkflowInput) error
 	approveWorkflow   func(context.Context, string, dispatchWorkflowApproval) error
 	launchWorkflow    func(context.Context, string, *gridosv1.LaunchEventRequest) error
@@ -76,7 +79,13 @@ func (service *Service) RequestEmergencyStop(ctx context.Context, eventID, reque
 }
 
 func NewService(store EventStore, twin *fleet.Twin, sites []*gridosv1.AuthorizedSite, now func() time.Time) *Service {
-	return &Service{store: store, twin: twin, sites: sites, now: now}
+	service := &Service{store: store, twin: twin, sites: sites, now: now}
+	if postgres, ok := store.(*PostgresEventStore); ok {
+		service.stepUp = stepup.FromEnvironment(postgres.pool, now)
+	} else {
+		service.stepUp = stepup.FromEnvironment(nil, now)
+	}
+	return service
 }
 
 func NewHandler(service *Service) http.Handler {
@@ -224,15 +233,26 @@ func (service *Service) ApproveEvent(ctx context.Context, request *connect.Reque
 	if err := authorize(request.Header(), "approver"); err != nil {
 		return nil, err
 	}
-	if request.Msg.GetEventId() == "" || request.Msg.GetPlanVersion() == 0 || request.Msg.GetApprovedBy() == "" || request.Msg.GetApprovedAt() == nil {
+	if request.Msg.GetEventId() == "" || request.Msg.GetPlanVersion() == 0 || request.Msg.GetIdempotencyKey() == "" || request.Msg.GetApprovedAt() == nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("complete approval required"))
 	}
-	event, err := service.store.Approve(ctx, request.Msg)
+	approval := proto.Clone(request.Msg).(*gridosv1.ApproveEventRequest)
+	if service.stepUp != nil {
+		subject, err := service.stepUp.Verify(ctx, request.Header().Get("X-GridOS-Step-Up"), "APPROVE_EVENT", approval.GetEventId(), approval.GetPlanVersion())
+		if err != nil {
+			return nil, connect.NewError(connect.CodePermissionDenied, err)
+		}
+		approval.ApprovedBy = subject
+	}
+	if approval.GetApprovedBy() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("approver required"))
+	}
+	event, err := service.store.Approve(ctx, approval)
 	if err != nil {
 		return nil, storeError(err)
 	}
 	if service.approveWorkflow != nil {
-		err = service.approveWorkflow(ctx, request.Msg.GetEventId(), dispatchWorkflowApproval{ApprovedBy: request.Msg.GetApprovedBy()})
+		err = service.approveWorkflow(ctx, approval.GetEventId(), dispatchWorkflowApproval{ApprovedBy: approval.GetApprovedBy()})
 		if err != nil {
 			return nil, connect.NewError(connect.CodeUnavailable, err)
 		}

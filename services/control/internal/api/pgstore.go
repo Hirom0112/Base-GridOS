@@ -11,11 +11,12 @@ import (
 )
 
 type PostgresEventStore struct {
+	pool  *pgxpool.Pool
 	store *storage.PostgresEventStore
 }
 
 func NewPostgresEventStore(pool *pgxpool.Pool) *PostgresEventStore {
-	return &PostgresEventStore{store: storage.NewPostgresEventStore(pool)}
+	return &PostgresEventStore{pool: pool, store: storage.NewPostgresEventStore(pool)}
 }
 
 func (store *PostgresEventStore) Create(ctx context.Context, request *gridosv1.EventRequest, key string, now time.Time) (*gridosv1.DispatchEvent, error) {
