@@ -788,3 +788,13 @@ assumptions reported by workers land here too.
   transition and its audit row; a retry returns the stored version and the
   PostgreSQL report source reads that row without recomputation. Director:
   report and storage tests pass; migration 0007 applies twice cleanly.
+- **4A.9 (lane 4A), verified:** observations now live in a partitioned
+  `telemetry_observations` table with a latest-per-device index; a
+  singleton hourly Temporal maintenance workflow creates today's and
+  tomorrow's partitions and drops those older than seven days; an
+  observation past the window is rejected with an audit row and a
+  CodeInvalidArgument so the gateway does not retry it; every non-test
+  reader of the old audit rows is gone; retention is relative to the
+  store's injected clock. Director runs: storage, ingest, reconciliation
+  selectors ok; IngestScale ok against the rebuilt demo; Houston, outage
+  replay, and measurement gap scenarios pass (314 s).

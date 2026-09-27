@@ -1338,7 +1338,7 @@ Owns: `services/control/internal/fleet/policy/`,
   hours at current usage and at 750 W, the recent `GridEvent` list, current
   plan and reserve), the member role only seeing its own site, registered in
   `cmd/control`. Verify: `go test ./services/control/internal/api/member/` passes.
-- `[ ]` 4A.9 `[P]` Telemetry retention. Every observation is an
+- `[x]` 4A.9 `[P]` Telemetry retention. Every observation is an
   `audit_journal` row (TELEMETRY_RECEIVED); a day of five-second telemetry
   for 5,000 devices reached 4.3 million rows and 3.4 GB and made the
   latest-per-device query take four seconds. Move observations to a
