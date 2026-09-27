@@ -58,7 +58,10 @@ if [ -n "$code_files" ]; then
     | grep -E '^[[:space:]]*(//|#|/\*|--[[:space:]]|--$|\{/\*)' \
     | grep -vE '^[[:space:]]*(//go:|#!|// Code generated|#[[:space:]]*-\*-|/// <reference)' \
     | grep -vE '^[[:space:]]*-- name: [A-Za-z][A-Za-z0-9_]* :(one|many|exec|execresult|execrows|execlastid|batchexec|batchmany|batchone|copyfrom)[[:space:]]*$' || true)
-  comments=$(printf '%s\n' "$comments" "$starred" | grep -v '^$' || true)
+  trailing=$(printf '%s\n' "$cstyle" \
+    | sed -E "s/\"([^\"\\\\]|\\\\.)*\"//g; s/'([^'\\\\]|\\\\.)*'//g; s/\`[^\`]*\`//g" \
+    | grep -E '[^[:space:]][[:space:]]*(//|/\*)' || true)
+  comments=$(printf '%s\n' "$comments" "$starred" "$trailing" | grep -v '^$' || true)
   [ -z "$comments" ] || fail "added comment lines (rename or restructure instead):
 $comments"
 
