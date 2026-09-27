@@ -35,13 +35,209 @@ func TestOutboxInsertIsAtomic(t *testing.T) {
 	if intents != 0 || outbox != 0 {
 		t.Fatalf("rows after rollback: intents=%d outbox=%d", intents, outbox)
 	}
+	var generations int
+	if err = pool.QueryRow(context.Background(), "SELECT count(*) FROM device_command_generations").Scan(&generations); err != nil {
+		t.Fatal(err)
+	}
+	if generations != 0 {
+		t.Fatalf("generation counter survived rollback: %d", generations)
+	}
+}
+
+func TestDeviceGenerationAcrossEvents(t *testing.T) {
+	pool := testDatabase(t)
+	insertPlan(t, pool, "generation-first")
+	insertPlan(t, pool, "generation-second")
+	ctx := context.Background()
+	first := testCommand("first", "generation-first")
+	if err := InsertCommand(ctx, pool, first); err != nil {
+		t.Fatal(err)
+	}
+	second := testCommand("second", "generation-second")
+	if err := InsertCommand(ctx, pool, second); err != nil {
+		t.Fatal(err)
+	}
+	var firstGeneration, secondGeneration int64
+	if err := pool.QueryRow(ctx, "SELECT generation FROM command_intents WHERE command_id=$1", first.CommandID).Scan(&firstGeneration); err != nil {
+		t.Fatal(err)
+	}
+	if err := pool.QueryRow(ctx, "SELECT generation FROM command_intents WHERE command_id=$1", second.CommandID).Scan(&secondGeneration); err != nil {
+		t.Fatal(err)
+	}
+	if firstGeneration != 1 || secondGeneration != 2 {
+		t.Fatalf("consecutive device generations=%d,%d; want 1,2", firstGeneration, secondGeneration)
+	}
+	if err := InsertCommand(ctx, pool, second); err == nil {
+		t.Fatal("duplicate command inserted")
+	}
+	var afterRetry int64
+	if err := pool.QueryRow(ctx, "SELECT last_generation FROM device_command_generations WHERE device_id=$1", first.DeviceID).Scan(&afterRetry); err != nil {
+		t.Fatal(err)
+	}
+	if afterRetry != 2 {
+		t.Fatalf("duplicate insert consumed generation: %d", afterRetry)
+	}
+	stop := testCommand("stop", "generation-second")
+	stop.Generation = 2
+	stop.SetpointKW = 0
+	if err := InsertZeroCommand(ctx, pool, stop); err != nil {
+		t.Fatal(err)
+	}
+	var stopGeneration int64
+	if err := pool.QueryRow(ctx, "SELECT generation FROM command_intents WHERE command_id=$1", stop.CommandID).Scan(&stopGeneration); err != nil {
+		t.Fatal(err)
+	}
+	if stopGeneration != 3 {
+		t.Fatalf("stop generation=%d; want 3", stopGeneration)
+	}
+	if err := InsertZeroCommand(ctx, pool, stop); err != nil {
+		t.Fatal(err)
+	}
+	var lastGeneration int64
+	if err := pool.QueryRow(ctx, "SELECT last_generation FROM device_command_generations WHERE device_id=$1", first.DeviceID).Scan(&lastGeneration); err != nil {
+		t.Fatal(err)
+	}
+	if lastGeneration != 3 {
+		t.Fatalf("retry consumed generation: %d", lastGeneration)
+	}
+}
+
+func TestDeviceGenerationPublishesInOrder(t *testing.T) {
+	pool := testDatabase(t)
+	insertPlan(t, pool, "generation-order")
+	ctx := context.Background()
+	first := testCommand("z-first", "generation-order")
+	second := testCommand("a-second", "generation-order")
+	second.IssuedAt = first.IssuedAt
+	if err := InsertCommand(ctx, pool, first); err != nil {
+		t.Fatal(err)
+	}
+	if err := InsertCommand(ctx, pool, second); err != nil {
+		t.Fatal(err)
+	}
+	claim := OutboxClaim{AvailableAt: first.IssuedAt.Add(time.Second), LeaseUntil: first.IssuedAt.Add(time.Minute), BatchSize: 1}
+	claimed, err := ClaimOutbox(ctx, pool, claim)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(claimed) != 1 || claimed[0].CommandID != first.CommandID {
+		t.Fatalf("first generation claim=%+v", claimed)
+	}
+	concurrent, err := ClaimOutbox(ctx, pool, claim)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(concurrent) != 0 {
+		t.Fatalf("concurrent claimant skipped predecessor: %+v", concurrent)
+	}
+	if err := MarkOutboxPublished(ctx, pool, first.CommandID, first.IssuedAt.Add(time.Second)); err != nil {
+		t.Fatal(err)
+	}
+	next, err := ClaimOutbox(ctx, pool, claim)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(next) != 1 || next[0].CommandID != second.CommandID {
+		t.Fatalf("next generation claim=%+v", next)
+	}
+}
+
+func TestDeviceGenerationStopBypassesPending(t *testing.T) {
+	pool := testDatabase(t)
+	insertPlan(t, pool, "generation-stop")
+	ctx := context.Background()
+	first := testCommand("generation-active", "generation-stop")
+	stop := testCommand("generation-zero", "generation-stop")
+	stop.SetpointKW = 0
+	stop.IssuedAt = first.IssuedAt
+	if err := InsertCommand(ctx, pool, first); err != nil {
+		t.Fatal(err)
+	}
+	if err := InsertZeroCommand(ctx, pool, stop); err != nil {
+		t.Fatal(err)
+	}
+	claim := OutboxClaim{AvailableAt: first.IssuedAt.Add(time.Second), LeaseUntil: first.IssuedAt.Add(time.Minute), BatchSize: 1}
+	if _, err := ClaimOutbox(ctx, pool, claim); err != nil {
+		t.Fatal(err)
+	}
+	claimed, err := ClaimOutbox(ctx, pool, claim)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(claimed) != 1 || claimed[0].CommandID != stop.CommandID {
+		t.Fatalf("stop blocked by older generation: %+v", claimed)
+	}
+}
+
+func TestDeviceGenerationTerminalPredecessorDoesNotBlock(t *testing.T) {
+	pool := testDatabase(t)
+	insertPlan(t, pool, "generation-terminal")
+	ctx := context.Background()
+	first := testCommand("a-expired", "generation-terminal")
+	second := testCommand("z-next", "generation-terminal")
+	second.IssuedAt = first.IssuedAt
+	if err := InsertCommand(ctx, pool, first); err != nil {
+		t.Fatal(err)
+	}
+	if err := InsertCommand(ctx, pool, second); err != nil {
+		t.Fatal(err)
+	}
+	changed, err := TransitionCommand(ctx, pool, CommandTransition{CommandID: first.CommandID, ExpectedState: "PERSISTED", NextState: "EXPIRED", OccurredAt: first.IssuedAt.Add(time.Second), CorrelationID: first.CorrelationID})
+	if err != nil || !changed {
+		t.Fatalf("expire predecessor: changed=%t err=%v", changed, err)
+	}
+	claimed, err := ClaimOutbox(ctx, pool, OutboxClaim{AvailableAt: first.IssuedAt.Add(time.Second), LeaseUntil: first.IssuedAt.Add(time.Minute), BatchSize: 1})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(claimed) != 1 || claimed[0].CommandID != second.CommandID {
+		t.Fatalf("terminal predecessor blocked next generation: %+v", claimed)
+	}
+}
+
+func TestDeviceGenerationUncertainPredecessorDoesNotBlock(t *testing.T) {
+	pool := testDatabase(t)
+	insertPlan(t, pool, "generation-uncertain")
+	ctx := context.Background()
+	first := testCommand("a-uncertain", "generation-uncertain")
+	second := testCommand("z-next", "generation-uncertain")
+	second.IssuedAt = first.IssuedAt
+	if err := InsertCommand(ctx, pool, first); err != nil {
+		t.Fatal(err)
+	}
+	if err := InsertCommand(ctx, pool, second); err != nil {
+		t.Fatal(err)
+	}
+	claim := OutboxClaim{AvailableAt: first.IssuedAt.Add(time.Second), LeaseUntil: first.IssuedAt.Add(time.Minute), BatchSize: 1}
+	claimed, err := ClaimOutbox(ctx, pool, claim)
+	if err != nil || len(claimed) != 1 || claimed[0].CommandID != first.CommandID {
+		t.Fatalf("first claim=%+v err=%v", claimed, err)
+	}
+	for _, transition := range []CommandTransition{
+		{CommandID: first.CommandID, ExpectedState: "PERSISTED", NextState: "SENT", OccurredAt: first.IssuedAt.Add(time.Millisecond), CorrelationID: first.CorrelationID},
+		{CommandID: first.CommandID, ExpectedState: "SENT", NextState: "UNCERTAIN", OccurredAt: first.IssuedAt.Add(2 * time.Millisecond), CorrelationID: first.CorrelationID},
+	} {
+		changed, err := TransitionCommand(ctx, pool, transition)
+		if err != nil || !changed {
+			t.Fatalf("uncertain transition: changed=%t err=%v", changed, err)
+		}
+	}
+	claimed, err = ClaimOutbox(ctx, pool, claim)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(claimed) != 1 || claimed[0].CommandID != second.CommandID {
+		t.Fatalf("uncertain predecessor blocked next generation: %+v", claimed)
+	}
 }
 
 func TestOutboxClaimersNeverOverlap(t *testing.T) {
 	pool := testDatabase(t)
 	insertPlan(t, pool, "event-claim")
 	for index := 0; index < 6; index++ {
-		if err := InsertCommand(context.Background(), pool, testCommand(fmt.Sprintf("claim-%d", index), "event-claim")); err != nil {
+		command := testCommand(fmt.Sprintf("claim-%d", index), "event-claim")
+		command.DeviceID = fmt.Sprintf("device-%d", index)
+		if err := InsertCommand(context.Background(), pool, command); err != nil {
 			t.Fatal(err)
 		}
 	}
