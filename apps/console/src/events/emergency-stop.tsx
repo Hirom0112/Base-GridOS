@@ -2,12 +2,14 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import { z } from "zod";
 import { useSession } from "../api/auth";
+import { StepUpFailure } from "../api/step-up";
 
 const reasonSchema = z.string().trim().min(1).max(1000);
 type Outcome =
   | { state: "idle" }
   | { state: "pending" }
   | { state: "unknown"; error: string }
+  | { state: "blocked"; error: string }
   | { state: "requested"; receipt: string };
 
 export function EmergencyStopControl({ eventId }: { eventId: string }) {
@@ -48,7 +50,10 @@ export function EmergencyStopControl({ eventId }: { eventId: string }) {
       setOpen(false);
     } catch (error) {
       setOutcome({
-        state: "unknown",
+        state:
+          error instanceof StepUpFailure && outcome.state !== "unknown"
+            ? "blocked"
+            : "unknown",
         error: error instanceof Error ? error.message : "Stop request failed",
       });
     } finally {
@@ -91,6 +96,9 @@ export function EmergencyStopControl({ eventId }: { eventId: string }) {
           Stop outcome unknown. Reopen the confirmation to retry the same
           request.
         </p>
+      )}
+      {!open && outcome.state === "blocked" && (
+        <p role="alert">Authorization failed. No stop command was sent.</p>
       )}
       {open && (
         <StopDialog
@@ -183,6 +191,9 @@ function StopDialog({
             duplicate intent.
           </p>
         )}
+        {outcome.state === "blocked" && (
+          <p role="alert">No stop command was sent. {outcome.error}</p>
+        )}
         <div className="dialog-actions">
           <button
             type="button"
@@ -197,7 +208,9 @@ function StopDialog({
               ? "Awaiting stop receipt…"
               : outcome.state === "unknown"
                 ? "Retry same request"
-                : "Confirm stop request"}
+                : outcome.state === "blocked"
+                  ? "Retry authorization"
+                  : "Confirm stop request"}
           </button>
         </div>
       </form>
