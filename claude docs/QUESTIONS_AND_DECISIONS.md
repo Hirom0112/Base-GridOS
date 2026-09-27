@@ -1827,3 +1827,13 @@ to be closed unions. Reopened as dispatched: root adds a
 EXPIRED, REJECTED, plus UNSPECIFIED) mapped from the durable text with an
 error on any unknown value, RED/GREEN, before the demo rebuild. The
 director's earlier [x] was premature.
+
+## 2026-09-27 08:32Z — 4E.8 verified with the closed enum
+
+RED 7d0a516 (test only) then GREEN 6dbba98: CommandLifecycleState covers
+every durable command state (PERSISTED, SENT, ACKNOWLEDGED, UNCERTAIN,
+EXECUTING, COMPLETED, CANCELLED, EXPIRED, REJECTED) and unknown text is an
+error; the original string field stays deprecated and unpopulated because
+buf breaking forbids removing it against main. `go test
+./services/control/internal/api/events/ -run 'Commands|Lifecycle'` ok
+(0.733s) here. Marked done.
