@@ -61,8 +61,13 @@ func TestPlanningActivitiesApplyBudgetAndRecordFallback(t *testing.T) {
 	plan.FallbackReason = "SOLVER_TIMEOUT"
 	harness.activities.Dispatcher.Optimizer = boundedOptimizer{plan: plan}
 	frozen := harness.freeze(t)
+	before := planningMetricValue(t, "gridos_fallback_total ")
 	_, err := harness.activities.RequestPlan(context.Background(), frozen)
 	require.NoError(t, err)
+	require.Equal(t, before+1, planningMetricValue(t, "gridos_fallback_total "))
+	_, err = harness.activities.RequestPlan(context.Background(), frozen)
+	require.NoError(t, err)
+	require.Equal(t, before+1, planningMetricValue(t, "gridos_fallback_total "))
 	var reason string
 	err = harness.pool.QueryRow(context.Background(), `SELECT new_values->>'fallback_reason' FROM audit_journal WHERE resource_id = $1 AND action = 'PLAN_FALLBACK_SELECTED'`, harness.input.EventID).Scan(&reason)
 	require.NoError(t, err)
