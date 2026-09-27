@@ -76,7 +76,7 @@ func TestRiskBridgeAppliesStaleOnlyWithConsentedPlan(t *testing.T) {
 			OperatingState: &gridosv1.TelemetryObservation_OnGrid{OnGrid: &gridosv1.OnGrid{ObservedAt: timestamppb.New(now.Add(-time.Minute))}}}})
 		require.NoError(t, err)
 	}
-	require.NoError(t, NewRiskBridge(pool, sites, "").Evaluate(ctx, now))
+	require.NoError(t, NewRiskBridge(pool, sites, "", "risk-test.jsonl").Evaluate(ctx, now))
 	var count int
 	require.NoError(t, pool.QueryRow(ctx, `SELECT count(*) FROM reserve_overrides WHERE member_id = 'member-consented' AND reason = 'STALE_TELEMETRY' AND reserve_floor_percent = 40`).Scan(&count))
 	require.Equal(t, 1, count)

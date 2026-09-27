@@ -14,6 +14,7 @@ type RiskBridge struct {
 	pool       *pgxpool.Pool
 	sites      []*gridosv1.AuthorizedSite
 	publicRoot string
+	fleetFile  string
 	store      *Store
 }
 
@@ -25,8 +26,8 @@ type riskSource struct {
 	publicError  string
 }
 
-func NewRiskBridge(pool *pgxpool.Pool, sites []*gridosv1.AuthorizedSite, publicRoot string) *RiskBridge {
-	return &RiskBridge{pool: pool, sites: sites, publicRoot: publicRoot, store: New(pool)}
+func NewRiskBridge(pool *pgxpool.Pool, sites []*gridosv1.AuthorizedSite, publicRoot, fleetFile string) *RiskBridge {
+	return &RiskBridge{pool: pool, sites: sites, publicRoot: publicRoot, fleetFile: fleetFile, store: New(pool)}
 }
 
 func (bridge *RiskBridge) loadSources(ctx context.Context, at time.Time) (riskSource, error) {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -17,6 +18,17 @@ func TestTelemetryMaintenanceRunsOneBoundedPruneActivity(t *testing.T) {
 	environment.RegisterActivityWithOptions(func(context.Context) error { return nil }, activity.RegisterOptions{Name: PruneTelemetryActivity})
 	environment.OnActivity(PruneTelemetryActivity, mock.Anything).Return(nil).Once()
 	environment.ExecuteWorkflow(TelemetryMaintenance)
+	require.True(t, environment.IsWorkflowCompleted())
+	require.NoError(t, environment.GetWorkflowError())
+	environment.AssertExpectations(t)
+}
+
+func TestRiskOverridesRunsOneBoundedEvaluation(t *testing.T) {
+	var suite testsuite.WorkflowTestSuite
+	environment := suite.NewTestWorkflowEnvironment()
+	environment.RegisterActivityWithOptions(func(context.Context, time.Time) error { return nil }, activity.RegisterOptions{Name: RiskOverridesActivity})
+	environment.OnActivity(RiskOverridesActivity, mock.Anything, mock.Anything).Return(nil).Once()
+	environment.ExecuteWorkflow(RiskOverrides)
 	require.True(t, environment.IsWorkflowCompleted())
 	require.NoError(t, environment.GetWorkflowError())
 	environment.AssertExpectations(t)

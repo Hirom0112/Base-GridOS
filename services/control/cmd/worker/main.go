@@ -16,6 +16,7 @@ import (
 	controlapi "github.com/Hirom0112/Base-GridOS/services/control/internal/api"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/dispatch"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/fleet"
+	"github.com/Hirom0112/Base-GridOS/services/control/internal/fleet/policy"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/reconciliation"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/replay"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/storage"
@@ -78,8 +79,10 @@ func main() {
 	dispatchWorker := worker.New(temporalClient, taskQueue, worker.Options{})
 	dispatchWorker.RegisterWorkflow(dispatch.Workflow)
 	dispatchWorker.RegisterWorkflow(dispatch.TelemetryMaintenance)
+	dispatchWorker.RegisterWorkflow(dispatch.RiskOverrides)
 	dispatchWorker.RegisterActivity(activities)
 	dispatchWorker.RegisterActivity(&dispatch.TelemetryMaintenanceActivities{Store: storage.NewTelemetryStore(pool), Now: time.Now})
+	dispatchWorker.RegisterActivity(&dispatch.RiskOverrideActivities{Bridge: policy.NewRiskBridge(pool, sites, environment("GRIDOS_PUBLIC_CONTEXT_DIR", "testdata/fixtures/public"), fleetPath)})
 	dispatchWorker.RegisterActivity(&reconciliation.Activities{Pool: pool, Events: storage.NewPostgresEventStore(pool), Now: time.Now, MaxGap: 30 * time.Second})
 	startCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	_, err = temporalClient.ExecuteWorkflow(startCtx, client.StartWorkflowOptions{
@@ -88,6 +91,15 @@ func main() {
 	}, dispatch.TelemetryMaintenance)
 	cancel()
 	var alreadyStarted *serviceerror.WorkflowExecutionAlreadyStarted
+	if err != nil && !errors.As(err, &alreadyStarted) {
+		log.Fatal(err)
+	}
+	startCtx, cancel = context.WithTimeout(ctx, 10*time.Second)
+	_, err = temporalClient.ExecuteWorkflow(startCtx, client.StartWorkflowOptions{
+		ID: taskQueue + "-risk-overrides", TaskQueue: taskQueue, CronSchedule: "*/5 * * * *",
+		WorkflowIDReusePolicy: enums.WORKFLOW_ID_REUSE_POLICY_REJECT_DUPLICATE,
+	}, dispatch.RiskOverrides)
+	cancel()
 	if err != nil && !errors.As(err, &alreadyStarted) {
 		log.Fatal(err)
 	}
