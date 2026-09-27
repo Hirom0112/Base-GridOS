@@ -393,7 +393,7 @@ test("live frozen reserve and Travel Flex review matches the stored plan", async
   page,
   request,
 }, testInfo) => {
-  const eventId = process.env.GRIDOS_POLICY_EVENT_ID ?? "event-4c9-1790500277";
+  const eventId = process.env.GRIDOS_POLICY_EVENT_ID ?? "event-4c10-1790504164";
   const response = await request.post(
     "http://127.0.0.1:28080/gridos.v1.DispatchService/GetPlanExplanation",
     {
@@ -402,7 +402,7 @@ test("live frozen reserve and Travel Flex review matches the stored plan", async
     },
   );
   expect(response.ok(), await response.text()).toBe(true);
-  const { evidence } = fromJsonString(
+  const { evidence, manifest } = fromJsonString(
     GetPlanExplanationResponseSchema,
     await response.text(),
   );
@@ -414,10 +414,24 @@ test("live frozen reserve and Travel Flex review matches the stored plan", async
   if (!override || !binding)
     throw new Error("Seeded frozen policy evidence missing");
   await page.goto(`/dispatch/${eventId}`);
+  if (!manifest) throw new Error("Frozen manifest required");
+  for (const value of [
+    manifest.inputSnapshotId,
+    manifest.eligibilitySnapshotId,
+    manifest.policyVersion,
+    manifest.solverVersion,
+    manifest.modelVersion,
+    manifest.codeVersion,
+  ]) {
+    expect(value).not.toBe("");
+    await expect(
+      page.getByRole("region", { name: "Frozen plan inputs" }),
+    ).toContainText(value);
+  }
   const reserve = page.getByRole("region", { name: "Household reserve basis" });
   await expect(reserve).toContainText("5,000 devices");
   await page.getByLabel("Find reserve device").fill(override.deviceId);
-  await expect(reserve).toContainText("COMMUNICATIONS");
+  await expect(reserve).toContainText("WEATHER");
   await expect(reserve).toContainText(override.overrideSourceId);
   await expect(reserve).toContainText(override.overridePolicyVersion);
   await expect(reserve).toContainText(

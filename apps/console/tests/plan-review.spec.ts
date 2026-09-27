@@ -19,14 +19,22 @@ for (const width of [390, 1440]) {
       const explanation = page.getByRole("region", {
         name: "Optimization explanation",
       });
-      await expect(explanation).toContainText("51,973.637 kWh");
+      await expect(explanation).toContainText("51,979.616 kWh");
+      const manifest = page.getByRole("region", { name: "Frozen plan inputs" });
+      await expect(manifest).toContainText("event-4c10-1790504164-input-1");
+      await expect(manifest).toContainText(
+        "event-4c10-1790504164-eligibility-1",
+      );
+      await expect(manifest).toContainText(
+        "60290a623d8feec003db4e0c3a751c24ef727c4e+modified",
+      );
       await expect(
         page.getByRole("region", { name: "Constraint margins" }),
-      ).toContainText("2.20326299554927");
+      ).toContainText("2.13840955162685");
       await page
         .getByText("Modeled objective · inspect the value and costs")
         .click();
-      await expect(explanation).toContainText("-1.037");
+      await expect(explanation).toContainText("-1.049");
       await expect(
         page.getByRole("table", { name: "Interval feasibility" }),
       ).toContainText("1.000");
@@ -35,7 +43,7 @@ for (const width of [390, 1440]) {
         .fill("device_2546ed64004b08202d20");
       await expect(
         page.getByRole("region", { name: "Household reserve basis" }),
-      ).toContainText("COMMUNICATIONS");
+      ).toContainText("WEATHER");
       await expect(
         page.getByRole("region", { name: "Travel Flex eligibility" }),
       ).toContainText("500 cents · Fixed daily credit");
