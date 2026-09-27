@@ -62,6 +62,15 @@ func NewMetrics() *Metrics {
 	return m
 }
 
+func NewEventMetrics() *Metrics {
+	m := NewMetrics()
+	m.registry.Unregister(m.telemetryFreshness)
+	m.registry.Unregister(m.telemetryDevices)
+	m.registry.Unregister(m.staleDevices)
+	m.registry.Unregister(m.uncertainCommands)
+	return m
+}
+
 func (m *Metrics) Handler() http.Handler {
 	return promhttp.HandlerFor(m.registry, promhttp.HandlerOpts{})
 }

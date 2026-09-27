@@ -86,3 +86,20 @@ func TestMetricsAcceptDurableCommandStates(t *testing.T) {
 		}
 	}
 }
+
+func TestEventMetricsOmitDatabaseStateGauges(t *testing.T) {
+	metrics := NewEventMetrics()
+	if err := metrics.RecordCommand("SENT"); err != nil {
+		t.Fatal(err)
+	}
+	response := httptest.NewRecorder()
+	metrics.Handler().ServeHTTP(response, httptest.NewRequest("GET", "/metrics", nil))
+	if !strings.Contains(response.Body.String(), "gridos_commands_total") {
+		t.Fatal("event counter missing")
+	}
+	for _, name := range []string{"gridos_telemetry_freshness_seconds", "gridos_telemetry_devices", "gridos_telemetry_stale_devices", "gridos_uncertain_commands"} {
+		if strings.Contains(response.Body.String(), name) {
+			t.Fatalf("database gauge %s exposed by worker", name)
+		}
+	}
+}
