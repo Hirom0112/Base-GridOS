@@ -130,7 +130,7 @@ export function ExplanationEvidence({
       <header className="explanation-heading">
         <div>
           <p className="eyebrow">Plan evidence</p>
-          <h3>Why this plan is feasible</h3>
+          <h3>Review the planning evidence</h3>
         </div>
         <div>
           <span>Reserve held back</span>

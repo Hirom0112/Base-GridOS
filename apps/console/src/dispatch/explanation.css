@@ -88,3 +88,7 @@
 .objective-evidence dd {
   margin: 0;
 }
+
+.plan-explanation td.mono {
+  white-space: nowrap;
+}
