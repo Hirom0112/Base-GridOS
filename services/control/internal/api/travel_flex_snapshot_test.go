@@ -8,6 +8,7 @@ import (
 	gridosv1 "github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/fleet"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/fleet/policy"
+	"github.com/Hirom0112/Base-GridOS/services/control/internal/safety"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -46,5 +47,40 @@ func TestTravelFlexFreezeRequiresBoundActiveConsent(t *testing.T) {
 	require.Equal(t, 2.0, bound.GetTravelFlexReserveKwh())
 	require.Equal(t, 6.5, bound.GetEffectiveReserveKwh())
 	require.Equal(t, 6.5, frozen.Canonical.Devices[bound.GetDeviceId()].PlanReserveKWh)
+	require.NotNil(t, frozen.Canonical.Devices[bound.GetDeviceId()].TravelFlexReserveKWh)
+	require.Equal(t, 2.0, *frozen.Canonical.Devices[bound.GetDeviceId()].TravelFlexReserveKWh)
 	require.False(t, frozen.Optimization.GetDevices()[1].TravelFlexReserveKwh != nil)
+}
+
+func TestReserveSelectionFromFrozenIsEnforced(t *testing.T) {
+	now := time.Date(2026, 9, 26, 12, 0, 0, 0, time.UTC)
+	begin, end := now.Add(time.Minute), now.Add(time.Hour+time.Minute)
+	base, flex := 8.0, 6.0
+	frozen := &gridosv1.OptimizationRequest{
+		RequestedAt: timestamppb.New(now), PlanVersion: 1,
+		ReservePolicy: &gridosv1.ReservePolicy{PolicyVersion: "policy-1"},
+		Devices: []*gridosv1.DeviceState{{DeviceId: "device-1", UsableEnergyKwh: 10, EnergyKwh: 9, HardwareFloorKwh: 5, EffectiveReserveKwh: 8, BaseReserveKwh: &base, TravelFlexReserveKwh: &flex,
+			MaxChargeKw: 2, MaxDischargeKw: 2, ChargeEfficiency: 0.95, DischargeEfficiency: 0.95, AvailabilityProbability: 1, TelemetryObservedAt: timestamppb.New(now)}},
+	}
+	canonical := CanonicalFromFrozen(frozen)
+	plan := &gridosv1.DispatchPlan{DeviceSchedules: []*gridosv1.DeviceSchedule{{DeviceId: "device-1", ReserveSelection: gridosv1.ReserveSelection_RESERVE_SELECTION_BASE, SelectedReserveKwh: 8,
+		Intervals: []*gridosv1.DeviceScheduleInterval{{BeginTime: timestamppb.New(begin), EndTime: timestamppb.New(end), SetpointKw: 1.9, ExpectedEnergyKwh: 7}}}}}
+	basePlan, err := safetyPlan(plan, canonical)
+	require.NoError(t, err)
+	_, violations := safety.Validate(basePlan, canonical)
+	require.True(t, violationCodesAPI(violations)[safety.EnergyBelowReserve])
+	plan.DeviceSchedules[0].ReserveSelection = gridosv1.ReserveSelection_RESERVE_SELECTION_TRAVEL_FLEX
+	plan.DeviceSchedules[0].SelectedReserveKwh = 6
+	flexPlan, err := safetyPlan(plan, canonical)
+	require.NoError(t, err)
+	approval, violations := safety.Validate(flexPlan, canonical)
+	require.True(t, approval.Approved, "%+v", violations)
+}
+
+func violationCodesAPI(violations []safety.Violation) map[safety.ViolationCode]bool {
+	codes := make(map[safety.ViolationCode]bool, len(violations))
+	for _, violation := range violations {
+		codes[violation.Code] = true
+	}
+	return codes
 }
