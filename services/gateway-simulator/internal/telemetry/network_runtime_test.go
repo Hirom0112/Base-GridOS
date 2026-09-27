@@ -16,7 +16,7 @@ func TestNetworkFailureBuffersAndReplaysOnNextCadence(t *testing.T) {
 	store := openStore(t, ctx)
 	start := time.Date(2026, 8, 12, 18, 0, 0, 0, time.UTC)
 	publisher := &recoveringBatchPublisher{failFirst: true, recovered: make(chan struct{}, 1)}
-	fleet, err := NewFleet(store, []Device{testPhysicalDevice("device-1")}, Profiles{"home": {}}, time.Millisecond, publisher)
+	fleet, err := NewFleet(store, []Device{testPhysicalDevice("device-1")}, Profiles{"home": {}}, 20*time.Millisecond, publisher)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -40,7 +40,7 @@ func TestNetworkFailureBuffersAndReplaysOnNextCadence(t *testing.T) {
 	if len(replayed) != 2 {
 		t.Fatalf("replayed observations=%d", len(replayed))
 	}
-	if !replayed[0].GetSourceTime().AsTime().Equal(start) || !replayed[1].GetSourceTime().AsTime().Equal(start.Add(time.Millisecond)) {
+	if !replayed[0].GetSourceTime().AsTime().Equal(start) || !replayed[1].GetSourceTime().AsTime().Equal(start.Add(20*time.Millisecond)) {
 		t.Fatalf("source times=%s,%s", replayed[0].GetSourceTime().AsTime(), replayed[1].GetSourceTime().AsTime())
 	}
 	buffered, err := store.BufferedObservations(context.Background())

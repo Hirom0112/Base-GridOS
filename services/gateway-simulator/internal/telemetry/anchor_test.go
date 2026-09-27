@@ -24,6 +24,12 @@ func TestAnchorSkipsMissedCadenceSlots(t *testing.T) {
 	if !late.After(first.Add(sourceStep)) {
 		t.Fatalf("missed cadence slots were replayed: %s", late)
 	}
+	epochStart := wallStart.Add(7 * time.Second).Truncate(cadence)
+	wallNow := epochStart.Add(46 * time.Second)
+	live := sourceAt(epochStart, epochStart, wallNow, cadence, cadence)
+	if !live.Equal(wallNow.Truncate(cadence)) {
+		t.Fatalf("live source time = %s", live)
+	}
 }
 
 func TestAnchorRecordsOneGapBeforeCurrentPhysicalSample(t *testing.T) {

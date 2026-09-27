@@ -100,6 +100,14 @@ func (fleet *Fleet) SetSourceStep(step time.Duration) error {
 }
 
 func (fleet *Fleet) Emit(ctx context.Context, sourceTime time.Time) error {
+	return fleet.emit(ctx, sourceTime, time.Time{})
+}
+
+func (fleet *Fleet) emitSkipped(ctx context.Context, gapTime, sourceTime time.Time) error {
+	return fleet.emit(ctx, sourceTime, gapTime)
+}
+
+func (fleet *Fleet) emit(ctx context.Context, sourceTime, gapTime time.Time) error {
 	if sourceTime.IsZero() {
 		return errors.New("source time is required")
 	}
@@ -119,7 +127,7 @@ func (fleet *Fleet) Emit(ctx context.Context, sourceTime time.Time) error {
 	}
 	deferred := make(map[string]bool)
 	duplicated := make(map[string]bool)
-	observations, err := fleet.bufferPhysical(ctx, active, sourceTime, duration)
+	observations, err := fleet.bufferPhysical(ctx, active, sourceTime, gapTime, duration)
 	if err != nil {
 		return err
 	}
@@ -142,9 +150,23 @@ func (fleet *Fleet) Emit(ctx context.Context, sourceTime time.Time) error {
 	return fleet.flushBatch(ctx, batch, deferred, duplicated)
 }
 
-func (fleet *Fleet) bufferPhysical(ctx context.Context, active map[string]gateway.Command, sourceTime time.Time, duration time.Duration) ([]*gridosv1.TelemetryObservation, error) {
-	drafts := make([]gateway.ObservationDraft, 0, len(fleet.producers))
-	observations := make([]*gridosv1.TelemetryObservation, 0, len(fleet.producers))
+func (fleet *Fleet) bufferPhysical(ctx context.Context, active map[string]gateway.Command, sourceTime, gapTime time.Time, duration time.Duration) ([]*gridosv1.TelemetryObservation, error) {
+	drafts := make([]gateway.ObservationDraft, 0, len(fleet.producers)*2)
+	observations := make([]*gridosv1.TelemetryObservation, 0, len(fleet.producers)*2)
+	if !gapTime.IsZero() {
+		for _, item := range fleet.producers {
+			producer := item.producer
+			drafts = append(drafts, gateway.ObservationDraft{DeviceID: producer.deviceID, Build: func(sequence uint64) (gateway.BufferedObservation, error) {
+				observation := producer.gapObservation(sequence, gapTime)
+				payload, err := protojson.Marshal(observation)
+				if err != nil {
+					return gateway.BufferedObservation{}, err
+				}
+				observations = append(observations, observation)
+				return gateway.BufferedObservation{ObservationID: observation.GetObservationId(), Payload: payload}, nil
+			}})
+		}
+	}
 	for _, item := range fleet.producers {
 		sample, err := fleet.physicalSample(item, active, sourceTime, duration)
 		if err != nil {
@@ -261,12 +283,27 @@ func (fleet *Fleet) Run(ctx context.Context, start time.Time) error {
 	if start.IsZero() {
 		return errors.New("start time is required")
 	}
-	sourceTime := start
+	return fleet.run(ctx, start, time.Now())
+}
+
+func (fleet *Fleet) RunLive(ctx context.Context) error {
+	start := time.Now().Truncate(fleet.cadence)
+	return fleet.run(ctx, start, start)
+}
+
+func (fleet *Fleet) run(ctx context.Context, start, wallStart time.Time) error {
 	for {
-		if err := fleet.Emit(ctx, sourceTime); err != nil && !errors.Is(err, ErrPublishUnavailable) {
+		sourceTime := sourceAt(start, wallStart, time.Now(), fleet.cadence, fleet.sourceStep)
+		gapTime := time.Time{}
+		if !fleet.lastSource.IsZero() && sourceTime.Sub(fleet.lastSource) > fleet.sourceStep {
+			gapTime = sourceTime.Add(-fleet.sourceStep)
+		}
+		if err := fleet.emit(ctx, sourceTime, gapTime); err != nil && !errors.Is(err, ErrPublishUnavailable) {
 			return err
 		}
-		timer := time.NewTimer(fleet.cadence)
+		elapsed := time.Since(wallStart)
+		nextTick := wallStart.Add((elapsed/fleet.cadence + 1) * fleet.cadence)
+		timer := time.NewTimer(time.Until(nextTick))
 		select {
 		case <-ctx.Done():
 			if !timer.Stop() {
@@ -274,7 +311,13 @@ func (fleet *Fleet) Run(ctx context.Context, start time.Time) error {
 			}
 			return ctx.Err()
 		case <-timer.C:
-			sourceTime = sourceTime.Add(fleet.sourceStep)
 		}
 	}
+}
+
+func sourceAt(logicalStart, wallStart, now time.Time, cadence, sourceStep time.Duration) time.Time {
+	if now.Before(wallStart) {
+		return logicalStart
+	}
+	return logicalStart.Add(now.Sub(wallStart) / cadence * sourceStep)
 }

@@ -37,6 +37,13 @@ type config struct {
 	scenarioTick     time.Duration
 }
 
+type telemetryClock string
+
+const (
+	liveClock     telemetryClock = "live"
+	scenarioClock telemetryClock = "scenario"
+)
+
 type fleetDevice struct {
 	DeviceID                 string   `json:"device_id"`
 	SiteID                   string   `json:"site_id"`
@@ -198,7 +205,11 @@ func startTelemetry(ctx context.Context, configuration config, devices []fleetDe
 	if runtime != nil {
 		fleet.SetEffects(runtime)
 	}
-	go runTelemetry(ctx, fleet, configuration.scenarioStart, configuration.scenarioTick, configuration.telemetryCadence, telemetryErrors)
+	clock := liveClock
+	if configuration.scenarioPath != "" {
+		clock = scenarioClock
+	}
+	go runTelemetry(ctx, fleet, configuration.scenarioStart, configuration.scenarioTick, configuration.telemetryCadence, clock, telemetryErrors)
 	return nil
 }
 
@@ -243,7 +254,7 @@ func configureScenario(configuration config, scenarioStart string) (config, erro
 	return configuration, nil
 }
 
-func runTelemetry(ctx context.Context, fleet *telemetry.Fleet, start time.Time, sourceStep, cadence time.Duration, failures chan<- error) {
+func runTelemetry(ctx context.Context, fleet *telemetry.Fleet, start time.Time, sourceStep, cadence time.Duration, clock telemetryClock, failures chan<- error) {
 	timer := time.NewTimer(cadence)
 	select {
 	case <-ctx.Done():
@@ -251,7 +262,16 @@ func runTelemetry(ctx context.Context, fleet *telemetry.Fleet, start time.Time, 
 			<-timer.C
 		}
 	case <-timer.C:
-		if err := fleet.Run(ctx, start.Add(sourceStep)); err != nil && !errors.Is(err, context.Canceled) {
+		var err error
+		switch clock {
+		case liveClock:
+			err = fleet.RunLive(ctx)
+		case scenarioClock:
+			err = fleet.Run(ctx, start.Add(sourceStep))
+		default:
+			err = errors.New("telemetry clock mode is invalid")
+		}
+		if err != nil && !errors.Is(err, context.Canceled) {
 			failures <- err
 		}
 	}
