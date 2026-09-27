@@ -23,6 +23,16 @@
     ],
     "fallback_review": [
       "gridos.v1.OptimizationService.Optimize"
+    ],
+    "context_review": [
+      "gridos.v1.ContextService.GetMarketContext",
+      "gridos.v1.ContextService.GetWeatherContext",
+      "gridos.v1.ContextService.GetOutageRisk",
+      "gridos.v1.ContextService.ListDispatchWindows"
+    ],
+    "geo_map": [
+      "gridos.v1.GeoService.ListCells",
+      "gridos.v1.GeoService.Drilldown"
     ]
   },
   "requests": {
@@ -375,6 +385,113 @@
             ]
           }
         }
+      }
+    },
+    "gridos.v1.ContextService.GetMarketContext": {
+      "role": "operator",
+      "body": {
+        "settlementPoint": "HB_HOUSTON",
+        "weatherZone": "NORTH_C"
+      }
+    },
+    "gridos.v1.ContextService.GetWeatherContext": {
+      "role": "operator",
+      "body": {
+        "city": "austin"
+      }
+    },
+    "gridos.v1.ContextService.GetOutageRisk": {
+      "role": "operator",
+      "body": {
+        "county": "Travis"
+      }
+    },
+    "gridos.v1.ContextService.ListDispatchWindows": {
+      "role": "operator",
+      "body": {
+        "candidates": [
+          {
+            "beginTime": "2026-09-27T00:00:00Z",
+            "endTime": "2026-09-27T01:00:00Z",
+            "priceUsdPerMwh": 50,
+            "regionalLoadMw": 65000,
+            "outageRisk": 0.04,
+            "feasibleCapacityMw": 5
+          },
+          {
+            "beginTime": "2026-09-27T01:00:00Z",
+            "endTime": "2026-09-27T02:00:00Z",
+            "priceUsdPerMwh": 30,
+            "regionalLoadMw": 62000,
+            "outageRisk": 0.02,
+            "feasibleCapacityMw": 4
+          }
+        ]
+      }
+    },
+    "gridos.v1.GeoService.ListCells": {
+      "role": "operator",
+      "body": {
+        "resolution": 6
+      }
+    },
+    "gridos.v1.GeoService.Drilldown": {
+      "role": "operator",
+      "body": {}
+    }
+  },
+  "variants": {
+    "gridos.v1.GeoService.ListCells": {
+      "res5": {
+        "role": "operator",
+        "body": {
+          "resolution": 5
+        }
+      },
+      "res6": {
+        "role": "operator",
+        "body": {
+          "resolution": 6
+        }
+      },
+      "res7": {
+        "role": "operator",
+        "body": {
+          "resolution": 7
+        }
+      }
+    },
+    "gridos.v1.GeoService.Drilldown": {
+      "market": {
+        "role": "operator",
+        "body": {
+          "parentId": "market:ERCOT"
+        }
+      },
+      "load_zone": {
+        "role": "operator",
+        "body": {
+          "parentId": "load_zone:LZ_AEN"
+        }
+      },
+      "utility": {
+        "role": "operator",
+        "body": {
+          "parentId": "utility:LZ_AEN"
+        }
+      },
+      "substation": {
+        "role": "operator",
+        "body": {
+          "parentId": "substation:LZ_AEN:85489e37fffffff"
+        }
+      },
+      "feeder": {
+        "role": "operator",
+        "body": {
+          "parentId": "feeder:LZ_AEN:86489e367ffffff"
+        },
+        "permissions": "site_location"
       }
     }
   }

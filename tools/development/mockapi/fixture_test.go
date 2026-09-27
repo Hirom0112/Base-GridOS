@@ -20,7 +20,14 @@ import (
 )
 
 type fixtureIndex struct {
-	Screens map[string][]string `json:"screens"`
+	Screens  map[string][]string                  `json:"screens"`
+	Variants map[string]map[string]fixtureVariant `json:"variants"`
+}
+
+type fixtureVariant struct {
+	Role        string          `json:"role"`
+	Permissions string          `json:"permissions"`
+	Body        json.RawMessage `json:"body"`
 }
 
 func TestFixturesCapturePlanningCases(t *testing.T) {
@@ -111,6 +118,17 @@ func TestFixturesCaptureContextGeo(t *testing.T) {
 			t.Fatalf("recorded drilldown path breaks at %s", level)
 		}
 	}
+	content, err := os.ReadFile(filepath.Join(root, "INDEX.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var index fixtureIndex
+	if err := json.Unmarshal(content, &index); err != nil {
+		t.Fatal(err)
+	}
+	if index.Variants["gridos.v1.GeoService.Drilldown"]["feeder"].Permissions != "site_location" {
+		t.Fatal("recorded exact site drilldown lacks site_location permission")
+	}
 }
 
 func readPlanningFixture(t *testing.T, root, name string, message proto.Message) {
@@ -142,7 +160,17 @@ func TestFixturesMatchContract(t *testing.T) {
 			t.Errorf("screen %q has no methods", screen)
 		}
 		for _, methodName := range methods {
-			fixture := validateMethodFixture(t, files, fixtureRoot, methodName)
+			fixture := validateMethodFixture(t, files, fixtureRoot, methodName, "", fixtureVariant{})
+			mapped[fixture] = true
+		}
+	}
+	for methodName, variants := range index.Variants {
+		service, method, found := strings.Cut(strings.TrimPrefix(methodName, "gridos.v1."), ".")
+		if !found || !mapped[filepath.Join(service, method+".json")] {
+			t.Errorf("variants for %s require a mapped default fixture", methodName)
+		}
+		for name, request := range variants {
+			fixture := validateMethodFixture(t, files, fixtureRoot, methodName, name, request)
 			mapped[fixture] = true
 		}
 	}
@@ -189,7 +217,7 @@ func contractFiles(t *testing.T, root string) *protoregistry.Files {
 	return files
 }
 
-func validateMethodFixture(t *testing.T, files *protoregistry.Files, fixtureRoot, methodName string) string {
+func validateMethodFixture(t *testing.T, files *protoregistry.Files, fixtureRoot, methodName, variant string, request fixtureVariant) string {
 	t.Helper()
 	descriptor, err := files.FindDescriptorByName(protoreflect.FullName(methodName))
 	if err != nil {
@@ -202,7 +230,20 @@ func validateMethodFixture(t *testing.T, files *protoregistry.Files, fixtureRoot
 		return ""
 	}
 	service := string(method.Parent().Name())
-	fixture := filepath.Join(service, string(method.Name())+".json")
+	name := string(method.Name())
+	if variant != "" {
+		if strings.ContainsAny(variant, "/\\.") || request.Role == "" || len(request.Body) == 0 {
+			t.Errorf("invalid fixture variant %s.%s", methodName, variant)
+			return ""
+		}
+		input := dynamicpb.NewMessage(method.Input())
+		if err := (protojson.UnmarshalOptions{DiscardUnknown: false}).Unmarshal(request.Body, input); err != nil {
+			t.Errorf("invalid fixture request %s.%s: %v", methodName, variant, err)
+			return ""
+		}
+		name += "." + variant
+	}
+	fixture := filepath.Join(service, name+".json")
 	content, err := os.ReadFile(filepath.Join(fixtureRoot, fixture))
 	if err != nil {
 		t.Errorf("%s: %v", fixture, err)
