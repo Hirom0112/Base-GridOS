@@ -48,7 +48,7 @@ func TestRetryValidationFailureDoesNotRetry(t *testing.T) {
 func TestRetryCommandExpiryUsesDurableTimer(t *testing.T) {
 	var suite testsuite.WorkflowTestSuite
 	environment := suite.NewTestWorkflowEnvironment()
-	expiresAt := environment.Now().Add(time.Hour)
+	expiresAt := environment.Now().UTC().Add(time.Hour)
 	input := Input{EventID: "event-1", Generation: 7, ExpiresAt: expiresAt}
 	mockLifecycle(environment, input)
 	environment.OnActivity(ExpireCommandsActivity, mock.Anything, EmergencyCommand{
