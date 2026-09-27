@@ -32,6 +32,7 @@ go_test(
         "events_test.go",
         "exceptions_test.go",
         "commands_test.go",
+        "postgres_test.go",
     ],
     data = ["//database:migrations"],
     embed = [":events"],
