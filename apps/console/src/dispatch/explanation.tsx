@@ -150,7 +150,12 @@ export function ExplanationEvidence({
           safety result.
         </p>
         {constraintMargins.length ? (
-          <div className="explanation-scroll">
+          <div
+            className="explanation-scroll"
+            role="region"
+            aria-label="Constraint margin table"
+            tabIndex={0}
+          >
             <table>
               <thead>
                 <tr>
@@ -185,7 +190,12 @@ export function ExplanationEvidence({
       <section>
         <h3>Interval feasibility</h3>
         {shortfalls.length ? (
-          <div className="explanation-scroll">
+          <div
+            className="explanation-scroll"
+            role="region"
+            aria-label="Interval feasibility table"
+            tabIndex={0}
+          >
             <table aria-label="Interval feasibility">
               <thead>
                 <tr>
@@ -222,29 +232,7 @@ export function ExplanationEvidence({
           <p>No interval feasibility returned.</p>
         )}
       </section>
-      <details className="objective-evidence" open={!objectiveBreakdown}>
-        <summary>Modeled objective · inspect the value and costs</summary>
-        <p>
-          Modeled estimates, not settled revenue. Objective units are not
-          supplied by the contract.
-        </p>
-        {objectiveBreakdown ? (
-          <dl>
-            {Object.entries(objectiveLabels).map(([key, label]) => (
-              <div key={key}>
-                <dt>{label}</dt>
-                <dd className="mono">
-                  {quantity.format(
-                    objectiveBreakdown[key as keyof typeof objectiveLabels],
-                  )}
-                </dd>
-              </div>
-            ))}
-          </dl>
-        ) : (
-          <p>Objective breakdown unavailable.</p>
-        )}
-      </details>
+      <ObjectiveEvidence objectiveBreakdown={objectiveBreakdown} />
       {marginExplanation ? (
         <EconomicMargin margin={marginExplanation} />
       ) : (
@@ -277,7 +265,12 @@ function EconomicMargin({
         Hurdle {quantity.format(margin.marginHurdle)}. Currency and units not
         supplied.
       </p>
-      <div className="explanation-scroll">
+      <div
+        className="explanation-scroll"
+        role="region"
+        aria-label="Economic margin table"
+        tabIndex={0}
+      >
         <table aria-label="Economic margin terms">
           <thead>
             <tr>
@@ -302,5 +295,37 @@ function EconomicMargin({
         </table>
       </div>
     </section>
+  );
+}
+
+function ObjectiveEvidence({
+  objectiveBreakdown,
+}: {
+  objectiveBreakdown: z.infer<typeof explanationSchema>["objectiveBreakdown"];
+}) {
+  return (
+    <details className="objective-evidence" open={!objectiveBreakdown}>
+      <summary>Modeled objective · inspect the value and costs</summary>
+      <p>
+        Modeled estimates, not settled revenue. Objective units are not supplied
+        by the contract.
+      </p>
+      {objectiveBreakdown ? (
+        <dl>
+          {Object.entries(objectiveLabels).map(([key, label]) => (
+            <div key={key}>
+              <dt>{label}</dt>
+              <dd className="mono">
+                {quantity.format(
+                  objectiveBreakdown[key as keyof typeof objectiveLabels],
+                )}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      ) : (
+        <p>Objective breakdown unavailable.</p>
+      )}
+    </details>
   );
 }
