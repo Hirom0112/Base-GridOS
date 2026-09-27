@@ -906,6 +906,19 @@ Owns: `services/control/internal/dispatch/`, `services/control/cmd/worker`,
 `services/control/internal/api/` root package only (to retire the Wave 1 dispatcher; `internal/api/events/` is 2F's),
 `services/control/go.mod` (Wave 2 owner).
 
+- `[ ]` 2A.11 `[P]` Telemetry ingest lock per gateway. `PublishTelemetry` takes one
+  advisory transaction lock keyed by gateway id instead of one per device,
+  so a 5,000-device batch cannot exhaust the PostgreSQL lock table, batches
+  from one gateway still serialize, and sequence dedup stays exact. Verify:
+  `go test ./services/control/internal/ingest/ -run Lock` proves two
+  concurrent batches for one gateway serialize and a 5,000-device batch
+  holds one advisory lock (pg_locks count asserted).
+- `[ ]` 2A.12 `[P]` Publish failures are visible. The gateway logs every
+  failed telemetry publish with the control error and exposes
+  `gridos_gateway_publish_failures_total` and `gridos_gateway_buffered_rows`;
+  control logs ingest errors with the gateway id. Verify: `go test
+  ./services/gateway-simulator/internal/telemetry/ -run PublishFailure` passes
+  and the two metrics appear on `:9466/metrics`.
 - `[x]` 2B.1 `[P]` `cmd/worker`, task queue, and a workflow test suite using
   the Temporal SDK test environment with time skipping (the SDK dependency
   was pre-declared in 1D.1).

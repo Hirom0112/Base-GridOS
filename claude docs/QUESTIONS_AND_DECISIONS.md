@@ -1918,3 +1918,26 @@ Marked done. Every backend item in the plan is now done except 5D.8 (a
 compose setting applied at the next make up). Open: 3F.5, 4F.5 and 5F.2,
 the console's demo path. The demo is rebuilt on cb5711e so 4B.9 and 4C.7
 serve together.
+
+## 2026-09-27 10:20Z — Demo telemetry outage: advisory lock per device exhausts the lock table
+
+Since 08:01:30Z no telemetry has been ingested on the standing demo. The
+PostgreSQL log shows `out of shared memory ... increase
+max_locks_per_transaction` on control's ingest statement, which takes one
+advisory transaction lock per device key for a 5,000-device batch. The
+lock table holds max_locks_per_transaction (64) times max_connections
+(100) entries, so one batch consumes most of it and the first concurrent
+holder of a few hundred locks (root's isolated stack applying the
+partitioned telemetry migration) tipped it over; every retry since fails
+the same way and the gateway buffers silently (220,000 rows). Neither the
+gateway nor control logged the failure, and the gateway's up metric stayed
+1. Decisions: (1) the ingest lock becomes one advisory lock per gateway
+(sequences are per gateway and device, so batches from one gateway
+serialize and batches from different gateways never conflict); root owns
+it now as 2A.11 with RED/GREEN; (2) new 2A.12: the gateway logs and counts
+publish failures and buffered rows, control logs ingest errors, so an
+outage is visible within one cadence; (3) 5D.8 stays for the compose
+setting as headroom, not as the fix. The historical geo call also hung
+control at full CPU during the outage; root checks the as_of path for a
+loop over stale observations while fixing the lock (2A.11 must include a
+timing bound on the as_of query).
