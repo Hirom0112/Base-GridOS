@@ -755,3 +755,10 @@ assumptions reported by workers land here too.
   with the generated contracts copied in; the demo database and gateway
   store are reset together only, and the worker is started with an
   explicit `GRIDOS_CODE_VERSION` when built outside VCS metadata.
+- **4E.3 and 4E.5 (lane 4E), verified:** report comparison emits sorted
+  changes for every numeric field, uncertainty bounds, exclusion counts,
+  and plan, policy, solver, and model versions; the partner view exposes
+  aggregate power, delivered energy, and modeled net value only, with a
+  positive control proving private site, device, travel, and away strings
+  planted in the source never reach the JSON. Director: report package ok,
+  seven tests.
