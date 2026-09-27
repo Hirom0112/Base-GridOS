@@ -50,3 +50,35 @@ func TestEveryInjectionIsSeededAndReproducible(t *testing.T) {
 		})
 	}
 }
+
+func TestScheduledFaultKindsSelectDistinctDevicesOnSameTick(t *testing.T) {
+	at := time.Date(2026, time.August, 12, 18, 15, 0, 0, time.UTC)
+	devices := []Device{{ID: "device-0", Region: "LZ_AEN"}, {ID: "device-1", Region: "LZ_AEN"}, {ID: "device-2", Region: "LZ_AEN"}}
+	scenario := Scenario{Seed: 20260926, Start: at, Tick: time.Minute, Injections: []Injection{
+		{At: at, Kind: OfflineDevices, Scope: Scheduled},
+		{At: at, Kind: DelayedGateway, Scope: Scheduled},
+	}}
+	first, err := NewEngine(scenario, devices)
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, err := NewEngine(scenario, devices)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, device := range devices {
+		first.recordCommand("event", device.ID, 1)
+		second.recordCommand("event", device.ID, 1)
+	}
+	firstEffects := first.advance(at, "event")
+	secondEffects := second.advance(at, "event")
+	if !reflect.DeepEqual(firstEffects, secondEffects) {
+		t.Fatalf("seeded effects differ: first=%v second=%v", firstEffects, secondEffects)
+	}
+	if len(firstEffects) != 2 || len(firstEffects[0].DeviceIDs) != 1 || len(firstEffects[1].DeviceIDs) != 1 {
+		t.Fatalf("scheduled effects = %v", firstEffects)
+	}
+	if firstEffects[0].DeviceIDs[0] == firstEffects[1].DeviceIDs[0] {
+		t.Fatalf("fault kinds target the same device: %v", firstEffects)
+	}
+}
