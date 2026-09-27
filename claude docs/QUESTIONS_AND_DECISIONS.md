@@ -1050,3 +1050,7 @@ assumptions reported by workers land here too.
   ERCOT zone. The recorded Austin fixture holds zero alerts, so the demo
   shows no weather override with an audit saying so; the WEATHER path is
   proven in an isolated test with a synthetic Travis County alert.
+- **4F.1 partial (lane 4F):** the Travel Flex lifecycle scenario passes on
+  the director's machine (consented plan, scheduled window, frozen flex
+  reserve, early return, second window, automatic expiry). The remaining
+  scenarios wait on the hardware-floor source, 4A.10, and 4A.11.
