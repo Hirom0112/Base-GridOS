@@ -62,3 +62,27 @@ func TestOverrideRequiresRaisedReserveAndSupportedSignal(t *testing.T) {
 	command.EvidenceID = ""
 	require.Error(t, store.ApplyOverride(ctx, command))
 }
+
+func TestOverridePersistsAcrossPlanChangeUntilExpiry(t *testing.T) {
+	pool := policyDatabase(t)
+	ctx := context.Background()
+	begin := time.Date(2026, 9, 26, 12, 0, 0, 0, time.UTC)
+	seedPolicyCatalog(t, pool, begin)
+	store := New(pool)
+	_, err := pool.Exec(ctx, `INSERT INTO member_sites(site_id, member_id, bound_at, source, provenance)
+		VALUES ('site-override', 'member-override', $1, 'SIMULATED', '{"provenance":"SIMULATED"}')`, begin)
+	require.NoError(t, err)
+	_, err = store.Select(ctx, Selection{ID: "selection-original", MemberID: "member-override", Market: "TX", CatalogVersion: "catalog-v1", MemberPlanID: "plan-cedar", PolicyVersion: "policy-v1", ConsentText: "I consent", ConsentVersion: "v1", ExplanationShown: "Backup reserve", EffectiveAt: begin, CorrelationID: "selection-original"})
+	require.NoError(t, err)
+	expires := begin.Add(48 * time.Hour)
+	require.NoError(t, store.ApplyOverride(ctx, ReserveOverride{ID: "override-lasting", MemberID: "member-override", Reason: OverrideWeather, FloorPercent: 85, EffectiveAt: begin, ExpiresAt: expires, PolicyVersion: "policy-v1", EvidenceID: "nws-alert-lasting", CorrelationID: "override-lasting"}))
+	changedAt := begin.Add(25 * time.Hour)
+	_, err = store.Select(ctx, Selection{ID: "selection-new", MemberID: "member-override", Market: "TX", CatalogVersion: "catalog-v2", MemberPlanID: "plan-cedar", PolicyVersion: "policy-v2", ConsentText: "I consent to new plan", ConsentVersion: "v2", ExplanationShown: "New backup reserve", EffectiveAt: changedAt, CorrelationID: "selection-new"})
+	require.NoError(t, err)
+	reserve, err := store.ReserveAt(ctx, "member-override", changedAt)
+	require.NoError(t, err)
+	require.Equal(t, 85.0, reserve.EffectivePercent)
+	bySite, err := store.SiteReserves(ctx, []string{"site-override"}, changedAt)
+	require.NoError(t, err)
+	require.Equal(t, 85.0, bySite["site-override"].BasePercent)
+}
