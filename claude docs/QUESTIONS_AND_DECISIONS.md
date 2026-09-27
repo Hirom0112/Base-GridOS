@@ -1126,3 +1126,23 @@ assumptions reported by workers land here too.
   versions, travel and away state, logs and analytics, source licenses);
   the retention document states enforced facts and open data-owner
   decisions without invented periods. Director: both files inspected.
+- **4A.11 (lane 4A), verified; lane 4A complete:** ProduceReport posts
+  one fixed event credit per participating member (accepted nonzero
+  command, frozen device to site to member binding, consented offer at
+  event begin, full-window Travel Flex only) before building the stored
+  report; a retry inserts nothing twice; policy tests cover late
+  acceptance, zero-command exclusion, expired consented offers, and full
+  versus partial windows. Director: policy, api, dispatch selectors pass.
+  Late acceptance after publication is a bounded hourly catch-up, ledger
+  only, approved as a follow-up; the report stays immutable.
+- **Orphaned test stacks (2026-09-27):** twenty-four processes from
+  interrupted isolated stacks (decision servers, control and gateway
+  binaries, test binaries, some six hours old) were still running and one
+  held the decision metrics port, which blocked a demo restart. Rule: a
+  stack's cleanup kills its children on any exit, an agent that interrupts
+  a run kills what it started, and the director sweeps orphans older than
+  twenty minutes at each demo rebuild.
+- **Step-up in the browser (5E.2):** the browser never holds the demo
+  key; in local auth mode the console obtains the assertion from the
+  STUBBED mock identity endpoint, which signs server-side; production
+  replaces that with identity-provider assertions.

@@ -1365,7 +1365,7 @@ Owns: `services/control/internal/fleet/policy/`,
   Thresholds and the raised floor per reason live in a versioned
   `risk_policy` row (migration with rollback), never constants; evidence is
   the source record id and as-of. Verify: `go test ./services/control/internal/fleet/policy/ -run RiskBridge` passes and on the demo a forced stale device shows a STALE_TELEMETRY override row within five minutes.
-- `[ ]` 4A.11 `[after 4A.7]` Reward posting. Nothing posts to the
+- `[x]` 4A.11 `[after 4A.7]` Reward posting. Nothing posts to the
   append-only reward ledger. At REPORTED, post one fixed event credit per
   participating member with an active offer, idempotent on (event_id,
   member_id, offer_id), in the same transaction as the stored report; daily
@@ -1437,6 +1437,10 @@ Owns: `services/control/internal/fleet/geo/`,
 - `[x]` 4C.4 `[P]` RED then GREEN: no geo response ever carries a street
   address or a real member home; a test scans every geo response type for
   address-like fields. Verify: `go test ./services/control/internal/api/geo/ -run NoAddress` passes.
+- `[ ]` 4C.5 `[after 4C.2]` Geo cells carry time. `ListCells` and
+  `Drilldown` responses carry as_of, freshness, and the aggregate metadata
+  (provenance mix, record count) the fleet views already carry, so the
+  console can label the map honestly. Additive in `geo.proto`. Verify: `go test ./services/control/internal/api/geo/ -run CellMetadata` passes and the recorded fixtures are refreshed.
 
 ### Lane 4D — public context services
 
