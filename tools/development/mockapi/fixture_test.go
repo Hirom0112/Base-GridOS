@@ -37,6 +37,9 @@ func TestFixturesCapturePlanningCases(t *testing.T) {
 	if explanation.GetObjectiveBreakdown() == nil || explanation.GetReserveHeldBackKwh() <= 0 || len(explanation.GetConstraintMargins()) == 0 {
 		t.Fatal("recorded explanation lacks objective, reserve, or margins")
 	}
+	if len(explanation.GetEvidence().GetSiteLoads()) == 0 || explanation.GetEvidence().GetSiteLoadUnits() != "kWh" || explanation.GetEvidence().GetSiteLoads()[0].GetLoadKwh().GetIssuedAt() == nil {
+		t.Fatal("recorded explanation lacks frozen forecast intervals, units, or source time")
+	}
 	forecast := new(gridosv1.ForecastResponse)
 	readPlanningFixture(t, root, "OptimizationService/Forecast.json", forecast)
 	if len(forecast.GetSiteLoads()) == 0 || len(forecast.GetDeviceAvailability()) == 0 || forecast.GetSiteLoads()[0].GetIntervalBeginTime() == nil ||
