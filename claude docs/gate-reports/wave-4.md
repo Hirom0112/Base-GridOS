@@ -83,9 +83,10 @@ workflow reporting before the event window (earlier waves), and in this
 gate a report source that rejected events with uncertain commands, an
 activity that failed on a trace attribute, a geo drill-down that panicked
 without a fleet snapshot, and a canonical scenario whose injections never
-hit dispatched devices. Two further defects remain open as Gate 4 blockers
-for the demo path rather than the scenario suite: per-device command
-generations across events (2B.9, emergency stop rejected as obsolete on a
-fleet that has run before) and automatic recovery inside the envelope
-(2B.10). The gate closes on the suite; the report records both items as
-open for the console leg.
+hit dispatched devices. Two further defects were open as demo-path blockers when
+the suite went green: per-device command generations across events (2B.9)
+and automatic recovery inside the envelope (2B.10). 2B.9 closed after the
+report was first written: on the rebuilt demo a fleet that had run events
+before accepted 166 launch commands and then 166 emergency-stop zero
+commands at per-device generations, none rejected, and the
+consecutive-events scenario passes. 2B.10 remains open for the console leg.
