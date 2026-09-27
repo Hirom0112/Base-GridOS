@@ -11,7 +11,7 @@ const versionSchema = z.union([
     .string()
     .regex(/^[1-9]\d*$/)
     .max(20)
-    .refine((value) => BigInt(value) <= 18446744073709551615n),
+    .pipe(z.string().refine((value) => BigInt(value) <= 18446744073709551615n)),
 ]);
 export const comparisonSchema = z.object({
   eventIdA: z.string().trim().min(1).max(200),
