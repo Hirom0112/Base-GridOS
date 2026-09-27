@@ -29,9 +29,9 @@ test("fast frames retain resolution without oscillating after a downgrade", () =
   expect(quality.pixelRatio).toBe(1);
 });
 
-test("idle time and interrupted highlights never count as slow active frames", () => {
+test("idle time never counts as slow active frames", () => {
   const quality = createRenderQuality(2, 1440);
-  for (let index = 0; index < 11; index++) quality.frame(index * 100);
+  for (let index = 0; index < 11; index++) quality.frame(index * 16);
   quality.frame();
   for (let index = 0; index < 60; index++) quality.frame(100000 + index * 16);
   expect(quality.pixelRatio).toBe(1.5);
@@ -46,4 +46,14 @@ test("mobile accepts thirty frames per second and respects low device density", 
   const lowDensity = createRenderQuality(0.5, 1440);
   for (let index = 0; index <= 24; index++) lowDensity.frame(index * 50);
   expect(lowDensity.pixelRatio).toBe(0.5);
+});
+
+test("slow frames accumulate across short highlights without counting their idle gaps", () => {
+  const quality = createRenderQuality(2, 1440);
+  for (let burst = 0; burst < 3; burst++) {
+    quality.frame();
+    for (let frame = 0; frame <= 5; frame++)
+      quality.frame(burst * 10000 + frame * 100);
+  }
+  expect(quality.pixelRatio).toBe(1);
 });
