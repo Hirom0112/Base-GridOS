@@ -41,7 +41,7 @@ for (const width of [390, 1440]) {
         });
       },
     );
-    await page.goto("/events/event_austin_wave1_0004");
+    await page.goto("/events/event_austin_wave2_live_0002");
     await page.getByRole("button", { name: "Request emergency stop" }).click();
     await expect(page.getByRole("dialog")).toBeVisible();
     await page.getByLabel("Reason for stopping").fill("Unexpected response");

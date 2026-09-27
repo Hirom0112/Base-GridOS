@@ -9,7 +9,7 @@ for (const width of [390, 768, 1440]) {
     }) => {
       await recordedApi(page);
       await page.setViewportSize({ width, height: 900 });
-      await page.goto("/events/event_austin_wave1_0004");
+      await page.goto("/events/event_austin_wave2_live_0002");
       if (theme === "light")
         await page.getByRole("button", { name: "Use light theme" }).click();
       const records = page.getByRole("list", { name: "Known event records" });
@@ -47,7 +47,7 @@ test("event records remain available with reduced motion and no WebGL", async ({
   await page.addInitScript(() => {
     HTMLCanvasElement.prototype.getContext = () => null;
   });
-  await page.goto("/events/event_austin_wave1_0004");
+  await page.goto("/events/event_austin_wave2_live_0002");
   await expect(
     page
       .getByRole("list", { name: "Known event records" })

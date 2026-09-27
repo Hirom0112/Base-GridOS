@@ -35,7 +35,7 @@ test("queued planning has no invented plan version or premature approval", async
       });
     },
   );
-  await page.goto("/dispatch/event_austin_wave1_0004");
+  await page.goto("/dispatch/event_austin_wave2_live_0002");
   await page.getByLabel("Demo role").selectOption("approver");
   await expect(page.locator(".event-identifiers")).toContainText(
     "Plan pending",

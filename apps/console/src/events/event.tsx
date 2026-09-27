@@ -1,4 +1,5 @@
 import { useRef } from "react";
+import { z } from "zod";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { timestampFromDate, timestampDate } from "@bufbuild/protobuf/wkt";
@@ -38,7 +39,21 @@ function useEvent(eventId: string) {
   );
   const query = useQuery({
     queryKey: ["event", eventId, identity.role],
-    queryFn: ({ signal }) => client.dispatch.getEvent({ eventId }, { signal }),
+    queryFn: async ({ signal }) => {
+      const response = await client.dispatch.getEvent({ eventId }, { signal });
+      const valid = z
+        .object({
+          eventId: z.literal(eventId),
+          state: z.number().int().min(1).max(11),
+          planVersion: z.bigint().nonnegative(),
+        })
+        .safeParse(response.event);
+      if (!valid.success)
+        throw new Error(
+          "Event evidence does not match the selected event or has invalid state.",
+        );
+      return response;
+    },
     refetchInterval: 3000,
   });
   async function confirm(action: "approve" | "launch") {
@@ -200,9 +215,8 @@ export function EventView({
       <AuditTimeline event={event} />
       {view === "execution" && (
         <div className="boundary-note">
-          Verified delivery, replay, and modeled economics are not supplied by
-          this event response. They remain unavailable until the corresponding
-          service provides evidence.
+          The Report view contains delivery accounting, modeled economics, and
+          replay evidence. Missing measurements remain explicitly unavailable.
         </div>
       )}
     </section>

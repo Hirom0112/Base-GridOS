@@ -35,7 +35,7 @@ for (const width of [390, 1440]) {
           });
         },
       );
-      await page.goto("/events/event_austin_wave1_0004");
+      await page.goto("/events/event_austin_wave2_live_0002");
       if (theme === "light")
         await page.getByRole("button", { name: "Use light theme" }).click();
       await expect(
