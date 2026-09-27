@@ -77,3 +77,30 @@ test("a failed renderer download keeps the field and actions available", async (
     page.getByRole("heading", { name: "Request a dispatch plan" }),
   ).toBeVisible();
 });
+
+test("a failed geographic module preserves exact capacity and dispatch controls", async ({
+  page,
+}, testInfo) => {
+  await recordedApi(page);
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.route("**/src/fleet/geographic-field.tsx*", (route) =>
+    route.abort("failed"),
+  );
+  await page.goto("/fleet");
+  const fallback = page.getByRole("region", {
+    name: "Unavailable geographic field",
+  });
+  await expect(fallback).toContainText("Geographic assets unavailable");
+  await fallback.getByText("Inspect recorded cell capacity").click();
+  await expect(fallback.locator("tbody tr")).toHaveCount(320);
+  await expect(fallback).toContainText("SIMULATED");
+  expect(errors).toEqual([]);
+  await fallback.screenshot({
+    path: testInfo.outputPath("geographic-module-unavailable.png"),
+  });
+  await page.getByRole("link", { name: "Plan a dispatch" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Request a dispatch plan" }),
+  ).toBeVisible();
+});
