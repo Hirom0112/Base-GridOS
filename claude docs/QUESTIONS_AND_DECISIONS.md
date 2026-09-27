@@ -2268,3 +2268,16 @@ must never stall a batch. Decision: 2B.11 (root, top priority, before the
 batch delivered, the activity succeeds, and after bounded attempts the
 command becomes UNCERTAIN with its typed exception. The two stuck
 replacement rows on the demo resolve when the fix lands.
+
+## 2026-09-27 10:07Z — 4E.10 API verified; recorded console gate down to two
+
+RED 16ad5bf and 7383f53 (tests only) then GREEN 68aba6a: operator reports
+carry `planned_shortfall` and `delivery_shortfall`, the partner
+projection carries `delivery_coverage` and omits delivered power and
+energy at zero coverage while keeping a measured zero. `go test
+./services/control/internal/api/report/ ./services/control/internal/report/
+-run 'Shortfall|PartnerCoverage'` ok for both here. The fixture refresh
+waits for the rebuild after 2B.11. The recorded console gate rerun after
+the lane's twelve corrections printed `2 failed`, `76 passed (1.1m)`:
+audit records at 390 in dark, and the dispatch-flow confirmations at 390;
+posted for correction.
