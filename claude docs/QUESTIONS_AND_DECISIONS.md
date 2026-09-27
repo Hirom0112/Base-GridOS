@@ -1695,3 +1695,19 @@ by a client; 4C.7 gives ListCells the same `as_of` Drilldown already has,
 so the replay scrub can drive the geography from retained telemetry. Both
 root after the gate window. Until then the console shows member status,
 fixed-wording alerts, and Drilldown at `as_of` for the scrubbed position.
+
+## 2026-09-27 07:00Z — 4B.9 stored offer terms
+
+The pricing catalog snapshot stores prices, rewards and reserve metadata but
+not the contract and consent versions, the consent and price text, or the
+Travel Flex reserve and credit terms; PresentOffer takes those from the
+caller. Decision: an additive migration with rollback adds `offer_terms`
+keyed by catalog version, plan and offer kind, holding contract version,
+consent version, consent text, price text, temporary reserve percent,
+credit type and fixed credit; the dev seed carries clearly simulated text.
+ListMemberOffers serves those rows with the member's scheduled windows.
+PresentOffer keeps its wire shape (buf breaking stays clean) but validates
+the supplied terms against the stored row for that catalog version, plan
+and kind, rejecting any mismatch with InvalidArgument, so no client can
+bind invented terms. The console copies terms from ListMemberOffers into
+PresentOffer.
