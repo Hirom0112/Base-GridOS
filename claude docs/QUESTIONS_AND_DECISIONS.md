@@ -1371,3 +1371,7 @@ assumptions reported by workers land here too.
   device_65375692ddaafc294e08-376) readable from the event timeline while
   the event was EXECUTING; twelve timeline entries at that point. The
   UNCERTAIN kind follows 2B.10, which sends commands inside the window.
+- **2B.9 follow-ups accepted:** the generation migration re-applies
+  cleanly and replacement publishing drains multiple same-device interval
+  intents under the predecessor claim rule; the consecutive-events stack
+  run is the remaining leg before the emergency-stop rehearsal.
