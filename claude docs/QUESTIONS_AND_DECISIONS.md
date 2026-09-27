@@ -1261,3 +1261,8 @@ assumptions reported by workers land here too.
   monotonic generation across events. This is a Gate 4 blocker: the
   canonical demo path approves, launches, and stops on a fleet that has
   run before.
+- **Bazel build boundary (5D.5, 2026-09-27):** Bazel generates the
+  protobuf bindings as build outputs with the pinned local plugins and the
+  library targets depend on those outputs, so a fresh checkout runs the
+  Bazel tests with no host step, matching the container boundary;
+  `make generate` remains the host workflow.
