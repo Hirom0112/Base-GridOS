@@ -125,7 +125,7 @@ func (source *PostgresReportSource) fillPlanEvidence(ctx context.Context, eventI
 	if err = protojson.Unmarshal(planJSON, plan); err != nil {
 		return *report, err
 	}
-	report.PlannedShortfall, err = plannedShortfalls(plan)
+	report.PlannedShortfall, err = source.approvedShortfalls(ctx, eventID)
 	if err != nil {
 		return *report, err
 	}

@@ -8,8 +8,29 @@ import (
 	gridosv1 "github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/reconciliation"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/report"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
+	"google.golang.org/protobuf/encoding/protojson"
 )
+
+func (source *PostgresReportSource) approvedShortfalls(ctx context.Context, eventID string) ([]report.PlannedShortfall, error) {
+	var encoded []byte
+	err := source.pool.QueryRow(ctx, `SELECT plan.plan FROM operator_approvals AS approval
+		JOIN plan_versions AS plan ON plan.event_id = approval.event_id AND plan.version = approval.plan_version
+		WHERE approval.event_id = $1 AND approval.decision = 'APPROVED'
+		ORDER BY approval.decided_at DESC, approval.approval_id DESC LIMIT 1`, eventID).Scan(&encoded)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	plan := new(gridosv1.DispatchPlan)
+	if err := protojson.Unmarshal(encoded, plan); err != nil {
+		return nil, err
+	}
+	return plannedShortfalls(plan)
+}
 
 func plannedShortfalls(plan *gridosv1.DispatchPlan) ([]report.PlannedShortfall, error) {
 	values := make([]report.PlannedShortfall, 0, len(plan.GetShortfalls()))
