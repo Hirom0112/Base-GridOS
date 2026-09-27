@@ -12,7 +12,10 @@ function observation(at: string, deliveredMw: number, deliveredState: string) {
     ],
   };
   return {
-    event: { eventId: "event-live", state: "DISPATCH_EVENT_STATE_SENT" },
+    event: {
+      eventId: "event_austin_wave2_live_0002",
+      state: "DISPATCH_EVENT_STATE_SENT",
+    },
     observedAt: at,
     fleet: {
       sentMw: 1,
@@ -104,7 +107,7 @@ for (const { width, mode } of [
           HTMLCanvasElement.prototype.getContext = () => null;
         });
       }
-      await page.goto("/events/event-live");
+      await page.goto("/events/event_austin_wave2_live_0002");
       await expect(page.getByText("Delivery unknown")).toBeVisible();
       if (mode === "light")
         await page.getByRole("button", { name: "Use light theme" }).click();

@@ -9,7 +9,7 @@ import {
   type ResponseMeasure,
 } from "./scene";
 import type { mountGrid } from "./renderer";
-import { Evidence } from "../api/Provenance";
+import { Evidence, provenanceNames } from "../api/Provenance";
 
 export default function LivingGrid({
   cells,
@@ -49,6 +49,25 @@ export default function LivingGrid({
       };
     }
   }, [cells, response, measure]);
+  const sources =
+    measure === "installed"
+      ? (projection.error ? [] : cells).map(
+          (cell) => cell.installedMw?.metadata,
+        )
+      : (response?.h3 ?? []).map((cell) => cell.power?.metadata);
+  const provenance =
+    [
+      ...new Set(
+        sources.flatMap((metadata) =>
+          (metadata?.provenanceMix ?? []).map(
+            (share) =>
+              provenanceNames[
+                share.provenance as keyof typeof provenanceNames
+              ] ?? "Provenance unavailable",
+          ),
+        ),
+      ),
+    ].join(" · ") || "Provenance unavailable";
   const host = useRef<HTMLDivElement>(null);
   const renderer = useRef<ReturnType<typeof mountGrid> | null>(null);
   const select = useRef(onSelect);
@@ -120,7 +139,7 @@ export default function LivingGrid({
             ? "Neutral capacity · no availability inferred"
             : "Missing cells remain unknown · no fleet totals distributed"}
         </span>
-        <span>SIMULATED</span>
+        <span>{provenance}</span>
       </div>
       <GeographicTable
         cells={projection.error ? [] : cells}
@@ -325,7 +344,7 @@ function GeographicTable({
                         ? cell.installedMw?.metadata
                         : response?.h3.find(
                             (item) => item.h3Cell === cell.h3Cell,
-                          )?.metadata
+                          )?.power?.metadata
                     }
                   />
                 </td>
