@@ -10,6 +10,7 @@ dependencies = [
   "opentelemetry-api>=1.45.0",
   "opentelemetry-sdk>=1.45.0",
   "polars>=1.33.0",
+  "prometheus-client>=0.22.0",
   "protobuf>=6.32.0",
 ]
 

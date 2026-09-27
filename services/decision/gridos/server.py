@@ -18,7 +18,7 @@ from gridos.fallback.planner import (
 )
 from gridos.fallback.replacement import replace_dropped
 from gridos.forecasting.serve import forecast_response
-from gridos.observability import new_provider, traced_rpc
+from gridos.observability import new_provider, start_metrics_server, traced_rpc
 from gridos.optimization.model import OptimizedPlan, optimize
 from gridos.solver.bounded import Decision, Planner, resolve, solve_within_budget
 from gridos.v1 import device_pb2, dispatch_pb2, optimization_pb2, telemetry_pb2
@@ -462,12 +462,16 @@ def serve(port: int) -> None:
     )
     if server.add_insecure_port(f"[::]:{port}") == 0:
         raise RuntimeError(f"could not bind port {port}")
-    server.start()
+    metrics_port = _port(os.getenv("GRIDOS_DECISION_METRICS_PORT", "9467"))
+    metrics_server, _ = start_metrics_server(metrics_port)
     try:
+        server.start()
         server.wait_for_termination()
     except KeyboardInterrupt:
         server.stop(0).wait()
     finally:
+        metrics_server.shutdown()
+        metrics_server.server_close()
         traces.shutdown()
 
 

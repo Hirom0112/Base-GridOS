@@ -2,12 +2,17 @@ import json
 import re
 from collections.abc import Callable, Iterator, Mapping, Sequence
 from contextlib import contextmanager
+from threading import Thread
 from typing import TextIO
+from wsgiref.simple_server import WSGIServer
 
 import grpc
 from opentelemetry.sdk.trace import ReadableSpan, TracerProvider
 from opentelemetry.sdk.trace.export import SimpleSpanProcessor, SpanExporter, SpanExportResult
 from opentelemetry.trace import Span
+from prometheus_client import Counter, start_http_server
+
+_rpc_total = Counter("gridos_decision_rpc_total", "Decision RPC calls.", ["method"])
 
 
 def _safe_identity(value: str) -> bool:
@@ -54,6 +59,10 @@ def new_provider(writer: TextIO) -> TracerProvider:
     return provider
 
 
+def start_metrics_server(port: int) -> tuple[WSGIServer, Thread]:
+    return start_http_server(port, addr="0.0.0.0")
+
+
 @contextmanager
 def start_span(
     provider: TracerProvider,
@@ -92,6 +101,9 @@ def traced_rpc[Request, Response](
             else "redacted"
         )
         with start_span(provider, name, correlation, workflow, {}):
-            return handler(request, context)
+            try:
+                return handler(request, context)
+            finally:
+                _rpc_total.labels(method=name).inc()
 
     return call
