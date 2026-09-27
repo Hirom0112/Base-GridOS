@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	gridosv1 "github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protodesc"
@@ -19,6 +20,42 @@ import (
 
 type fixtureIndex struct {
 	Screens map[string][]string `json:"screens"`
+}
+
+func TestFixturesCapturePlanningCases(t *testing.T) {
+	root := filepath.Join(repositoryRoot(t), "testdata", "fixtures", "api")
+	explanation := new(gridosv1.GetPlanExplanationResponse)
+	readPlanningFixture(t, root, "DispatchService/GetPlanExplanation.json", explanation)
+	if explanation.GetObjectiveBreakdown() == nil || explanation.GetReserveHeldBackKwh() <= 0 || len(explanation.GetConstraintMargins()) == 0 {
+		t.Fatal("recorded explanation lacks objective, reserve, or margins")
+	}
+	forecast := new(gridosv1.ForecastResponse)
+	readPlanningFixture(t, root, "OptimizationService/Forecast.json", forecast)
+	if len(forecast.GetSiteLoads()) == 0 || len(forecast.GetDeviceAvailability()) == 0 || forecast.GetSiteLoads()[0].GetIntervalBeginTime() == nil ||
+		forecast.GetSiteLoads()[0].GetLoadKwh().GetLower() >= forecast.GetSiteLoads()[0].GetLoadKwh().GetUpper() {
+		t.Fatal("recorded forecast lacks intervals or bounds")
+	}
+	fallback := new(gridosv1.OptimizeResponse)
+	readPlanningFixture(t, root, "OptimizationService/Optimize.json", fallback)
+	if !fallback.GetPlan().GetFallbackUsed() || fallback.GetPlan().GetFallbackReason() == "" || len(fallback.GetPlan().GetShortfalls()) == 0 {
+		t.Fatal("recorded plan does not show a quantified fallback")
+	}
+	unsafe := new(gridosv1.ValidateUnsafeAlternativeResponse)
+	readPlanningFixture(t, root, "DispatchService/ValidateUnsafeAlternative.json", unsafe)
+	if unsafe.GetApproved() || len(unsafe.GetViolations()) == 0 || unsafe.GetOperatorExplanation() == "" {
+		t.Fatal("recorded unsafe alternative lacks a violation explanation")
+	}
+}
+
+func readPlanningFixture(t *testing.T, root, name string, message proto.Message) {
+	t.Helper()
+	content, err := os.ReadFile(filepath.Join(root, name))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := protojson.Unmarshal(content, message); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestFixturesMatchContract(t *testing.T) {
