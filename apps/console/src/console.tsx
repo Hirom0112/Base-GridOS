@@ -61,6 +61,7 @@ export function Console({ children }: { children: ReactNode }) {
       eventId={eventId}
       evidence={
         <FleetEvidence
+          pathname={pathname}
           metadata={metadata}
           selected={selected}
           clear={() => setSelectedCell(null)}
@@ -69,6 +70,7 @@ export function Console({ children }: { children: ReactNode }) {
     >
       <div
         className={`situational-field connected-field ${pathname === "/fleet" ? "fleet-view" : "event-view"}`}
+        data-view={pathname}
       >
         <ConsoleHeading pathname={pathname} role={identity.role} />
         {(summary.isError || sites.isError) && (
@@ -109,6 +111,7 @@ export function Console({ children }: { children: ReactNode }) {
           }
         >
           <LivingGrid
+            active={pathname !== "/map"}
             cells={cells}
             selected={selectedCell}
             onSelect={setSelectedCell}
@@ -128,20 +131,23 @@ function ConsoleHeading({
   role: string;
 }) {
   const title =
-    pathname === "/fleet"
-      ? "Austin fleet"
-      : pathname === "/dispatch/new"
-        ? "Shape a safe dispatch"
-        : pathname.endsWith("/report")
-          ? "Event evidence"
-          : pathname.startsWith("/events")
-            ? "From command to response"
-            : "Review the plan";
+    pathname === "/map"
+      ? "Explore the fleet"
+      : pathname === "/fleet"
+        ? "Austin fleet"
+        : pathname === "/dispatch/new"
+          ? "Shape a safe dispatch"
+          : pathname.endsWith("/report")
+            ? "Event evidence"
+            : pathname.startsWith("/events")
+              ? "From command to response"
+              : "Review the plan";
   return (
     <div className="view-heading">
       <div>
         <p className="eyebrow">
-          Living Grid / {pathname === "/fleet" ? "Observe" : "Event thread"}
+          Living Grid /{" "}
+          {["/fleet", "/map"].includes(pathname) ? "Observe" : "Event thread"}
         </p>
         <h1 id="fleet-title">{title}</h1>
         <p>Greater Austin · A governed fleet, one operating loop.</p>
@@ -156,10 +162,12 @@ function ConsoleHeading({
 }
 
 function FleetEvidence({
+  pathname,
   metadata,
   selected,
   clear,
 }: {
+  pathname: string;
   metadata: AggregateMetadata | undefined;
   selected: H3SiteAggregate | undefined;
   clear: () => void;
@@ -177,8 +185,19 @@ function FleetEvidence({
       </section>
       <section className="evidence-card">
         <p className="eyebrow">Operator focus</p>
-        <h3>{selected ? selected.h3Cell : "Greater Austin"}</h3>
-        {selected ? (
+        <h3>
+          {pathname === "/map"
+            ? "Regional inspection"
+            : selected
+              ? selected.h3Cell
+              : "Greater Austin"}
+        </h3>
+        {pathname === "/map" ? (
+          <p>
+            Select a cell on the map or in its evidence table. Its timestamped
+            details appear directly below the map.
+          </p>
+        ) : selected ? (
           <>
             <p>{selected.siteCount.toLocaleString()} sites in this H3 cell</p>
             <Quantity
@@ -207,13 +226,23 @@ function FleetEvidence({
       </section>
       <section className="evidence-card">
         <p className="eyebrow">Reading the field</p>
-        <p>
-          Position: H3 location
-          <br />
-          Footprint: site count
-          <br />
-          Height: installed MW
-        </p>
+        {pathname === "/map" ? (
+          <p>
+            Cell boundaries: H3 geography
+            <br />
+            Lighter fill: the selected measure
+            <br />
+            White outline: operator selection
+          </p>
+        ) : (
+          <p>
+            Position: H3 location
+            <br />
+            Footprint: site count
+            <br />
+            Height: installed MW
+          </p>
+        )}
         <p>
           Cell-level availability and delivery remain unencoded until supplied
           by the server.

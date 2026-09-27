@@ -122,6 +122,7 @@ export function mountGrid(host: HTMLElement, select: (id: string) => void) {
       grid.geometry.dispose();
       grid.material.dispose();
       renderer.dispose();
+      renderer.forceContextLoss();
       renderer.domElement.remove();
     },
   };

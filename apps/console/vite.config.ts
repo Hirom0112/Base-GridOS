@@ -14,6 +14,10 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       proxy: {
+        "/geo": {
+          target: env.GRIDOS_API_URL ?? "http://127.0.0.1:8080",
+          changeOrigin: true,
+        },
         "/rpc": {
           target: env.GRIDOS_API_URL ?? "http://127.0.0.1:8080",
           changeOrigin: true,

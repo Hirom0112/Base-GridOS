@@ -8,10 +8,12 @@ export default function LivingGrid({
   cells,
   selected,
   onSelect,
+  active = true,
 }: {
   cells: H3SiteAggregate[];
   selected: string | null;
   onSelect: (id: string) => void;
+  active?: boolean;
 }) {
   const projection = useMemo(() => {
     try {
@@ -33,6 +35,10 @@ export default function LivingGrid({
   const [mode, setMode] = useState("Geographic fallback");
   const [sort, setSort] = useState("location");
   useEffect(() => {
+    if (!active) {
+      setMode("Geographic field parked");
+      return;
+    }
     let cancelled = false;
     void import("./renderer").then(({ mountGrid }) => {
       if (cancelled || !host.current) return;
@@ -48,7 +54,7 @@ export default function LivingGrid({
       renderer.current?.dispose();
       renderer.current = null;
     };
-  }, []);
+  }, [active]);
   useEffect(() => {
     renderer.current?.update(projection.cells, selected);
   }, [projection, selected, mode]);
@@ -58,7 +64,11 @@ export default function LivingGrid({
       : a.h3Cell.localeCompare(b.h3Cell),
   );
   return (
-    <section className="living-grid" aria-label="Living Grid geography">
+    <section
+      className="living-grid"
+      aria-label="Living Grid geography"
+      hidden={!active}
+    >
       <div className="field-header">
         <span className="eyebrow">The Living Grid</span>
         <span className="mono">{cells.length} H3 cells · LZ_AEN</span>

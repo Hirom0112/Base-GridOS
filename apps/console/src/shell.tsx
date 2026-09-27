@@ -136,6 +136,11 @@ function OperatingRail({
           </li>
         ))}
       </ol>
+      {connected && (
+        <Link className="secondary-button" to="/map">
+          Explore map
+        </Link>
+      )}
       <div className="event-thread">
         <p className="eyebrow">Event thread</p>
         <p>{eventId ?? "No event selected"}</p>
