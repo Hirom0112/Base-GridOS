@@ -34,10 +34,7 @@ func TestFullEventReportPreservesAccountingAndModeledEconomics(t *testing.T) {
 	if got.Energy == nil || *got.Energy != *data.Energy || got.Measurement == nil || *got.Measurement != *data.Measurement {
 		t.Fatalf("energy or measurement missing: %+v", got)
 	}
-	if got.ReserveViolationsPrevented != 7 || got.Economics == nil || got.Economics.GrossValueUSD != 100 || got.Economics.DegradationCostUSD != 12 ||
-		got.Economics.PenaltyExposureUSD != 3 || got.Economics.NetValueUSD != 85 || got.Economics.ValueKind != "modeled_estimate" {
-		t.Fatalf("reserve or economics missing: %+v", got)
-	}
+	assertModeledEconomics(t, got)
 	if !reflect.DeepEqual(got.DataGaps, data.DataGaps) || !reflect.DeepEqual(got.Assumptions, data.Assumptions) || got.Versions != data.Versions {
 		t.Fatalf("gaps, assumptions, or versions missing: %+v", got)
 	}
@@ -46,6 +43,14 @@ func TestFullEventReportPreservesAccountingAndModeledEconomics(t *testing.T) {
 	got.Assumptions[0] = "changed"
 	if data.Energy.RequestedMWh != 40 || data.DataGaps[0].Reason != "missing telemetry" || data.Assumptions[0] != "baseline uses matched day" {
 		t.Fatal("report aliases stored evidence")
+	}
+}
+
+func assertModeledEconomics(t *testing.T, report EventReport) {
+	t.Helper()
+	if report.ReserveViolationsPrevented != 7 || report.Economics == nil || report.Economics.GrossValueUSD != 100 || report.Economics.DegradationCostUSD != 12 ||
+		report.Economics.PenaltyExposureUSD != 3 || report.Economics.NetValueUSD != 85 || report.Economics.ValueKind != "modeled_estimate" {
+		t.Fatalf("reserve or economics missing: %+v", report)
 	}
 }
 
