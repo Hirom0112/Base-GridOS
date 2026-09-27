@@ -137,6 +137,33 @@ func TestRiskBridgeAwayAnomalyUsesLatestMeasuredHomeLoad(t *testing.T) {
 	require.Equal(t, 1, count)
 }
 
+func TestRiskBridgeDoesNotAlertAfterAwayEnds(t *testing.T) {
+	pool := policyDatabase(t)
+	ctx := context.Background()
+	now := time.Now().UTC().Truncate(time.Second)
+	_, err := pool.Exec(ctx, `INSERT INTO member_sites(site_id,member_id,bound_at,source,provenance)
+		VALUES ('returned-site','returned-member',$1,'SIMULATED','{"provenance":"SIMULATED"}')`, now.Add(-3*time.Hour))
+	require.NoError(t, err)
+	store := New(pool)
+	require.NoError(t, store.SetAnomalyPreference(ctx, AnomalyPreference{ID: "returned-preference", MemberID: "returned-member",
+		OptIn: true, ConsentText: "notify on home load", ConsentVersion: "v1", BaselineUpperKW: 1,
+		BaselineBegin: now.Add(-3 * time.Hour), BaselineEnd: now.Add(time.Hour),
+		EffectiveAt: now.Add(-3 * time.Hour), ExpiresAt: now.Add(time.Hour), CorrelationID: "returned-preference"}))
+	require.NoError(t, store.ScheduleAway(ctx, AwayPeriod{ID: "returned-period", MemberID: "returned-member",
+		Start: now.Add(-2 * time.Hour), End: now.Add(-time.Hour), ConsentVersion: "v1", CorrelationID: "returned-period"}))
+	telemetry := storage.NewTelemetryStoreAt(pool, func() time.Time { return now })
+	_, err = telemetry.Write(ctx, "returned-gateway", []*gridosv1.TelemetryObservation{{ObservationId: "returned-observation",
+		DeviceId: "returned-device", Sequence: 1, ObservationTime: timestamppb.New(now.Add(-90 * time.Minute)),
+		ValueState: gridosv1.ValueState_VALUE_STATE_PRESENT, PowerFlow: &gridosv1.PowerFlow{ToHomeKw: 3}}})
+	require.NoError(t, err)
+	sites := []*gridosv1.AuthorizedSite{{Site: &gridosv1.Site{SiteId: "returned-site"},
+		Devices: []*gridosv1.Device{{DeviceId: "returned-device"}}}}
+	require.NoError(t, NewRiskBridge(pool, sites, "", "returned-fleet.jsonl").EvaluateAnomalies(ctx, now))
+	var count int
+	require.NoError(t, pool.QueryRow(ctx, `SELECT count(*) FROM member_alerts WHERE member_id = 'returned-member'`).Scan(&count))
+	require.Zero(t, count)
+}
+
 func TestRiskBridgeMigrationReapplies(t *testing.T) {
 	pool := policyDatabase(t)
 	forward, err := os.ReadFile("../../../../../database/migrations/0014_risk_policy.sql")
