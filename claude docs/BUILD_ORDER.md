@@ -1423,7 +1423,7 @@ Owns: `services/control/internal/report/`.
   gross value, degradation cost, penalty exposure, net value; data gaps,
   assumptions, provenance, model versions. Financial fields carry
   `value_kind=modeled_estimate`. Verify: `go test ./services/control/internal/report/` passes.
-- `[ ]` 4E.2 `[P]` Report is immutable once the event is `REPORTED`; a second
+- `[x]` 4E.2 `[P]` Report is immutable once the event is `REPORTED`; a second
   build returns the stored version. Verify: `-run Immutable` passes.
 - `[x]` 4E.3 `[P]` Event comparison: two reports diffed on every numeric field
   and on plan and policy versions. Verify: `-run Compare` passes.

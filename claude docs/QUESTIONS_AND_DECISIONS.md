@@ -783,3 +783,8 @@ assumptions reported by workers land here too.
   fee waiver and fixed credit; a market with no membership fee yields a
   fixed credit and a no-fee market without a configured credit is an
   error at the edge. Director re-run: 11 economics tests pass.
+- **4E.2 (lane 4E), verified:** `event_reports` stores the report bytes
+  and SHA-256 once, in the same transaction as the RECONCILED to REPORTED
+  transition and its audit row; a retry returns the stored version and the
+  PostgreSQL report source reads that row without recomputation. Director:
+  report and storage tests pass; migration 0007 applies twice cleanly.
