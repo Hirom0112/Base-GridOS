@@ -38,7 +38,7 @@ func (service *Service) ListMemberOffers(ctx context.Context, request *connect.R
 func (service *Service) catalogOffers(ctx context.Context, now time.Time) ([]*gridosv1.MemberOfferTerms, error) {
 	rows, err := service.pool.Query(ctx, `SELECT catalog.market, catalog.catalog_version, catalog.member_plan_id, catalog.display_name,
   catalog.reserve_floor_percent, catalog.energy_monthly_charge_cents, catalog.battery_monthly_charge_cents,
-  catalog.flexibility_reward_cents, catalog.effective_at, catalog.expires_at, terms.kind, terms.contract_version,
+  catalog.flexibility_reward_cents, catalog.effective_at, catalog.expires_at, terms.kind, terms.policy_version, terms.contract_version,
   terms.consent_version, terms.consent_text, terms.price_text, terms.temporary_reserve_percent,
   terms.credit_type, terms.fixed_credit_cents FROM pricing_catalog_snapshots catalog
   JOIN offer_terms terms USING (catalog_version, member_plan_id)
@@ -57,7 +57,7 @@ func (service *Service) catalogOffers(ctx context.Context, now time.Time) ([]*gr
 		var effective time.Time
 		err = rows.Scan(&offer.Market, &offer.CatalogVersion, &offer.MemberPlanId, &offer.DisplayName,
 			&offer.ReserveFloorPercent, &offer.EnergyMonthlyChargeCents, &offer.BatteryMonthlyChargeCents,
-			&offer.FlexibilityRewardCents, &effective, &expires, &kind, &offer.ContractVersion,
+			&offer.FlexibilityRewardCents, &effective, &expires, &kind, &offer.PolicyVersion, &offer.ContractVersion,
 			&offer.ConsentVersion, &offer.ConsentText, &offer.PriceText, &offer.TemporaryReservePercent,
 			&credit, &offer.FixedCreditCents)
 		if err != nil {
@@ -101,7 +101,7 @@ func memberCreditType(value string) (gridosv1.MemberCreditType, error) {
 
 func (service *Service) scheduledTravelFlex(ctx context.Context, memberID string, now time.Time) ([]*gridosv1.ScheduledTravelFlexWindow, error) {
 	rows, err := service.pool.Query(ctx, `SELECT travel_flex_window_id, start_time, end_time, timezone,
-  temporary_reserve_percent, credit_type, credit_cents, cancelled_at
+  temporary_reserve_percent, credit_type, credit_cents, cancelled_at, consent_version, early_return_action
   FROM travel_flex_windows WHERE member_id = $1 AND end_time > $2 ORDER BY start_time LIMIT 100`, memberID, now)
 	if err != nil {
 		return nil, err
@@ -113,8 +113,9 @@ func (service *Service) scheduledTravelFlex(ctx context.Context, memberID string
 		var start, end time.Time
 		var cancelled *time.Time
 		var credit string
+		var earlyReturn string
 		if err := rows.Scan(&window.WindowId, &start, &end, &window.Timezone, &window.TemporaryReservePercent,
-			&credit, &window.FixedCreditCents, &cancelled); err != nil {
+			&credit, &window.FixedCreditCents, &cancelled, &window.ConsentVersion, &earlyReturn); err != nil {
 			return nil, err
 		}
 		window.StartTime, window.EndTime = timestamppb.New(start), timestamppb.New(end)
@@ -125,13 +126,21 @@ func (service *Service) scheduledTravelFlex(ctx context.Context, memberID string
 		if err != nil {
 			return nil, err
 		}
+		switch policy.EarlyReturnAction(earlyReturn) {
+		case policy.RestorePlanReserve:
+			window.EarlyReturnAction = gridosv1.MemberEarlyReturnAction_MEMBER_EARLY_RETURN_ACTION_RESTORE_PLAN_RESERVE
+		case policy.RestoreMaximumReserve:
+			window.EarlyReturnAction = gridosv1.MemberEarlyReturnAction_MEMBER_EARLY_RETURN_ACTION_RESTORE_MAXIMUM_RESERVE
+		default:
+			return nil, errors.New("unknown stored early return action")
+		}
 		windows = append(windows, window)
 	}
 	return windows, rows.Err()
 }
 
 func (service *Service) scheduledAway(ctx context.Context, memberID string, now time.Time) ([]*gridosv1.ScheduledAwayWindow, error) {
-	rows, err := service.pool.Query(ctx, `SELECT away_period_id, start_time, end_time, ended_at
+	rows, err := service.pool.Query(ctx, `SELECT away_period_id, start_time, end_time, ended_at, consent_version
   FROM member_away_periods WHERE member_id = $1 AND end_time > $2 ORDER BY start_time LIMIT 100`, memberID, now)
 	if err != nil {
 		return nil, err
@@ -142,7 +151,7 @@ func (service *Service) scheduledAway(ctx context.Context, memberID string, now 
 		window := &gridosv1.ScheduledAwayWindow{}
 		var start, end time.Time
 		var ended *time.Time
-		if err := rows.Scan(&window.WindowId, &start, &end, &ended); err != nil {
+		if err := rows.Scan(&window.WindowId, &start, &end, &ended, &window.ConsentVersion); err != nil {
 			return nil, err
 		}
 		window.StartTime, window.EndTime = timestamppb.New(start), timestamppb.New(end)

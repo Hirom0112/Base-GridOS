@@ -84,16 +84,16 @@ INSERT INTO pricing_catalog_snapshots (
 ON CONFLICT (catalog_version, member_plan_id) DO NOTHING;
 
 INSERT INTO offer_terms (
-    catalog_version, member_plan_id, kind, contract_version, consent_version,
+    catalog_version, member_plan_id, kind, policy_version, contract_version, consent_version,
     consent_text, price_text, temporary_reserve_percent, credit_type, fixed_credit_cents
 )
-SELECT catalog_version, member_plan_id, 'PLAN', 'sim-contract-1', 'sim-consent-1',
+SELECT catalog_version, member_plan_id, 'PLAN', 'reserve-sim-' || member_plan_id || '-1', 'sim-contract-1', 'sim-consent-1',
     'SIMULATED: I accept the ' || display_name || ' plan terms',
     'SIMULATED: ' || display_name || ' plan, $0 monthly energy and battery charges',
     NULL, NULL, 0
 FROM pricing_catalog_snapshots WHERE catalog_version = 'catalog-sim-1'
 UNION ALL
-SELECT catalog_version, member_plan_id, 'TRAVEL_FLEX', 'sim-contract-1', 'sim-flex-consent-1',
+SELECT catalog_version, member_plan_id, 'TRAVEL_FLEX', 'reserve-sim-' || member_plan_id || '-1', 'sim-contract-1', 'sim-flex-consent-1',
     'SIMULATED: I accept temporary Travel Flex reserve terms',
     'SIMULATED: fixed daily Travel Flex credit', 20, 'FIXED_DAILY', 500
 FROM pricing_catalog_snapshots WHERE catalog_version = 'catalog-sim-1'

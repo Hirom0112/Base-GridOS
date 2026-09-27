@@ -232,6 +232,7 @@ message MemberOfferTerms {
   int64 flexibility_reward_cents = 16;
   google.protobuf.Timestamp effective_at = 17;
   google.protobuf.Timestamp expires_at = 18;
+  string policy_version = 19;
 }
 
 message ScheduledTravelFlexWindow {
@@ -243,6 +244,8 @@ message ScheduledTravelFlexWindow {
   MemberCreditType credit_type = 6;
   int64 fixed_credit_cents = 7;
   google.protobuf.Timestamp cancelled_at = 8;
+  string consent_version = 9;
+  MemberEarlyReturnAction early_return_action = 10;
 }
 
 message ScheduledAwayWindow {
@@ -250,6 +253,7 @@ message ScheduledAwayWindow {
   google.protobuf.Timestamp start_time = 2;
   google.protobuf.Timestamp end_time = 3;
   google.protobuf.Timestamp ended_at = 4;
+  string consent_version = 5;
 }
 
 message ListMemberOffersResponse {

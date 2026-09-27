@@ -4,6 +4,7 @@ CREATE TABLE offer_terms (
     catalog_version text NOT NULL,
     member_plan_id text NOT NULL,
     kind text NOT NULL CHECK (kind IN ('PLAN', 'TRAVEL_FLEX')),
+    policy_version text NOT NULL REFERENCES reserve_policies(policy_version),
     contract_version text NOT NULL CHECK (length(trim(contract_version)) > 0),
     consent_version text NOT NULL CHECK (length(trim(consent_version)) > 0),
     consent_text text NOT NULL CHECK (length(trim(consent_text)) > 0),

@@ -207,8 +207,8 @@ func TestMemberOfferSelectionUpdatesStatusReserve(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = pool.Exec(ctx, `INSERT INTO offer_terms(catalog_version,member_plan_id,kind,contract_version,consent_version,consent_text,price_text,fixed_credit_cents)
-		VALUES ('catalog-v1','plan-1','PLAN','contract-v1','consent-v1','Cedar reserve accepted','Cedar price',0)`)
+	_, err = pool.Exec(ctx, `INSERT INTO offer_terms(catalog_version,member_plan_id,kind,policy_version,contract_version,consent_version,consent_text,price_text,fixed_credit_cents)
+		VALUES ('catalog-v1','plan-1','PLAN','policy-v1','contract-v1','consent-v1','Cedar reserve accepted','Cedar price',0)`)
 	if err != nil {
 		t.Fatal(err)
 	}

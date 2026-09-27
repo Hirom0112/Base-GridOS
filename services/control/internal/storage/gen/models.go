@@ -217,6 +217,7 @@ type OfferTerm struct {
 	CatalogVersion          string        `json:"catalog_version"`
 	MemberPlanID            string        `json:"member_plan_id"`
 	Kind                    string        `json:"kind"`
+	PolicyVersion           string        `json:"policy_version"`
 	ContractVersion         string        `json:"contract_version"`
 	ConsentVersion          string        `json:"consent_version"`
 	ConsentText             string        `json:"consent_text"`
