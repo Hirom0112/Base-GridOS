@@ -5,12 +5,14 @@ import {
   useMemo,
   useState,
   type ReactNode,
-  type ComponentProps,
 } from "react";
-import { Link, useLocation, useParams } from "@tanstack/react-router";
+import {
+  ClientOnly,
+  Link,
+  useLocation,
+  useParams,
+} from "@tanstack/react-router";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
-import { create } from "@bufbuild/protobuf";
-import { useEventStream } from "./events/events-live";
 import { ReplayClock, useReplayClock } from "./events/replay-clock";
 import { MemberHome } from "./member/home";
 import { Shell } from "./shell";
@@ -18,15 +20,17 @@ import { useSession } from "./api/auth";
 import { Evidence, evidenceSchema, Quantity } from "./api/Provenance";
 import { useFleet } from "./fleet/fleet";
 import { useObservability } from "./observability";
-import { useGeographicCells } from "./map/geographic-time";
-import { H3SiteAggregateSchema } from "./api/gen/gridos/v1/api_pb";
 import type {
   AggregateMetadata,
   FleetSummary,
   H3SiteAggregate,
 } from "./api/gen/gridos/v1/api_pb";
 
-const LivingGrid = lazy(() => import("./fleet/living-grid"));
+const GeographicField = lazy(() =>
+  import("./fleet/geographic-field").catch(() => ({
+    default: UnavailableGeographicField,
+  })),
+);
 
 export function Console({ children }: { children: ReactNode }) {
   const { identity } = useSession();
@@ -105,21 +109,29 @@ export function Console({ children }: { children: ReactNode }) {
           </div>
         )}
         {!position && <FleetHeadlines fleet={fleet} />}
-        <Suspense
+        <ClientOnly
           fallback={
             <div className="grid-loading" role="status">
               Preparing the geographic field…
             </div>
           }
         >
-          <GeographicField
-            eventId={eventId}
-            active={pathname !== "/map"}
-            cells={cells}
-            selected={selectedCell}
-            onSelect={setSelectedCell}
-          />
-        </Suspense>
+          <Suspense
+            fallback={
+              <div className="grid-loading" role="status">
+                Preparing the geographic field…
+              </div>
+            }
+          >
+            <GeographicField
+              eventId={eventId}
+              active={pathname !== "/map"}
+              cells={cells}
+              selected={selectedCell}
+              onSelect={setSelectedCell}
+            />
+          </Suspense>
+        </ClientOnly>
         <div className="route-evidence">{children}</div>
       </div>
     </Shell>
@@ -259,44 +271,6 @@ function FleetEvidence({
   );
 }
 
-function GeographicField({
-  eventId,
-  ...props
-}: ComponentProps<typeof LivingGrid> & { eventId?: string }) {
-  const { position } = useReplayClock();
-  const historical = useGeographicCells(position?.at ?? null);
-  const { query } = useEventStream(position ? undefined : eventId);
-  const cells = useMemo(
-    () =>
-      historical.data?.cells.map((cell) =>
-        create(H3SiteAggregateSchema, {
-          h3Cell: cell.h3Cell,
-          siteCount: cell.siteCount,
-          installedMw: { value: cell.installedMw, metadata: cell.metadata },
-          installedMwh: { value: cell.installedMwh, metadata: cell.metadata },
-        }),
-      ) ?? [],
-    [historical.data],
-  );
-  return (
-    <>
-      {position && historical.isPending && (
-        <p role="status">Loading geography at the replay time…</p>
-      )}
-      {position && historical.isError && (
-        <p role="alert">
-          Historical geography unavailable: {historical.error.message}
-        </p>
-      )}
-      <LivingGrid
-        {...props}
-        cells={position ? cells : props.cells}
-        response={position || query.isError ? undefined : query.data?.at(-1)}
-      />
-    </>
-  );
-}
-
 function FleetHeadlines({ fleet }: { fleet: FleetSummary | undefined }) {
   return (
     <div className="headline-quantities">
@@ -316,5 +290,69 @@ function FleetHeadlines({ fleet }: { fleet: FleetSummary | undefined }) {
         aggregate={fleet?.reservedForBackupMwh}
       />
     </div>
+  );
+}
+
+function UnavailableGeographicField({
+  cells,
+  active = true,
+}: {
+  cells: H3SiteAggregate[];
+  active?: boolean;
+}) {
+  const { position } = useReplayClock();
+  return (
+    <section
+      className="living-grid"
+      aria-label="Unavailable geographic field"
+      hidden={!active}
+    >
+      <div className="field-header">
+        <h2>Geographic assets unavailable</h2>
+      </div>
+      <p className="boundary-note">
+        Reload the page to retry the geographic view. Plan controls and server
+        evidence remain available.
+      </p>
+      {position ? (
+        <p className="boundary-note">
+          Historical cell evidence is unavailable while geographic assets cannot
+          load. Current cell capacity is withheld during replay.
+        </p>
+      ) : (
+        <details className="geography-table">
+          <summary>Inspect recorded cell capacity</summary>
+          <div
+            className="table-scroll"
+            role="region"
+            aria-label="Recorded cell capacity"
+            tabIndex={0}
+          >
+            <table>
+              <thead>
+                <tr>
+                  <th>Recorded cell</th>
+                  <th>Installed power</th>
+                </tr>
+              </thead>
+              <tbody>
+                {cells.map((cell, index) => (
+                  <tr key={`${cell.h3Cell}:${index}`}>
+                    <th scope="row">{cell.h3Cell}</th>
+                    <td>
+                      <Quantity
+                        label="Installed power"
+                        unit="MW"
+                        aggregate={cell.installedMw}
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </details>
+      )}
+    </section>
   );
 }

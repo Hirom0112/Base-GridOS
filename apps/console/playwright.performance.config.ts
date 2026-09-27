@@ -6,6 +6,7 @@ export default defineConfig({
   workers: 1,
   use: {
     ...devices["Desktop Chrome"],
+    deviceScaleFactor: 2,
     baseURL: "http://127.0.0.1:3200",
     trace: "on",
   },

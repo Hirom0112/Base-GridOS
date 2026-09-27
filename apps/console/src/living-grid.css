@@ -162,6 +162,12 @@
     height: clamp(520px, 62vh, 760px);
     background: var(--ink-0);
   }
+  .fleet-view .grid-loading {
+    min-height: calc(clamp(520px, 62vh, 760px) + 240px);
+    order: 1;
+    border-inline: 0;
+    border-radius: 0;
+  }
   .fleet-view .field-caption {
     top: auto;
     bottom: 56px;
