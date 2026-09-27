@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -216,4 +217,49 @@ func TestRiskPolicyMigrationLabelsExistingCatalogAsDerived(t *testing.T) {
 			WHERE c.conrelid = $1::regclass AND c.conname = $1 || '_provenance_check'`, table).Scan(&definition))
 		require.Contains(t, definition, "SIMULATED")
 	}
+}
+
+func TestRiskBridgeWeatherFloorCoversEventsWithinTheAlert(t *testing.T) {
+	pool := policyDatabase(t)
+	ctx := context.Background()
+	now := time.Now().UTC().Truncate(time.Second)
+	seedPolicyCatalog(t, pool, now.Add(-48*time.Hour))
+	_, err := pool.Exec(ctx, `INSERT INTO risk_policy(version,effective_at,expires_at,outage_probability_threshold,
+		telemetry_freshness_seconds,gateway_cadence_seconds,weather_floor_percent,outage_floor_percent,
+		stale_floor_percent,alarm_floor_percent,communications_floor_percent,health_floor_percent,weather_zone_ugc,provenance)
+		VALUES ('risk-weather',$1,$2,0.01,30,15,60,60,40,100,40,100,
+		'{"weather-test.jsonl":{"SCENT":{"ugc":["TXZ192"]}}}','{"provenance":"SIMULATED"}')`, now.Add(-time.Hour), now.Add(24*time.Hour))
+	require.NoError(t, err)
+	_, err = pool.Exec(ctx, `INSERT INTO member_sites(site_id,member_id,bound_at,source,provenance)
+		VALUES ('site-weather','member-weather',$1,'SIMULATED','{"provenance":"SIMULATED"}')`, now.Add(-time.Hour))
+	require.NoError(t, err)
+	store := New(pool)
+	_, err = selectWithOffer(t, store, Selection{ID: "weather-selection", MemberID: "member-weather",
+		Market: "TX", CatalogVersion: "catalog-v2", MemberPlanID: "plan-cedar", PolicyVersion: "policy-v2",
+		ConsentText: "I consent", ConsentVersion: "v1", ExplanationShown: "Backup reserve",
+		EffectiveAt: now.Add(-time.Minute), CorrelationID: "weather-selection"})
+	require.NoError(t, err)
+	public := t.TempDir()
+	require.NoError(t, os.CopyFS(public, os.DirFS("../../../../../testdata/fixtures/public")))
+	require.NoError(t, os.RemoveAll(filepath.Join(public, "weather")))
+	require.NoError(t, os.CopyFS(filepath.Join(public, "weather"), os.DirFS("../../../../../testdata/scenarios/weather")))
+	sites := []*gridosv1.AuthorizedSite{{Site: &gridosv1.Site{SiteId: "site-weather", WeatherZone: "SCENT"}}}
+	bridge := NewRiskBridge(pool, sites, public, "weather-test.jsonl")
+	require.NoError(t, bridge.Evaluate(ctx, now))
+
+	current, err := store.SiteReservesForWindow(ctx, []string{"site-weather"}, now, now)
+	require.NoError(t, err)
+	require.Equal(t, OverrideWeather, current["site-weather"].OverrideReason)
+	later, err := store.SiteReservesForWindow(ctx, []string{"site-weather"}, now.Add(30*time.Minute), now.Add(90*time.Minute))
+	require.NoError(t, err)
+	require.Equal(t, OverrideWeather, later["site-weather"].OverrideReason, "an event beginning after the first risk cycle but inside the alert must freeze the WEATHER floor")
+	require.Equal(t, 60.0, later["site-weather"].EffectivePercent)
+
+	require.NoError(t, bridge.Evaluate(ctx, now.Add(5*time.Minute)))
+	var count int
+	var expires time.Time
+	require.NoError(t, pool.QueryRow(ctx, `SELECT count(*), max(expires_at) FROM reserve_overrides
+		WHERE member_id = 'member-weather' AND reason = 'WEATHER'`).Scan(&count, &expires))
+	require.Equal(t, 1, count)
+	require.Equal(t, time.Date(2100, 1, 1, 0, 0, 0, 0, time.UTC), expires.UTC())
 }
