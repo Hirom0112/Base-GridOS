@@ -48,6 +48,42 @@ func TestShortWindowVerifiesDuringFaults(t *testing.T) {
 	environment.AssertNumberOfCalls(t, VerifyDeliveryActivity, 13)
 }
 
+func TestRecoveryReplacesDroppedDeviceOnce(t *testing.T) {
+	var suite testsuite.WorkflowTestSuite
+	environment := suite.NewTestWorkflowEnvironment()
+	begin := environment.Now().Add(time.Minute)
+	end := begin.Add(time.Minute)
+	input := Input{EventID: "recovery-event", Generation: 1, Request: &gridosv1.EventRequest{BeginTime: timestamppb.New(begin), EndTime: timestamppb.New(end)}}
+	type droppedDevice struct {
+		DeviceID string
+		Reason   string
+	}
+	type recoveryResult struct {
+		Dropped           []droppedDevice
+		EnvelopeDeviceIDs []string
+	}
+	environment.RegisterActivityWithOptions(func(context.Context, Input) (recoveryResult, error) {
+		return recoveryResult{}, nil
+	}, activity.RegisterOptions{Name: "DetectRecovery"})
+	mockWorkflowActivities(environment, input)
+	environment.OnActivity("DetectRecovery", mock.Anything, input).Return(recoveryResult{
+		Dropped:           []droppedDevice{{DeviceID: "device-1", Reason: "MISSING"}},
+		EnvelopeDeviceIDs: []string{"device-1", "device-2"},
+	}, nil)
+	environment.OnActivity(IssueReplacementActivity, mock.Anything, ReplacementCommand{
+		EventID: input.EventID, Request: input.Request, DroppedDeviceIDs: []string{"device-1"},
+		EnvelopeDeviceIDs: []string{"device-1", "device-2"}, Generation: 2,
+	}).Return(nil).Once()
+	environment.RegisterDelayedCallback(func() {
+		environment.SignalWorkflow(ApproveEventSignal, Approval{ApprovedBy: "approver"})
+		environment.SignalWorkflow(LaunchEventSignal, persistArgument(input).Launch)
+	}, time.Millisecond)
+	environment.ExecuteWorkflow(Workflow, input)
+	require.NoError(t, environment.GetWorkflowError())
+	environment.AssertNumberOfCalls(t, "DetectRecovery", 13)
+	environment.AssertExpectations(t)
+}
+
 func TestWindowProcessesSignalsDuringMeasurement(t *testing.T) {
 	var suite testsuite.WorkflowTestSuite
 	environment := suite.NewTestWorkflowEnvironment()
