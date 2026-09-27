@@ -265,23 +265,26 @@ func TestOutageReplay(t *testing.T) {
 		if err = database.QueryRowContext(ctx, "SELECT count(*) FROM telemetry_buffer").Scan(&count); err != nil {
 			t.Fatal(err)
 		}
-		if count == 1 {
-			var payload []byte
-			if err = database.QueryRowContext(ctx, "SELECT observation_id, payload FROM telemetry_buffer").Scan(&bufferedID, &payload); err != nil {
+		if count != 1 {
+			bufferedID = ""
+			time.Sleep(statePoll)
+			continue
+		}
+		var payload []byte
+		if err = database.QueryRowContext(ctx, "SELECT observation_id, payload FROM telemetry_buffer").Scan(&bufferedID, &payload); err != nil {
+			t.Fatal(err)
+		}
+		observation := new(gridosv1.TelemetryObservation)
+		if err = protojson.Unmarshal(payload, observation); err != nil {
+			t.Fatal(err)
+		}
+		if observation.GetSourceTime().AsTime().Equal(stack.scenario.Injections[0].At) {
+			time.Sleep(500 * time.Millisecond)
+			if err = database.QueryRowContext(ctx, "SELECT count(*) FROM telemetry_buffer WHERE observation_id = ?", bufferedID).Scan(&count); err != nil {
 				t.Fatal(err)
 			}
-			observation := new(gridosv1.TelemetryObservation)
-			if err = protojson.Unmarshal(payload, observation); err != nil {
-				t.Fatal(err)
-			}
-			if observation.GetSourceTime().AsTime().Equal(stack.scenario.Injections[0].At) {
-				time.Sleep(500 * time.Millisecond)
-				if err = database.QueryRowContext(ctx, "SELECT count(*) FROM telemetry_buffer WHERE observation_id = ?", bufferedID).Scan(&count); err != nil {
-					t.Fatal(err)
-				}
-				if count == 1 {
-					break
-				}
+			if count == 1 {
+				break
 			}
 		}
 		bufferedID = ""
