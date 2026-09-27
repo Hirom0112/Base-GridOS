@@ -17,6 +17,7 @@ import { Shell } from "./shell";
 import { useSession } from "./api/auth";
 import { Evidence, evidenceSchema, Quantity } from "./api/Provenance";
 import { useFleet } from "./fleet/fleet";
+import { useObservability } from "./observability";
 import { useGeographicCells } from "./map/geographic-time";
 import { H3SiteAggregateSchema } from "./api/gen/gridos/v1/api_pb";
 import type {
@@ -32,6 +33,7 @@ export function Console({ children }: { children: ReactNode }) {
   const { position, setPosition } = useReplayClock();
   const { summary, sites } = useFleet();
   const { pathname } = useLocation();
+  useObservability(pathname, identity.role);
   const params = useParams({ strict: false });
   const [activeEvent, setActiveEvent] = useState(params.eventId);
   useEffect(() => {
