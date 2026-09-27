@@ -9,6 +9,7 @@ import (
 	gridosv1 "github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1"
 	"github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1/gridosv1connect"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/fleet"
+	"github.com/Hirom0112/Base-GridOS/services/control/internal/fleet/policy"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/safety"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/storage"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -127,6 +128,18 @@ func (snapshotter *FleetSnapshotter) Freeze(ctx context.Context, event *gridosv1
 	for _, state := range snapshotter.twin.Sites(now) {
 		states[state.SiteID] = state
 	}
+	reserves := make(map[string]policy.ReserveState)
+	if snapshotter.pool != nil {
+		siteIDs := make([]string, 0, len(snapshotter.sites))
+		for _, site := range snapshotter.sites {
+			siteIDs = append(siteIDs, site.GetSite().GetSiteId())
+		}
+		var err error
+		reserves, err = policy.New(snapshotter.pool).SiteReserves(ctx, siteIDs, now)
+		if err != nil {
+			return FrozenSnapshot{}, err
+		}
+	}
 	optimization := &gridosv1.OptimizationRequest{
 		RequestId: request.GetRequestId(), EventId: event.GetEventId(), PlanVersion: planVersion, RequestedAt: timestamppb.New(now),
 		CorrelationId: request.GetCorrelationId(), Budget: durationpb.New(5 * time.Second), MeasurementBoundary: request.GetMeasurementBoundary(),
@@ -145,9 +158,19 @@ func (snapshotter *FleetSnapshotter) Freeze(ctx context.Context, event *gridosv1
 			parameters := device.GetBatteryParameters()
 			energy := state.EnergyKWh
 			available := state.OperatingState == fleet.OnGrid && state.Availability == fleet.Online
+			baseReserve := state.ReserveKWh
+			var baseField, flexField *float64
+			if reserve, found := reserves[site.GetSite().GetSiteId()]; found {
+				baseReserve = max(baseReserve, parameters.GetUsableEnergyKwh()*reserve.BasePercent/100)
+				baseField = &baseReserve
+				if reserve.TravelFlexPercent != nil {
+					flex := min(baseReserve, max(state.ReserveKWh, parameters.GetUsableEnergyKwh()*(*reserve.TravelFlexPercent)/100))
+					flexField = &flex
+				}
+			}
 			optimization.Devices = append(optimization.Devices, &gridosv1.DeviceState{
 				DeviceId: device.GetDeviceId(), UsableEnergyKwh: parameters.GetUsableEnergyKwh(), EnergyKwh: energy,
-				HardwareFloorKwh: state.ReserveKWh, EffectiveReserveKwh: state.ReserveKWh,
+				HardwareFloorKwh: state.ReserveKWh, EffectiveReserveKwh: baseReserve, BaseReserveKwh: baseField, TravelFlexReserveKwh: flexField,
 				MaxChargeKw: parameters.GetMaxChargeKw(), MaxDischargeKw: parameters.GetMaxDischargeKw(),
 				ChargeEfficiency: parameters.GetChargeEfficiency(), DischargeEfficiency: parameters.GetDischargeEfficiency(),
 				AvailabilityProbability: boolFloat(available), Stale: state.Availability == fleet.Stale, TelemetryObservedAt: timestamppb.New(state.ObservedAt), LoadZone: site.GetSite().GetLoadZone(),
@@ -158,7 +181,7 @@ func (snapshotter *FleetSnapshotter) Freeze(ctx context.Context, event *gridosv1
 			}
 			observedAt := state.ObservedAt
 			canonical.Devices[device.GetDeviceId()] = safety.DeviceState{
-				EnergyKWh: &energy, UsableCapacityKWh: parameters.GetUsableEnergyKwh(), HardwareReserveKWh: state.ReserveKWh, PlanReserveKWh: state.ReserveKWh,
+				EnergyKWh: &energy, UsableCapacityKWh: parameters.GetUsableEnergyKwh(), HardwareReserveKWh: state.ReserveKWh, PlanReserveKWh: baseReserve,
 				MaxChargeKW: parameters.GetMaxChargeKw(), MaxDischargeKW: parameters.GetMaxDischargeKw(), ChargeEfficiency: parameters.GetChargeEfficiency(), DischargeEfficiency: parameters.GetDischargeEfficiency(),
 				Available: available, TelemetryAt: &observedAt, FreshnessLimit: 30 * time.Second, MeterExportLimitKW: parameters.GetMaxDischargeKw(), InterconnectionLimitKW: parameters.GetMaxDischargeKw(),
 			}
