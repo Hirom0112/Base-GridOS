@@ -1188,3 +1188,7 @@ assumptions reported by workers land here too.
   from that instant; before launch the gateway streams plain physical
   telemetry. A presenter creates, approves, and launches at their own pace
   and the seeded faults land inside the running event.
+- **4F.1 no-fee market scenario verified (2026-09-27):** a no-fee Houston
+  cohort earns a fixed 100-cent event credit per rewarded member on
+  accepted commands, with the stored report's reward total equal to the
+  ledger (112 s on the director's machine).
