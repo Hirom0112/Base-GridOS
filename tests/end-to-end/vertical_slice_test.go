@@ -33,6 +33,17 @@ type fleetDevice struct {
 	DeviceID string `json:"device_id"`
 }
 
+type replayManifest struct {
+	EventID               string `json:"event_id"`
+	Seed                  int64  `json:"seed"`
+	InputSnapshotID       string `json:"input_snapshot_id"`
+	EligibilitySnapshotID string `json:"eligibility_snapshot_id"`
+	FleetSHA256           string `json:"fleet_sha256"`
+	ScenarioFile          string `json:"scenario_file"`
+	ScenarioSHA256        string `json:"scenario_sha256"`
+	CodeVersion           string `json:"code_version"`
+}
+
 type commandIntent struct {
 	CommandID      string
 	IdempotencyKey string
@@ -59,6 +70,7 @@ func TestVerticalSlice(t *testing.T) {
 	eventID := fmt.Sprintf("vertical-%d", now.UnixNano())
 	dispatch := gridosv1connect.NewDispatchServiceClient(http.DefaultClient, controlURL)
 	created := createEvent(t, ctx, dispatch, eventID, now)
+	assertReplayManifest(t, eventID)
 	if created.GetState() != gridosv1.DispatchEventState_DISPATCH_EVENT_STATE_VALIDATED || created.GetPlanVersion() != 1 {
 		t.Fatalf("created event state = %s plan %d", created.GetState(), created.GetPlanVersion())
 	}
@@ -75,6 +87,29 @@ func TestVerticalSlice(t *testing.T) {
 	}
 	if len(report.GetProvenance()) == 0 || report.GetPolicyVersion() == "" || report.GetSolverVersion() == "" || report.GetModelVersion() == "" {
 		t.Fatalf("report metadata = %#v", report)
+	}
+}
+
+func assertReplayManifest(t *testing.T, eventID string) {
+	t.Helper()
+	directory := os.Getenv("GRIDOS_REPLAY_DIR")
+	if directory == "" {
+		directory = ".local/replay"
+	}
+	if !filepath.IsAbs(directory) {
+		directory = filepath.Join(repositoryRoot(t), directory)
+	}
+	data, err := os.ReadFile(filepath.Join(directory, eventID+".json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var manifest replayManifest
+	if err = json.Unmarshal(data, &manifest); err != nil {
+		t.Fatal(err)
+	}
+	if manifest.EventID != eventID || manifest.Seed == 0 || manifest.InputSnapshotID == "" || manifest.EligibilitySnapshotID == "" ||
+		len(manifest.FleetSHA256) != 64 || manifest.ScenarioFile != "" || manifest.ScenarioSHA256 != "" || manifest.CodeVersion == "" {
+		t.Fatalf("incomplete replay manifest: %+v", manifest)
 	}
 }
 
