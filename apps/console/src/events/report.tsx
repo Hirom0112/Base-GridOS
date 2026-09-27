@@ -160,6 +160,10 @@ function DetailedReport({ report }: { report: z.infer<typeof reportSchema> }) {
         ]}
       />
       <DeliveryMeasurements report={report} />
+      <p>
+        Planned shortfall and delivery shortfall are pending server evidence.
+        Tracking error compares measured delivery with commanded power.
+      </p>
       <ReserveEvidence evidence={report.ReserveCompliance} />
       <ReportEconomics report={report} />
       <ReportLineage report={report} />
