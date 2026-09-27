@@ -1175,3 +1175,10 @@ assumptions reported by workers land here too.
   posts ledger rows for accepted acknowledgements received after a report
   was published, over events reported in the preceding 24 hours, through
   the same idempotent posting; the stored report stays byte-identical.
+- **Live scenario mode (2A.10, 2026-09-27):** the standing demo runs the
+  gateway without a scenario, so the seeded failures of FULL_SPEC §9 step
+  11 cannot be shown live and the console's steps 11 to 15 stay soft.
+  The simulator gains a live scenario mode that retimes a scenario's
+  injections relative to process start on the wall clock, and `make demo`
+  passes a scenario file through; the runbook and the console then assert
+  those steps for real. Found by lane 5F while drafting the demo script.
