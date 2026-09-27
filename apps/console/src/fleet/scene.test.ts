@@ -50,6 +50,11 @@ test("response projection never distributes fleet totals or invents missing cell
   };
   const cells = projectCells([cell]);
   expect(projectResponse(cells, response, "sent")[0]?.value).toBe(0.1);
+  expect(projectResponse(cells, response, "sent")[0]?.response).toBe("sent");
+  expect(
+    projectResponse(cells, { ...response, state: 4 }, "sent")[0]?.response,
+  ).toBeNull();
+  expect(cells[0]?.response).toBeNull();
   expect(projectResponse(cells, response, "acknowledged")[0]?.value).toBe(0.08);
   expect(projectResponse(cells, response, "delivered")[0]?.value).toBe(0.06);
   expect(
