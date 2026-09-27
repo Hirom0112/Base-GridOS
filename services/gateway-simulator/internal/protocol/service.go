@@ -10,7 +10,6 @@ import (
 
 	"connectrpc.com/connect"
 	gridosv1 "github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1"
-	"github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1/gridosv1connect"
 	"github.com/Hirom0112/Base-GridOS/services/gateway-simulator/internal/gateway"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -78,41 +77,6 @@ func commandFromIntent(intent *gridosv1.CommandIntent) (gateway.Command, error) 
 		EffectiveAt:    intent.GetEffectiveAt().AsTime(),
 		ExpiresAt:      intent.GetExpiresAt().AsTime(),
 	}, nil
-}
-
-type TelemetryPublisher struct {
-	client             gridosv1connect.TelemetryServiceClient
-	gatewayID          string
-	authorizationToken string
-}
-
-func NewTelemetryPublisher(client gridosv1connect.TelemetryServiceClient, gatewayID, authorizationToken string) *TelemetryPublisher {
-	return &TelemetryPublisher{client: client, gatewayID: gatewayID, authorizationToken: authorizationToken}
-}
-
-func (publisher *TelemetryPublisher) Publish(ctx context.Context, observation *gridosv1.TelemetryObservation) error {
-	if observation == nil || observation.GetObservationId() == "" {
-		return errors.New("observation identifier is required")
-	}
-	request := connect.NewRequest(&gridosv1.PublishTelemetryRequest{GatewayId: publisher.gatewayID, Observations: []*gridosv1.TelemetryObservation{observation}})
-	request.Header().Set("Authorization", publisher.authorizationToken)
-	response, err := publisher.client.PublishTelemetry(ctx, request)
-	if err != nil {
-		return err
-	}
-	if response.Msg.GetDurableReceiptId() == "" || !contains(response.Msg.GetObservationIds(), observation.GetObservationId()) {
-		return errors.New("telemetry receipt does not acknowledge observation")
-	}
-	return nil
-}
-
-func contains(values []string, wanted string) bool {
-	for _, value := range values {
-		if value == wanted {
-			return true
-		}
-	}
-	return false
 }
 
 func authorized(actual, expected string) bool {

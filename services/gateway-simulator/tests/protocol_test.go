@@ -3,7 +3,6 @@ package tests
 import (
 	"context"
 	"crypto/tls"
-	"errors"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
@@ -51,34 +50,6 @@ func TestGatewayProtocol(t *testing.T) {
 	if commandResponse.Msg.GetAcknowledgement().GetReceiptStatus() != gridosv1.CommandReceiptStatus_COMMAND_RECEIPT_STATUS_ACCEPTED {
 		t.Fatalf("acknowledgement=%+v", commandResponse.Msg.GetAcknowledgement())
 	}
-	telemetryService := &telemetryRecorder{now: now}
-	telemetryPath, telemetryHandler := gridosv1connect.NewTelemetryServiceHandler(telemetryService)
-	telemetryServer := newGRPCServer(t, telemetryPath, telemetryHandler)
-	publisher := protocol.NewTelemetryPublisher(gridosv1connect.NewTelemetryServiceClient(telemetryServer.Client(), telemetryServer.URL, connect.WithGRPC()), "gateway-1", "Bearer test-token")
-	observation := &gridosv1.TelemetryObservation{ObservationId: "observation-1", DeviceId: "device-1"}
-	if err := publisher.Publish(ctx, observation); err != nil {
-		t.Fatal(err)
-	}
-	if len(telemetryService.observations) != 1 || telemetryService.observations[0].GetObservationId() != "observation-1" {
-		t.Fatalf("observations=%+v", telemetryService.observations)
-	}
-}
-
-type telemetryRecorder struct {
-	now          time.Time
-	observations []*gridosv1.TelemetryObservation
-}
-
-func (recorder *telemetryRecorder) PublishTelemetry(_ context.Context, request *connect.Request[gridosv1.PublishTelemetryRequest]) (*connect.Response[gridosv1.PublishTelemetryResponse], error) {
-	if request.Header().Get("Authorization") != "Bearer test-token" {
-		return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("authorization required"))
-	}
-	recorder.observations = append(recorder.observations, request.Msg.GetObservations()...)
-	ids := make([]string, 0, len(request.Msg.GetObservations()))
-	for _, observation := range request.Msg.GetObservations() {
-		ids = append(ids, observation.GetObservationId())
-	}
-	return connect.NewResponse(&gridosv1.PublishTelemetryResponse{DurableReceiptId: "receipt-1", ObservationIds: ids, DurablyReceivedAt: timestamppb.New(recorder.now)}), nil
 }
 
 func newGRPCServer(t *testing.T, path string, handler http.Handler) *httptest.Server {
