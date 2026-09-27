@@ -11,6 +11,7 @@ import (
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/storage"
 	"github.com/jackc/pgx/v5"
 	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -55,7 +56,8 @@ func (activities *Activities) IssueReplacement(ctx context.Context, replacement 
 	if err != nil {
 		return err
 	}
-	if err = storage.NewPostgresEventStore(activities.Pool).StoreReplacement(ctx, replacement.EventID, event.GetPlanVersion(), current, plan, key, now); err != nil {
+	mergedPlan := mergeReplacementPlan(approved, plan, replacement.DroppedDeviceIDs)
+	if err = storage.NewPostgresEventStore(activities.Pool).StoreReplacement(ctx, replacement.EventID, event.GetPlanVersion(), current, mergedPlan, key, now); err != nil {
 		return err
 	}
 	return activities.publishCommands(ctx, commands)
@@ -114,11 +116,50 @@ func (activities *Activities) loadStoredReplacement(ctx context.Context, eventID
 }
 
 func (activities *Activities) publishReplacement(ctx context.Context, replacement ReplacementCommand, current *gridosv1.OptimizationRequest, plan *gridosv1.DispatchPlan, key string) error {
-	commands, err := replacementCommands(replacement, current, plan, key, activities.Now())
+	_, previous, err := activities.Events.LoadPlan(ctx, replacement.EventID, plan.GetPlanVersion()-1)
+	if err != nil {
+		return err
+	}
+	surviving := make(map[string]bool, len(previous.GetDeviceSchedules()))
+	for _, schedule := range previous.GetDeviceSchedules() {
+		surviving[schedule.GetDeviceId()] = true
+	}
+	for _, id := range replacement.DroppedDeviceIDs {
+		delete(surviving, id)
+	}
+	newPlan := proto.Clone(plan).(*gridosv1.DispatchPlan)
+	newPlan.DeviceSchedules = nil
+	for _, schedule := range plan.GetDeviceSchedules() {
+		if !surviving[schedule.GetDeviceId()] {
+			newPlan.DeviceSchedules = append(newPlan.DeviceSchedules, schedule)
+		}
+	}
+	commands, err := replacementCommands(replacement, current, newPlan, key, activities.Now())
 	if err != nil {
 		return err
 	}
 	return activities.publishCommands(ctx, commands)
+}
+
+func mergeReplacementPlan(approved, replacement *gridosv1.DispatchPlan, dropped []string) *gridosv1.DispatchPlan {
+	merged := proto.Clone(replacement).(*gridosv1.DispatchPlan)
+	droppedIDs := make(map[string]bool, len(dropped))
+	for _, id := range dropped {
+		droppedIDs[id] = true
+	}
+	merged.DeviceSchedules = nil
+	for _, schedule := range approved.GetDeviceSchedules() {
+		if !droppedIDs[schedule.GetDeviceId()] {
+			merged.DeviceSchedules = append(merged.DeviceSchedules, proto.Clone(schedule).(*gridosv1.DeviceSchedule))
+		}
+	}
+	merged.DeviceSchedules = append(merged.DeviceSchedules, replacement.GetDeviceSchedules()...)
+	if len(approved.GetShortfalls()) == len(merged.GetShortfalls()) {
+		for index, previous := range approved.GetShortfalls() {
+			merged.Shortfalls[index].ShortfallKw += previous.GetShortfallKw()
+		}
+	}
+	return merged
 }
 
 func (activities *Activities) publishCommands(ctx context.Context, commands []storage.CommandIntent) error {
