@@ -14,6 +14,7 @@ import { PlanExplanation } from "../dispatch/explanation";
 import { eventStateLabels } from "./events-timeline";
 import { AuditTimeline } from "./audit-timeline";
 import { EmergencyStopControl } from "./emergency-stop";
+import { EventReplay } from "./replay";
 import { EventReport } from "./report";
 import { LiveEvent } from "./events-live";
 
@@ -188,7 +189,12 @@ export function EventView({
           <p>No exclusions returned by the server.</p>
         )}
       </section>
-      {view === "report" && <EventReport eventId={eventId} />}
+      {view === "report" && (
+        <>
+          <EventReport eventId={eventId} />
+          <EventReplay key={eventId} eventId={eventId} />
+        </>
+      )}
       <AuditTimeline event={event} />
       {view === "execution" && (
         <div className="boundary-note">

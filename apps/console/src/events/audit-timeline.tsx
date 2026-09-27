@@ -1,3 +1,4 @@
+import { useId } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { z } from "zod";
 import { useSession } from "../api/auth";
@@ -7,7 +8,7 @@ import type { DispatchEvent } from "../api/gen/gridos/v1/dispatch_pb";
 import { EventExceptions } from "./exceptions";
 import { EventHistory, eventStateLabels } from "./events-timeline";
 
-const recordsSchema = z
+export const recordsSchema = z
   .array(
     z.object({
       sequence: z.bigint().positive(),
@@ -61,6 +62,7 @@ export function AuditTimeline({ event }: { event: DispatchEvent }) {
 }
 
 export function AuditRecords({ entries }: { entries: EventTimelineEntry[] }) {
+  const titleId = useId();
   const parsed = recordsSchema.safeParse(entries);
   if (!parsed.success)
     return (
@@ -69,11 +71,11 @@ export function AuditRecords({ entries }: { entries: EventTimelineEntry[] }) {
       </p>
     );
   return (
-    <section className="event-history" aria-labelledby="audit-title">
+    <section className="event-history" aria-labelledby={titleId}>
       <div className="section-heading">
         <div>
           <p className="eyebrow">Evidence trail</p>
-          <h3 id="audit-title">Server audit timeline</h3>
+          <h3 id={titleId}>Server audit timeline</h3>
         </div>
         <span className="mode-chip">{parsed.data.length} records</span>
       </div>

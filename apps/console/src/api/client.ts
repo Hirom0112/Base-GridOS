@@ -6,6 +6,7 @@ import { stepUpAuthorization } from "./step-up";
 import {
   ContextService,
   ReportService,
+  ReplayService,
   DispatchService,
   FleetService,
   EventsService,
@@ -59,6 +60,7 @@ export function createConsoleClient(
     ],
   });
   return {
+    replay: createClient(ReplayService, transport),
     reports: createClient(ReportService, transport),
     context: createClient(ContextService, transport),
     fleet: createClient(FleetService, transport),
