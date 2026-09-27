@@ -10,6 +10,7 @@ import (
 	"github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1/gridosv1connect"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/fleet"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/fleet/policy"
+	"github.com/Hirom0112/Base-GridOS/services/control/internal/observability"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/safety"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/storage"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -26,7 +27,11 @@ func NewConnectOptimizer(client gridosv1connect.OptimizationServiceClient) *Conn
 }
 
 func (optimizer *ConnectOptimizer) Optimize(ctx context.Context, request *gridosv1.OptimizationRequest) (*gridosv1.DispatchPlan, error) {
-	response, err := optimizer.client.Optimize(ctx, connect.NewRequest(&gridosv1.OptimizeRequest{Request: request}))
+	outgoing := connect.NewRequest(&gridosv1.OptimizeRequest{Request: request})
+	correlationID, workflowID := observability.TraceIDs(ctx)
+	outgoing.Header().Set("X-Correlation-Id", correlationID)
+	outgoing.Header().Set("X-Workflow-Id", workflowID)
+	response, err := optimizer.client.Optimize(ctx, outgoing)
 	if err != nil {
 		return nil, err
 	}
@@ -34,7 +39,11 @@ func (optimizer *ConnectOptimizer) Optimize(ctx context.Context, request *gridos
 }
 
 func (optimizer *ConnectOptimizer) Forecast(ctx context.Context, request *gridosv1.ForecastRequest) (*gridosv1.ForecastResponse, error) {
-	response, err := optimizer.client.Forecast(ctx, connect.NewRequest(request))
+	outgoing := connect.NewRequest(request)
+	correlationID, workflowID := observability.TraceIDs(ctx)
+	outgoing.Header().Set("X-Correlation-Id", correlationID)
+	outgoing.Header().Set("X-Workflow-Id", workflowID)
+	response, err := optimizer.client.Forecast(ctx, outgoing)
 	if err != nil {
 		return nil, err
 	}
@@ -42,7 +51,11 @@ func (optimizer *ConnectOptimizer) Forecast(ctx context.Context, request *gridos
 }
 
 func (optimizer *ConnectOptimizer) Replace(ctx context.Context, request *gridosv1.ReplaceRequest) (*gridosv1.ReplaceResponse, error) {
-	response, err := optimizer.client.Replace(ctx, connect.NewRequest(request))
+	outgoing := connect.NewRequest(request)
+	correlationID, workflowID := observability.TraceIDs(ctx)
+	outgoing.Header().Set("X-Correlation-Id", correlationID)
+	outgoing.Header().Set("X-Workflow-Id", workflowID)
+	response, err := optimizer.client.Replace(ctx, outgoing)
 	if err != nil {
 		return nil, err
 	}

@@ -24,6 +24,14 @@ func WithTraceIDs(ctx context.Context, correlationID, workflowID string) (contex
 	}), nil
 }
 
+func TraceIDs(ctx context.Context) (string, string) {
+	identity, ok := ctx.Value(traceIdentityKey{}).(traceIdentity)
+	if !ok {
+		return "unavailable", "unavailable"
+	}
+	return identity.correlationID, identity.workflowID
+}
+
 func NewTracerProvider(exporter sdktrace.SpanExporter) *sdktrace.TracerProvider {
 	return sdktrace.NewTracerProvider(
 		sdktrace.WithSpanProcessor(traceIdentityProcessor{}),
