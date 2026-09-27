@@ -1085,3 +1085,9 @@ assumptions reported by workers land here too.
   telemetry gap on the previous demo instance had the same cause. Item
   2A.9 makes a repeated slot a skipped tick and a producer rejection
   non-fatal.
+- **Retention doc acceptance (5E.3, 2026-09-27):** no invented legal
+  periods. The retention document states the enforced facts (seven daily
+  telemetry partitions, immutable audit and reports, consented Travel Flex
+  and away records kept until the member ends them, then audit only), a
+  deny-until-approved rule for operational household data, the deletion
+  flow, and a named list of durations the data owner still has to decide.
