@@ -29,7 +29,7 @@ func TestExceptionsFromDurableEvidence(t *testing.T) {
 		INSERT INTO eligibility_snapshots (snapshot_id, event_id, captured_at, eligible_device_ids, exclusions, policy_version, correlation_id)
 		VALUES ('eligibility-exception', 'event-exception', $1, ARRAY['device-1'], '[]', 'policy-1', 'exception');
 		INSERT INTO plan_versions (event_id, version, input_snapshot_id, eligibility_snapshot_id, plan, solver_version, model_version, correlation_id)
-		VALUES ('event-exception', 1, 'input-exception', 'eligibility-exception', '{"deviceSchedules":[{"deviceId":"device-1"}]}', 'fallback-1', 'model-1', 'exception');
+		VALUES ('event-exception', 1, 'input-exception', 'eligibility-exception', '{"deviceSchedules":[{"deviceId":"device-1"},{"deviceId":"device-3"}]}', 'fallback-1', 'model-1', 'exception');
 		INSERT INTO plan_versions (event_id, version, input_snapshot_id, eligibility_snapshot_id, plan, solver_version, model_version, correlation_id)
 		VALUES ('event-exception', 2, 'input-exception', 'eligibility-exception', '{"deviceSchedules":[{"deviceId":"device-2"}]}', 'fallback-1', 'model-1', 'exception');
 		INSERT INTO command_intents (command_id, idempotency_key, device_id, event_id, plan_version, generation, setpoint_kw, issued_at, effective_at, expires_at, policy_version, correlation_id)
@@ -82,6 +82,9 @@ func assertExceptionEvidence(t *testing.T, exceptions []*gridosv1.EventException
 		gridosv1.EventExceptionKind_EVENT_EXCEPTION_KIND_REBALANCED_COMMAND:     "command-2",
 	}
 	for _, exception := range exceptions {
+		if exception.GetKind() == gridosv1.EventExceptionKind_EVENT_EXCEPTION_KIND_STALE_CAPACITY_REMOVED && exception.GetDeviceId() == "device-3" {
+			t.Fatal("device without missing telemetry was classified as stale")
+		}
 		if exception.GetKind() == gridosv1.EventExceptionKind_EVENT_EXCEPTION_KIND_REBALANCED_COMMAND && exception.GetCommandId() == "command-3" {
 			t.Fatal("zero-setpoint stop was classified as a rebalance")
 		}
