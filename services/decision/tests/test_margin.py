@@ -132,6 +132,27 @@ def test_margin_formula_uses_every_term_and_conservative_bounds() -> None:
     assert estimate.optimistic == Decimal("132")
 
 
+def test_margin_formula_accepts_negative_market_value_but_rejects_negative_cost() -> None:
+    zero = MoneyRange(Decimal(0), Decimal(0))
+    negative_price = MoneyRange(Decimal("-10"), Decimal("-5"))
+    components = MarginComponents(
+        dispatch_value=negative_price,
+        avoided_peak_cost=zero,
+        commitment_reliability_value=zero,
+        charging_energy=zero,
+        incremental_degradation=zero,
+        penalty_exposure=zero,
+        member_reward=zero,
+        support_and_risk_cost=zero,
+    )
+
+    assert estimate_margin(components).conservative == Decimal("-10")
+    assert estimate_margin(components).optimistic == Decimal("-5")
+
+    with pytest.raises(ValueError, match="cost"):
+        estimate_margin(replace(components, charging_energy=negative_price))
+
+
 def test_margin_hurdle_blocks_negative_and_uncertain_capacity() -> None:
     capacity = Decimal("5")
     hurdle = Decimal("10")
