@@ -6,6 +6,7 @@ import (
 	"time"
 
 	gridosv1 "github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1"
+	"github.com/Hirom0112/Base-GridOS/services/control/internal/reconciliation"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"go.temporal.io/sdk/activity"
@@ -54,20 +55,9 @@ func TestRecoveryReplacesDroppedDeviceOnce(t *testing.T) {
 	begin := environment.Now().Add(time.Minute)
 	end := begin.Add(time.Minute)
 	input := Input{EventID: "recovery-event", Generation: 1, Request: &gridosv1.EventRequest{BeginTime: timestamppb.New(begin), EndTime: timestamppb.New(end)}}
-	type droppedDevice struct {
-		DeviceID string
-		Reason   string
-	}
-	type recoveryResult struct {
-		Dropped           []droppedDevice
-		EnvelopeDeviceIDs []string
-	}
-	environment.RegisterActivityWithOptions(func(context.Context, Input) (recoveryResult, error) {
-		return recoveryResult{}, nil
-	}, activity.RegisterOptions{Name: "DetectRecovery"})
 	mockWorkflowActivities(environment, input)
-	environment.OnActivity("DetectRecovery", mock.Anything, input).Return(recoveryResult{
-		Dropped:           []droppedDevice{{DeviceID: "device-1", Reason: "MISSING"}},
+	environment.OnActivity(DetectRecoveryActivity, mock.Anything, input).Return(reconciliation.RecoveryDecision{
+		Dropped:           []reconciliation.RecoveryDrop{{DeviceID: "device-1", Reason: "MISSING"}},
 		EnvelopeDeviceIDs: []string{"device-1", "device-2"},
 	}, nil)
 	environment.OnActivity(IssueReplacementActivity, mock.Anything, ReplacementCommand{
@@ -219,5 +209,8 @@ func persistArgument(input Input) PersistInput {
 func registerActivities(environment *testsuite.TestWorkflowEnvironment) {
 	environment.RegisterActivity(&Activities{})
 	environment.RegisterActivityWithOptions(func(context.Context, Input) error { return nil }, activity.RegisterOptions{Name: VerifyDeliveryActivity})
+	environment.RegisterActivityWithOptions(func(context.Context, Input) (reconciliation.RecoveryDecision, error) {
+		return reconciliation.RecoveryDecision{}, nil
+	}, activity.RegisterOptions{Name: DetectRecoveryActivity})
 	environment.RegisterActivityWithOptions(func(context.Context, Input) error { return nil }, activity.RegisterOptions{Name: ReconcileLateMessagesActivity})
 }

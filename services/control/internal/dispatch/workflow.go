@@ -25,6 +25,7 @@ const (
 	PublishCommandsActivity       = "PublishCommands"
 	TrackAcknowledgementsActivity = "TrackAcknowledgements"
 	VerifyDeliveryActivity        = "VerifyDelivery"
+	DetectRecoveryActivity        = "DetectRecovery"
 	EndEventActivity              = "EndEvent"
 	ReconcileLateMessagesActivity = "ReconcileLateMessages"
 	ProduceReportActivity         = "ProduceReport"
@@ -193,6 +194,10 @@ func runWindow(ctx workflow.Context, input Input, emergency, replacements workfl
 		return err
 	}
 	result.States = append(result.States, Executing)
+	handled := make(map[string]bool)
+	if err := recoverDropped(ctx, input, generation, handled); err != nil {
+		return err
+	}
 	interval := reconciliation.VerificationInterval(end.Sub(begin))
 	for intervalEnd := begin.Add(interval); ; intervalEnd = intervalEnd.Add(interval) {
 		if intervalEnd.After(end) {
@@ -203,6 +208,11 @@ func runWindow(ctx workflow.Context, input Input, emergency, replacements workfl
 		}
 		if err := run(ctx, VerifyDeliveryActivity, input); err != nil {
 			return err
+		}
+		if intervalEnd.Before(end) {
+			if err := recoverDropped(ctx, input, generation, handled); err != nil {
+				return err
+			}
 		}
 		if err := handleControlSignals(ctx, emergency, replacements, input, generation); err != nil {
 			return err
@@ -225,6 +235,38 @@ func runWindow(ctx workflow.Context, input Input, emergency, replacements workfl
 		return err
 	}
 	return expire(ctx, input, *generation)
+}
+
+func recoverDropped(ctx workflow.Context, input Input, generation *uint64, handled map[string]bool) error {
+	if workflow.GetVersion(ctx, "automatic-recovery", workflow.DefaultVersion, 1) == workflow.DefaultVersion {
+		return nil
+	}
+	var decision reconciliation.RecoveryDecision
+	if err := workflow.ExecuteActivity(ctx, DetectRecoveryActivity, input).Get(ctx, &decision); err != nil {
+		return err
+	}
+	dropped := make([]string, 0, len(decision.Dropped))
+	for _, device := range decision.Dropped {
+		if device.DeviceID == "" || device.Reason == "" {
+			return errors.New("recovery drop requires device and reason")
+		}
+		if !handled[device.DeviceID] {
+			dropped = append(dropped, device.DeviceID)
+		}
+	}
+	if len(dropped) == 0 {
+		return nil
+	}
+	command := ReplacementCommand{EventID: input.EventID, Request: input.Request, DroppedDeviceIDs: dropped,
+		EnvelopeDeviceIDs: decision.EnvelopeDeviceIDs, Generation: *generation}
+	if err := workflow.ExecuteActivity(ctx, IssueReplacementActivity, command).Get(ctx, nil); err != nil {
+		return err
+	}
+	for _, id := range dropped {
+		handled[id] = true
+	}
+	*generation++
+	return nil
 }
 
 func waitWithControl(ctx workflow.Context, until time.Time, emergency, replacements workflow.ReceiveChannel, input Input, generation *uint64) error {
