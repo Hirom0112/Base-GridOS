@@ -11,8 +11,8 @@ class MoneyRange:
     def __post_init__(self) -> None:
         if not self.low.is_finite() or not self.high.is_finite():
             raise ValueError("margin terms must be finite")
-        if self.low < 0 or self.low > self.high:
-            raise ValueError("margin bounds must be nonnegative and ordered")
+        if self.low > self.high:
+            raise ValueError("margin bounds must be ordered")
 
 
 @dataclass(frozen=True, slots=True)
@@ -25,6 +25,17 @@ class MarginComponents:
     penalty_exposure: MoneyRange
     member_reward: MoneyRange
     support_and_risk_cost: MoneyRange
+
+    def __post_init__(self) -> None:
+        for cost in (
+            self.charging_energy,
+            self.incremental_degradation,
+            self.penalty_exposure,
+            self.member_reward,
+            self.support_and_risk_cost,
+        ):
+            if cost.low < 0:
+                raise ValueError("margin cost must be nonnegative")
 
 
 @dataclass(frozen=True, slots=True)
