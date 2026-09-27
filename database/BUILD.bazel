@@ -12,6 +12,6 @@ filegroup(
 
 filegroup(
     name = "rollback",
-    srcs = glob(["rollback/**", "rollbacks/**"]),
+    srcs = glob(["rollback/**"]),
     visibility = ["//visibility:public"],
 )

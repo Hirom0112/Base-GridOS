@@ -1,4 +1,4 @@
-load("@rules_go//go:def.bzl", "go_binary", "go_library")
+load("@rules_go//go:def.bzl", "go_binary", "go_library", "go_test")
 
 go_library(
     name = "migrate_lib",
@@ -16,4 +16,18 @@ go_binary(
     name = "migrate",
     embed = [":migrate_lib"],
     visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "migrate_test",
+    srcs = ["main_test.go"],
+    data = [
+        "//database:migrations",
+        "//database:rollback",
+    ],
+    embed = [":migrate_lib"],
+    deps = [
+        "@com_github_golang_migrate_migrate_v4//:migrate",
+        "@com_github_jackc_pgx_v5//:pgx",
+    ],
 )

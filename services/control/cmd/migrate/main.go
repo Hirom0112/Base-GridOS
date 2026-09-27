@@ -63,14 +63,21 @@ func migrationFiles() (string, error) {
 		if entry.IsDir() || filepath.Ext(entry.Name()) != ".sql" {
 			continue
 		}
-		contents, readErr := os.ReadFile(filepath.Join("database/migrations", entry.Name()))
-		if readErr != nil {
-			return "", readErr
+		stem := strings.TrimSuffix(entry.Name(), ".sql")
+		if err = copyMigration(filepath.Join("database/migrations", entry.Name()), filepath.Join(temporary, stem+".up.sql")); err != nil {
+			return "", err
 		}
-		name := strings.TrimSuffix(entry.Name(), ".sql") + ".up.sql"
-		if writeErr := os.WriteFile(filepath.Join(temporary, name), contents, 0o600); writeErr != nil {
-			return "", writeErr
+		if err = copyMigration(filepath.Join("database/rollback", entry.Name()), filepath.Join(temporary, stem+".down.sql")); err != nil {
+			return "", err
 		}
 	}
 	return temporary, nil
+}
+
+func copyMigration(source, destination string) error {
+	contents, err := os.ReadFile(source)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(destination, contents, 0o600)
 }
