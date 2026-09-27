@@ -44,6 +44,7 @@ const (
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
+	slog.SetDefault(slog.New(observability.NewScrubbedLogHandler(slog.NewJSONHandler(os.Stdout, nil))))
 	databaseURL := os.Getenv("GRIDOS_DATABASE_URL")
 	if databaseURL == "" {
 		databaseURL = "postgres://gridos:gridos@localhost:5432/gridos?sslmode=disable"
@@ -135,7 +136,6 @@ func main() {
 }
 
 func startObservability(ctx context.Context, pool *pgxpool.Pool, twin *fleet.Twin, telemetryTwin *fleet.TelemetryTwin, sites []*gridosv1.AuthorizedSite) (*sdktrace.TracerProvider, error) {
-	slog.SetDefault(slog.New(observability.NewScrubbedLogHandler(slog.NewJSONHandler(os.Stdout, nil))))
 	exporter, err := stdouttrace.New(stdouttrace.WithWriter(os.Stdout))
 	if err != nil {
 		return nil, err
