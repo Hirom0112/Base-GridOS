@@ -1,10 +1,15 @@
 import * as THREE from "three";
 import type { GridCell } from "./scene";
+import { createRenderQuality } from "./render-quality";
 import { animateResponse } from "./response-motion";
 
 export function mountGrid(host: HTMLElement, select: (id: string) => void) {
   const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+  const quality = createRenderQuality(
+    window.devicePixelRatio,
+    window.innerWidth,
+  );
+  renderer.setPixelRatio(quality.pixelRatio);
   renderer.domElement.setAttribute("aria-hidden", "true");
   renderer.domElement.dataset.livingGrid = "true";
   host.append(renderer.domElement);
@@ -49,9 +54,16 @@ export function mountGrid(host: HTMLElement, select: (id: string) => void) {
   );
   scene.add(boundaries);
   let visible = true;
-  function render() {
-    if (visible && !document.hidden) renderer.render(scene, camera);
+  function render(at?: number) {
+    if (!visible || document.hidden) {
+      quality.frame();
+      return;
+    }
+    const ratio = quality.frame(at);
+    if (ratio !== renderer.getPixelRatio()) renderer.setPixelRatio(ratio);
+    renderer.render(scene, camera);
   }
+  const documentVisibility = () => render();
   function resizeFrame() {
     const width = host.clientWidth;
     const height = host.clientHeight;
@@ -75,7 +87,7 @@ export function mountGrid(host: HTMLElement, select: (id: string) => void) {
     render();
   });
   visibility.observe(host);
-  document.addEventListener("visibilitychange", render);
+  document.addEventListener("visibilitychange", documentVisibility);
   const ray = new THREE.Raycaster();
   function pick(event: PointerEvent) {
     const rect = host.getBoundingClientRect();
@@ -125,7 +137,7 @@ export function mountGrid(host: HTMLElement, select: (id: string) => void) {
       cancelMotion();
       resize.disconnect();
       visibility.disconnect();
-      document.removeEventListener("visibilitychange", render);
+      document.removeEventListener("visibilitychange", documentVisibility);
       renderer.domElement.removeEventListener("pointerup", pick);
       geometry.dispose();
       material.dispose();

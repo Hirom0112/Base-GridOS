@@ -3,7 +3,7 @@ import * as THREE from "three";
 export function animateResponse(
   mesh: THREE.InstancedMesh,
   indices: number[],
-  render: () => void,
+  render: (at?: number) => void,
   visible: () => boolean,
 ) {
   if (!indices.length || matchMedia("(prefers-reduced-motion: reduce)").matches)
@@ -37,7 +37,7 @@ export function animateResponse(
         color.clone().lerp(new THREE.Color(0xffffff), glow),
       );
     if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
-    render();
+    render(now);
     frame = requestAnimationFrame(tick);
   }
   frame = requestAnimationFrame(tick);
