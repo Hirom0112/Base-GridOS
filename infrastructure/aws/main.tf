@@ -26,6 +26,7 @@ locals {
   service_names = toset(keys(local.ports))
   common_environment = [
     { name = "GRIDOS_FLEET", value = var.fleet_path },
+    { name = "GRIDOS_REPLAY_DIR", value = "/app/replay" },
     { name = "TEMPORAL_ADDRESS", value = var.temporal_address },
     { name = "GRIDOS_DECISION_ADDR", value = "http://decision.gridos.internal:50061" },
     { name = "GRIDOS_GATEWAY_ADDR", value = "http://gateway.gridos.internal:8081" },
@@ -217,9 +218,10 @@ resource "aws_ecs_task_definition" "service" {
     name         = each.key
     image        = var.images[each.key]
     essential    = true
-    command      = each.key == "gateway" ? ["--fleet", var.fleet_path, "--gateway-id", "${var.name}-gateway", "--address", ":8081", "--control-address", "http://control.gridos.internal:8080"] : null
+    command      = each.key == "gateway" ? ["--scenario", var.scenario_path, "--live", "--gateway-id", "${var.name}-gateway", "--address", ":8081", "--database", "/tmp/gateway.db", "--control-address", "http://control.gridos.internal:8080"] : null
     portMappings = local.ports[each.key] == 0 ? [] : [{ containerPort = local.ports[each.key], protocol = "tcp" }]
     environment  = local.service_environment[each.key]
+    mountPoints  = contains(["control", "worker"], each.key) ? [{ sourceVolume = "replay", containerPath = "/app/replay", readOnly = false }] : []
     secrets = concat(
       contains(["control", "worker"], each.key) ? [{ name = "GRIDOS_DATABASE_URL", valueFrom = aws_secretsmanager_secret.runtime["database-url"].arn }] : [],
       contains(["control", "worker", "gateway"], each.key) ? [{ name = "GRIDOS_GATEWAY_TOKEN", valueFrom = aws_secretsmanager_secret.runtime["gateway-token"].arn }] : [],
@@ -234,6 +236,19 @@ resource "aws_ecs_task_definition" "service" {
       }
     }
   }])
+  dynamic "volume" {
+    for_each = contains(["control", "worker"], each.key) ? [1] : []
+    content {
+      name = "replay"
+      efs_volume_configuration {
+        file_system_id     = aws_efs_file_system.replay.id
+        transit_encryption = "ENABLED"
+        authorization_config {
+          access_point_id = aws_efs_access_point.replay.id
+        }
+      }
+    }
+  }
 }
 
 resource "aws_lb" "main" {
@@ -293,5 +308,5 @@ resource "aws_ecs_service" "service" {
       container_port   = 8080
     }
   }
-  depends_on = [aws_lb_listener.https, aws_iam_role_policy.runtime_secrets]
+  depends_on = [aws_lb_listener.https, aws_iam_role_policy.runtime_secrets, aws_efs_mount_target.replay]
 }

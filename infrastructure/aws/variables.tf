@@ -58,7 +58,12 @@ variable "temporal_address" {
 
 variable "fleet_path" {
   type    = string
-  default = "/app/testdata/fleets/austin-5000.jsonl"
+  default = "testdata/fleets/austin-5000.jsonl"
+}
+
+variable "scenario_path" {
+  type    = string
+  default = "testdata/scenarios/heat-event-canonical.yaml"
 }
 
 variable "db_instance_class" {
