@@ -871,3 +871,29 @@ assumptions reported by workers land here too.
   `api.proto` (479 lines) because buf breaking forbids moving committed
   symbols between files. Director: report package ok, control builds; the
   demo curl follows the demo rebuild after migration 0010.
+- **4A.3 (lane 4A), verified:** Travel Flex windows apply only between a
+  consented local start and end, expire automatically, record a fixed
+  credit, and an early return cancels the window with an audited
+  idempotent override to the catalog maximum until the original end; the
+  simulated fleet gets a durable one-member-per-site binding through
+  migration 0010; the frozen request carries base and consented flex
+  reserves while the safety state stays at base. Director: policy and api
+  selectors pass, 0010 re-applies, the rebuilt demo seeds 5,000 bindings.
+- **4B.7 (lane 4B), verified:** the decision service derives a
+  conservative margin from frozen public price lower bounds only, caps a
+  public-price-only positive margin at zero, and preserves the base
+  reserve; unavailable terms are explicit. Director: decision suite green,
+  mypy clean.
+- **Flex reserve roundtrip (2026-09-27):** both lanes found that a
+  positive margin can never consume flex under the current binding. New
+  item 4B.8 makes the reserve selection a first-class value through the
+  safety gate rather than relaxing the equality check.
+- **4A.4 approved:** migration 0011 adds the COMMUNICATIONS override
+  reason with rollback; the override is a typed idempotent command with a
+  bounded interval and an audit row.
+- **Demo rebuilt on the current tree:** ContextService and ReportService
+  answer on 28080; a fresh event created twelve seconds after start
+  validated as a fully quantified shortfall (all devices still stale at
+  that instant), which is the 3C.5 behaviour working as intended, and the
+  live report shows the stale exclusions, FROZEN_FORECAST provenance, and
+  the economics version gap.

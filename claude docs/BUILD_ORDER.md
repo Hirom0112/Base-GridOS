@@ -1312,7 +1312,7 @@ Owns: `services/control/internal/fleet/policy/`,
   rewards come from a versioned market catalog, never constants. Verify: fails.
 - `[x]` 4A.2 `[P]` GREEN: `fleet/policy` with catalog loading from
   `pricing_catalog_snapshots`. Verify: `go test ./services/control/internal/fleet/policy/` passes.
-- `[ ]` 4A.3 `[P]` RED then GREEN: Travel Flex lifecycle. Window applies only
+- `[x]` 4A.3 `[P]` RED then GREEN: Travel Flex lifecycle. Window applies only
   between consented start and end in its local timezone, expires
   automatically, early return cancels it and restores the safer reserve; a
   fixed daily, event, or annual credit is recorded, never a per-kWh discount by
@@ -1370,6 +1370,24 @@ Owns: `services/decision/` (whole package this wave, including
   Verify: `-k bill_simulator` passes.
 - `[x]` 4B.6 `[after 4A.2]` Optimizer consumes Travel Flex capacity only when
   the policy engine reports it active and 4B.3 clears. Verify: `-k travel_flex_capacity` passes.
+- `[x]` 4B.7 `[after 4B.6]` Decision-side conservative margin from frozen
+  public prices when the request carries none: negative or zero price
+  lower bounds make the margin negative, unavailable §5.11 terms are
+  explicit zero-valued costs on the high side, and a public-price-only
+  positive margin is capped at zero; the plan explanation lists the terms
+  used and the ones unavailable. Verify: `-k public_price_margin` passes.
+- `[ ]` 4B.8 `[after 4B.7, 4A.3]` Flex reserve selection through the safety
+  gate. Today the frozen effective reserve and the canonical safety state
+  stay at the base reserve, so a positive margin can never consume Travel
+  Flex without a second roundtrip. Make the choice representable: the
+  canonical device state carries base and consented flex reserves, the plan
+  declares a per-device reserve selection (BASE or TRAVEL_FLEX), the gate
+  enforces the selected value only when the consented value exists and
+  never below hardware, the decision server's equality check compares
+  against the selected value, and the selection is persisted with the plan
+  version. Owns `internal/safety/`, `internal/api/runtime.go` and
+  `dispatcher.go` mappings, `optimization.proto` additive, `server.py`
+  check. Verify: `go test ./services/control/internal/safety/ -run ReserveSelection` and `-k flex_selection` pass, and scenario 15 in 4F consumes flex only on a positive margin.
 
 ### Lane 4C — geographic and electrical map data
 
