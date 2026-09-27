@@ -1018,3 +1018,17 @@ assumptions reported by workers land here too.
   and Prometheus and Grafana now start only under the observability
   profile. Rule recorded: the shared compose file's default profile is the
   demo's, and anything else is opt-in.
+- **Hardware floor single source (2026-09-27):** the zero-percent
+  scenario failed because the simulator assumed a 10 percent hardware
+  floor while the fleet file carried none and control froze zero. The
+  fleet record gains `hardware_floor_percent` (10 for every simulated
+  device, SIMULATED), the fleet loader maps it into the frozen request,
+  and the simulator reads the same field. Lane 4F owns those paths
+  additively for 4F.1.
+- **5C.1 packages verified; item open until wiring:** control and gateway
+  metrics and trace packages pass; per-process registries on 9464 to
+  9467; the `cmd` initialization waits on 5E.2 as planned.
+- **Early start of Wave 5 lane E (2026-09-27):** 5E.2 gates the
+  observability wiring, so lane E opens for the next free agent with 5E.2
+  first; hook changes under 5E.4 are reviewed by the director before
+  commit.
