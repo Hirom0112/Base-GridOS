@@ -1229,7 +1229,7 @@ Owns: `services/control/internal/dispatch/`, `services/control/internal/api/`,
   solver plans 5,000 sites inside its budget. All three passing.
   Verify: `go test ./tests/integration/ -run "Timeout|Infeasible|Canonical"` passes.
 
-- `[ ]` 3D.6 `[after 3D.2]` Expose cohort replacement through the contract:
+- `[x]` 3D.6 `[after 3D.2]` Expose cohort replacement through the contract:
   add `Replace(ReplaceRequest) returns (ReplaceResponse)` to
   `OptimizationService` (lane D owns `optimization.proto` additively this
   wave) carrying the approved plan, the dropped device IDs, and the
@@ -1275,7 +1275,7 @@ Owns: `services/control/internal/replay/`, `services/control/cmd/replay`,
 - `[ ]` 3F.3 `[after 3D.3, 3A.6]` Record `GetPlanExplanation`, forecast
   responses with intervals, a `fallback=true` case, and `ValidateAlternative`
   violations into `testdata/fixtures/api/`. Verify: `go test ./tools/development/mockapi/ -run Fixtures` passes.
-- `[ ]` 3F.4 `[after 3F.2]` `internal/api/replay`: `ReplayEvent` Connect
+- `[x]` 3F.4 `[after 3F.2]` `internal/api/replay`: `ReplayEvent` Connect
   method returning the seed, versioned input identifiers, and the ordered
   event updates with timestamps, so the console can drive one replay clock,
   plus the diff. Verify: `go test ./services/control/internal/api/replay/` passes.

@@ -710,3 +710,21 @@ assumptions reported by workers land here too.
 - **Early start of Wave 4 lane E (2026-09-27):** the agent freed by lane
   3F takes 4E (event report, comparison, modeled economics) in
   `internal/report/`, which nothing open touches.
+- **3D.6 (lane 3D-dispatch), verified:** a replacement loads current device
+  state through the fleet snapshotter, calls the decision service's
+  `Replace` RPC with the explicit dropped list and envelope, runs the
+  independent safety gate on the replacement plan, persists a replacement
+  snapshot and a new plan version that keeps the event's frozen input, and
+  issues the command with the next generation; a rejected replacement stays
+  a quantified shortfall. Director: dispatch, decision (71 tests), and
+  contract checks ok.
+- **3F.4 (lane 3F), verified:** `ReplayService.ReplayEvent` is its own
+  service, authorized, returning manifest provenance, the ordered timeline,
+  and the plan diff. Director: api/replay and cmd/replay ok.
+- **3F.2 rejected pending two fixes:** the recorded manifest carries
+  `code_version` "(devel)" (module version, not the commit) and an empty
+  string for an absent scenario. The manifest must record the VCS revision
+  from build settings (with an explicit `GRIDOS_CODE_VERSION` for builds
+  without VCS metadata, and a hard error when neither exists) and omit the
+  scenario fields when no scenario ran. The worker hook, seed rule, and
+  end-to-end assertion are otherwise accepted.
