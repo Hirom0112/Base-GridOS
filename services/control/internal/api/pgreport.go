@@ -106,6 +106,7 @@ func (source *PostgresReportSource) EventReportData(ctx context.Context, eventID
 func (source *PostgresReportSource) fillPlanEvidence(ctx context.Context, eventID string, planVersion int64, begin, end time.Time, report *reporting.StoredEvent) (reporting.StoredEvent, error) {
 	if planVersion == 0 {
 		addLiveReportGap(report, begin, end, "plan_unavailable")
+		addLiveReportGap(report, begin, end, "reserve_measurement_unavailable")
 		fillLiveForecast(report, nil, begin, end)
 		return *report, nil
 	}
@@ -131,6 +132,9 @@ func (source *PostgresReportSource) fillPlanEvidence(ctx context.Context, eventI
 		return *report, err
 	}
 	fillLiveForecast(report, frozen, begin, end)
+	if err := source.fillReserveCompliance(ctx, begin, end, frozen, report); err != nil {
+		return *report, err
+	}
 	return *report, nil
 }
 

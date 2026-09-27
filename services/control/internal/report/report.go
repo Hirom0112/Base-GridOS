@@ -81,6 +81,16 @@ type Delivered struct {
 	UncertainIntervals []UncertainInterval
 }
 
+type ReserveCompliance struct {
+	DevicesExpected     uint64
+	DevicesObserved     uint64
+	MinimumMarginKWh    *float64
+	DevicesTouchedFloor uint64
+	ObservationGaps     uint64
+	ValueKind           string
+	Provenance          []string
+}
+
 type StoredEvent struct {
 	PlanVersion                uint64
 	RequestedMW                float64
@@ -94,6 +104,7 @@ type StoredEvent struct {
 	Energy                     *EnergyTotals
 	Measurement                *Measurement
 	ReserveViolationsPrevented uint64
+	ReserveCompliance          *ReserveCompliance
 	Economics                  *ModeledEconomics
 	MemberRewardsCents         *int64
 	Margin                     *ModeledMargin
@@ -129,6 +140,7 @@ type EventReport struct {
 	Energy                     *EnergyTotals
 	Measurement                *Measurement
 	ReserveViolationsPrevented uint64
+	ReserveCompliance          *ReserveCompliance
 	Economics                  *ModeledEconomics
 	MemberRewardsCents         *int64
 	Margin                     *ModeledMargin
@@ -170,6 +182,7 @@ func Build(ctx context.Context, source Source, eventID string) (EventReport, err
 		Versions:                   stored.Versions,
 		Delivered:                  cloneDelivered(stored.Delivered),
 		ReserveViolationsPrevented: stored.ReserveViolationsPrevented,
+		ReserveCompliance:          cloneReserveCompliance(stored.ReserveCompliance),
 		DataGaps:                   append([]DataGap(nil), stored.DataGaps...),
 		Assumptions:                append([]string(nil), stored.Assumptions...),
 	}
@@ -256,6 +269,7 @@ func cloneReport(report EventReport) EventReport {
 	clone.Assumptions = append([]string(nil), report.Assumptions...)
 	clone.DataGaps = append([]DataGap(nil), report.DataGaps...)
 	clone.Delivered = cloneDelivered(report.Delivered)
+	clone.ReserveCompliance = cloneReserveCompliance(report.ReserveCompliance)
 	if report.Energy != nil {
 		energy := *report.Energy
 		clone.Energy = &energy
@@ -280,7 +294,25 @@ func cloneReport(report EventReport) EventReport {
 	return clone
 }
 
+func cloneReserveCompliance(value *ReserveCompliance) *ReserveCompliance {
+	if value == nil {
+		return nil
+	}
+	clone := *value
+	clone.Provenance = slices.Clone(value.Provenance)
+	if value.MinimumMarginKWh != nil {
+		margin := *value.MinimumMarginKWh
+		clone.MinimumMarginKWh = &margin
+	}
+	return &clone
+}
+
 func validateAccounting(stored StoredEvent) error {
+	if reserve := stored.ReserveCompliance; reserve != nil {
+		if err := reserve.validate(); err != nil {
+			return err
+		}
+	}
 	if stored.Energy != nil && !finiteNonnegative(stored.Energy.RequestedMWh, stored.Energy.ApprovedMWh, stored.Energy.CommandedMWh, stored.Energy.AcknowledgedMWh, stored.Energy.DeliveredMWh) {
 		return errors.New("report energy must be finite and nonnegative")
 	}
@@ -297,6 +329,13 @@ func validateAccounting(stored StoredEvent) error {
 		if gap.Reason == "" || gap.Begin.IsZero() || !gap.End.After(gap.Begin) {
 			return errors.New("report data gap is invalid")
 		}
+	}
+	return nil
+}
+
+func (reserve *ReserveCompliance) validate() error {
+	if reserve.DevicesObserved == 0 || reserve.DevicesObserved > reserve.DevicesExpected || reserve.ObservationGaps > reserve.DevicesExpected || reserve.DevicesTouchedFloor > reserve.DevicesObserved || reserve.MinimumMarginKWh == nil || !finite(*reserve.MinimumMarginKWh) || reserve.ValueKind != "MEASURED" || len(reserve.Provenance) == 0 {
+		return errors.New("measured reserve compliance is incomplete or invalid")
 	}
 	return nil
 }

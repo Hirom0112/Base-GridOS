@@ -29,6 +29,7 @@ func TestMeasuredReserveComplianceFromTelemetry(t *testing.T) {
 	_, err = pool.Exec(ctx, `INSERT INTO telemetry_observations (observed_at, device_id, sequence, observation_id, payload)
 		VALUES ($1::timestamptz + interval '1 minute', 'device-1', 1, 'reserve-1', '{"valueState":"VALUE_STATE_PRESENT","stateOfEnergyPercent":51}'),
 		($1::timestamptz + interval '2 minutes', 'device-1', 2, 'reserve-2', '{"valueState":"VALUE_STATE_PRESENT","stateOfEnergyPercent":50}'),
+		($1::timestamptz + interval '3 minutes', 'device-1', 3, 'reserve-3', '{"valueState":"VALUE_STATE_MISSING"}'),
 		($1::timestamptz + interval '1 minute', 'device-2', 1, 'reserve-missing', '{"valueState":"VALUE_STATE_MISSING"}')`, begin)
 	require.NoError(t, err)
 	built, err := report.Build(ctx, NewPostgresReportSource(pool), "event-restart")
@@ -57,7 +58,7 @@ func TestMeasuredReserveComplianceFromTelemetry(t *testing.T) {
 	require.NotNil(t, compliance.MinimumMarginKWh)
 	require.InDelta(t, 0, *compliance.MinimumMarginKWh, 1e-9)
 	require.Equal(t, uint64(1), compliance.DevicesTouchedFloor)
-	require.Equal(t, uint64(1), compliance.ObservationGaps)
+	require.Equal(t, uint64(2), compliance.ObservationGaps)
 	require.Equal(t, "MEASURED", compliance.ValueKind)
 	require.Contains(t, compliance.Provenance, "TELEMETRY_OBSERVATIONS")
 	require.Contains(t, compliance.Provenance, "FROZEN_EFFECTIVE_RESERVE")

@@ -90,6 +90,32 @@ func TestFullEventReportRejectsNonfiniteFinancialInput(t *testing.T) {
 	}
 }
 
+func TestMeasuredReserveComplianceDoesNotAliasStoredEvidence(t *testing.T) {
+	margin := 0.5
+	reserve := &ReserveCompliance{DevicesExpected: 2, DevicesObserved: 1, ObservationGaps: 1,
+		MinimumMarginKWh: &margin, ValueKind: "MEASURED", Provenance: []string{"TELEMETRY_OBSERVATIONS"}}
+	source := &storedReportSource{data: StoredEvent{ReserveCompliance: reserve}}
+	built, err := Build(context.Background(), source, "event-reserve")
+	if err != nil {
+		t.Fatal(err)
+	}
+	*built.ReserveCompliance.MinimumMarginKWh = 9
+	built.ReserveCompliance.Provenance[0] = "changed"
+	if margin != 0.5 || reserve.Provenance[0] != "TELEMETRY_OBSERVATIONS" {
+		t.Fatal("built report aliases source reserve evidence")
+	}
+	source.published = &EventReport{EventID: "event-reserve", ReserveCompliance: reserve}
+	built, err = Build(context.Background(), source, "event-reserve")
+	if err != nil {
+		t.Fatal(err)
+	}
+	*built.ReserveCompliance.MinimumMarginKWh = 9
+	built.ReserveCompliance.Provenance[0] = "changed"
+	if margin != 0.5 || reserve.Provenance[0] != "TELEMETRY_OBSERVATIONS" {
+		t.Fatal("published report aliases stored reserve evidence")
+	}
+}
+
 func TestRewardsAndConservativeMarginPreserveEvidence(t *testing.T) {
 	rewards := int64(725)
 	source := &storedReportSource{data: StoredEvent{

@@ -138,7 +138,10 @@ func TestGetEventReportRequiresRoleAndEvent(t *testing.T) {
 }
 
 func TestGetEventReportReserveCompliance(t *testing.T) {
-	source := &reportSource{live: core.StoredEvent{PlanVersion: 1, RequestedMW: 1}}
+	margin := 0.5
+	source := &reportSource{live: core.StoredEvent{PlanVersion: 1, RequestedMW: 1,
+		ReserveCompliance: &core.ReserveCompliance{DevicesExpected: 2, DevicesObserved: 1, MinimumMarginKWh: &margin,
+			ObservationGaps: 1, ValueKind: "MEASURED", Provenance: []string{"TELEMETRY_OBSERVATIONS", "FROZEN_EFFECTIVE_RESERVE"}}}}
 	request := connect.NewRequest(&gridosv1.GetEventReportRequest{EventId: "event-reserve"})
 	request.Header().Set("X-GridOS-Role", "analyst")
 	response, err := NewService(source).GetEventReport(context.Background(), request)
@@ -149,4 +152,5 @@ func TestGetEventReportReserveCompliance(t *testing.T) {
 	if _, found := report["ReserveCompliance"]; !found {
 		t.Fatalf("measured reserve compliance missing from report: %s", response.Msg.GetReportJson())
 	}
+	require.Contains(t, string(report["ReserveCompliance"]), `"ValueKind":"MEASURED"`)
 }
