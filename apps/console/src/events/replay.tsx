@@ -16,7 +16,10 @@ const replaySchema = z
     fallbackVersion: z.string(),
     codeVersion: z.string().min(1),
     fleetSha256: z.string().regex(/^[a-f0-9]{64}$/),
-    scenarioSha256: z.string().regex(/^[a-f0-9]{64}$/),
+    scenarioSha256: z.union([
+      z.literal(""),
+      z.string().regex(/^[a-f0-9]{64}$/),
+    ]),
     updates: recordsSchema.refine((records) =>
       records.every((record, index) => {
         if (index === 0) return true;
@@ -74,7 +77,7 @@ export function ReplayEvidence({ data }: { data: ReplayEventResponse }) {
           ["Fallback", data.fallbackVersion || "Not supplied"],
           ["Code", data.codeVersion],
           ["Fleet SHA-256", data.fleetSha256],
-          ["Scenario SHA-256", data.scenarioSha256],
+          ["Scenario SHA-256", data.scenarioSha256 || "Not supplied"],
         ].map(([name, value]) => (
           <div key={name}>
             <dt>{name}</dt>
