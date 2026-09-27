@@ -2,6 +2,11 @@ package main
 
 import (
 	"bytes"
+	"crypto/hmac"
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -12,6 +17,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -141,16 +147,8 @@ func callMethod(baseURL, fixtureRoot, methodName string, indexedRequest recordin
 	}
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("X-GridOS-Role", indexedRequest.Role)
-	if indexedRequest.Role == "member" {
-		var body struct {
-			MemberID string `json:"memberId"`
-		}
-		if err := json.Unmarshal(indexedRequest.Body, &body); err != nil || indexedRequest.MemberID == "" || indexedRequest.MemberID != body.MemberID {
-			return recordedFixture{}, fmt.Errorf("%s requires a matching member identity", methodName)
-		}
-		request.Header.Set("X-GridOS-Member-ID", indexedRequest.MemberID)
-	} else if indexedRequest.MemberID != "" {
-		return recordedFixture{}, fmt.Errorf("%s has member identity without member role", methodName)
+	if err := setRecorderIdentity(request, methodName, indexedRequest); err != nil {
+		return recordedFixture{}, err
 	}
 	response, err := client.Do(request)
 	if err != nil {
@@ -177,6 +175,78 @@ func callMethod(baseURL, fixtureRoot, methodName string, indexedRequest recordin
 	compact.WriteByte('\n')
 	path := filepath.Join(fixtureRoot, serviceName, strings.TrimPrefix(procedure, "/gridos.v1."+serviceName+"/")+".json")
 	return recordedFixture{path: path, content: compact.Bytes()}, nil
+}
+
+func setRecorderIdentity(request *http.Request, methodName string, indexedRequest recordingRequest) error {
+	if methodName == "gridos.v1.DispatchService.ApproveEvent" || methodName == "gridos.v1.DispatchService.EmergencyStop" {
+		assertion, err := recordStepUpAssertion(methodName, indexedRequest.Body)
+		if err != nil {
+			return err
+		}
+		request.Header.Set("X-GridOS-Step-Up", assertion)
+	}
+	if indexedRequest.Role == "member" {
+		var body struct {
+			MemberID string `json:"memberId"`
+		}
+		if err := json.Unmarshal(indexedRequest.Body, &body); err != nil || indexedRequest.MemberID == "" || indexedRequest.MemberID != body.MemberID {
+			return fmt.Errorf("%s requires a matching member identity", methodName)
+		}
+		request.Header.Set("X-GridOS-Member-ID", indexedRequest.MemberID)
+	} else if indexedRequest.MemberID != "" {
+		return fmt.Errorf("%s has member identity without member role", methodName)
+	}
+	return nil
+}
+
+func recordStepUpAssertion(methodName string, body json.RawMessage) (string, error) {
+	var input struct {
+		EventID     string      `json:"eventId"`
+		PlanVersion json.Number `json:"planVersion"`
+		ApprovedBy  string      `json:"approvedBy"`
+		RequestedBy string      `json:"requestedBy"`
+	}
+	if err := json.Unmarshal(body, &input); err != nil {
+		return "", err
+	}
+	version, err := strconv.ParseUint(string(input.PlanVersion), 10, 64)
+	if err != nil || input.EventID == "" {
+		return "", fmt.Errorf("%s requires eventId and planVersion", methodName)
+	}
+	action, subject := "APPROVE_EVENT", input.ApprovedBy
+	if methodName == "gridos.v1.DispatchService.EmergencyStop" {
+		action, subject = "EMERGENCY_STOP", input.RequestedBy
+	}
+	if subject == "" {
+		return "", fmt.Errorf("%s requires an actor", methodName)
+	}
+	key := os.Getenv("GRIDOS_STEP_UP_KEY")
+	if key == "" {
+		key = "gridos-local-step-up-key-32-bytes-minimum"
+	}
+	if len(key) < 32 {
+		return "", errors.New("GRIDOS_STEP_UP_KEY must contain at least 32 bytes")
+	}
+	var nonce [16]byte
+	if _, err := rand.Read(nonce[:]); err != nil {
+		return "", err
+	}
+	now := time.Now().UTC()
+	claims, err := json.Marshal(struct {
+		Subject     string    `json:"subject"`
+		Action      string    `json:"action"`
+		EventID     string    `json:"event_id"`
+		PlanVersion uint64    `json:"plan_version"`
+		IssuedAt    time.Time `json:"issued_at"`
+		ExpiresAt   time.Time `json:"expires_at"`
+		Nonce       string    `json:"nonce"`
+	}{subject, action, input.EventID, version, now, now.Add(5 * time.Minute), hex.EncodeToString(nonce[:])})
+	if err != nil {
+		return "", err
+	}
+	mac := hmac.New(sha256.New, []byte(key))
+	_, _ = mac.Write(claims)
+	return base64.RawURLEncoding.EncodeToString(claims) + "." + base64.RawURLEncoding.EncodeToString(mac.Sum(nil)), nil
 }
 
 func methodProcedure(methodName string) (string, string, error) {
