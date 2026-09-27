@@ -112,9 +112,7 @@ func TestFreezeInputsAustinResultStaysBelowTemporalLimit(t *testing.T) {
 	pool := activityDatabase(t)
 	now := time.Now().UTC()
 	twin := fleet.NewTwin(time.Minute)
-	_, file, _, ok := runtime.Caller(0)
-	require.True(t, ok)
-	sites, _, err := fleet.Load(filepath.Join(filepath.Dir(file), "../../../../testdata/fleets/austin-5000.jsonl"), twin, now)
+	sites, _, err := fleet.Load(filepath.Join(activityTestRoot(t), "testdata/fleets/austin-5000.jsonl"), twin, now)
 	require.NoError(t, err)
 	events := controlapi.NewPostgresEventStore(pool)
 	request := &gridosv1.EventRequest{
@@ -401,9 +399,7 @@ func activityDatabase(t *testing.T) *pgxpool.Pool {
 	pool, err := pgxpool.NewWithConfig(ctx, config)
 	require.NoError(t, err)
 	t.Cleanup(pool.Close)
-	_, file, _, ok := runtime.Caller(0)
-	require.True(t, ok)
-	files, err := filepath.Glob(filepath.Join(filepath.Dir(file), "../../../../database/migrations/*.sql"))
+	files, err := filepath.Glob(filepath.Join(activityTestRoot(t), "database/migrations/*.sql"))
 	require.NoError(t, err)
 	sort.Strings(files)
 	for _, path := range files {
@@ -413,4 +409,14 @@ func activityDatabase(t *testing.T) *pgxpool.Pool {
 		require.NoError(t, execErr)
 	}
 	return pool
+}
+
+func activityTestRoot(t *testing.T) string {
+	t.Helper()
+	if directory := os.Getenv("TEST_SRCDIR"); directory != "" {
+		return filepath.Join(directory, os.Getenv("TEST_WORKSPACE"))
+	}
+	_, file, _, ok := runtime.Caller(0)
+	require.True(t, ok)
+	return filepath.Clean(filepath.Join(filepath.Dir(file), "../../../.."))
 }

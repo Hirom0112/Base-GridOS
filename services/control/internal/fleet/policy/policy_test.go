@@ -133,9 +133,13 @@ func policyDatabase(t *testing.T) *pgxpool.Pool {
 	pool, err := pgxpool.NewWithConfig(ctx, configuration)
 	require.NoError(t, err)
 	t.Cleanup(pool.Close)
-	_, file, _, ok := runtime.Caller(0)
-	require.True(t, ok)
-	migrations, err := filepath.Glob(filepath.Join(filepath.Dir(file), "../../../../../database/migrations/*.sql"))
+	root := filepath.Join(os.Getenv("TEST_SRCDIR"), os.Getenv("TEST_WORKSPACE"))
+	if os.Getenv("TEST_SRCDIR") == "" {
+		_, file, _, ok := runtime.Caller(0)
+		require.True(t, ok)
+		root = filepath.Join(filepath.Dir(file), "../../../../..")
+	}
+	migrations, err := filepath.Glob(filepath.Join(root, "database/migrations/*.sql"))
 	require.NoError(t, err)
 	sort.Strings(migrations)
 	for _, path := range migrations {

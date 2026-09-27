@@ -252,8 +252,15 @@ func restartDatabase(t *testing.T) (*pgxpool.Pool, string) {
 		t.Fatal(err)
 	}
 	t.Cleanup(pool.Close)
-	_, file, _, _ := runtime.Caller(0)
-	files, _ := filepath.Glob(filepath.Join(filepath.Dir(file), "../../../database/migrations/*.sql"))
+	root := filepath.Join(os.Getenv("TEST_SRCDIR"), os.Getenv("TEST_WORKSPACE"))
+	if os.Getenv("TEST_SRCDIR") == "" {
+		_, file, _, ok := runtime.Caller(0)
+		if !ok {
+			t.Fatal("cannot locate migrations")
+		}
+		root = filepath.Join(filepath.Dir(file), "../../..")
+	}
+	files, _ := filepath.Glob(filepath.Join(root, "database/migrations/*.sql"))
 	sort.Strings(files)
 	for _, path := range files {
 		contents, readErr := os.ReadFile(path)

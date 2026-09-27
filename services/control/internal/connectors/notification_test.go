@@ -85,11 +85,15 @@ func notificationDatabase(t *testing.T) *pgxpool.Pool {
 		t.Fatal(err)
 	}
 	t.Cleanup(pool.Close)
-	_, file, _, ok := runtime.Caller(0)
-	if !ok {
-		t.Fatal("test path unavailable")
+	root := filepath.Join(os.Getenv("TEST_SRCDIR"), os.Getenv("TEST_WORKSPACE"))
+	if os.Getenv("TEST_SRCDIR") == "" {
+		_, file, _, ok := runtime.Caller(0)
+		if !ok {
+			t.Fatal("test path unavailable")
+		}
+		root = filepath.Join(filepath.Dir(file), "../../../..")
 	}
-	migrations, err := filepath.Glob(filepath.Join(filepath.Dir(file), "../../../../database/migrations/*.sql"))
+	migrations, err := filepath.Glob(filepath.Join(root, "database/migrations/*.sql"))
 	if err != nil {
 		t.Fatal(err)
 	}

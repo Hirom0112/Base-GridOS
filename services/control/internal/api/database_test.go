@@ -1,4 +1,4 @@
-package storage
+package api
 
 import (
 	"context"
@@ -14,19 +14,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-func TestHarnessAppliesMigrations(t *testing.T) {
-	pool := testDatabase(t)
-	var exists bool
-	err := pool.QueryRow(context.Background(), "SELECT to_regclass('dispatch_events') IS NOT NULL").Scan(&exists)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !exists {
-		t.Fatal("dispatch_events table is missing")
-	}
-}
-
-func testDatabase(t *testing.T) *pgxpool.Pool {
+func apiTestDatabase(t *testing.T) *pgxpool.Pool {
 	t.Helper()
 	ctx := context.Background()
 	adminURL := os.Getenv("GRIDOS_DATABASE_URL")
@@ -37,7 +25,7 @@ func testDatabase(t *testing.T) *pgxpool.Pool {
 	if err != nil {
 		t.Fatal(err)
 	}
-	name := fmt.Sprintf("gridos_test_%d", time.Now().UnixNano())
+	name := fmt.Sprintf("gridos_api_%d", time.Now().UnixNano())
 	identifier := pgx.Identifier{name}.Sanitize()
 	if _, err = admin.Exec(ctx, "CREATE DATABASE "+identifier); err != nil {
 		t.Fatal(err)
@@ -56,22 +44,21 @@ func testDatabase(t *testing.T) *pgxpool.Pool {
 		t.Fatal(err)
 	}
 	t.Cleanup(pool.Close)
-	applyTestMigrations(t, pool)
+	applyAPIMigrations(t, pool)
 	return pool
 }
 
-func applyTestMigrations(t *testing.T, pool *pgxpool.Pool) {
+func applyAPIMigrations(t *testing.T, pool *pgxpool.Pool) {
 	t.Helper()
 	root := filepath.Join(os.Getenv("TEST_SRCDIR"), os.Getenv("TEST_WORKSPACE"))
 	if os.Getenv("TEST_SRCDIR") == "" {
-		_, currentFile, _, ok := runtime.Caller(0)
+		_, file, _, ok := runtime.Caller(0)
 		if !ok {
-			t.Fatal("cannot locate migrations")
+			t.Fatal("cannot locate repository")
 		}
-		root = filepath.Join(filepath.Dir(currentFile), "../../../..")
+		root = filepath.Join(filepath.Dir(file), "../../../..")
 	}
-	pattern := filepath.Join(root, "database/migrations/*.sql")
-	files, err := filepath.Glob(pattern)
+	files, err := filepath.Glob(filepath.Join(root, "database/migrations/*.sql"))
 	if err != nil {
 		t.Fatal(err)
 	}

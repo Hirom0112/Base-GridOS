@@ -374,11 +374,15 @@ func activityDatabase(t *testing.T) *pgxpool.Pool {
 		t.Fatal(err)
 	}
 	t.Cleanup(pool.Close)
-	_, currentFile, _, ok := runtime.Caller(0)
-	if !ok {
-		t.Fatal("cannot locate migrations")
+	root := filepath.Join(os.Getenv("TEST_SRCDIR"), os.Getenv("TEST_WORKSPACE"))
+	if os.Getenv("TEST_SRCDIR") == "" {
+		_, currentFile, _, ok := runtime.Caller(0)
+		if !ok {
+			t.Fatal("cannot locate migrations")
+		}
+		root = filepath.Join(filepath.Dir(currentFile), "../../../..")
 	}
-	files, err := filepath.Glob(filepath.Join(filepath.Dir(currentFile), "../../../../database/migrations/*.sql"))
+	files, err := filepath.Glob(filepath.Join(root, "database/migrations/*.sql"))
 	if err != nil {
 		t.Fatal(err)
 	}
