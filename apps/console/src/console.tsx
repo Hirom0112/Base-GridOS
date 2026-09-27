@@ -5,9 +5,11 @@ import {
   useMemo,
   useState,
   type ReactNode,
+  type ComponentProps,
 } from "react";
 import { Link, useLocation, useParams } from "@tanstack/react-router";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
+import { useEventStream } from "./events/events-live";
 import { MemberHome } from "./member/home";
 import { Shell } from "./shell";
 import { useSession } from "./api/auth";
@@ -102,7 +104,8 @@ export function Console({ children }: { children: ReactNode }) {
             </div>
           }
         >
-          <LivingGrid
+          <GeographicField
+            eventId={eventId}
             active={pathname !== "/map"}
             cells={cells}
             selected={selectedCell}
@@ -241,5 +244,18 @@ function FleetEvidence({
         </p>
       </section>
     </aside>
+  );
+}
+
+function GeographicField({
+  eventId,
+  ...props
+}: ComponentProps<typeof LivingGrid> & { eventId?: string }) {
+  const { query } = useEventStream(eventId);
+  return (
+    <LivingGrid
+      {...props}
+      response={query.isError ? undefined : query.data?.at(-1)}
+    />
   );
 }

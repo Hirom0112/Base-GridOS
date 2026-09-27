@@ -164,7 +164,10 @@ function capacityMesh(
     mesh.setMatrixAt(index, matrix.matrix);
     mesh.setColorAt(
       index,
-      new THREE.Color(cell.id === selected ? 0xffffff : 0xa6b9ae),
+      new THREE.Color(cell.color).lerp(
+        new THREE.Color(0xffffff),
+        cell.id === selected ? 0.25 : 0,
+      ),
     );
   }
   return mesh;
