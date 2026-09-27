@@ -1070,3 +1070,7 @@ assumptions reported by workers land here too.
   event begin, paid even if the offer later expired; a Travel Flex event
   credit is additional only when a consented window covered the whole
   event window. Posting is idempotent on (event, member, offer).
+- **4F.1 negative-margin scenario verified (2026-09-27):** with a
+  SIMULATED negative forward price frozen into the forecast, the report
+  shows a negative margin upper bound with its price provenance and no
+  flex capacity is dispatched (111 s on the director's machine).
