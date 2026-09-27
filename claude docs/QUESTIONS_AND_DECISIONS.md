@@ -2037,3 +2037,15 @@ RESILIENCE_PLAN_SELECTED at 08:40:28Z followed by TRAVEL_FLEX_SCHEDULED and
 the early-return row for window 5d8a0157, with the stored consent version
 and RESTORE_PLAN_RESERVE read back. 4B.9 and 4B.10 hold end to end with
 the console's strict receipt matching.
+
+## 2026-09-27 09:02Z — 4C.9 frozen reserve basis for demo step 7
+
+The console can show each device's reserve selection and selected kWh but
+nothing proves where the floor came from (hardware, plan, weather or other
+override) or which Travel Flex credit the plan bound. Decision: additive
+4C.9 exposes the frozen per-device reserve basis and the Travel Flex
+bindings in PlanExplanationEvidence from the eligibility snapshot, with
+provenance and issue time; root owns it now, RED/GREEN separate, fixture
+refreshed from a demo plan that has an active weather override and a
+consented window (the director seeds both on the demo before the fixture
+run). Until then step 7 stays labelled missing evidence.

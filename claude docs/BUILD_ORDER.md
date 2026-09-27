@@ -1536,6 +1536,15 @@ Owns: `services/control/internal/context/`, `services/control/internal/api/conte
   was built from, each with provenance, issue time and value kind, so the
   console's risk, availability and window panels read frozen inputs rather
   than live public samples. Verify: `go test ./services/control/internal/api/ -run Explanation` passes and the recorded fixture carries all four.
+- `[ ]` 4C.9 `[after 4C.6]` Frozen reserve basis in the explanation.
+  `PlanExplanationEvidence` carries, per device, the frozen hardware floor,
+  plan reserve, any active override floor with its reason, source id and
+  policy version, and the effective reserve the plan honoured, plus each
+  consented Travel Flex window in scope with its bound credit type and
+  amount, all read from the frozen eligibility snapshot with provenance and
+  issue time. Verify: `go test ./services/control/internal/api/ -run ReserveBasis`
+  passes and the recorded fixture carries at least one override and one
+  Travel Flex binding from a demo plan.
 - `[x]` 4D.1 `[P]` RED then GREEN: reference loaders for normalized ERCOT
   prices, system load, outage rates, and NWS forecasts and alerts from
   `testdata/fixtures/public` (offline default) with provenance and freshness
