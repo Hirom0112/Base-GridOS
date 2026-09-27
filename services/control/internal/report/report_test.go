@@ -64,6 +64,26 @@ func TestFullEventReportRejectsNonfiniteFinancialInput(t *testing.T) {
 	}
 }
 
+func TestRewardsAndConservativeMarginPreserveEvidence(t *testing.T) {
+	rewards := int64(725)
+	source := &storedReportSource{data: StoredEvent{
+		MemberRewardsCents: &rewards,
+		Margin:             &ModeledMargin{ValueUSD: -3.25, HurdleUSD: 1},
+	}}
+	got, err := Build(context.Background(), source, "event-rewards")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.MemberRewardsCents == nil || *got.MemberRewardsCents != 725 || got.Margin == nil || got.Margin.ValueUSD != -3.25 || got.Margin.HurdleUSD != 1 || got.Margin.ValueKind != "modeled_estimate" {
+		t.Fatalf("reward or conservative margin missing: %+v", got)
+	}
+	*got.MemberRewardsCents = 0
+	got.Margin.ValueUSD = 0
+	if *source.data.MemberRewardsCents != 725 || source.data.Margin.ValueUSD != -3.25 {
+		t.Fatal("report aliases stored reward or margin")
+	}
+}
+
 func (source *storedReportSource) EventReportData(_ context.Context, eventID string) (StoredEvent, error) {
 	source.eventID = eventID
 	source.reads++
