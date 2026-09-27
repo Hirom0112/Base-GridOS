@@ -215,6 +215,10 @@ export function CommandEvidence({
       </section>
       <section aria-label="Safe return evidence">
         <h3>Expiry and zero-setpoint evidence</h3>
+        <p>
+          Expiry is the command’s validity limit. Zero-setpoint intent and
+          receipt do not confirm the fleet has stopped.
+        </p>
         {zero.length ? (
           <p>
             {zero.length} zero-setpoint intents ·{" "}
