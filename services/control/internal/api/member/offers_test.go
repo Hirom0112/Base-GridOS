@@ -27,9 +27,9 @@ func TestListMemberOffersUsesStoredTerms(t *testing.T) {
 	require.NoError(t, err)
 	_, err = pool.Exec(ctx, `INSERT INTO pricing_catalog_snapshots(catalog_version,member_plan_id,market,display_name,reserve_floor_percent,energy_plan,energy_term_months,energy_monthly_charge_cents,battery_plan,battery_term_months,battery_monthly_charge_cents,flexibility_reward_cents,effective_at,expires_at,correlation_id) VALUES ('catalog-offers','balanced','ERCOT','Balanced',30,'{}',0,1200,'{}',0,0,800,$1,$2,'fixture')`, now.Add(-time.Hour), now.Add(time.Hour))
 	require.NoError(t, err)
-	_, err = pool.Exec(ctx, `INSERT INTO offer_terms(catalog_version,member_plan_id,kind,contract_version,consent_version,consent_text,price_text,temporary_reserve_percent,credit_type,fixed_credit_cents) VALUES ('catalog-offers','balanced','PLAN','contract-1','consent-1','Stored consent','Stored price',NULL,NULL,0),('catalog-offers','balanced','TRAVEL_FLEX','contract-1','consent-flex-1','Stored flex consent','Stored flex price',20,'FIXED_DAILY',500)`)
-	require.NoError(t, err)
 	_, err = pool.Exec(ctx, `INSERT INTO reserve_policies(policy_version,protected_hardware_floor_percent,member_plan_floor_percent,dynamic_override_percent,effective_reserve_percent,effective_at,correlation_id) VALUES ('policy-offers',10,30,0,30,$1,'fixture')`, now.Add(-time.Hour))
+	require.NoError(t, err)
+	_, err = pool.Exec(ctx, `INSERT INTO offer_terms(catalog_version,member_plan_id,kind,policy_version,contract_version,consent_version,consent_text,price_text,temporary_reserve_percent,credit_type,fixed_credit_cents) VALUES ('catalog-offers','balanced','PLAN','policy-offers','contract-1','consent-1','Stored consent','Stored price',NULL,NULL,0),('catalog-offers','balanced','TRAVEL_FLEX','policy-offers','contract-1','consent-flex-1','Stored flex consent','Stored flex price',20,'FIXED_DAILY',500)`)
 	require.NoError(t, err)
 	_, err = pool.Exec(ctx, `INSERT INTO travel_flex_windows(travel_flex_window_id,member_id,start_time,end_time,timezone,temporary_reserve_percent,early_return_action,credit_type,credit_cents,consent_text,consent_version,policy_version,correlation_id) VALUES ('travel-offers','member-offers',$1,$2,'UTC',20,'RESTORE_PLAN_RESERVE','FIXED_DAILY',500,'Stored flex consent','consent-flex-1','policy-offers','fixture')`, now.Add(time.Hour), now.Add(2*time.Hour))
 	require.NoError(t, err)
@@ -57,15 +57,24 @@ func TestListMemberOffersUsesStoredTerms(t *testing.T) {
 			Kind           string `json:"kind"`
 			PriceText      string `json:"priceText"`
 			ConsentVersion string `json:"consentVersion"`
+			PolicyVersion  string `json:"policyVersion"`
 		} `json:"offers"`
-		TravelFlexWindows []json.RawMessage `json:"travelFlexWindows"`
-		AwayWindows       []json.RawMessage `json:"awayWindows"`
+		TravelFlexWindows []struct {
+			ConsentVersion    string `json:"consentVersion"`
+			EarlyReturnAction string `json:"earlyReturnAction"`
+		} `json:"travelFlexWindows"`
+		AwayWindows []struct {
+			ConsentVersion string `json:"consentVersion"`
+		} `json:"awayWindows"`
 	}
 	if err := json.Unmarshal(body, &listed); err != nil {
 		t.Fatal(err)
 	}
 	if len(listed.Offers) != 2 || listed.Offers[0].PriceText != "Stored price" || listed.Offers[1].ConsentVersion != "consent-flex-1" || len(listed.TravelFlexWindows) != 1 || len(listed.AwayWindows) != 1 {
 		t.Fatalf("stored offers and windows = %s", body)
+	}
+	if listed.Offers[0].PolicyVersion != "policy-offers" || listed.Offers[1].PolicyVersion != "policy-offers" || listed.TravelFlexWindows[0].ConsentVersion != "consent-flex-1" || listed.TravelFlexWindows[0].EarlyReturnAction != "MEMBER_EARLY_RETURN_ACTION_RESTORE_PLAN_RESERVE" || listed.AwayWindows[0].ConsentVersion != "away-consent" {
+		t.Fatalf("stored versions and early return = %s", body)
 	}
 	offer := connect.NewRequest(&gridosv1.PresentOfferRequest{MemberId: "member-offers", IdempotencyKey: "offer-forged", Kind: gridosv1.MemberOfferKind_MEMBER_OFFER_KIND_PLAN, Market: "ERCOT", CatalogVersion: "catalog-offers", MemberPlanId: "balanced", ContractVersion: "contract-1", PriceText: "Forged price", ConsentText: "Stored consent", ConsentVersion: "consent-1", EffectiveAt: timestamppb.New(now), ExpiresAt: timestamppb.New(now.Add(time.Hour)), CorrelationId: "fixture"})
 	offer.Header().Set("X-GridOS-Role", "member")
