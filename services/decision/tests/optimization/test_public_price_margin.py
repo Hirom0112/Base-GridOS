@@ -57,3 +57,12 @@ def test_negative_public_price_keeps_base_reserve(
 
     assert response.plan.device_schedules[0].intervals[0].setpoint_kw <= 1.0
     assert response.plan.shortfalls[0].shortfall_kw >= 2.0
+    explanation = response.plan.margin_explanation
+    assert explanation.conservative_margin == -0.1
+    assert explanation.margin_hurdle == 0
+    terms = {term.name: term for term in explanation.terms}
+    assert terms["DISPATCH_VALUE"].low == -0.1
+    assert terms["DISPATCH_VALUE"].source == "FROZEN_PUBLIC_PRICE"
+    assert not terms["DISPATCH_VALUE"].unavailable
+    assert terms["MEMBER_REWARD"].unavailable
+    assert terms["MEMBER_REWARD"].high == 0
