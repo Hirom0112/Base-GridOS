@@ -1171,3 +1171,7 @@ assumptions reported by workers land here too.
   Demo key rollout is deferred until the console consumes that endpoint,
   so the standing demo keeps accepting approvals with a logged STUBBED
   warning; enforcement is proven on isolated stacks.
+- **4A.11 late acceptance catch-up, accepted:** the hourly maintenance run
+  posts ledger rows for accepted acknowledgements received after a report
+  was published, over events reported in the preceding 24 hours, through
+  the same idempotent posting; the stored report stays byte-identical.
