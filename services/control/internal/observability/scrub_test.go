@@ -89,3 +89,25 @@ func (c *capturedSpans) ExportSpans(_ context.Context, spans []sdktrace.ReadOnly
 func (c *capturedSpans) Shutdown(context.Context) error {
 	return nil
 }
+
+func TestScrubRejectsHouseholdIdentifiers(t *testing.T) {
+	t.Parallel()
+	for _, private := range []string{
+		"site_7c5d2e91a0b34f68",
+		"device_796529bd2960a2c9c2e3",
+		"member-3f9a0c7e12b4",
+		"member_3f9a0c7e12b4",
+		"household_5e8b1d2c9f0a",
+		"site-private-123",
+	} {
+		if safeLogAttr(slog.String("event_id", private)) {
+			t.Errorf("log attribute leaked %q", private)
+		}
+		if safeTraceAttr(attribute.String("correlation_id", private)) {
+			t.Errorf("trace attribute leaked %q", private)
+		}
+	}
+	if !safeLogAttr(slog.String("event_id", "live-proof-1790502698")) || !safeTraceAttr(attribute.String("workflow_id", "event_dispatch_1790502698")) {
+		t.Fatal("safe identifiers must pass")
+	}
+}
