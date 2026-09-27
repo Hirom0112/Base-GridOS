@@ -131,6 +131,52 @@ func TestFixturesCaptureContextGeo(t *testing.T) {
 	}
 }
 
+func TestFixturesCapturePublishedReportViews(t *testing.T) {
+	root := filepath.Join(repositoryRoot(t), "testdata", "fixtures", "api")
+	type reportValue struct {
+		EventID            string `json:"EventID"`
+		MemberRewardsCents int64  `json:"MemberRewardsCents"`
+		Margin             struct {
+			ValueUSD  float64 `json:"ValueUSD"`
+			ValueKind string  `json:"ValueKind"`
+		} `json:"Margin"`
+	}
+	values := []struct {
+		name   string
+		id     string
+		reward int64
+		margin float64
+	}{
+		{"ReportService/GetEventReport.json", "event-report-a", 725, -3.25},
+		{"ReportService/GetEventReport.comparison_peer.json", "event-report-b", 1250, 1.5},
+	}
+	for _, expected := range values {
+		response := new(gridosv1.GetEventReportResponse)
+		readPlanningFixture(t, root, expected.name, response)
+		var value reportValue
+		if err := json.Unmarshal([]byte(response.GetReportJson()), &value); err != nil {
+			t.Fatal(err)
+		}
+		if value.EventID != expected.id || value.MemberRewardsCents != expected.reward || value.Margin.ValueUSD != expected.margin || value.Margin.ValueKind != "modeled_estimate" {
+			t.Fatalf("recorded report %s lacks sourced reward or modeled margin", expected.name)
+		}
+	}
+	partner := new(gridosv1.GetEventReportResponse)
+	readPlanningFixture(t, root, "ReportService/GetEventReport.partner.json", partner)
+	if strings.Contains(strings.ToLower(partner.GetReportJson()), "site_id") {
+		t.Fatal("partner report exposes site_id")
+	}
+	comparison := new(gridosv1.CompareEventReportsResponse)
+	readPlanningFixture(t, root, "ReportService/CompareEventReports.json", comparison)
+	changes := make(map[string]string)
+	for _, difference := range comparison.GetDifferences() {
+		changes[difference.GetField()] = difference.GetBefore() + ":" + difference.GetAfter()
+	}
+	if len(changes) != 2 || changes["member_rewards_cents"] != "725:1250" || changes["margin.value_usd"] != "-3.25:1.5" {
+		t.Fatal("recorded comparison does not match published report values")
+	}
+}
+
 func readPlanningFixture(t *testing.T, root, name string, message proto.Message) {
 	t.Helper()
 	content, err := os.ReadFile(filepath.Join(root, name))
