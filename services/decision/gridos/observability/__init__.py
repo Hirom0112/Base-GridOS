@@ -59,8 +59,11 @@ def new_provider(writer: TextIO) -> TracerProvider:
     return provider
 
 
-def start_metrics_server(port: int) -> tuple[WSGIServer, Thread]:
-    return start_http_server(port, addr="0.0.0.0")
+def start_metrics_server(address: str) -> tuple[WSGIServer, Thread]:
+    host, separator, port = address.rpartition(":")
+    if not separator or not host or not port.isdecimal() or not 0 <= int(port) <= 65_535:
+        raise ValueError("metrics address must be host:port")
+    return start_http_server(int(port), addr=host)
 
 
 @contextmanager

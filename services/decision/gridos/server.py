@@ -430,8 +430,8 @@ def serve(port: int) -> None:
     )
     if server.add_insecure_port(f"[::]:{port}") == 0:
         raise RuntimeError(f"could not bind port {port}")
-    metrics_port = os.getenv("GRIDOS_DECISION_METRICS_PORT")
-    metrics_server = start_metrics_server(_port(metrics_port))[0] if metrics_port else None
+    metrics_address = os.getenv("GRIDOS_DECISION_METRICS_ADDRESS")
+    metrics_server = start_metrics_server(metrics_address)[0] if metrics_address else None
     try:
         server.start()
         server.wait_for_termination()
