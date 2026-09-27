@@ -44,57 +44,33 @@ class OptimizedPlan(FallbackPlan):
 
 def _build_highs(
     eligible: list[DeviceState], intervals: list[PlanningInterval]
-) -> tuple[highspy.Highs, dict[tuple[int, int], int], dict[tuple[int, int], int], list[int]]:
+) -> tuple[highspy.Highs, dict[tuple[int, int], int], list[int]]:
     solver_type: Callable[[], highspy.Highs] = highspy.Highs
     solver = solver_type()
     solver.setOptionValue("output_flag", False)
     index: dict[tuple[int, int], int] = {}
-    activation_index: dict[tuple[int, int], int] = {}
     for device_index, device in enumerate(eligible):
         service_limit = max(0.0, device.max_discharge_kw - device.home_load_kw)
         for interval_index in range(len(intervals)):
-            column = solver.getNumCol()
-            index[device_index, interval_index] = column
+            index[device_index, interval_index] = solver.getNumCol()
             solver.addCol(
                 1.0 + (1.0 - device.availability_probability), 0.0, service_limit, 0, [], []
             )
-            if device.home_load_kw > 0.0 and service_limit > 0.0:
-                activation = solver.getNumCol()
-                activation_index[device_index, interval_index] = activation
-                solver.addCol(device.home_load_kw, 0.0, 1.0, 0, [], [])
-                solver.changeColIntegrality(activation, highspy.HighsVarType.kInteger)
     shortfall_indices: list[int] = []
     for interval in intervals:
         shortfall_indices.append(solver.getNumCol())
         solver.addCol(1000.0, 0.0, interval.target_kw, 0, [], [])
     for device_index, device in enumerate(eligible):
-        service_limit = max(0.0, device.max_discharge_kw - device.home_load_kw)
-        if service_limit == 0.0:
-            continue
-        columns = [index[device_index, interval_index] for interval_index in range(len(intervals))]
-        coefficients = [
-            interval.duration_hours / device.discharge_efficiency for interval in intervals
-        ]
-        for interval_index, interval in enumerate(intervals):
-            activation_column = activation_index.get((device_index, interval_index))
-            if activation_column is not None:
-                columns.append(activation_column)
-                coefficients.append(
-                    device.home_load_kw * interval.duration_hours / device.discharge_efficiency
-                )
-                solver.addRow(
-                    -highspy.kHighsInf,
-                    0.0,
-                    2,
-                    [index[device_index, interval_index], activation_column],
-                    [1.0, -service_limit],
-                )
+        home_energy_kwh = sum(
+            device.home_load_kw * interval.duration_hours / device.discharge_efficiency
+            for interval in intervals
+        )
         solver.addRow(
             0.0,
-            max(0.0, device.energy_kwh - effective_reserve_kwh(device)),
-            len(columns),
-            columns,
-            coefficients,
+            max(0.0, device.energy_kwh - effective_reserve_kwh(device) - home_energy_kwh),
+            len(intervals),
+            [index[device_index, interval_index] for interval_index in range(len(intervals))],
+            [interval.duration_hours / device.discharge_efficiency for interval in intervals],
         )
     for interval_index, interval in enumerate(intervals):
         columns = [index[device_index, interval_index] for device_index in range(len(eligible))]
@@ -102,7 +78,7 @@ def _build_highs(
         columns.append(shortfall_indices[interval_index])
         coefficients.append(1.0)
         solver.addRow(interval.target_kw, interval.target_kw, len(columns), columns, coefficients)
-    return solver, index, activation_index, shortfall_indices
+    return solver, index, shortfall_indices
 
 
 def optimize(devices: list[DeviceState], intervals: list[PlanningInterval]) -> OptimizedPlan:
@@ -123,7 +99,7 @@ def optimize(devices: list[DeviceState], intervals: list[PlanningInterval]) -> O
             eligible.append(device)
         else:
             exclusions.append(Exclusion(device.device_id, reason))
-    solver, index, activation_index, shortfall_indices = _build_highs(eligible, intervals)
+    solver, index, shortfall_indices = _build_highs(eligible, intervals)
     solver.run()
     if solver.getModelStatus() != highspy.HighsModelStatus.kOptimal:
         raise RuntimeError(f"optimizer status: {solver.getModelStatus()}")
@@ -135,10 +111,7 @@ def optimize(devices: list[DeviceState], intervals: list[PlanningInterval]) -> O
         planned: list[ScheduleInterval] = []
         for interval_index, interval in enumerate(intervals):
             service = max(0.0, values[index[device_index, interval_index]])
-            activation = activation_index.get((device_index, interval_index))
-            discharge = service + (
-                device.home_load_kw * values[activation] if activation is not None else 0.0
-            )
+            discharge = service + device.home_load_kw if service > 1e-9 else 0.0
             energy -= discharge * interval.duration_hours / device.discharge_efficiency
             planned.append(ScheduleInterval(service, discharge, energy))
         if any(item.grid_service_kw > 1e-9 for item in planned):
