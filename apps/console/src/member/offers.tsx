@@ -44,6 +44,9 @@ export default function MemberOffers({
   return (
     <section aria-label="Plans and Travel Flex">
       <h2>Plans and Travel Flex</h2>
+      <button disabled={query.isFetching} onClick={() => query.refetch()}>
+        Refresh offers and windows
+      </button>
       {query.isPending && <p role="status">Loading household offers…</p>}
       {query.isError && (
         <p role="alert">

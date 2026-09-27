@@ -39,6 +39,16 @@ export function TravelReturn({
       state === "confirmed"
     )
       return;
+    if (
+      !intent.current &&
+      (!window.startTime ||
+        !window.endTime ||
+        Number(window.startTime.seconds) * 1000 > Date.now() ||
+        Number(window.endTime.seconds) * 1000 <= Date.now())
+    ) {
+      setError("Early return is available while this travel window is active.");
+      return;
+    }
     intent.current ??= create(EndTravelFlexEarlyRequestSchema, {
       memberId,
       windowId: window.windowId,
@@ -73,6 +83,14 @@ export function TravelReturn({
   if (window.cancelledAt) return <p>Early return recorded for this window.</p>;
   if (!action || !window.consentVersion)
     return <p>Stored early-return terms are unavailable.</p>;
+  if (
+    !intent.current &&
+    (!window.startTime ||
+      !window.endTime ||
+      Number(window.startTime.seconds) * 1000 > Date.now() ||
+      Number(window.endTime.seconds) * 1000 <= Date.now())
+  )
+    return <p>Early return is available while this travel window is active.</p>;
   return (
     <div className="member-consent">
       <p>
