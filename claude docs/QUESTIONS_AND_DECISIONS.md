@@ -728,3 +728,30 @@ assumptions reported by workers land here too.
   without VCS metadata, and a hard error when neither exists) and omit the
   scenario fields when no scenario ran. The worker hook, seed rule, and
   end-to-end assertion are otherwise accepted.
+- **2A.7 (lane 2A), verified on the standing demo:** live source time is
+  the wall clock truncated to the cadence; a skipped slot yields one MISSING
+  observation per device at the last skipped slot, then the current sample.
+  On the rebuilt demo the lag held at 10 s across two measurements 45 s
+  apart at a 15 s cadence, with telemetry landing in the new
+  `telemetry_observations` table.
+- **3F.2 (lane 3F), verified:** the worker records the VCS revision (with
+  a modified marker when the tree is dirty) or an explicit
+  `GRIDOS_CODE_VERSION`, and refuses to start without either; a manifest
+  omits scenario fields when no scenario ran. A fresh demo event's manifest
+  carries the full commit hash and no scenario keys.
+- **3C.5 (root), verified:** the proto-to-safety conversion accepts an
+  empty plan whose contiguous per-interval shortfalls fully quantify the
+  target, so a fleet with no capacity validates as a quantified shortfall
+  instead of spinning in PLANNED; reserve validation is unchanged.
+- **4E.1 (lane 4E), verified:** the report builder computes requested,
+  approved, commanded, acknowledged, and delivered energy, baseline and
+  measurement, latency and tracking, availability and confidence, reserve
+  prevention, exclusions, modeled economics marked modeled_estimate, data
+  gaps, assumptions, provenance, and versions with finite-bounds checks.
+  The live PostgreSQL source and immutability are 4E.2, with the
+  `event_reports` design recorded in the mailbox.
+- **Director practice, recorded:** when the shared tree does not build,
+  the standing demo is rebuilt from `git archive HEAD` in the scratchpad
+  with the generated contracts copied in; the demo database and gateway
+  store are reset together only, and the worker is started with an
+  explicit `GRIDOS_CODE_VERSION` when built outside VCS metadata.

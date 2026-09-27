@@ -864,7 +864,7 @@ For 2A.6, after lane F's 2F.1: `services/gateway-simulator/internal/telemetry/`.
   runs stream faster than five minutes. Found by lane D at 2D.3 and 2D.4: the
   engine existed but nothing at runtime consulted it, and a control outage
   killed the simulator. Verify: `go test ./services/gateway-simulator/... -run 'Runtime|Network|Cadence'` passes and `tests/integration -run "LostAck|OutageReplay"` can drive both scenarios without signals.
-- `[ ]` 2A.7 `[P]` Source time anchored to the wall clock. The telemetry
+- `[x]` 2A.7 `[P]` Source time anchored to the wall clock. The telemetry
   stream derives source_time from the tick count, so when a 5,000-device
   tick takes longer than the cadence the stream drifts behind real time
   without bound (the standing demo drifted 90 s in five minutes and every
@@ -1196,7 +1196,7 @@ Owns: `services/control/internal/safety/`, `services/control/tests/`,
   Verify: `-run Reapproval` passes.
 - `[x]` 3C.4 `[P]` Load-shaped benchmark: 5,000 devices, 288 intervals (24 h at
   5 min) under 2 seconds. Verify: `-bench Validate5000x288 -benchtime 3x` under 2 s.
-- `[ ]` 3C.5 `[P]` An empty plan whose declared shortfall equals the
+- `[x]` 3C.5 `[P]` An empty plan whose declared shortfall equals the
   target is a valid quantified shortfall, not a gate error. Today the gate
   rejects it with "device schedules required" and the event spins in
   PLANNED with a non-retryable activity error and nothing visible to the
@@ -1268,7 +1268,7 @@ Owns: `services/control/internal/replay/`, `services/control/cmd/replay`,
   fleet file hash, scenario hash, input snapshot IDs, solver and fallback
   versions, code version (FULL_SPEC §4 invariant 9).
   Verify: `go test ./services/control/internal/replay/ -run Manifest` passes.
-- `[ ]` 3F.2 `[after 3D.2]` `cmd/replay` (a product capability, FULL_SPEC §3
+- `[x]` 3F.2 `[after 3D.2]` `cmd/replay` (a product capability, FULL_SPEC §3
   and §10, so it lives with the control plane) re-running an event from its
   manifest and diffing the outcome; identical apart from explicitly recorded
   nondeterminism. Verify: `go run ./services/control/cmd/replay --event <id>` prints `IDENTICAL`.
@@ -1416,7 +1416,7 @@ Owns: `services/control/internal/context/`, `services/control/internal/api/conte
 
 Owns: `services/control/internal/report/`.
 
-- `[ ]` 4E.1 `[P]` RED then GREEN: full event report per FULL_SPEC §5.9:
+- `[x]` 4E.1 `[P]` RED then GREEN: full event report per FULL_SPEC §5.9:
   requested, approved, commanded, acknowledged, delivered MW and MWh;
   baseline and measurement method; latency, tracking error, availability,
   confidence; reserve violations prevented and exclusions by reason; modeled
