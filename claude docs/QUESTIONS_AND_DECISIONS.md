@@ -1964,3 +1964,15 @@ indexed per-device lookup under a 5 s timeout (3223696, AsOf tests ok
 here); it ships in the rebuild that carries 2A.12. Stale "database does not
 exist" connection attempts in the PostgreSQL log are leftovers from the
 dropped orphan test databases and stop on their own.
+
+## 2026-09-27 08:36Z — 2A.12 verified; RED evidence produced by the director
+
+83e9bf3 landed tests and implementation in one commit, so no RED commit
+exists. The director produced the red evidence without rewriting history:
+an archive of the parent commit with the three new test files copied in
+fails to build for the named reasons (`undefined: gatewayMetricsHandler`,
+`fleet.PublishFailures undefined`). On the fixed tree the four packages
+pass here (cmd 0.323s, telemetry 0.311s, gateway ok, ingest 0.280s) and
+TestGatewayMetricsExposeBufferedRowsAndPublishFailures covers the two new
+metrics. Marked done, with the process slip recorded: root is reminded
+that RED and GREEN are separate commits, no exceptions for urgency.

@@ -913,7 +913,7 @@ Owns: `services/control/internal/dispatch/`, `services/control/cmd/worker`,
   `go test ./services/control/internal/ingest/ -run Lock` proves two
   concurrent batches for one gateway serialize and a 5,000-device batch
   holds one advisory lock (pg_locks count asserted).
-- `[ ]` 2A.12 `[P]` Publish failures are visible. The gateway logs every
+- `[x]` 2A.12 `[P]` Publish failures are visible. The gateway logs every
   failed telemetry publish with the control error and exposes
   `gridos_gateway_publish_failures_total` and `gridos_gateway_buffered_rows`;
   control logs ingest errors with the gateway id. Verify: `go test
