@@ -27,8 +27,8 @@ curl -fsS --max-time 20 -H 'Content-Type: application/json' -H 'X-GridOS-Role: o
 ```
 
 Observed output: `{"stopRequested":true,"emergencyStopId":"runbook-stop-20260927T043935Z:stop-runbook-stop-20260927T043935Z"}`.
-When step-up is enforced, obtain a fresh `EMERGENCY_STOP` assertion for this
-event from the identity endpoint and add
+When step-up is configured, provide a fresh `EMERGENCY_STOP` assertion bound to
+this event and add
 `-H "X-GridOS-Step-Up: $STEP_UP_ASSERTION"` to the RPC. An absent or stale
 assertion is rejected before the stop is recorded.
 
