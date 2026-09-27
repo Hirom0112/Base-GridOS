@@ -45,3 +45,21 @@ func TestSignStepUpAssertionBindsClaimsAndUsesFreshNonce(t *testing.T) {
 		t.Fatalf("unbound assertion: %+v", assertion)
 	}
 }
+
+func TestStepUpCanonicalVector(t *testing.T) {
+	issued := time.Date(2026, 9, 26, 12, 0, 0, 0, time.UTC)
+	claims, err := json.Marshal(stepUpAssertion{Subject: "approver", Action: "APPROVE_EVENT", EventID: "event-1", PlanVersion: 3,
+		IssuedAt: issued, ExpiresAt: issued.Add(5 * time.Minute), Nonce: "nonce-1"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := `{"subject":"approver","action":"APPROVE_EVENT","event_id":"event-1","plan_version":3,"issued_at":"2026-09-26T12:00:00Z","expires_at":"2026-09-26T12:05:00Z","nonce":"nonce-1"}`
+	if string(claims) != want {
+		t.Fatalf("canonical claims = %s", claims)
+	}
+	mac := hmac.New(sha256.New, []byte(LocalStepUpKey))
+	_, _ = mac.Write(claims)
+	if signature := base64.RawURLEncoding.EncodeToString(mac.Sum(nil)); signature != "F3gRWWCEx-gjJTB3QMYli6IzM5tKHO9RdG-LWCD414I" {
+		t.Fatalf("signature = %s", signature)
+	}
+}
