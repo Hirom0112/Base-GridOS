@@ -35,6 +35,7 @@ test("live demo launches and stops a simulated event with enforced step-up", asy
   page,
   request,
 }, testInfo) => {
+  test.setTimeout(150000);
   const now = new Date().toISOString();
   const receipt = await request.post(
     "http://127.0.0.1:28080/gridos.v1.TelemetryService/PublishTelemetry",
@@ -64,7 +65,7 @@ test("live demo launches and stops a simulated event with enforced step-up", asy
   await page.goto("/dispatch/new");
   await page
     .getByLabel("Start time")
-    .fill(new Date(Date.now() + 120000).toISOString().slice(0, 16));
+    .fill(new Date(Date.now() + 90000).toISOString().slice(0, 16));
   await page
     .getByLabel("End time")
     .fill(new Date(Date.now() + 600000).toISOString().slice(0, 16));
@@ -91,6 +92,16 @@ test("live demo launches and stops a simulated event with enforced step-up", asy
   await expect(
     page.getByText("Command state alone does not establish measured delivery"),
   ).toBeVisible();
+  await expect(
+    page.getByRole("region", { name: "Command fan-out" }),
+  ).toContainText(/SENT|ACKNOWLEDGED|UNCERTAIN|EXECUTING|COMPLETED/, {
+    timeout: 15000,
+  });
+  const reserve = page.getByRole("region", {
+    name: "Reserve protection evidence",
+  });
+  await expect(reserve).toContainText("MEASURED", { timeout: 120000 });
+  await expect(reserve).toContainText("kWh");
   await page.screenshot({
     path: testInfo.outputPath("live-execution.png"),
     fullPage: true,
@@ -118,6 +129,9 @@ test("live demo launches and stops a simulated event with enforced step-up", asy
   expect((await stopped).headers()["x-gridos-step-up"]).toBe(assertion);
   const stopReceipt = await stopResponse;
   expect(stopReceipt.ok(), await stopReceipt.text()).toBe(true);
+  await expect(
+    page.getByRole("region", { name: "Safe return evidence" }),
+  ).toContainText(/[1-9]\d* zero-setpoint intents/, { timeout: 15000 });
   await expect(
     page.getByRole("region", { name: "Emergency stop" }),
   ).toContainText("STOP REQUESTED");
