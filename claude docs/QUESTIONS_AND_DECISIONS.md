@@ -848,3 +848,18 @@ assumptions reported by workers land here too.
   ids derived from H3 and site metadata, every node labelled SIMULATED, no
   street or home coordinates. `GeoService` is additive in `api.proto` with
   one registration line.
+- **4D.3 (lane 4D), verified:** `ContextService` serves filtered ERCOT
+  market and system load, NWS forecasts and alerts, and derived county
+  outage rates with a per-record source stamp, and ranks caller-supplied
+  modeled candidate windows without joining non-overlapping histories.
+  Director: contracts lint and breaking clean, context packages ok,
+  control builds; the demo probe waits for lane 4A's missing migration.
+- **Contract file rule (2026-09-27):** `api.proto` reached the 500-line
+  ceiling, so every new service lives in its own proto file (`geo.proto`,
+  `report.proto`) importing shared types.
+- **Broken HEAD (2026-09-27):** commits 6a875d0 and 8e8ea33 reference a
+  `member_sites` table that no tracked migration creates, so a fresh
+  database cannot start the worker and the director could not rebuild the
+  demo from HEAD. Lane 4A was ordered to commit 0010_member_sites before
+  anything else. Rule recorded: a commit that references a table its
+  migrations do not create is red even when the hook passes.

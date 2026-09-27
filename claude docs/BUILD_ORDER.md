@@ -1407,7 +1407,7 @@ Owns: `services/control/internal/context/`, `services/control/internal/api/conte
   candidate windows by price, regional load, and outage risk and returns the
   forecast grid value with `value_kind=modeled_estimate` (FULL_SPEC §3 "Grid
   and market operations"). Verify: `-run Windows` passes.
-- `[ ]` 4D.3 `[P]` Connect service `internal/api/context` with
+- `[x]` 4D.3 `[P]` Connect service `internal/api/context` with
   `GetMarketContext`, `GetWeatherContext`, `GetOutageRisk`,
   `ListDispatchWindows`, registered in `cmd/control` after 4A.7's
   registration lands. Verify: `go test ./services/control/internal/api/context/` passes.
