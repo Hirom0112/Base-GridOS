@@ -59,7 +59,7 @@ func (source *PostgresSource) TimelineExceptions(ctx context.Context, eventID st
 	), rebalanced AS (
 		SELECT 'REBALANCED_COMMAND' AS kind, intent.issued_at AS occurred_at, intent.device_id,
 			intent.command_id, intent.command_id AS evidence_id, 'replacement command issued' AS detail
-		FROM command_intents AS intent WHERE intent.event_id = $1 AND intent.generation > 0
+		FROM command_intents AS intent WHERE intent.event_id = $1 AND intent.setpoint_kw <> 0
 		AND EXISTS (SELECT 1 FROM audit_journal AS audit WHERE audit.resource_id = intent.event_id
 			AND audit.action = 'REPLACEMENT_PLANNED' AND (audit.new_values->>'plan_version')::bigint = intent.plan_version)
 	)
