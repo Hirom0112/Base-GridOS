@@ -138,3 +138,45 @@ func TestCommandRejections(t *testing.T) {
 		t.Fatalf("expired ack=%+v", ack)
 	}
 }
+
+func TestReusedIdempotencyKeyWithNewCommandIsConflictingReuse(t *testing.T) {
+	ctx := context.Background()
+	store, err := Open(ctx, filepath.Join(t.TempDir(), "gateway.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if err := store.Close(); err != nil {
+			t.Error(err)
+		}
+	})
+	now := time.Date(2026, 8, 12, 18, 0, 0, 0, time.UTC)
+	original := Command{
+		CommandID:      "command-1",
+		IdempotencyKey: "event-1-device-1-v1",
+		DeviceID:       "device-1",
+		Generation:     2,
+		SetpointKW:     3.2,
+		EffectiveAt:    now,
+		ExpiresAt:      now.Add(time.Hour),
+	}
+	if ack, err := store.AcceptCommand(ctx, original, now); err != nil || !ack.Accepted || !ack.NewPhysicalEffect {
+		t.Fatalf("positive control ack=%+v err=%v", ack, err)
+	}
+	reused := original
+	reused.CommandID = "command-2"
+	ack, err := store.AcceptCommand(ctx, reused, now)
+	if err != nil {
+		t.Fatalf("reused idempotency key returned error: %v", err)
+	}
+	if ack.Accepted || ack.RejectionReason != "CONFLICTING_REUSE" {
+		t.Fatalf("reused ack=%+v", ack)
+	}
+	commands, err := store.Commands(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(commands) != 1 || commands[0] != original {
+		t.Fatalf("commands=%+v", commands)
+	}
+}
