@@ -144,6 +144,7 @@ func MarkAcknowledgementUncertain(ctx context.Context, pool *pgxpool.Pool, deadl
 	if err = tx.Commit(ctx); err != nil {
 		return false, err
 	}
+	_ = observability.ProcessMetrics.RecordCommand("UNCERTAIN")
 	return true, nil
 }
 
