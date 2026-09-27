@@ -11,6 +11,7 @@ import (
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/fleet"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 func TestGeoAsOfUsesRequestedSnapshot(t *testing.T) {
@@ -21,8 +22,10 @@ func TestGeoAsOfUsesRequestedSnapshot(t *testing.T) {
 		sites = append(sites, &gridosv1.AuthorizedSite{Site: &gridosv1.Site{SiteId: fmt.Sprintf("site-%d", index), LoadZone: "LZ_AEN", H3Cell: "8726cb9a5ffffff", Provenance: &gridosv1.Provenance{Provenance: gridosv1.DataProvenance_DATA_PROVENANCE_SIMULATED}}})
 	}
 	var seen []time.Time
-	snapshot := func(_ context.Context, at time.Time) ([]fleet.SiteState, map[string]bool, error) {
+	var sources []SnapshotSource
+	snapshot := func(_ context.Context, at time.Time, source SnapshotSource) ([]fleet.SiteState, map[string]bool, error) {
 		seen = append(seen, at)
+		sources = append(sources, source)
 		states := make([]fleet.SiteState, 0, 6)
 		for index := range 6 {
 			states = append(states, fleet.SiteState{SiteID: fmt.Sprintf("site-%d", index), ObservedAt: at, OperatingState: fleet.OnGrid, Availability: fleet.Online, EnergyKWh: float64(at.Hour()), Provenance: "simulated"})
@@ -45,4 +48,13 @@ func TestGeoAsOfUsesRequestedSnapshot(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, past, nodes.Msg.GetAsOf().AsTime())
 	require.Equal(t, []time.Time{past, past}, seen)
+	require.Equal(t, []SnapshotSource{RetainedSnapshot, RetainedSnapshot}, sources)
+	list.Msg.AsOf = nil
+	currentCells, err := service.ListCells(context.Background(), list)
+	require.NoError(t, err)
+	require.Equal(t, current, currentCells.Msg.GetAsOf().AsTime())
+	require.Equal(t, CurrentSnapshot, sources[2])
+	list.Msg.AsOf = timestamppb.New(current.Add(time.Second))
+	_, err = service.ListCells(context.Background(), list)
+	require.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 }

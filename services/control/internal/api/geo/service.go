@@ -14,11 +14,19 @@ import (
 	fleetgeo "github.com/Hirom0112/Base-GridOS/services/control/internal/fleet/geo"
 	"github.com/jackc/pgx/v5/pgxpool"
 	h3 "github.com/uber/h3-go/v4"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-type Snapshot func(context.Context, time.Time) ([]fleet.SiteState, map[string]bool, error)
+type SnapshotSource uint8
+
+const (
+	CurrentSnapshot SnapshotSource = iota
+	RetainedSnapshot
+)
+
+type Snapshot func(context.Context, time.Time, SnapshotSource) ([]fleet.SiteState, map[string]bool, error)
 
 type Service struct {
 	sites    []*gridosv1.AuthorizedSite
@@ -30,17 +38,34 @@ func NewService(sites []*gridosv1.AuthorizedSite, snapshot Snapshot, now func() 
 	return &Service{sites: sites, snapshot: snapshot, now: now}
 }
 
-func PostgresSnapshot(sites []*gridosv1.AuthorizedSite, twin *fleet.Twin, pool *pgxpool.Pool) Snapshot {
+func (service *Service) snapshotTime(requested *timestamppb.Timestamp) (time.Time, SnapshotSource, error) {
+	now := service.now()
+	if requested == nil {
+		return now, CurrentSnapshot, nil
+	}
+	if err := requested.CheckValid(); err != nil {
+		return time.Time{}, 0, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+	at := requested.AsTime()
+	if at.After(now) {
+		return time.Time{}, 0, connect.NewError(connect.CodeInvalidArgument, errors.New("as_of cannot be in the future"))
+	}
+	return at, RetainedSnapshot, nil
+}
+
+func PostgresSnapshot(sites []*gridosv1.AuthorizedSite, twin *fleet.Twin, telemetryTwin *fleet.TelemetryTwin, pool *pgxpool.Pool) Snapshot {
 	siteByDevice := make(map[string]string)
+	deviceIDs := make([]string, 0)
 	for _, site := range sites {
 		for _, device := range site.GetDevices() {
 			siteByDevice[device.GetDeviceId()] = site.GetSite().GetSiteId()
+			deviceIDs = append(deviceIDs, device.GetDeviceId())
 		}
 	}
-	return func(ctx context.Context, now time.Time) ([]fleet.SiteState, map[string]bool, error) {
+	return func(ctx context.Context, now time.Time, source SnapshotSource) ([]fleet.SiteState, map[string]bool, error) {
 		rows, err := pool.Query(ctx, `SELECT DISTINCT intent.device_id FROM command_intents AS intent
 			JOIN LATERAL (SELECT state FROM command_states WHERE command_id = intent.command_id
-				ORDER BY recorded_at DESC LIMIT 1) AS latest ON true
+				AND recorded_at <= $1 ORDER BY recorded_at DESC LIMIT 1) AS latest ON true
 			WHERE intent.effective_at <= $1 AND intent.expires_at > $1 AND intent.setpoint_kw <> 0
 			AND latest.state IN ('ACKNOWLEDGED', 'EXECUTING')`, now)
 		if err != nil {
@@ -60,8 +85,45 @@ func PostgresSnapshot(sites []*gridosv1.AuthorizedSite, twin *fleet.Twin, pool *
 		if err := rows.Err(); err != nil {
 			return nil, nil, err
 		}
-		return twin.Sites(now), active, nil
+		if source == CurrentSnapshot {
+			return twin.Sites(now), active, nil
+		}
+		if source != RetainedSnapshot {
+			return nil, nil, errors.New("unknown snapshot source")
+		}
+		states, err := retainedSiteStates(ctx, pool, telemetryTwin, deviceIDs, now)
+		return states, active, err
 	}
+}
+
+func retainedSiteStates(ctx context.Context, pool *pgxpool.Pool, adapter *fleet.TelemetryTwin, deviceIDs []string, at time.Time) ([]fleet.SiteState, error) {
+	rows, err := pool.Query(ctx, `SELECT DISTINCT ON (device_id) device_id, payload
+		FROM telemetry_observations WHERE device_id = ANY($1) AND observed_at <= $2
+		ORDER BY device_id, observed_at DESC, sequence DESC`, deviceIDs, at)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	observations := make([]*gridosv1.TelemetryObservation, 0)
+	for rows.Next() {
+		var deviceID string
+		var payload []byte
+		if err := rows.Scan(&deviceID, &payload); err != nil {
+			return nil, err
+		}
+		observation := new(gridosv1.TelemetryObservation)
+		if err := protojson.Unmarshal(payload, observation); err != nil {
+			return nil, err
+		}
+		if observation.GetDeviceId() != deviceID {
+			return nil, errors.New("stored telemetry device does not match row")
+		}
+		observations = append(observations, observation)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return adapter.Replay(observations, at), nil
 }
 
 func (service *Service) ListCells(ctx context.Context, request *connect.Request[gridosv1.ListCellsRequest]) (*connect.Response[gridosv1.ListCellsResponse], error) {
@@ -73,8 +135,11 @@ func (service *Service) ListCells(ctx context.Context, request *connect.Request[
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("resolution must be 5 through 7"))
 	}
 	selected := selectSites(service.sites, request.Msg.GetLoadZones())
-	now := service.now()
-	states, active, err := service.snapshot(ctx, now)
+	now, source, err := service.snapshotTime(request.Msg.GetAsOf())
+	if err != nil {
+		return nil, err
+	}
+	states, active, err := service.snapshot(ctx, now, source)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
@@ -146,8 +211,11 @@ func (service *Service) Drilldown(ctx context.Context, request *connect.Request[
 	if service.snapshot == nil {
 		return nil, connect.NewError(connect.CodeUnavailable, errors.New("fleet not loaded"))
 	}
-	now := service.now()
-	states, _, err := service.snapshot(ctx, now)
+	now, source, err := service.snapshotTime(request.Msg.GetAsOf())
+	if err != nil {
+		return nil, err
+	}
+	states, _, err := service.snapshot(ctx, now, source)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}

@@ -111,7 +111,7 @@ func main() {
 	mux := http.NewServeMux()
 	mux.Handle(gridosv1connect.NewContextServiceHandler(apicontext.NewService(environment("GRIDOS_PUBLIC_CONTEXT_DIR", "testdata/fixtures/public"), time.Now)))
 	mux.Handle(gridosv1connect.NewReportServiceHandler(apireport.NewService(controlapi.NewPostgresReportSource(pool))))
-	mux.Handle(gridosv1connect.NewGeoServiceHandler(apigeo.NewService(sites, apigeo.PostgresSnapshot(sites, twin, pool), time.Now)))
+	mux.Handle(gridosv1connect.NewGeoServiceHandler(apigeo.NewService(sites, apigeo.PostgresSnapshot(sites, twin, telemetryTwin, pool), time.Now)))
 	mux.Handle(gridosv1connect.NewMemberServiceHandler(apimember.NewService(pool, twin, sites, time.Now)))
 	replayPath, replayHandler := gridosv1connect.NewReplayServiceHandler(apireplay.NewService(environment("GRIDOS_REPLAY_DIR", ".local/replay"), replay.PostgresSource{Pool: pool}, eventSource, controlapi.NewConnectOptimizer(decisionClient)))
 	mux.Handle(replayPath, replayHandler)

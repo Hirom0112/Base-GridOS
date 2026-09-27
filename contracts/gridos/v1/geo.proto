@@ -12,6 +12,7 @@ option go_package = "github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1
 message ListCellsRequest {
   uint32 resolution = 1;
   repeated string load_zones = 2;
+  google.protobuf.Timestamp as_of = 3;
 }
 
 message GeoCell {
@@ -65,6 +66,7 @@ message GeoNode {
 
 message DrilldownRequest {
   string parent_id = 1;
+  google.protobuf.Timestamp as_of = 2;
 }
 
 message DrilldownResponse {

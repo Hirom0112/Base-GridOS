@@ -26,7 +26,7 @@ func TestGeoServicePrivacyAndDrilldown(t *testing.T) {
 		states = append(states, fleet.SiteState{SiteID: id, EnergyKWh: 8, Availability: fleet.Online, OperatingState: fleet.OnGrid, ObservedAt: now, DispatchableKW: 5, Provenance: "simulated"})
 	}
 	sites[0].Devices = append(sites[0].Devices, &gridosv1.Device{BatteryParameters: &gridosv1.BatteryParameters{UsableEnergyKwh: 10, MaxDischargeKw: 5}})
-	service := NewService(sites, func(context.Context, time.Time) ([]fleet.SiteState, map[string]bool, error) {
+	service := NewService(sites, func(context.Context, time.Time, SnapshotSource) ([]fleet.SiteState, map[string]bool, error) {
 		return states, map[string]bool{"site-0": true}, nil
 	}, func() time.Time { return now })
 	_, handler := gridosv1connect.NewGeoServiceHandler(service)

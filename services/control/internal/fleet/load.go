@@ -103,6 +103,15 @@ func (adapter *TelemetryTwin) Accept(observation *gridosv1.TelemetryObservation)
 	adapter.twin.Accept(state)
 }
 
+func (adapter *TelemetryTwin) Replay(observations []*gridosv1.TelemetryObservation, at time.Time) []SiteState {
+	twin := NewTwin(adapter.twin.freshnessThreshold)
+	replay := &TelemetryTwin{twin: twin, devices: adapter.devices}
+	for _, observation := range observations {
+		replay.Accept(observation)
+	}
+	return twin.Sites(at)
+}
+
 func telemetryState(observation *gridosv1.TelemetryObservation) SiteState {
 	state := SiteState{Availability: Online}
 	if observation.GetValueState() == gridosv1.ValueState_VALUE_STATE_STALE {

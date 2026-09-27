@@ -32,7 +32,7 @@ func TestCellMetadataCarriesAsOfFreshnessAndProvenanceMix(t *testing.T) {
 		states = append(states, fleet.SiteState{SiteID: id, ObservedAt: now.Add(-time.Duration(index+1) * time.Second),
 			Provenance: name, OperatingState: fleet.OnGrid, Availability: fleet.Online})
 	}
-	service := NewService(sites, func(context.Context, time.Time) ([]fleet.SiteState, map[string]bool, error) {
+	service := NewService(sites, func(context.Context, time.Time, SnapshotSource) ([]fleet.SiteState, map[string]bool, error) {
 		return states, nil, nil
 	}, func() time.Time { return now })
 	list := connect.NewRequest(&gridosv1.ListCellsRequest{Resolution: 7})
