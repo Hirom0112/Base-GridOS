@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from "react";
+import { useHydrated } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { z } from "zod";
 import { useSession } from "../api/auth";
@@ -64,6 +65,7 @@ export function ComparisonEvidence({
 
 export function ReportComparison({ eventId = "" }: { eventId?: string }) {
   const { client, identity } = useSession();
+  const hydrated = useHydrated();
   const [selection, setSelection] = useState<z.infer<
     typeof comparisonSchema
   > | null>(null);
@@ -126,7 +128,7 @@ export function ReportComparison({ eventId = "" }: { eventId?: string }) {
         <label>
           Plan version B<input name="planVersionB" inputMode="numeric" />
         </label>
-        <button type="submit" disabled={query.isFetching}>
+        <button type="submit" disabled={!hydrated || query.isFetching}>
           Compare reports
         </button>
       </form>

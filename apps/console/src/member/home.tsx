@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from "react";
+import { useHydrated } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { z } from "zod";
 import { useSession } from "../api/auth";
@@ -14,6 +15,7 @@ const householdSchema = z.object({
 
 export function MemberHome() {
   const { client, identity } = useSession();
+  const hydrated = useHydrated();
   const [household, setHousehold] = useState<z.infer<
     typeof householdSchema
   > | null>(null);
@@ -62,7 +64,11 @@ export function MemberHome() {
             Site ID
             <input name="siteId" required />
           </label>
-          <button className="secondary-button" type="submit">
+          <button
+            className="secondary-button"
+            type="submit"
+            disabled={!hydrated}
+          >
             Open household
           </button>
         </form>
