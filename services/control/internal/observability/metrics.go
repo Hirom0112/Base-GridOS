@@ -9,6 +9,29 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
+type CommandState uint8
+
+const (
+	CommandPersisted CommandState = iota
+	CommandSent
+	CommandAcknowledged
+	CommandUncertain
+	CommandExecuting
+	CommandCompleted
+	CommandExpired
+	CommandRejected
+	CommandCancelled
+	commandStateCount
+)
+
+var commandStateLabels = [commandStateCount]string{
+	"PERSISTED", "SENT", "ACKNOWLEDGED", "UNCERTAIN", "EXECUTING", "COMPLETED", "EXPIRED", "REJECTED", "CANCELLED",
+}
+
+func (s CommandState) String() string {
+	return commandStateLabels[s]
+}
+
 type Metrics struct {
 	registry           *prometheus.Registry
 	commands           *prometheus.CounterVec
