@@ -1527,7 +1527,7 @@ Owns: `services/control/internal/connectors/`, `tests/contract/`, `docs/data/`.
   `STUBS.md`. Verify: `go test ./services/control/internal/connectors/` passes.
 - `[ ]` 5A.2 `[P]` Contract tests asserting a simulated connector and a
   future live connector produce identical schema output for the same request.
-  Verify: `go test ./tests/contract/ -run Connector` passes.
+  Verify: `go test ./services/control/internal/connectors/... -run Connector` passes.
 - `[ ]` 5A.3 `[P]` `docs/data/integration-notes.md` listing every field that
   FULL_SPEC §7 says is missing, which connector supplies it, and its
   authorization requirement. Verify: each §7 bullet appears in the table.
