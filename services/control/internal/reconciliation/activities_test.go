@@ -205,6 +205,18 @@ func TestDetectRecoveryUsesScheduledDevicesAndStoredEnvelope(t *testing.T) {
 	if !reflect.DeepEqual(recovery.Dropped, []RecoveryDrop{{DeviceID: "device-1", Reason: "MISSING"}, {DeviceID: "device-2", Reason: "UNCERTAIN"}}) {
 		t.Fatalf("scheduled drops = %+v", recovery.Dropped)
 	}
+	if _, err := harness.activities.DetectRecovery(ctx, Input{EventID: "event-1"}); err != nil {
+		t.Fatal(err)
+	}
+	var decisions int
+	if err := harness.pool.QueryRow(ctx, `SELECT count(*) FROM audit_journal
+		WHERE resource_id = 'event-1' AND action = 'RECOVERY_DETECTED'
+		AND new_values->>'reason' IN ('MISSING', 'UNCERTAIN')`).Scan(&decisions); err != nil {
+		t.Fatal(err)
+	}
+	if decisions != 2 {
+		t.Fatalf("audited recovery decisions = %d, want two once each", decisions)
+	}
 }
 
 func newActivityHarness(t *testing.T) *activityHarness {
