@@ -6,7 +6,7 @@ for (const width of [390, 1440]) {
   for (const theme of ["dark", "light"]) {
     test(`plan evidence remains legible without WebGL at ${width} in ${theme}`, async ({
       page,
-    }) => {
+    }, testInfo) => {
       await recordedApi(page);
       await page.setViewportSize({ width, height: 900 });
       await page.emulateMedia({ reducedMotion: "reduce" });
@@ -43,7 +43,7 @@ for (const width of [390, 1440]) {
         ).violations,
       ).toEqual([]);
       await explanation.screenshot({
-        path: `test-results/plan-review-${theme}-${width}.png`,
+        path: testInfo.outputPath(`plan-review-${theme}-${width}.png`),
       });
     });
   }

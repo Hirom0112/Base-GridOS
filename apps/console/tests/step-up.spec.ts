@@ -4,7 +4,7 @@ import { recordedApi } from "./recorded-api";
 for (const width of [390, 1440]) {
   test(`approval blocks denied authorization and sends the signed assertion at ${width}`, async ({
     page,
-  }) => {
+  }, testInfo) => {
     await page.setViewportSize({ width, height: 900 });
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.addInitScript(() => {
@@ -47,9 +47,8 @@ for (const width of [390, 1440]) {
       "Step-up authorization denied",
     );
     expect(commands).toEqual([]);
-    await page.screenshot({
-      path: `test-results/approval-denied-${width}.png`,
-      fullPage: true,
+    await page.getByRole("dialog").screenshot({
+      path: testInfo.outputPath(`approval-denied-${width}.png`),
     });
     authorize = true;
     await page.getByRole("button", { name: "Confirm approval" }).click();
