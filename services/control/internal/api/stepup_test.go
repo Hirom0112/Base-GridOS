@@ -53,7 +53,7 @@ func TestStepUpApprovalRequiresBoundAssertionAndAuditsIt(t *testing.T) {
 	require.NoError(t, pool.QueryRow(context.Background(), `SELECT decided_by FROM operator_approvals WHERE event_id = 'event-restart'`).Scan(&actor))
 	require.Equal(t, "approver-1", actor)
 	var audits int
-	require.NoError(t, pool.QueryRow(context.Background(), `SELECT count(*) FROM audit_journal WHERE action = 'STEP_UP_ACCEPTED' AND resource_id = 'event-restart' AND actor_id = 'approver-1'`).Scan(&audits))
+	require.NoError(t, pool.QueryRow(context.Background(), `SELECT count(*) FROM audit_journal WHERE action = 'STEP_UP_ACCEPTED' AND resource_id = 'event-restart' AND correlation_id = 'event-restart' AND actor_id = 'approver-1'`).Scan(&audits))
 	require.Equal(t, 1, audits)
 }
 
