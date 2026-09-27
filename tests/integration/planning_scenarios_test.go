@@ -6,7 +6,9 @@ import (
 	"testing"
 	"time"
 
+	"connectrpc.com/connect"
 	gridosv1 "github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1"
+	"github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1/gridosv1connect"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
@@ -17,6 +19,37 @@ func TestHeatEventCanonical(t *testing.T) {
 	stack.publishTelemetry(t, ctx, stack.fleetDevices(t, stack.scenario.Fleet.Size), now, constantStateOfEnergy)
 	eventID := fmt.Sprintf("heat-canonical-%d", now.UnixNano())
 	response := stack.runEvent(t, ctx, eventID, now)
+	client := gridosv1connect.NewEventsServiceClient(stack.client, stack.controlURL)
+	request := connect.NewRequest(&gridosv1.GetEventTimelineRequest{EventId: eventID})
+	request.Header().Set("X-GridOS-Role", "operator")
+	timeline, err := client.GetEventTimeline(ctx, request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	missing, uncertain := false, false
+	for _, exception := range timeline.Msg.GetExceptions() {
+		if exception.GetEventId() != eventID || exception.GetOccurredAt() == nil || exception.GetEvidenceId() == "" {
+			t.Fatalf("incomplete event exception: %v", exception)
+		}
+		missing = missing || exception.GetKind() == gridosv1.EventExceptionKind_EVENT_EXCEPTION_KIND_MISSING_TELEMETRY
+		uncertain = uncertain || exception.GetKind() == gridosv1.EventExceptionKind_EVENT_EXCEPTION_KIND_UNCERTAIN_COMMAND
+	}
+	if !missing || !uncertain {
+		t.Fatalf("heat event exceptions missing=%t uncertain=%t", missing, uncertain)
+	}
+	watchRequest := connect.NewRequest(&gridosv1.WatchEventRequest{EventId: eventID})
+	watchRequest.Header().Set("X-GridOS-Role", "operator")
+	watch, err := client.WatchEvent(ctx, watchRequest)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = watch.Close() }()
+	if !watch.Receive() {
+		t.Fatal(watch.Err())
+	}
+	if len(watch.Msg().GetExceptions()) != len(timeline.Msg.GetExceptions()) {
+		t.Fatalf("watch exceptions = %d, timeline exceptions = %d", len(watch.Msg().GetExceptions()), len(timeline.Msg.GetExceptions()))
+	}
 	stack.assertOutcome(t, ctx, eventID, response)
 }
 
