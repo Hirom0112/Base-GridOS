@@ -3,10 +3,14 @@ package dispatch
 import (
 	"context"
 	"errors"
+	"net/http/httptest"
+	"strconv"
+	"strings"
 	"testing"
 	"time"
 
 	gridosv1 "github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1"
+	"github.com/Hirom0112/Base-GridOS/services/control/internal/observability"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/storage"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/durationpb"
@@ -110,10 +114,30 @@ func TestPlanningActivitiesRecordOptimizeTransportTimeout(t *testing.T) {
 func TestPlanningActivitiesRetryUsesStoredPlan(t *testing.T) {
 	harness := newActivityHarness(t)
 	frozen := harness.freeze(t)
+	before := planningMetricValue(t, "gridos_solver_duration_seconds_count ")
 	first, err := harness.activities.RequestPlan(context.Background(), frozen)
 	require.NoError(t, err)
+	require.Equal(t, before+1, planningMetricValue(t, "gridos_solver_duration_seconds_count "))
 	second, err := harness.activities.RequestPlan(context.Background(), frozen)
 	require.NoError(t, err)
+	require.Equal(t, before+1, planningMetricValue(t, "gridos_solver_duration_seconds_count "))
 	require.Equal(t, first.Input.ApprovalDigest, second.Input.ApprovalDigest)
 	require.Equal(t, 1, harness.count(t, "plan_versions"))
+}
+
+func planningMetricValue(t *testing.T, prefix string) float64 {
+	t.Helper()
+	response := httptest.NewRecorder()
+	observability.ProcessMetrics.Handler().ServeHTTP(response, httptest.NewRequest("GET", "/metrics", nil))
+	for line := range strings.SplitSeq(response.Body.String(), "\n") {
+		if value, ok := strings.CutPrefix(line, prefix); ok {
+			count, err := strconv.ParseFloat(value, 64)
+			if err != nil {
+				t.Fatal(err)
+			}
+			return count
+		}
+	}
+	t.Fatalf("metric %s absent", prefix)
+	return 0
 }
