@@ -2,11 +2,13 @@ package reconciliation
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"slices"
 	"time"
 
 	gridosv1 "github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1"
+	"github.com/Hirom0112/Base-GridOS/services/control/internal/storage"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
@@ -83,7 +85,48 @@ func (activities *Activities) DetectRecovery(ctx context.Context, input Input) (
 			decision.Dropped = append(decision.Dropped, RecoveryDrop{DeviceID: id, Reason: reason})
 		}
 	}
+	if err := activities.auditRecovery(ctx, input.EventID, decision.Dropped); err != nil {
+		return RecoveryDecision{}, err
+	}
 	return decision, nil
+}
+
+func (activities *Activities) auditRecovery(ctx context.Context, eventID string, dropped []RecoveryDrop) error {
+	if len(dropped) == 0 {
+		return nil
+	}
+	tx, err := activities.Pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	var correlationID string
+	if err := tx.QueryRow(ctx, `SELECT correlation_id FROM dispatch_events WHERE event_id = $1 FOR UPDATE`, eventID).Scan(&correlationID); err != nil {
+		return err
+	}
+	for _, device := range dropped {
+		var recorded bool
+		err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM audit_journal WHERE resource_id = $1
+			AND action = 'RECOVERY_DETECTED' AND new_values->>'device_id' = $2)`, eventID, device.DeviceID).Scan(&recorded)
+		if err != nil {
+			return err
+		}
+		if recorded {
+			continue
+		}
+		values, err := json.Marshal(struct {
+			DeviceID string `json:"device_id"`
+			Reason   string `json:"reason"`
+		}{device.DeviceID, device.Reason})
+		if err != nil {
+			return err
+		}
+		if err := storage.AppendAudit(ctx, tx, storage.AuditRecord{OccurredAt: activities.Now(), ActorID: "reconciliation",
+			Action: "RECOVERY_DETECTED", ResourceID: eventID, NewValues: values, CorrelationID: correlationID}); err != nil {
+			return err
+		}
+	}
+	return tx.Commit(ctx)
 }
 
 func recoveryReason(command recoveryCommand, observation recoveryObservation, begin, now time.Time, maxGap time.Duration) string {
