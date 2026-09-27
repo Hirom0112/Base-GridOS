@@ -62,4 +62,25 @@ INSERT INTO risk_policy (
     '{"provenance":"SIMULATED","weather_zone_ugc":"SIMULATED"}'
 ) ON CONFLICT (version) DO NOTHING;
 
+INSERT INTO reserve_policies (
+    policy_version, protected_hardware_floor_percent, member_plan_floor_percent,
+    dynamic_override_percent, effective_reserve_percent, effective_at, expires_at,
+    correlation_id, provenance
+) VALUES
+    ('reserve-sim-essential-1', 10, 10, 0, 10, '2020-01-01T00:00:00Z', '2100-01-01T00:00:00Z', 'seed:SIMULATED:catalog-sim-1', '{"provenance":"SIMULATED"}'),
+    ('reserve-sim-balanced-1', 10, 30, 0, 30, '2020-01-01T00:00:00Z', '2100-01-01T00:00:00Z', 'seed:SIMULATED:catalog-sim-1', '{"provenance":"SIMULATED"}'),
+    ('reserve-sim-maximum-1', 10, 60, 0, 60, '2020-01-01T00:00:00Z', '2100-01-01T00:00:00Z', 'seed:SIMULATED:catalog-sim-1', '{"provenance":"SIMULATED"}')
+ON CONFLICT (policy_version) DO NOTHING;
+
+INSERT INTO pricing_catalog_snapshots (
+    catalog_version, member_plan_id, market, display_name, reserve_floor_percent,
+    energy_plan, energy_term_months, energy_monthly_charge_cents,
+    battery_plan, battery_term_months, battery_monthly_charge_cents,
+    flexibility_reward_cents, effective_at, expires_at, correlation_id, provenance
+) VALUES
+    ('catalog-sim-1', 'essential', 'ERCOT', 'Essential', 10, '{"provenance":"SIMULATED","price_text":"SIMULATED","contract_version":"sim-1"}', 0, 0, '{"provenance":"SIMULATED"}', 0, 0, 0, '2020-01-01T00:00:00Z', '2100-01-01T00:00:00Z', 'seed:SIMULATED:catalog-sim-1', '{"provenance":"SIMULATED"}'),
+    ('catalog-sim-1', 'balanced', 'ERCOT', 'Balanced', 30, '{"provenance":"SIMULATED","price_text":"SIMULATED","contract_version":"sim-1"}', 0, 0, '{"provenance":"SIMULATED"}', 0, 0, 0, '2020-01-01T00:00:00Z', '2100-01-01T00:00:00Z', 'seed:SIMULATED:catalog-sim-1', '{"provenance":"SIMULATED"}'),
+    ('catalog-sim-1', 'maximum', 'ERCOT', 'Maximum', 60, '{"provenance":"SIMULATED","price_text":"SIMULATED","contract_version":"sim-1"}', 0, 0, '{"provenance":"SIMULATED"}', 0, 0, 0, '2020-01-01T00:00:00Z', '2100-01-01T00:00:00Z', 'seed:SIMULATED:catalog-sim-1', '{"provenance":"SIMULATED"}')
+ON CONFLICT (catalog_version, member_plan_id) DO NOTHING;
+
 COMMIT;
