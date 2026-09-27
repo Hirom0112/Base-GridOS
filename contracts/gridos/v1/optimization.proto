@@ -205,6 +205,15 @@ message PlanExplanationEvidence {
   repeated FrozenTravelFlexBinding travel_flex_bindings = 11;
 }
 
+message PlanManifest {
+  string input_snapshot_id = 1;
+  string eligibility_snapshot_id = 2;
+  string policy_version = 3;
+  string solver_version = 4;
+  string model_version = 5;
+  string code_version = 6;
+}
+
 message OptimizeRequest {
   OptimizationRequest request = 1;
 }

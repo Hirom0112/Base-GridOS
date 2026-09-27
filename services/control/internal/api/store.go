@@ -29,12 +29,17 @@ type EventStore interface {
 	Create(context.Context, *gridosv1.EventRequest, string, time.Time) (*gridosv1.DispatchEvent, error)
 	Get(context.Context, string) (*gridosv1.DispatchEvent, map[gridosv1.ExclusionReason]uint64, error)
 	LoadPlan(context.Context, string, uint64) (*gridosv1.OptimizationRequest, *gridosv1.DispatchPlan, error)
+	LoadPlanManifest(context.Context, string, uint64) (*gridosv1.PlanManifest, error)
 	Approve(context.Context, *gridosv1.ApproveEventRequest) (*gridosv1.DispatchEvent, error)
 	Launch(context.Context, *gridosv1.LaunchEventRequest) (*gridosv1.DispatchEvent, error)
 }
 
 func (store *MemoryEventStore) LoadPlan(context.Context, string, uint64) (*gridosv1.OptimizationRequest, *gridosv1.DispatchPlan, error) {
 	return nil, nil, ErrNotFound
+}
+
+func (store *MemoryEventStore) LoadPlanManifest(context.Context, string, uint64) (*gridosv1.PlanManifest, error) {
+	return nil, ErrNotFound
 }
 
 type MemoryEventStore struct {

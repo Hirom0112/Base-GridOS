@@ -106,6 +106,9 @@ func TestFreezeInputsActivity(t *testing.T) {
 	require.Equal(t, frozen.InputSnapshotID, manifest.InputSnapshotID)
 	require.Equal(t, frozen.EligibilitySnapshotID, manifest.EligibilitySnapshotID)
 	require.Equal(t, "policy-1", manifest.PolicyVersion)
+	var codeVersion string
+	require.NoError(t, harness.pool.QueryRow(context.Background(), `SELECT provenance->>'code_version' FROM input_snapshots WHERE snapshot_id = $1`, frozen.InputSnapshotID).Scan(&codeVersion))
+	require.Equal(t, "test", codeVersion)
 }
 
 func TestFreezeInputsAustinResultStaysBelowTemporalLimit(t *testing.T) {

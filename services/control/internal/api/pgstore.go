@@ -53,6 +53,10 @@ func (store *PostgresEventStore) LoadPlan(ctx context.Context, eventID string, p
 	return store.store.LoadPlan(ctx, eventID, planVersion)
 }
 
+func (store *PostgresEventStore) LoadPlanManifest(ctx context.Context, eventID string, planVersion uint64) (*gridosv1.PlanManifest, error) {
+	return store.store.LoadPlanManifest(ctx, eventID, planVersion)
+}
+
 func (store *PostgresEventStore) Advance(ctx context.Context, eventID, expected, next, actor string, at time.Time) (*gridosv1.DispatchEvent, error) {
 	event, err := store.store.Advance(ctx, eventID, expected, next, actor, at)
 	return event, eventStoreError(err)

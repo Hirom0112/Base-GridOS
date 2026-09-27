@@ -26,6 +26,10 @@ func (store explanationStore) LoadPlan(_ context.Context, _ string, _ uint64) (*
 	return store.request, store.plan, nil
 }
 
+func (store explanationStore) LoadPlanManifest(context.Context, string, uint64) (*gridosv1.PlanManifest, error) {
+	return &gridosv1.PlanManifest{}, nil
+}
+
 func TestGetPlanExplanation(t *testing.T) {
 	now := time.Date(2026, 9, 26, 12, 0, 0, 0, time.UTC)
 	events := NewMemoryEventStore()

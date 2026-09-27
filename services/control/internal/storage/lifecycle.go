@@ -17,7 +17,7 @@ type StoredViolation struct {
 	Code string `json:"code"`
 }
 
-func (store *PostgresEventStore) StoreFrozen(ctx context.Context, eventID string, request *gridosv1.OptimizationRequest, at time.Time) (string, string, error) {
+func (store *PostgresEventStore) StoreFrozen(ctx context.Context, eventID string, request *gridosv1.OptimizationRequest, codeVersion string, at time.Time) (string, string, error) {
 	if request == nil || request.GetPlanVersion() == 0 || request.GetEligibilitySnapshot() == nil {
 		return "", "", errors.New("versioned optimization snapshot required")
 	}
@@ -30,6 +30,13 @@ func (store *PostgresEventStore) StoreFrozen(ctx context.Context, eventID string
 		return "", "", err
 	}
 	inputID, eligibilityID := snapshotIDs(eventID, request.GetPlanVersion())
+	provenance, err := json.Marshal(struct {
+		Source      string `json:"source"`
+		CodeVersion string `json:"code_version"`
+	}{Source: "SIMULATED", CodeVersion: codeVersion})
+	if err != nil {
+		return "", "", err
+	}
 	tx, err := store.pool.Begin(ctx)
 	if err != nil {
 		return "", "", err
@@ -37,8 +44,8 @@ func (store *PostgresEventStore) StoreFrozen(ctx context.Context, eventID string
 	defer func() { _ = tx.Rollback(ctx) }()
 	_, err = tx.Exec(ctx, `INSERT INTO input_snapshots
         (snapshot_id, event_id, captured_at, inputs, provenance, correlation_id)
-        VALUES ($1, $2, $3, $4, '{"source":"SIMULATED"}', $5)
-		ON CONFLICT (snapshot_id) DO NOTHING`, inputID, eventID, at, inputs, request.GetCorrelationId())
+		VALUES ($1, $2, $3, $4, $5, $6)
+		ON CONFLICT (snapshot_id) DO NOTHING`, inputID, eventID, at, inputs, provenance, request.GetCorrelationId())
 	if err != nil {
 		return "", "", err
 	}
@@ -272,6 +279,23 @@ func (store *PostgresEventStore) LoadPlan(ctx context.Context, eventID string, p
 		return nil, nil, err
 	}
 	return request, plan, nil
+}
+
+func (store *PostgresEventStore) LoadPlanManifest(ctx context.Context, eventID string, planVersion uint64) (*gridosv1.PlanManifest, error) {
+	manifest := new(gridosv1.PlanManifest)
+	err := store.pool.QueryRow(ctx, `SELECT plan.input_snapshot_id, plan.eligibility_snapshot_id,
+		eligibility.policy_version, plan.solver_version, plan.model_version,
+		COALESCE(input.provenance->>'code_version', '')
+		FROM plan_versions AS plan
+		JOIN input_snapshots AS input ON input.snapshot_id = plan.input_snapshot_id
+		JOIN eligibility_snapshots AS eligibility ON eligibility.snapshot_id = plan.eligibility_snapshot_id
+		WHERE plan.event_id = $1 AND plan.version = $2`, eventID, planVersion).Scan(
+		&manifest.InputSnapshotId, &manifest.EligibilitySnapshotId, &manifest.PolicyVersion,
+		&manifest.SolverVersion, &manifest.ModelVersion, &manifest.CodeVersion)
+	if err != nil {
+		return nil, err
+	}
+	return manifest, nil
 }
 
 func (store *PostgresEventStore) Advance(ctx context.Context, eventID, expected, next, actor string, at time.Time) (*gridosv1.DispatchEvent, error) {

@@ -80,7 +80,7 @@ func (activities *Activities) FreezeInputs(ctx context.Context, input Input) (Fr
 		return FrozenEvent{}, err
 	}
 	snapshot.Optimization.Forecast = forecast
-	inputID, eligibilityID, err := storage.NewPostgresEventStore(activities.Pool).StoreFrozen(ctx, input.EventID, snapshot.Optimization, activities.Now())
+	inputID, eligibilityID, err := storage.NewPostgresEventStore(activities.Pool).StoreFrozen(ctx, input.EventID, snapshot.Optimization, activities.ReplayInput.CodeVersion, activities.Now())
 	if err != nil {
 		return FrozenEvent{}, err
 	}

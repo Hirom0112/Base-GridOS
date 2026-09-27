@@ -163,8 +163,8 @@ message GetPlanExplanationResponse {
   repeated ShortfallReport shortfalls = 5;
   MarginExplanation margin_explanation = 6;
   PlanExplanationEvidence evidence = 7;
+  PlanManifest manifest = 8;
 }
-
 message ValidateUnsafeAlternativeRequest {
   string event_id = 1;
   uint64 plan_version = 2;

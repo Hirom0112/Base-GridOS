@@ -31,6 +31,10 @@ func (service *Service) GetPlanExplanation(ctx context.Context, request *connect
 	if input == nil || plan == nil || plan.GetEventId() != event.GetEventId() || plan.GetPlanVersion() != event.GetPlanVersion() {
 		return nil, connect.NewError(connect.CodeInternal, errors.New("stored plan does not match event"))
 	}
+	manifest, err := service.store.LoadPlanManifest(ctx, event.GetEventId(), event.GetPlanVersion())
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
 	reserve, bases, err := planReserveEvidence(input, plan)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
@@ -44,7 +48,7 @@ func (service *Service) GetPlanExplanation(ctx context.Context, request *connect
 			RegionalPrices: input.GetForecast().GetRegionalPrices(), OutageRisks: input.GetForecast().GetOutageRisks(),
 			DeviceAvailability: input.GetForecast().GetDeviceAvailability(), UnavailableSources: input.GetForecast().GetUnavailableSources(),
 			ReserveBases: bases, TravelFlexBindings: input.GetEligibilitySnapshot().GetTravelFlexBindings(),
-		},
+		}, Manifest: manifest,
 	}), nil
 }
 
