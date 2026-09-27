@@ -2226,3 +2226,16 @@ assembly): all listeners up, public context dir wired to control and
 worker, telemetry lag 8 s, signer 200, worker log clean; proof event
 live-proof-1790502698 launched at 09:52Z with the WEATHER row poll
 alongside.
+
+## 2026-09-27 09:58Z — Recorded console gate: vitest green, Playwright 12 red
+
+Run by the director on the console tree at a517d6c: `pnpm --dir
+apps/console exec vitest run` printed `Test Files 46 passed (46)`, `Tests
+180 passed (180)`; `pnpm --dir apps/console playwright test --grep-invert
+demo-path` printed `12 failed`, `66 passed (1.1m)`. Failures: seven
+events-timeline legibility cases (toHaveCount at 390, 768 and 1440 in both
+themes, plus the reduced-motion no-WebGL case), two dispatch-flow
+confirmation cases (toBeVisible at 390 and 1440), the shell static-truth
+case, and the cinematic-frame composition budget (toBeLessThan). Posted to
+the console lane for correction; the UI gate stays red until a director
+rerun prints zero failed.
