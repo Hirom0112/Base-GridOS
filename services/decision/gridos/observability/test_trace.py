@@ -1,9 +1,10 @@
 import io
 import json
+from urllib.request import urlopen
 
 import pytest
 
-from gridos.observability import new_provider, start_span, traced_rpc
+from gridos.observability import new_provider, start_metrics_server, start_span, traced_rpc
 
 
 def test_python_trace_scrubs_private_fields() -> None:
@@ -59,3 +60,24 @@ def test_rpc_trace_uses_request_metadata_and_calls_handler() -> None:
     assert record["correlation_id"] == "correlation-7"
     assert record["workflow_id"] == "workflow-7"
     assert "private-site" not in output.getvalue()
+
+
+def test_metrics_endpoint_counts_served_rpc() -> None:
+    output = io.StringIO()
+    provider = new_provider(output)
+
+    class Context:
+        def invocation_metadata(self) -> tuple[tuple[str, str], ...]:
+            return ()
+
+    wrapped = traced_rpc(provider, "Forecast", lambda request, context: "forecast")
+    assert wrapped("request", Context()) == "forecast"
+    server, _ = start_metrics_server(0)
+    try:
+        with urlopen(f"http://127.0.0.1:{server.server_port}/metrics", timeout=2) as response:
+            metrics = response.read().decode()
+        assert 'gridos_decision_rpc_total{method="Forecast"} 1.0' in metrics
+    finally:
+        server.shutdown()
+        server.server_close()
+        provider.shutdown()
