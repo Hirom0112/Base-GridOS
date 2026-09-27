@@ -942,3 +942,4 @@ assumptions reported by workers land here too.
   connector and an independent fixture-backed future-live adapter against
   the same typed interface and compares their outputs for the same request
   across all eleven connectors. Director: connectors package ok.
+- **5A.3 (lane 5A), verified:** the integration notes map every FULL_SPEC §7 missing-field bullet to the connector that supplies it and its production authorization requirement, and name deployment, maintenance, and validated reliability as uncovered by the eleven connectors. Director: independent bullet match, none missing.

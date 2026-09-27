@@ -1534,7 +1534,7 @@ Owns: `services/control/internal/connectors/`, `tests/contract/`, `docs/data/`.
 - `[x]` 5A.2 `[P]` Contract tests asserting a simulated connector and a
   future live connector produce identical schema output for the same request.
   Verify: `go test ./services/control/internal/connectors/... -run Connector` passes.
-- `[ ]` 5A.3 `[P]` `docs/data/integration-notes.md` listing every field that
+- `[x]` 5A.3 `[P]` `docs/data/integration-notes.md` listing every field that
   FULL_SPEC §7 says is missing, which connector supplies it, and its
   authorization requirement. Verify: each §7 bullet appears in the table.
 - `[ ]` 5A.4 `[after 5A.1, 4A.6]` Notification connector. One typed
