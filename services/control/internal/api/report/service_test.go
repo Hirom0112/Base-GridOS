@@ -16,13 +16,43 @@ import (
 )
 
 type reportSource struct {
-	published *core.EventReport
-	live      core.StoredEvent
-	liveReads int
+	published     *core.EventReport
+	publishedByID map[string]*core.EventReport
+	live          core.StoredEvent
+	liveReads     int
 }
 
-func (source *reportSource) StoredReport(context.Context, string) (*core.EventReport, error) {
+func (source *reportSource) StoredReport(_ context.Context, eventID string) (*core.EventReport, error) {
+	if source.publishedByID != nil {
+		return source.publishedByID[eventID], nil
+	}
 	return source.published, nil
+}
+
+func TestCompareEventReportsRequiresRoleAndReturnsDifferences(t *testing.T) {
+	rewardsA, rewardsB := int64(100), int64(250)
+	source := &reportSource{publishedByID: map[string]*core.EventReport{
+		"event-a": {EventID: "event-a", PlanVersion: 2, RequestedMW: 1, MemberRewardsCents: &rewardsA},
+		"event-b": {EventID: "event-b", PlanVersion: 3, RequestedMW: 2, MemberRewardsCents: &rewardsB},
+	}}
+	_, handler := gridosv1connect.NewReportServiceHandler(NewService(source))
+	server := httptest.NewServer(handler)
+	defer server.Close()
+	client := gridosv1connect.NewReportServiceClient(http.DefaultClient, server.URL)
+	request := connect.NewRequest(&gridosv1.CompareEventReportsRequest{EventIdA: "event-a", EventIdB: "event-b"})
+	_, err := client.CompareEventReports(context.Background(), request)
+	require.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(err))
+	request.Header().Set("X-GridOS-Role", "partner")
+	_, err = client.CompareEventReports(context.Background(), request)
+	require.Equal(t, connect.CodePermissionDenied, connect.CodeOf(err))
+	request.Header().Set("X-GridOS-Role", "analyst")
+	response, err := client.CompareEventReports(context.Background(), request)
+	require.NoError(t, err)
+	require.Equal(t, 3, len(response.Msg.GetDifferences()))
+	require.Equal(t, "member_rewards_cents", response.Msg.GetDifferences()[0].GetField())
+	require.Equal(t, "100", response.Msg.GetDifferences()[0].GetBefore())
+	require.Equal(t, "250", response.Msg.GetDifferences()[0].GetAfter())
+	require.Equal(t, 0, source.liveReads)
 }
 
 func (source *reportSource) EventReportData(context.Context, string) (core.StoredEvent, error) {
