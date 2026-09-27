@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { fromJsonString } from "@bufbuild/protobuf";
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { expect, test } from "vitest";
 import { GetPlanExplanationResponseSchema } from "../api/gen/gridos/v1/api_pb";
 import { ExplanationEvidence } from "./explanation";
@@ -138,4 +138,22 @@ test("missing frozen evidence does not imply fallback was unused", () => {
   expect(
     screen.getByRole("region", { name: "Solver fallback" }),
   ).toHaveTextContent("Fallback evidence unavailable");
+});
+
+test("forecast site search bounds the selector and never shows a mismatched site", () => {
+  const explanation = fixture();
+  const target = explanation.evidence!.siteLoads[100]!.siteId;
+  render(<ExplanationEvidence explanation={explanation} />);
+  const search = screen.getByLabelText("Find forecast site");
+  expect(screen.getAllByRole("option").length).toBeLessThanOrEqual(50);
+  fireEvent.change(search, { target: { value: target } });
+  expect(screen.getByLabelText("Forecast site")).toHaveValue(target);
+  expect(
+    screen.getByRole("table", { name: "Frozen site forecasts" }),
+  ).toBeVisible();
+  fireEvent.change(search, { target: { value: "not-a-recorded-site" } });
+  expect(screen.getByText("No matching forecast sites.")).toBeVisible();
+  expect(
+    screen.queryByRole("table", { name: "Frozen site forecasts" }),
+  ).not.toBeInTheDocument();
 });
