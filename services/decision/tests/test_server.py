@@ -4,6 +4,7 @@ from datetime import UTC, datetime, timedelta
 import grpc
 import pytest
 from google.protobuf.timestamp_pb2 import Timestamp
+from gridos import server as server_module
 from gridos.fallback.planner import plan_fallback
 from gridos.server import OptimizationServer, _device_states
 from gridos.v1 import optimization_pb2, optimization_pb2_grpc
@@ -141,3 +142,25 @@ def test_server_replace_excludes_stale_candidate(
 
     assert not response.replacement_plan.device_schedules
     assert response.replacement_plan.shortfalls[0].shortfall_kw == 3.0
+
+
+def test_server_caps_solver_budget_from_startup_environment(
+    monkeypatch: pytest.MonkeyPatch,
+    serve: Callable[[OptimizationServer], optimization_pb2_grpc.OptimizationServiceStub],
+    optimize_request: optimization_pb2.OptimizeRequest,
+) -> None:
+    monkeypatch.setenv("GRIDOS_SOLVER_BUDGET_SECONDS", "0.000001")
+    budget = server_module._solver_budget_from_env()
+    assert budget == 0.000001
+    response = serve(OptimizationServer(solver_budget_seconds=budget)).Optimize(optimize_request)
+    assert response.plan.fallback_used
+    assert response.plan.fallback_reason == "TIMEOUT"
+
+
+@pytest.mark.parametrize("value", ["0", "-1", "NaN", "inf", "invalid"])
+def test_server_rejects_invalid_solver_budget_at_startup(
+    monkeypatch: pytest.MonkeyPatch, value: str
+) -> None:
+    monkeypatch.setenv("GRIDOS_SOLVER_BUDGET_SECONDS", value)
+    with pytest.raises(ValueError, match="solver budget"):
+        server_module._solver_budget_from_env()
