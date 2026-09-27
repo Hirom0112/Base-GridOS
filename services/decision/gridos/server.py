@@ -8,6 +8,7 @@ from math import isfinite
 import grpc
 
 from gridos.economics.margin import eligible_additional_capacity
+from gridos.economics.public_price import conservative_public_margin as _conservative_public_margin
 from gridos.fallback.planner import (
     DeviceSchedule,
     DeviceState,
@@ -21,7 +22,7 @@ from gridos.forecasting.serve import forecast_response
 from gridos.observability import new_provider, start_metrics_server, traced_rpc
 from gridos.optimization.model import OptimizedPlan, optimize
 from gridos.solver.bounded import Decision, Planner, resolve, solve_within_budget
-from gridos.v1 import device_pb2, dispatch_pb2, optimization_pb2, telemetry_pb2
+from gridos.v1 import dispatch_pb2, optimization_pb2, telemetry_pb2
 from gridos.validation.plan import validate_plan
 
 
@@ -53,7 +54,7 @@ def _device_states(request: optimization_pb2.OptimizationRequest) -> list[Device
     margin = (
         Decimal(str(request.conservative_margin))
         if request.conservative_margin != 0
-        else _conservative_public_margin(request)
+        else _conservative_public_margin(request)[0]
     )
     eligible_ids = set(request.eligibility_snapshot.eligible_device_ids)
     known_ids = {device.device_id for device in request.devices}
@@ -136,45 +137,6 @@ def _selected_reserve_kwh(
     return selected
 
 
-def _conservative_public_margin(request: optimization_pb2.OptimizationRequest) -> Decimal:
-    intervals = {(item.begin_time.seconds, item.begin_time.nanos) for item in request.intervals}
-    prices: dict[str, Decimal] = {}
-    for forecast in request.forecast.regional_prices:
-        value = forecast.price_per_mwh
-        begin = (forecast.interval_begin_time.seconds, forecast.interval_begin_time.nanos)
-        if (
-            begin not in intervals
-            or not forecast.load_zone
-            or not value.model_version
-            or value.value_kind != "confirmed_public_forward"
-            or value.provenance != device_pb2.DATA_PROVENANCE_CONFIRMED_PUBLIC
-        ):
-            continue
-        if not all(isfinite(number) for number in (value.lower, value.value, value.upper)):
-            raise ValueError("public price forecast must be finite")
-        if not value.lower <= value.value <= value.upper:
-            raise ValueError("public price forecast bounds must be ordered")
-        lower = Decimal(str(value.lower))
-        prices[forecast.load_zone] = min(prices.get(forecast.load_zone, lower), lower)
-    margin = Decimal(0)
-    for device in request.devices:
-        if not device.HasField("travel_flex_reserve_kwh") or not device.HasField(
-            "base_reserve_kwh"
-        ):
-            continue
-        zone_lower = prices.get(device.load_zone)
-        if zone_lower is None:
-            continue
-        if zone_lower < 0:
-            incremental_kwh = Decimal(str(device.base_reserve_kwh)) - Decimal(
-                str(device.travel_flex_reserve_kwh)
-            )
-            margin += (
-                zone_lower * incremental_kwh * Decimal(str(device.discharge_efficiency)) / 1000
-            )
-    return margin
-
-
 def _exclusion_reason(reason: str) -> dispatch_pb2.ExclusionReason:
     return {
         "RESERVE": dispatch_pb2.EXCLUSION_REASON_RESERVE,
@@ -188,7 +150,9 @@ def _margin_explanation(
     request: optimization_pb2.OptimizationRequest,
 ) -> optimization_pb2.MarginExplanation:
     explicit = request.conservative_margin != 0
-    public_margin = _conservative_public_margin(request) if not explicit else Decimal(0)
+    public_margin, source = (
+        _conservative_public_margin(request) if not explicit else (Decimal(0), "UNAVAILABLE")
+    )
     margin = Decimal(str(request.conservative_margin)) if explicit else public_margin
     explanation = optimization_pb2.MarginExplanation(
         conservative_margin=float(margin), margin_hurdle=request.margin_hurdle
@@ -197,7 +161,7 @@ def _margin_explanation(
     if explicit:
         dispatch.source = "FROZEN_REQUEST_MARGIN"
     elif public_margin < 0:
-        dispatch.source = "FROZEN_PUBLIC_PRICE"
+        dispatch.source = source
     else:
         dispatch.source = "UNAVAILABLE"
         dispatch.unavailable = True
@@ -254,7 +218,7 @@ def _response(
     margin = (
         Decimal(str(request.conservative_margin))
         if request.conservative_margin != 0
-        else _conservative_public_margin(request)
+        else _conservative_public_margin(request)[0]
     )
     for schedule in plan.schedules:
         device = by_id[schedule.device_id]

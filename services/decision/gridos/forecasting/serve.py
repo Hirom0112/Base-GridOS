@@ -63,17 +63,26 @@ def _site_load_at(
     return total, lower, upper
 
 
-def _day_ahead_prices() -> dict[tuple[str, datetime], float]:
-    path = _public_root() / "ercot-prices/dam-spp-week.csv"
+def _day_ahead_prices() -> dict[tuple[str, datetime], tuple[float, device_pb2.DataProvenance]]:
+    root = _public_root() / "ercot-prices"
+    path = root / "dam-spp-week.csv"
     if not path.exists():
         return {}
-    prices: dict[tuple[str, datetime], float] = {}
+    label = (root / "PROVENANCE.md").read_text().splitlines()[0]
+    provenance = {
+        "Provenance: CONFIRMED_PUBLIC": device_pb2.DATA_PROVENANCE_CONFIRMED_PUBLIC,
+        "Provenance: SIMULATED": device_pb2.DATA_PROVENANCE_SIMULATED,
+    }.get(label)
+    if provenance is None:
+        raise ValueError("price fixture provenance is invalid")
+    prices: dict[tuple[str, datetime], tuple[float, device_pb2.DataProvenance]] = {}
     with path.open(newline="") as source:
         for row in csv.DictReader(source):
             day = datetime.strptime(row["Delivery Date"], "%m/%d/%Y").replace(tzinfo=_CENTRAL)
             hour = int(row["Hour Ending"].split(":", 1)[0]) - 1
-            prices[row["Settlement Point"], day + timedelta(hours=hour)] = float(
-                row["Settlement Point Price"]
+            prices[row["Settlement Point"], day + timedelta(hours=hour)] = (
+                float(row["Settlement Point Price"]),
+                provenance,
             )
     return prices
 
@@ -172,15 +181,16 @@ def forecast_response(
             if site.load_zone in seen_zones:
                 continue
             seen_zones.add(site.load_zone)
-            price = prices.get(
+            priced = prices.get(
                 (
                     site.load_zone,
                     begin.astimezone(_CENTRAL).replace(minute=0, second=0, microsecond=0),
                 )
             )
-            if price is None:
+            if priced is None:
                 response.unavailable_sources.append(f"regional_price:{site.load_zone}")
             else:
+                price, provenance = priced
                 price_output = response.regional_prices.add(load_zone=site.load_zone)
                 price_output.interval_begin_time.CopyFrom(interval.begin_time)
                 price_output.price_per_mwh.CopyFrom(
@@ -188,8 +198,10 @@ def forecast_response(
                         (price, price, price),
                         "ercot-dam-spp-v1",
                         "day-ahead-v1",
-                        "confirmed_public_forward",
-                        device_pb2.DATA_PROVENANCE_CONFIRMED_PUBLIC,
+                        "simulated_forward"
+                        if provenance == device_pb2.DATA_PROVENANCE_SIMULATED
+                        else "confirmed_public_forward",
+                        provenance,
                     )
                 )
                 _stamp_forecast(price_output.price_per_mwh, issued_at, begin)

@@ -23,13 +23,13 @@ def test_public_price_margin_from_frozen_forecast(
     price.price_per_mwh.value_kind = "confirmed_public_forward"
     price.price_per_mwh.provenance = device_pb2.DATA_PROVENANCE_CONFIRMED_PUBLIC
 
-    assert _conservative_public_margin(request) == Decimal("-0.19")
+    assert _conservative_public_margin(request) == (Decimal("-0.19"), "FROZEN_PUBLIC_PRICE")
     price.price_per_mwh.value = 100.0
     price.price_per_mwh.lower = 100.0
     price.price_per_mwh.upper = 100.0
-    assert _conservative_public_margin(request) == Decimal(0)
+    assert _conservative_public_margin(request) == (Decimal(0), "UNAVAILABLE")
     price.price_per_mwh.Clear()
-    assert _conservative_public_margin(request) == Decimal(0)
+    assert _conservative_public_margin(request) == (Decimal(0), "UNAVAILABLE")
 
 
 def test_negative_public_price_keeps_base_reserve(
