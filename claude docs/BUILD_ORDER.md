@@ -1354,7 +1354,7 @@ Owns: `services/control/internal/fleet/policy/`,
   retention window, keep the audit journal for state transitions only, with
   a migration and rollback. Owns `services/control/internal/storage/`
   additively for this. Verify: `go test ./services/control/internal/storage/ -run Retention` passes and the IngestScale test stays green.
-- `[ ]` 4A.10 `[after 4A.4, 4D.3]` Risk signal bridge. Nothing invokes
+- `[x]` 4A.10 `[after 4A.4, 4D.3]` Risk signal bridge. Nothing invokes
   `ApplyOverride` automatically. A singleton Temporal workflow
   `RiskOverrides` (same shape as telemetry maintenance) runs every five
   minutes and, per site, applies: WEATHER when an NWS alert is active in the

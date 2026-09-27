@@ -1091,3 +1091,16 @@ assumptions reported by workers land here too.
   and away records kept until the member ends them, then audit only), a
   deny-until-approved rule for operational household data, the deletion
   flow, and a named list of durations the data owner still has to decide.
+- **4A.10 (lane 4A), verified on the demo:** the five-minute RiskOverrides
+  workflow wrote 5,000 per-site evaluation rows per cycle (three cycles by
+  02:30Z) with the signals seen and the ones it could not source. The
+  director presented and selected the SIMULATED Essential plan for one
+  member at 02:20:46Z; the gateway then died on its own (the 2A.9 defect)
+  at 02:24:59Z, and at the 02:30:00Z cycle that member received a
+  COMMUNICATIONS override to the 40 percent floor with the gateway
+  heartbeat as evidence, expiring at 02:35:00Z, while every unplanned site
+  got an evaluation and no override. The plan's verify line expected
+  STALE_TELEMETRY from a single forced device; a silent gateway yields the
+  more specific COMMUNICATIONS reason at the same floor, which is the
+  correct precedence. Isolated proof and migration 0014 re-apply also
+  pass here.
