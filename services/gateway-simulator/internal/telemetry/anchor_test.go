@@ -1,8 +1,11 @@
 package telemetry
 
 import (
+	"context"
 	"testing"
 	"time"
+
+	gridosv1 "github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1"
 )
 
 func TestAnchorSkipsMissedCadenceSlots(t *testing.T) {
@@ -20,5 +23,33 @@ func TestAnchorSkipsMissedCadenceSlots(t *testing.T) {
 	}
 	if !late.After(first.Add(sourceStep)) {
 		t.Fatalf("missed cadence slots were replayed: %s", late)
+	}
+}
+
+func TestAnchorRecordsOneGapBeforeCurrentPhysicalSample(t *testing.T) {
+	ctx := context.Background()
+	store := openStore(t, ctx)
+	start := time.Date(2026, 8, 12, 18, 0, 0, 0, time.UTC)
+	publisher := &recoveringBatchPublisher{}
+	fleet, err := NewFleet(store, []Device{testPhysicalDevice("device-1")}, Profiles{"home": {}}, time.Minute, publisher)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := fleet.Emit(ctx, start); err != nil {
+		t.Fatal(err)
+	}
+	current := start.Add(4 * time.Minute)
+	if err := fleet.emitSkipped(ctx, current.Add(-time.Minute), current); err != nil {
+		t.Fatal(err)
+	}
+	latest := publisher.batches[1]
+	if len(latest) != 2 {
+		t.Fatalf("gap and current observations = %d", len(latest))
+	}
+	if latest[0].GetValueState() != gridosv1.ValueState_VALUE_STATE_MISSING || !latest[0].GetSourceTime().AsTime().Equal(current.Add(-time.Minute)) {
+		t.Fatalf("last skipped slot gap = %#v", latest[0])
+	}
+	if latest[1].GetValueState() != gridosv1.ValueState_VALUE_STATE_PRESENT || !latest[1].GetSourceTime().AsTime().Equal(current) || latest[1].GetPowerFlow() == nil {
+		t.Fatalf("current physical sample = %#v", latest[1])
 	}
 }
