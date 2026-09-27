@@ -2330,3 +2330,13 @@ window rows match on the demo. Marked done. The mockapi package
 deliberately carries a RED (4643a56: the report fixture must hold measured
 shortfalls) until the report fixture is recorded from a completed event
 after the next rebuild.
+
+## 2026-09-27 10:21Z — Armed demo released for the integrated run
+
+Rebuilt on 53dd8be (includes the 4E.10 approved-plan correction): fresh
+gateway with no launch since restart, telemetry lag 14 s, no publish
+failures, signer up, two WEATHER overrides, the seeded Travel Flex window
+active through 13:15Z, worker log clean. Released to the console lane for
+the integrated 17-step run, which is the first launch on this gateway and
+therefore the five-fault proof; the director verifies from the durable
+rows afterwards.
