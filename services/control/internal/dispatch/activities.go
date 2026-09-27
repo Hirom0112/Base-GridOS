@@ -20,6 +20,8 @@ import (
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/storage"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/trace"
 	"go.temporal.io/sdk/temporal"
 	"google.golang.org/protobuf/proto"
 )
@@ -41,7 +43,21 @@ type FrozenEvent struct {
 	SnapshotDigest        [32]byte
 }
 
+func (activities *Activities) startActivity(ctx context.Context, eventID, name string) (context.Context, trace.Span) {
+	if activities.Events != nil {
+		event, _, err := activities.Events.Get(ctx, eventID)
+		if err == nil {
+			if seeded, err := observability.WithTraceIDs(ctx, event.GetCorrelationId(), eventID); err == nil {
+				ctx = seeded
+			}
+		}
+	}
+	return otel.Tracer("gridos.control").Start(ctx, "activity."+name)
+}
+
 func (activities *Activities) FreezeInputs(ctx context.Context, input Input) (FrozenEvent, error) {
+	ctx, span := activities.startActivity(ctx, input.EventID, "FreezeInputs")
+	defer span.End()
 	if input.Request == nil {
 		return FrozenEvent{}, errors.New("event request required")
 	}
@@ -112,6 +128,8 @@ func (activities *Activities) forecast(ctx context.Context, request *gridosv1.Op
 }
 
 func (activities *Activities) RequestPlan(ctx context.Context, frozen FrozenEvent) (FrozenEvent, error) {
+	ctx, span := activities.startActivity(ctx, frozen.Input.EventID, "RequestPlan")
+	defer span.End()
 	request, err := storage.NewPostgresEventStore(activities.Pool).LoadFrozen(ctx, frozen.Input.EventID, frozen.InputSnapshotID, frozen.EligibilitySnapshotID)
 	if err != nil {
 		return frozen, err
@@ -171,6 +189,8 @@ func (activities *Activities) requestFreshPlan(ctx context.Context, request *gri
 }
 
 func (activities *Activities) ValidatePlan(ctx context.Context, frozen FrozenEvent) error {
+	ctx, span := activities.startActivity(ctx, frozen.Input.EventID, "ValidatePlan")
+	defer span.End()
 	request, err := storage.NewPostgresEventStore(activities.Pool).LoadFrozen(ctx, frozen.Input.EventID, frozen.InputSnapshotID, frozen.EligibilitySnapshotID)
 	if err != nil {
 		return err
@@ -271,6 +291,8 @@ func (activities *Activities) recordPlanningDecision(ctx context.Context, reques
 }
 
 func (activities *Activities) PersistIntents(ctx context.Context, request PersistInput) error {
+	ctx, span := activities.startActivity(ctx, request.Input.EventID, "PersistIntents")
+	defer span.End()
 	inputs, plan, err := activities.Events.LoadPlan(ctx, request.Input.EventID, request.Input.PlanVersion)
 	if err != nil {
 		return err
@@ -293,6 +315,8 @@ func (activities *Activities) PersistIntents(ctx context.Context, request Persis
 }
 
 func (activities *Activities) PublishCommands(ctx context.Context, input Input) error {
+	ctx, span := activities.startActivity(ctx, input.EventID, "PublishCommands")
+	defer span.End()
 	for {
 		pending, err := activities.unpublishedCount(ctx, input.EventID)
 		if err != nil {
@@ -326,6 +350,8 @@ func (activities *Activities) unpublishedCount(ctx context.Context, eventID stri
 }
 
 func (activities *Activities) TrackAcknowledgements(ctx context.Context, input Input) error {
+	ctx, span := activities.startActivity(ctx, input.EventID, "TrackAcknowledgements")
+	defer span.End()
 	var unresolved int
 	err := activities.Pool.QueryRow(ctx, `SELECT count(*) FROM command_intents AS intent
 		WHERE intent.event_id = $1 AND NOT EXISTS (
@@ -342,6 +368,8 @@ func (activities *Activities) TrackAcknowledgements(ctx context.Context, input I
 }
 
 func (activities *Activities) EndEvent(ctx context.Context, input Input) error {
+	ctx, span := activities.startActivity(ctx, input.EventID, "EndEvent")
+	defer span.End()
 	rows, err := activities.Pool.Query(ctx, `SELECT DISTINCT ON (device_id) command_id, device_id, plan_version, generation, policy_version, correlation_id
 		FROM command_intents WHERE event_id = $1 AND setpoint_kw <> 0
 		ORDER BY device_id, generation DESC, issued_at DESC, command_id DESC`, input.EventID)
@@ -378,6 +406,8 @@ func (activities *Activities) EndEvent(ctx context.Context, input Input) error {
 }
 
 func (activities *Activities) ProduceReport(ctx context.Context, input Input) error {
+	ctx, span := activities.startActivity(ctx, input.EventID, "ProduceReport")
+	defer span.End()
 	if _, err := policy.New(activities.Pool).PostEventRewards(ctx, input.EventID, activities.Now()); err != nil {
 		return err
 	}
@@ -390,10 +420,14 @@ func (activities *Activities) ProduceReport(ctx context.Context, input Input) er
 }
 
 func (activities *Activities) IssueEmergencyStop(ctx context.Context, command EmergencyCommand) error {
+	ctx, span := activities.startActivity(ctx, command.EventID, "IssueEmergencyStop")
+	defer span.End()
 	return activities.insertZeroCommand(ctx, command.EventID, "emergency", command.Generation)
 }
 
 func (activities *Activities) ExpireCommands(ctx context.Context, command EmergencyCommand) error {
+	ctx, span := activities.startActivity(ctx, command.EventID, "ExpireCommands")
+	defer span.End()
 	return activities.insertZeroCommand(ctx, command.EventID, "expiry", command.Generation)
 }
 
