@@ -132,12 +132,11 @@ func TestHoustonTwentyPercentOffline(t *testing.T) {
 	response := stack.runEvent(t, ctx, eventID, now)
 	var missing, present int
 	err := stack.pool.QueryRow(ctx, `SELECT
-		count(*) FILTER (WHERE observation.new_values->>'valueState' = 'VALUE_STATE_MISSING'),
-		count(*) FILTER (WHERE observation.new_values->>'valueState' = 'VALUE_STATE_PRESENT')
-		FROM audit_journal AS observation
-		WHERE observation.action = 'TELEMETRY_RECEIVED'
-		AND observation.actor_id IN (SELECT device_id FROM command_intents WHERE event_id = $1)
-		AND observation.occurred_at BETWEEN $2 AND $3`, eventID, stack.scenario.Event.StartAt, stack.scenario.Event.EndAt).Scan(&missing, &present)
+		count(*) FILTER (WHERE observation.payload->>'valueState' = 'VALUE_STATE_MISSING'),
+		count(*) FILTER (WHERE observation.payload->>'valueState' = 'VALUE_STATE_PRESENT')
+		FROM telemetry_observations AS observation
+		WHERE observation.device_id IN (SELECT device_id FROM command_intents WHERE event_id = $1)
+		AND observation.observed_at BETWEEN $2 AND $3`, eventID, stack.scenario.Event.StartAt, stack.scenario.Event.EndAt).Scan(&missing, &present)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -146,20 +145,18 @@ func TestHoustonTwentyPercentOffline(t *testing.T) {
 	}
 	var affectedDevice string
 	var missingAt time.Time
-	err = stack.pool.QueryRow(ctx, `SELECT observation.actor_id, observation.occurred_at
-		FROM audit_journal AS observation
-		WHERE observation.action = 'TELEMETRY_RECEIVED'
-		AND observation.new_values->>'valueState' = 'VALUE_STATE_MISSING'
-		AND observation.actor_id IN (SELECT device_id FROM command_intents WHERE event_id = $1)
-		AND observation.occurred_at BETWEEN $2 AND $3 LIMIT 1`, eventID, stack.scenario.Event.StartAt, stack.scenario.Event.EndAt).Scan(&affectedDevice, &missingAt)
+	err = stack.pool.QueryRow(ctx, `SELECT observation.device_id, observation.observed_at
+		FROM telemetry_observations AS observation
+		WHERE observation.payload->>'valueState' = 'VALUE_STATE_MISSING'
+		AND observation.device_id IN (SELECT device_id FROM command_intents WHERE event_id = $1)
+		AND observation.observed_at BETWEEN $2 AND $3 LIMIT 1`, eventID, stack.scenario.Event.StartAt, stack.scenario.Event.EndAt).Scan(&affectedDevice, &missingAt)
 	if err != nil {
 		t.Fatal(err)
 	}
 	var adjacent int
-	err = stack.pool.QueryRow(ctx, `SELECT count(*) FROM audit_journal
-		WHERE action = 'TELEMETRY_RECEIVED' AND actor_id = $1
-		AND new_values->>'valueState' = 'VALUE_STATE_PRESENT'
-		AND occurred_at BETWEEN $2 AND $3`, affectedDevice, missingAt.Add(-10*time.Second), missingAt.Add(10*time.Second)).Scan(&adjacent)
+	err = stack.pool.QueryRow(ctx, `SELECT count(*) FROM telemetry_observations
+		WHERE device_id = $1 AND payload->>'valueState' = 'VALUE_STATE_PRESENT'
+		AND observed_at BETWEEN $2 AND $3`, affectedDevice, missingAt.Add(-10*time.Second), missingAt.Add(10*time.Second)).Scan(&adjacent)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -298,9 +295,9 @@ func TestOutageReplay(t *testing.T) {
 	if err = database.QueryRowContext(ctx, "SELECT count(*) FROM telemetry_buffer WHERE observation_id = ?", bufferedID).Scan(&retained); err != nil {
 		t.Fatal(err)
 	}
-	if err = stack.pool.QueryRow(ctx, `SELECT count(*) FILTER (WHERE new_values->>'observationId' = $1),
-		count(*) FILTER (WHERE new_values->>'observationId' <> $1)
-		FROM audit_journal WHERE action = 'TELEMETRY_RECEIVED' AND occurred_at = $2`, bufferedID, stack.scenario.Injections[0].At).Scan(&replayed, &live); err != nil {
+	if err = stack.pool.QueryRow(ctx, `SELECT count(*) FILTER (WHERE observation_id = $1),
+		count(*) FILTER (WHERE observation_id <> $1)
+		FROM telemetry_observations WHERE observed_at = $2`, bufferedID, stack.scenario.Injections[0].At).Scan(&replayed, &live); err != nil {
 		t.Fatal(err)
 	}
 	if retained != 0 || replayed != 1 || live == 0 {
@@ -319,9 +316,8 @@ func TestMeasurementGapUnknown(t *testing.T) {
 	var affectedDevice string
 	for _, injection := range stack.scenario.Injections {
 		var live int
-		if err := stack.pool.QueryRow(ctx, `SELECT count(*) FROM audit_journal
-			WHERE action = 'TELEMETRY_RECEIVED' AND occurred_at = $1
-			AND actor_id IN (SELECT device_id FROM command_intents WHERE event_id = $2)`, injection.At, eventID).Scan(&live); err != nil {
+		if err := stack.pool.QueryRow(ctx, `SELECT count(*) FROM telemetry_observations
+			WHERE observed_at = $1 AND device_id IN (SELECT device_id FROM command_intents WHERE event_id = $2)`, injection.At, eventID).Scan(&live); err != nil {
 			t.Fatal(err)
 		}
 		if live == 0 {
@@ -329,10 +325,10 @@ func TestMeasurementGapUnknown(t *testing.T) {
 		}
 		err := stack.pool.QueryRow(ctx, `SELECT COALESCE((SELECT intent.device_id FROM command_intents AS intent
 			WHERE intent.event_id = $1 AND intent.generation = 1
-			AND EXISTS (SELECT 1 FROM audit_journal AS earlier WHERE earlier.action = 'TELEMETRY_RECEIVED'
-				AND earlier.actor_id = intent.device_id AND earlier.occurred_at BETWEEN $2 AND $3)
-			AND NOT EXISTS (SELECT 1 FROM audit_journal AS missing WHERE missing.action = 'TELEMETRY_RECEIVED'
-				AND missing.actor_id = intent.device_id AND missing.occurred_at = $3)
+			AND EXISTS (SELECT 1 FROM telemetry_observations AS earlier
+				WHERE earlier.device_id = intent.device_id AND earlier.observed_at BETWEEN $2 AND $3)
+			AND NOT EXISTS (SELECT 1 FROM telemetry_observations AS missing
+				WHERE missing.device_id = intent.device_id AND missing.observed_at = $3)
 			LIMIT 1), '')`, eventID, stack.scenario.Event.StartAt, injection.At).Scan(&affectedDevice)
 		if err != nil {
 			t.Fatal(err)
