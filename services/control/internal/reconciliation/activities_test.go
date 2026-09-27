@@ -2,6 +2,7 @@ package reconciliation
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"math"
 	"os"
@@ -172,6 +173,53 @@ func TestVerifyDeliveryActivityRejectsUnsupportedBoundary(t *testing.T) {
 	err := harness.activities.VerifyDelivery(context.Background(), Input{EventID: "event-1"})
 	if err == nil || harness.eventState(t) != "ACKNOWLEDGED_OR_UNCERTAIN" {
 		t.Fatalf("error = %v, state = %s; want a rejection without a lifecycle change", err, harness.eventState(t))
+	}
+}
+
+func TestDetectRecoveryUsesScheduledDevicesAndStoredEnvelope(t *testing.T) {
+	harness := newActivityHarness(t)
+	ctx := context.Background()
+	harness.now = harness.begin.Add(2 * time.Minute)
+	_, err := harness.pool.Exec(ctx, `INSERT INTO eligibility_snapshots
+		(snapshot_id, event_id, captured_at, eligible_device_ids, exclusions, policy_version, correlation_id)
+		VALUES ('eligibility-2', 'event-1', $1, ARRAY['device-1','device-2','device-3'], '[]', 'policy-1', 'correlation-1');
+		INSERT INTO plan_versions
+		(event_id, version, input_snapshot_id, eligibility_snapshot_id, plan, solver_version, model_version, correlation_id)
+		VALUES ('event-1', 2, 'input-1', 'eligibility-2',
+		'{"deviceSchedules":[{"deviceId":"device-1"},{"deviceId":"device-2"}]}', 'solver-1', 'model-1', 'correlation-1');
+		UPDATE dispatch_events SET plan_version = 2 WHERE event_id = 'event-1'`, pgx.QueryExecModeSimpleProtocol, harness.begin.Add(time.Minute))
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = harness.pool.Exec(ctx, `INSERT INTO telemetry_observations (observed_at, device_id, sequence, observation_id, payload)
+		VALUES ($1, 'device-1', 1, 'missing-device-1', '{"valueState":"VALUE_STATE_MISSING"}')`, harness.begin.Add(time.Minute))
+	if err != nil {
+		t.Fatal(err)
+	}
+	method := reflect.ValueOf(harness.activities).MethodByName("DetectRecovery")
+	if !method.IsValid() {
+		t.Fatal("DetectRecovery activity is missing")
+	}
+	result := method.Call([]reflect.Value{reflect.ValueOf(ctx), reflect.ValueOf(Input{EventID: "event-1"})})
+	if !result[1].IsNil() {
+		t.Fatal(result[1].Interface())
+	}
+	encoded, err := json.Marshal(result[0].Interface())
+	if err != nil {
+		t.Fatal(err)
+	}
+	var recovery struct {
+		EnvelopeDeviceIDs []string
+		Dropped           []struct{ DeviceID, Reason string }
+	}
+	if err := json.Unmarshal(encoded, &recovery); err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(recovery.EnvelopeDeviceIDs, []string{"device-1", "device-2", "device-3"}) {
+		t.Fatalf("stored eligible envelope = %v", recovery.EnvelopeDeviceIDs)
+	}
+	if !reflect.DeepEqual(recovery.Dropped, []struct{ DeviceID, Reason string }{{DeviceID: "device-1", Reason: "MISSING"}, {DeviceID: "device-2", Reason: "UNCERTAIN"}}) {
+		t.Fatalf("scheduled drops = %+v", recovery.Dropped)
 	}
 }
 
