@@ -83,12 +83,16 @@ func (service *Service) ListCells(ctx context.Context, request *connect.Request[
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 	response := &gridosv1.ListCellsResponse{Cells: make([]*gridosv1.GeoCell, 0, len(cells))}
+	indexed := statesBySite(states)
+	response.Metadata = metadataForSites(selected, indexed, now)
+	response.AsOf = response.Metadata.GetTimestamp()
+	response.Freshness = response.Metadata.GetFreshness()
 	counts, err := countDevicesByCell(selected, states, cells)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 	for _, cell := range cells {
-		encoded, err := encodeCell(cell, counts[cell.Cell], now)
+		encoded, err := encodeCell(cell, counts[cell.Cell], indexed, now)
 		if err != nil {
 			return nil, connect.NewError(connect.CodeInternal, err)
 		}
@@ -100,6 +104,7 @@ func (service *Service) ListCells(ctx context.Context, request *connect.Request[
 type deviceStateCounts struct {
 	operating    map[fleet.OperatingState]uint64
 	availability map[fleet.Availability]uint64
+	sites        []*gridosv1.AuthorizedSite
 }
 
 func countDevicesByCell(sites []*gridosv1.AuthorizedSite, states []fleet.SiteState, cells []fleetgeo.Cell) (map[string]*deviceStateCounts, error) {
@@ -113,9 +118,6 @@ func countDevicesByCell(sites []*gridosv1.AuthorizedSite, states []fleet.SiteSta
 	}
 	for _, site := range sites {
 		state, found := bySite[site.GetSite().GetSiteId()]
-		if !found {
-			continue
-		}
 		cell := h3.CellFromString(site.GetSite().GetH3Cell())
 		for resolution := cell.Resolution(); resolution >= 0; resolution-- {
 			parent, err := cell.Parent(resolution)
@@ -123,6 +125,10 @@ func countDevicesByCell(sites []*gridosv1.AuthorizedSite, states []fleet.SiteSta
 				return nil, err
 			}
 			if counts := output[parent.String()]; counts != nil {
+				counts.sites = append(counts.sites, site)
+				if !found {
+					break
+				}
 				devices := uint64(len(site.GetDevices()))
 				counts.operating[state.OperatingState] += devices
 				counts.availability[state.Availability] += devices
@@ -133,11 +139,16 @@ func countDevicesByCell(sites []*gridosv1.AuthorizedSite, states []fleet.SiteSta
 	return output, nil
 }
 
-func (service *Service) Drilldown(_ context.Context, request *connect.Request[gridosv1.DrilldownRequest]) (*connect.Response[gridosv1.DrilldownResponse], error) {
+func (service *Service) Drilldown(ctx context.Context, request *connect.Request[gridosv1.DrilldownRequest]) (*connect.Response[gridosv1.DrilldownResponse], error) {
 	if err := authorize(request.Header()); err != nil {
 		return nil, err
 	}
-	response, err := drilldown(service.sites, request.Msg.GetParentId(), hasSiteLocation(request.Header()))
+	now := service.now()
+	states, _, err := service.snapshot(ctx, now)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	response, err := drilldown(service.sites, request.Msg.GetParentId(), hasSiteLocation(request.Header()), statesBySite(states), now)
 	if err != nil {
 		return nil, err
 	}
@@ -160,16 +171,17 @@ func selectSites(sites []*gridosv1.AuthorizedSite, zones []string) []*gridosv1.A
 	return selected
 }
 
-func encodeCell(cell fleetgeo.Cell, counts *deviceStateCounts, now time.Time) (*gridosv1.GeoCell, error) {
+func encodeCell(cell fleetgeo.Cell, counts *deviceStateCounts, states map[string]fleet.SiteState, now time.Time) (*gridosv1.GeoCell, error) {
+	metadata := metadataForSites(counts.sites, states, now)
 	encoded := &gridosv1.GeoCell{
 		H3Cell: cell.Cell, SiteCount: cell.SiteCount, InstalledMw: cell.InstalledMW,
 		InstalledMwh: cell.InstalledMWh, DispatchableMw: cell.DispatchableMW, ReservedMwh: cell.ReservedMWh,
 		SocLowCount: cell.SOCLowCount, SocMediumCount: cell.SOCMediumCount, SocHighCount: cell.SOCHighCount,
 		SocUnknownCount: cell.SOCUnknownCount, ConnectedCount: cell.ConnectedCount,
-		ActiveDispatchCount: cell.ActiveDispatchCount, Freshness: durationpb.New(cell.Freshness),
-		Provenance: gridosv1.DataProvenance_DATA_PROVENANCE_SIMULATED,
+		ActiveDispatchCount: cell.ActiveDispatchCount, Freshness: metadata.GetFreshness(),
+		Provenance: singleProvenance(metadata), AsOf: metadata.GetTimestamp(), Metadata: metadata,
 	}
-	metadata := func(count uint64) *gridosv1.AggregateMetadata {
+	countMetadata := func(count uint64) *gridosv1.AggregateMetadata {
 		return &gridosv1.AggregateMetadata{
 			Timestamp: timestamppb.New(now), Freshness: durationpb.New(cell.Freshness),
 			ProvenanceMix: []*gridosv1.ProvenanceShare{{Provenance: gridosv1.DataProvenance_DATA_PROVENANCE_SIMULATED, RecordCount: count}},
@@ -180,14 +192,14 @@ func encodeCell(cell fleetgeo.Cell, counts *deviceStateCounts, now time.Time) (*
 		if !found {
 			return nil, errors.New("unknown fleet operating state")
 		}
-		encoded.OperatingStateCounts = append(encoded.OperatingStateCounts, &gridosv1.OperatingStateDeviceCount{OperatingState: gridosv1.FleetOperatingState(value), Aggregate: &gridosv1.FleetDeviceCountAggregate{DeviceCount: count, Metadata: metadata(count)}})
+		encoded.OperatingStateCounts = append(encoded.OperatingStateCounts, &gridosv1.OperatingStateDeviceCount{OperatingState: gridosv1.FleetOperatingState(value), Aggregate: &gridosv1.FleetDeviceCountAggregate{DeviceCount: count, Metadata: countMetadata(count)}})
 	}
 	for state, count := range counts.availability {
 		value, found := gridosv1.FleetAvailabilityState_value["FLEET_AVAILABILITY_STATE_"+string(state)]
 		if !found {
 			return nil, errors.New("unknown fleet availability state")
 		}
-		encoded.AvailabilityStateCounts = append(encoded.AvailabilityStateCounts, &gridosv1.AvailabilityStateDeviceCount{AvailabilityState: gridosv1.FleetAvailabilityState(value), Aggregate: &gridosv1.FleetDeviceCountAggregate{DeviceCount: count, Metadata: metadata(count)}})
+		encoded.AvailabilityStateCounts = append(encoded.AvailabilityStateCounts, &gridosv1.AvailabilityStateDeviceCount{AvailabilityState: gridosv1.FleetAvailabilityState(value), Aggregate: &gridosv1.FleetDeviceCountAggregate{DeviceCount: count, Metadata: countMetadata(count)}})
 	}
 	sort.Slice(encoded.OperatingStateCounts, func(i, j int) bool {
 		return encoded.OperatingStateCounts[i].OperatingState < encoded.OperatingStateCounts[j].OperatingState

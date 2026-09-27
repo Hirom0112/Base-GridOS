@@ -22,8 +22,8 @@ func TestGeoServicePrivacyAndDrilldown(t *testing.T) {
 	states := make([]fleet.SiteState, 0, 6)
 	for index := range 6 {
 		id := fmt.Sprintf("site-%d", index)
-		sites = append(sites, &gridosv1.AuthorizedSite{Site: &gridosv1.Site{SiteId: id, LoadZone: "LZ_AEN", H3Cell: "8726cb9a5ffffff"}, Devices: []*gridosv1.Device{{BatteryParameters: &gridosv1.BatteryParameters{UsableEnergyKwh: 10, MaxDischargeKw: 5}}}})
-		states = append(states, fleet.SiteState{SiteID: id, EnergyKWh: 8, Availability: fleet.Online, OperatingState: fleet.OnGrid, ObservedAt: now, DispatchableKW: 5})
+		sites = append(sites, &gridosv1.AuthorizedSite{Site: &gridosv1.Site{SiteId: id, LoadZone: "LZ_AEN", H3Cell: "8726cb9a5ffffff", Provenance: &gridosv1.Provenance{Provenance: gridosv1.DataProvenance_DATA_PROVENANCE_SIMULATED}}, Devices: []*gridosv1.Device{{BatteryParameters: &gridosv1.BatteryParameters{UsableEnergyKwh: 10, MaxDischargeKw: 5}}}})
+		states = append(states, fleet.SiteState{SiteID: id, EnergyKWh: 8, Availability: fleet.Online, OperatingState: fleet.OnGrid, ObservedAt: now, DispatchableKW: 5, Provenance: "simulated"})
 	}
 	sites[0].Devices = append(sites[0].Devices, &gridosv1.Device{BatteryParameters: &gridosv1.BatteryParameters{UsableEnergyKwh: 10, MaxDischargeKw: 5}})
 	service := NewService(sites, func(context.Context, time.Time) ([]fleet.SiteState, map[string]bool, error) {

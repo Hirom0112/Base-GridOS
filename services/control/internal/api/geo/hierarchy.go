@@ -3,13 +3,15 @@ package geo
 import (
 	"errors"
 	"sort"
+	"time"
 
 	"connectrpc.com/connect"
 	gridosv1 "github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1"
+	"github.com/Hirom0112/Base-GridOS/services/control/internal/fleet"
 	h3 "github.com/uber/h3-go/v4"
 )
 
-func drilldown(sites []*gridosv1.AuthorizedSite, parentID string, exact bool) (*gridosv1.DrilldownResponse, error) {
+func drilldown(sites []*gridosv1.AuthorizedSite, parentID string, exact bool, states map[string]fleet.SiteState, now time.Time) (*gridosv1.DrilldownResponse, error) {
 	children := make(map[string]map[string]*gridosv1.GeoNode)
 	groups := make(map[string][]*gridosv1.AuthorizedSite)
 	for _, site := range sites {
@@ -37,6 +39,13 @@ func drilldown(sites []*gridosv1.AuthorizedSite, parentID string, exact bool) (*
 		return nil, connect.NewError(connect.CodeNotFound, errors.New("geo node not found"))
 	}
 	response := &gridosv1.DrilldownResponse{}
+	selected := sites
+	if parentID != "" {
+		selected = groups[parentID]
+	}
+	response.Metadata = metadataForSites(selected, states, now)
+	response.AsOf = response.Metadata.GetTimestamp()
+	response.Freshness = response.Metadata.GetFreshness()
 	if len(children[parentID]) == 0 && parentID != "" {
 		if !exact {
 			return nil, connect.NewError(connect.CodePermissionDenied, errors.New("site_location permission required"))
@@ -49,6 +58,9 @@ func drilldown(sites []*gridosv1.AuthorizedSite, parentID string, exact bool) (*
 	}
 	for _, node := range children[parentID] {
 		if exact || node.SiteCount >= 5 {
+			node.Metadata = metadataForSites(groups[node.Id], states, now)
+			node.AsOf = node.Metadata.GetTimestamp()
+			node.Freshness = node.Metadata.GetFreshness()
 			response.Nodes = append(response.Nodes, node)
 		}
 	}
