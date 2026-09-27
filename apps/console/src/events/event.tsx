@@ -9,12 +9,12 @@ import {
   ExclusionReason,
   type DispatchEvent,
 } from "../api/gen/gridos/v1/dispatch_pb";
-import type { BasicEventReport } from "../api/gen/gridos/v1/api_pb";
 import { ApprovalActions } from "../dispatch/approval";
 import { PlanExplanation } from "../dispatch/explanation";
 import { eventStateLabels } from "./events-timeline";
 import { AuditTimeline } from "./audit-timeline";
 import { EmergencyStopControl } from "./emergency-stop";
+import { EventReport } from "./report";
 import { LiveEvent } from "./events-live";
 
 const pendingStates: Partial<Record<DispatchEventState, string>> = {
@@ -88,7 +88,7 @@ export function EventView({
         <button onClick={() => query.refetch()}>Retry event</button>
       </div>
     );
-  const { event, exclusions, report, safetyViolations } = query.data;
+  const { event, exclusions, safetyViolations } = query.data;
   if (!event) return <p role="alert">The server returned no event record.</p>;
   const provenance = event.provenance?.provenance;
   const source =
@@ -188,9 +188,9 @@ export function EventView({
           <p>No exclusions returned by the server.</p>
         )}
       </section>
-      {report && <EventAccounting report={report} />}
+      {view === "report" && <EventReport eventId={eventId} />}
       <AuditTimeline event={event} />
-      {view !== "plan" && (
+      {view === "execution" && (
         <div className="boundary-note">
           Verified delivery, replay, and modeled economics are not supplied by
           this event response. They remain unavailable until the corresponding
@@ -230,32 +230,5 @@ function PendingEvent({
     <p className="pending-event" role="status">
       {message}
     </p>
-  );
-}
-
-function EventAccounting({ report }: { report: BasicEventReport }) {
-  return (
-    <>
-      <h3>Server event accounting</h3>
-      <div className="report-quantities">
-        {[
-          ["Requested", report.requestedMw],
-          ["Approved", report.approvedMw],
-          ["Commanded", report.commandedMw],
-          ["Acknowledged", report.acknowledgedMw],
-        ].map(([label, value]) => (
-          <div key={label}>
-            <span>{label}</span>
-            <strong className="mono">
-              {Number(value).toFixed(3)} <small>MW</small>
-            </strong>
-          </div>
-        ))}
-      </div>
-      <p className="report-provenance">
-        {report.provenance.join(" · ")} · Policy {report.policyVersion} · Solver{" "}
-        {report.solverVersion} · Model {report.modelVersion}
-      </p>
-    </>
   );
 }

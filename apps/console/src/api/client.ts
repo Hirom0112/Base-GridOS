@@ -5,6 +5,7 @@ import { z } from "zod";
 import { stepUpAuthorization } from "./step-up";
 import {
   ContextService,
+  ReportService,
   DispatchService,
   FleetService,
   EventsService,
@@ -58,6 +59,7 @@ export function createConsoleClient(
     ],
   });
   return {
+    reports: createClient(ReportService, transport),
     context: createClient(ContextService, transport),
     fleet: createClient(FleetService, transport),
     dispatch: createClient(DispatchService, transport),
