@@ -2,6 +2,7 @@ package policy
 
 import (
 	"context"
+	"os"
 	"testing"
 	"time"
 
@@ -36,7 +37,7 @@ func TestTravelFlexAppliesOnlyInsideConsentedLocalWindow(t *testing.T) {
 	require.Equal(t, 65.0, before)
 	stored, err := store.ScheduleTravelFlex(ctx, window)
 	require.NoError(t, err)
-	require.Equal(t, "FIXED_DAILY", stored.CreditType)
+	require.Equal(t, CreditType("FIXED_DAILY"), stored.CreditType)
 	require.Equal(t, int64(750), stored.CreditCents)
 	require.Equal(t, "America/Chicago", stored.Timezone)
 	inside, err := store.EffectiveReserve(ctx, window.MemberID, start)
@@ -53,7 +54,7 @@ func TestTravelFlexAppliesOnlyInsideConsentedLocalWindow(t *testing.T) {
 	require.Equal(t, window.ConsentText, consent)
 	require.Equal(t, window.ConsentVersion, version)
 	require.Equal(t, window.Timezone, timezone)
-	require.Equal(t, window.CreditType, creditType)
+	require.Equal(t, string(window.CreditType), creditType)
 	require.Equal(t, window.CreditCents, credit)
 }
 
@@ -112,4 +113,22 @@ func TestTravelFlexMaximumReturnUsesCatalogBandUntilWindowEnd(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 80.0, floor)
 	require.True(t, until.Equal(end))
+}
+
+func TestTravelFlexMigrationReappliesAfterRollback(t *testing.T) {
+	pool := policyDatabase(t)
+	forward, err := os.ReadFile("../../../../../database/migrations/0009_travel_flex_return.sql")
+	require.NoError(t, err)
+	rollback, err := os.ReadFile("../../../../../database/rollback/0009_travel_flex_return.sql")
+	require.NoError(t, err)
+	_, err = pool.Exec(context.Background(), string(forward))
+	require.NoError(t, err)
+	_, err = pool.Exec(context.Background(), string(rollback))
+	require.NoError(t, err)
+	_, err = pool.Exec(context.Background(), string(forward))
+	require.NoError(t, err)
+	var present bool
+	err = pool.QueryRow(context.Background(), `SELECT EXISTS (SELECT 1 FROM pg_attribute WHERE attrelid = 'travel_flex_windows'::regclass AND attname = 'end_idempotency_key' AND NOT attisdropped)`).Scan(&present)
+	require.NoError(t, err)
+	require.True(t, present)
 }

@@ -54,6 +54,9 @@ func (store *Store) Select(ctx context.Context, choice Selection) (*Plan, error)
 	if _, err = tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtextextended($1, 0))`, "policy-selection:"+choice.ID); err != nil {
 		return nil, err
 	}
+	if _, err = tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtextextended($1, 0))`, "member-policy:"+choice.MemberID); err != nil {
+		return nil, err
+	}
 	previous, err := planByID(ctx, tx, choice.ID)
 	if err != nil {
 		return nil, err
