@@ -1642,3 +1642,15 @@ applies to that one command, and disarms. One rule, no setpoint condition.
 The old-expiry scenario places its late DROPPED_MESSAGES fault before
 EndEvent so the stop is the next command; the canonical scenario is
 unchanged. Proof remains three consecutive isolated runs per scenario.
+
+## 2026-09-27 06:05Z — Console live assertion proof verified
+
+`pnpm --dir apps/console playwright test --config playwright.live.config.ts -g "live approval passes"`
+printed `1 passed (6.9s)` here against the standing demo and the rebuilt mock
+signer (a first attempt collided with the console lane's own artifacts
+directory; rerun with a private `--output`). The demo-path spec now has zero
+`expect.soft` calls (U0.6). Consequence: the control binary gets the same
+GRIDOS_STEP_UP_KEY as the mock signer at the next demo rebuild, after the
+Gate 5 window, so approval and emergency stop are enforced end to end on
+the demo; STUBS.md's control step-up row stays PENDING-LIVE for the real
+identity provider.
