@@ -74,7 +74,7 @@ def test_metrics_endpoint_counts_served_rpc() -> None:
 
     wrapped = traced_rpc(provider, "Forecast", lambda request, context: "forecast")
     assert wrapped("request", cast(grpc.ServicerContext, Context())) == "forecast"
-    server, _ = start_metrics_server(0)
+    server, _ = start_metrics_server("127.0.0.1:0")
     try:
         with urlopen(f"http://127.0.0.1:{server.server_port}/metrics", timeout=2) as response:
             metrics = response.read().decode()
