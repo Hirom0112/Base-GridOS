@@ -13,6 +13,7 @@ import (
 
 type Selection struct {
 	ID               string
+	OfferID          string
 	MemberID         string
 	Market           string
 	CatalogVersion   string
@@ -76,6 +77,9 @@ func (store *Store) Select(ctx context.Context, choice Selection) (*Plan, error)
 	if err != nil {
 		return nil, err
 	}
+	if err = requirePlanOffer(ctx, tx, choice, plan); err != nil {
+		return nil, err
+	}
 	var policyFloor float64
 	err = tx.QueryRow(ctx, `SELECT member_plan_floor_percent FROM reserve_policies
 		WHERE policy_version = $1 AND effective_at <= $2 AND (expires_at IS NULL OR expires_at > $2)`, choice.PolicyVersion, choice.EffectiveAt).Scan(&policyFloor)
@@ -90,17 +94,17 @@ func (store *Store) Select(ctx context.Context, choice Selection) (*Plan, error)
 	}
 	_, err = tx.Exec(ctx, `INSERT INTO resilience_plans
 		(resilience_plan_id, member_id, market, reserve_floor_percent, consent_text, consent_version,
-		policy_version, effective_at, correlation_id, catalog_version, member_plan_id, explanation_shown)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
+		policy_version, effective_at, correlation_id, catalog_version, member_plan_id, explanation_shown, offer_id)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
 		choice.ID, choice.MemberID, choice.Market, plan.ReserveFloorPercent, choice.ConsentText, choice.ConsentVersion,
-		choice.PolicyVersion, choice.EffectiveAt, choice.CorrelationID, choice.CatalogVersion, choice.MemberPlanID, choice.ExplanationShown)
+		choice.PolicyVersion, choice.EffectiveAt, choice.CorrelationID, choice.CatalogVersion, choice.MemberPlanID, choice.ExplanationShown, choice.OfferID)
 	if err != nil {
 		return nil, err
 	}
 	_, err = tx.Exec(ctx, `INSERT INTO audit_journal (actor_id, action, resource_type, resource_id, new_values, correlation_id)
 		VALUES ($1, 'RESILIENCE_PLAN_SELECTED', 'resilience_plan', $2,
-		jsonb_build_object('catalog_version', $3::text, 'member_plan_id', $4::text, 'policy_version', $5::text, 'effective_at', $6::timestamptz), $7)`,
-		choice.MemberID, choice.ID, choice.CatalogVersion, choice.MemberPlanID, choice.PolicyVersion, choice.EffectiveAt, choice.CorrelationID)
+		jsonb_build_object('catalog_version', $3::text, 'member_plan_id', $4::text, 'policy_version', $5::text, 'effective_at', $6::timestamptz, 'offer_id', $7::text), $8)`,
+		choice.MemberID, choice.ID, choice.CatalogVersion, choice.MemberPlanID, choice.PolicyVersion, choice.EffectiveAt, choice.OfferID, choice.CorrelationID)
 	if err != nil {
 		return nil, err
 	}
@@ -111,7 +115,7 @@ func (store *Store) Select(ctx context.Context, choice Selection) (*Plan, error)
 }
 
 func (choice Selection) validate() error {
-	if choice.ID == "" || choice.MemberID == "" || choice.Market == "" || choice.CatalogVersion == "" || choice.MemberPlanID == "" || choice.PolicyVersion == "" || choice.CorrelationID == "" || choice.EffectiveAt.IsZero() {
+	if choice.ID == "" || choice.OfferID == "" || choice.MemberID == "" || choice.Market == "" || choice.CatalogVersion == "" || choice.MemberPlanID == "" || choice.PolicyVersion == "" || choice.CorrelationID == "" || choice.EffectiveAt.IsZero() {
 		return errors.New("selection identity, catalog, policy, and effective time are required")
 	}
 	if strings.TrimSpace(choice.ConsentText) == "" || strings.TrimSpace(choice.ConsentVersion) == "" || strings.TrimSpace(choice.ExplanationShown) == "" {
@@ -141,10 +145,28 @@ func catalogPlan(ctx context.Context, tx pgx.Tx, choice Selection) (*Plan, error
 	return plan, nil
 }
 
+func requirePlanOffer(ctx context.Context, tx pgx.Tx, choice Selection, plan *Plan) error {
+	offer, err := presentedOffer(ctx, tx, choice.OfferID)
+	if err != nil {
+		return err
+	}
+	if offer == nil || offer.Kind != PlanOffer || offer.MemberID != choice.MemberID || offer.Market != choice.Market ||
+		offer.CatalogVersion != choice.CatalogVersion || offer.MemberPlanID != choice.MemberPlanID ||
+		offer.ConsentText != choice.ConsentText || offer.ConsentVersion != choice.ConsentVersion ||
+		choice.EffectiveAt.Before(offer.EffectiveAt) || !choice.EffectiveAt.Before(offer.ExpiresAt) ||
+		offer.EnergyMonthlyChargeCents != plan.EnergyMonthlyChargeCents ||
+		offer.BatteryMonthlyChargeCents != plan.BatteryMonthlyChargeCents ||
+		offer.FlexibilityRewardCents != plan.FlexibilityRewardCents {
+		return errors.New("selection does not match presented offer")
+	}
+	return nil
+}
+
 func (store *Store) Current(ctx context.Context, memberID string, at time.Time) (*Plan, error) {
 	row := store.pool.QueryRow(ctx, `SELECT selection.resilience_plan_id, selection.member_id, selection.market,
 		selection.catalog_version, selection.member_plan_id, selection.policy_version, selection.consent_text,
 		selection.consent_version, selection.explanation_shown, selection.effective_at, selection.correlation_id,
+		selection.offer_id,
 		catalog.display_name, selection.reserve_floor_percent, catalog.energy_monthly_charge_cents,
 		catalog.battery_monthly_charge_cents, catalog.flexibility_reward_cents
 		FROM resilience_plans AS selection JOIN pricing_catalog_snapshots AS catalog
@@ -164,6 +186,7 @@ func planByID(ctx context.Context, tx pgx.Tx, id string) (*Plan, error) {
 	row := tx.QueryRow(ctx, `SELECT selection.resilience_plan_id, selection.member_id, selection.market,
 		selection.catalog_version, selection.member_plan_id, selection.policy_version, selection.consent_text,
 		selection.consent_version, selection.explanation_shown, selection.effective_at, selection.correlation_id,
+		selection.offer_id,
 		catalog.display_name, selection.reserve_floor_percent, catalog.energy_monthly_charge_cents,
 		catalog.battery_monthly_charge_cents, catalog.flexibility_reward_cents
 		FROM resilience_plans AS selection JOIN pricing_catalog_snapshots AS catalog
@@ -178,13 +201,17 @@ func planByID(ctx context.Context, tx pgx.Tx, id string) (*Plan, error) {
 
 func scanPlan(row pgx.Row) (*Plan, error) {
 	plan := &Plan{}
+	var offerID *string
 	err := row.Scan(&plan.ID, &plan.MemberID, &plan.Market, &plan.CatalogVersion, &plan.MemberPlanID,
 		&plan.PolicyVersion, &plan.ConsentText, &plan.ConsentVersion, &plan.ExplanationShown,
-		&plan.EffectiveAt, &plan.CorrelationID, &plan.DisplayName, &plan.ReserveFloorPercent,
+		&plan.EffectiveAt, &plan.CorrelationID, &offerID, &plan.DisplayName, &plan.ReserveFloorPercent,
 		&plan.EnergyMonthlyChargeCents, &plan.BatteryMonthlyChargeCents, &plan.FlexibilityRewardCents)
 	if err != nil {
 		return nil, fmt.Errorf("load selected plan: %w", err)
 	}
 	plan.EffectiveAt = plan.EffectiveAt.UTC()
+	if offerID != nil {
+		plan.OfferID = *offerID
+	}
 	return plan, nil
 }

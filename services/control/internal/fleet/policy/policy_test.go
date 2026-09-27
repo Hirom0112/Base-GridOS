@@ -22,7 +22,7 @@ func TestPlanSelectionUsesConsentedEffectiveCatalog(t *testing.T) {
 	seedPolicyCatalog(t, pool, begin)
 	store := New(pool)
 	selection := Selection{
-		ID: "selection-1", MemberID: "member-1", Market: "TX", CatalogVersion: "catalog-v1", MemberPlanID: "plan-cedar", PolicyVersion: "policy-v1",
+		ID: "selection-1", OfferID: "selection-1:offer", MemberID: "member-1", Market: "TX", CatalogVersion: "catalog-v1", MemberPlanID: "plan-cedar", PolicyVersion: "policy-v1",
 		ConsentText: "I accept the Cedar reserve and reward", ConsentVersion: "consent-v1", ExplanationShown: "A larger backup reserve limits dispatch",
 		EffectiveAt: begin.Add(time.Hour), CorrelationID: "correlation-1",
 	}
@@ -31,7 +31,7 @@ func TestPlanSelectionUsesConsentedEffectiveCatalog(t *testing.T) {
 	before, err := store.Current(ctx, selection.MemberID, selection.EffectiveAt.Add(-time.Nanosecond))
 	require.NoError(t, err)
 	require.Nil(t, before)
-	chosen, err := store.Select(ctx, selection)
+	chosen, err := selectWithOffer(t, store, selection)
 	require.NoError(t, err)
 	require.Equal(t, "Cedar", chosen.DisplayName)
 	require.Equal(t, 65.0, chosen.ReserveFloorPercent)
@@ -69,11 +69,11 @@ func TestPlanSelectionRejectsInactiveCatalog(t *testing.T) {
 	begin := time.Date(2026, 9, 26, 12, 0, 0, 0, time.UTC)
 	seedPolicyCatalog(t, pool, begin)
 	store := New(pool)
-	selection := Selection{ID: "selection-2", MemberID: "member-2", Market: "TX", CatalogVersion: "catalog-v2", MemberPlanID: "plan-cedar", PolicyVersion: "policy-v2", ConsentText: "I accept", ConsentVersion: "consent-v1", ExplanationShown: "Reserve and reward", EffectiveAt: begin.Add(time.Hour), CorrelationID: "correlation-2"}
+	selection := Selection{ID: "selection-2", OfferID: "selection-2:offer", MemberID: "member-2", Market: "TX", CatalogVersion: "catalog-v2", MemberPlanID: "plan-cedar", PolicyVersion: "policy-v2", ConsentText: "I accept", ConsentVersion: "consent-v1", ExplanationShown: "Reserve and reward", EffectiveAt: begin.Add(time.Hour), CorrelationID: "correlation-2"}
 	_, err := store.Select(context.Background(), selection)
 	require.Error(t, err)
 	selection.EffectiveAt = begin.Add(48 * time.Hour)
-	selected, err := store.Select(context.Background(), selection)
+	selected, err := selectWithOffer(t, store, selection)
 	require.NoError(t, err)
 	require.Equal(t, "Juniper", selected.DisplayName)
 	require.Equal(t, 30.0, selected.ReserveFloorPercent)
@@ -145,4 +145,20 @@ func policyDatabase(t *testing.T) *pgxpool.Pool {
 		require.NoError(t, readErr, path)
 	}
 	return pool
+}
+
+func selectWithOffer(t *testing.T, store *Store, choice Selection) (*Plan, error) {
+	t.Helper()
+	if choice.OfferID == "" {
+		choice.OfferID = choice.ID + ":offer"
+	}
+	_, err := store.PresentOffer(context.Background(), Offer{
+		ID: choice.OfferID, MemberID: choice.MemberID, Kind: PlanOffer, Market: choice.Market,
+		CatalogVersion: choice.CatalogVersion, MemberPlanID: choice.MemberPlanID,
+		ContractVersion: choice.ConsentVersion, PriceText: "catalog terms shown",
+		ConsentText: choice.ConsentText, ConsentVersion: choice.ConsentVersion,
+		EffectiveAt: choice.EffectiveAt, ExpiresAt: choice.EffectiveAt.Add(time.Hour), CorrelationID: choice.CorrelationID,
+	})
+	require.NoError(t, err)
+	return store.Select(context.Background(), choice)
 }

@@ -19,7 +19,7 @@ func TestTravelFlexAppliesOnlyInsideConsentedLocalWindow(t *testing.T) {
 	begin := time.Date(2026, 10, 31, 12, 0, 0, 0, time.UTC)
 	seedPolicyCatalog(t, pool, begin)
 	store := New(pool)
-	_, err = store.Select(ctx, Selection{
+	_, err = selectWithOffer(t, store, Selection{
 		ID: "selection-flex", MemberID: "member-flex", Market: "TX", CatalogVersion: "catalog-v1", MemberPlanID: "plan-cedar", PolicyVersion: "policy-v1",
 		ConsentText: "I accept Cedar", ConsentVersion: "consent-v1", ExplanationShown: "Backup reserve and reward",
 		EffectiveAt: begin.Add(time.Hour), CorrelationID: "selection-flex",
@@ -66,7 +66,7 @@ func TestTravelFlexEarlyReturnRestoresPlanReserveOnce(t *testing.T) {
 	begin := time.Date(2026, 10, 31, 12, 0, 0, 0, time.UTC)
 	seedPolicyCatalog(t, pool, begin)
 	store := New(pool)
-	_, err := store.Select(ctx, Selection{ID: "selection-return", MemberID: "member-return", Market: "TX", CatalogVersion: "catalog-v1", MemberPlanID: "plan-cedar", PolicyVersion: "policy-v1", ConsentText: "I accept Cedar", ConsentVersion: "consent-v1", ExplanationShown: "Backup reserve", EffectiveAt: begin, CorrelationID: "selection-return"})
+	_, err := selectWithOffer(t, store, Selection{ID: "selection-return", MemberID: "member-return", Market: "TX", CatalogVersion: "catalog-v1", MemberPlanID: "plan-cedar", PolicyVersion: "policy-v1", ConsentText: "I accept Cedar", ConsentVersion: "consent-v1", ExplanationShown: "Backup reserve", EffectiveAt: begin, CorrelationID: "selection-return"})
 	require.NoError(t, err)
 	start := begin.Add(time.Hour)
 	window := TravelFlex{ID: "flex-return", MemberID: "member-return", Start: start, End: start.Add(72 * time.Hour), Timezone: "UTC", TemporaryReservePercent: 20, EarlyReturnAction: "RESTORE_PLAN_RESERVE", CreditType: "FIXED_EVENT", CreditCents: 1200, ConsentText: "I accept fixed event credit", ConsentVersion: "flex-consent-v1", PolicyVersion: "policy-v1", CorrelationID: "flex-return"}
@@ -95,7 +95,7 @@ func TestTravelFlexMaximumReturnUsesCatalogBandUntilWindowEnd(t *testing.T) {
 		VALUES ('catalog-v1', 'plan-fortress', 'TX', 'Fortress', 80, '{}', 0, 2200, '{}', 0, 1600, 250, $1, $2, 'catalog-fixture')`, begin.Add(-24*time.Hour), begin.Add(24*time.Hour))
 	require.NoError(t, err)
 	store := New(pool)
-	_, err = store.Select(ctx, Selection{ID: "selection-max", MemberID: "member-max", Market: "TX", CatalogVersion: "catalog-v1", MemberPlanID: "plan-cedar", PolicyVersion: "policy-v1", ConsentText: "I accept Cedar", ConsentVersion: "consent-v1", ExplanationShown: "Backup reserve", EffectiveAt: begin, CorrelationID: "selection-max"})
+	_, err = selectWithOffer(t, store, Selection{ID: "selection-max", MemberID: "member-max", Market: "TX", CatalogVersion: "catalog-v1", MemberPlanID: "plan-cedar", PolicyVersion: "policy-v1", ConsentText: "I accept Cedar", ConsentVersion: "consent-v1", ExplanationShown: "Backup reserve", EffectiveAt: begin, CorrelationID: "selection-max"})
 	require.NoError(t, err)
 	start := begin.Add(time.Hour)
 	end := start.Add(8 * time.Hour)
