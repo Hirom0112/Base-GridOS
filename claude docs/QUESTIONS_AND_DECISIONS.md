@@ -1582,3 +1582,19 @@ On 3a99409 the STUBBED grep over services and tools prints nothing, STUBS.md
 holds zero STUBBED rows and sixteen PENDING-LIVE rows naming Clerk or the
 gateway identity and secret provider, and vet is clean on both mains. The
 console badge rename is with the console lane.
+
+## 2026-09-27 05:40Z — Gate 5 groups 2 and 3 red
+
+Group 1 passed (AuditChain 112 s, Harness 102 s, WorkerTermination 102 s,
+GatewayRestart 102 s, OutageReplay 102 s; `ok ... 520.049s`). Group 2:
+TestOldExpiryNewerPending failed at scenarios_test.go:234 with 60 expired
+old commands paired with newer commands and zero uncertain newer commands;
+the other four passed. Group 3: TestHeatEventCanonical failed at
+planning_scenarios_test.go:44 with no UNCERTAIN exception (MISSING,
+REBALANCED_COMMAND, REPLACEMENT_PLANNED and STALE_CAPACITY_REMOVED were
+present); ConsecutiveEvents 115 s, InfeasibleTargetShortfall 102 s and
+OptimizerTimeoutFallback 102 s passed. Both failures involve the delayed
+gateway fault after the per-kind selection and next_command changes, and
+the canonical case passed twice earlier, so the fault window is timing
+sensitive. Root owns the fix; the gate reruns groups 2 and 3, then
+`make test-go` and the Bazel line, before the report is written.
