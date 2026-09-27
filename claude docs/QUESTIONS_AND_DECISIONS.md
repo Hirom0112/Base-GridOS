@@ -1473,7 +1473,7 @@ compares a UTC instant against a local-zone instant; the sandbox runs with no
 TZ. Decision: root normalizes the comparison in the test to instants (`.UTC()`
 or `Equal`), no production change. The broad rerun is still the gate.
 
-## 2026-09-27 05:00Z — 5F.3 will run the docs-align skill under the repo rules
+## 2026-09-27 04:52Z — 5F.3 will run the docs-align skill under the repo rules
 
 The `docs-align` skill at `~/.claude/skills/docs-align` asks for a
 `docs/align-<date>` branch, conventional commit prefixes, and a TODO.md for
@@ -1487,7 +1487,7 @@ a plan item in `claude docs/BUILD_ORDER.md` instead of TODO.md. The README
 still says the repository is in the specification stage; that sentence is
 the first fix.
 
-## 2026-09-27 05:00Z — Gate 5 stub condition
+## 2026-09-27 04:52Z — Gate 5 stub condition
 
 Gate 5 requires STUBS.md to hold only `PENDING-LIVE` connector rows. Four
 `STUBBED` rows remain: the mock API's local identities and local step-up,
@@ -1500,7 +1500,7 @@ console sends assertions) or reclassified `PENDING-LIVE` with the provider
 it waits for, and the marker text in code changes with it so STUBS.md keeps
 matching the tree.
 
-## 2026-09-27 05:10Z — Canonical scenario: DELAYED_GATEWAY scope next_command
+## 2026-09-27 04:55Z — Canonical scenario: DELAYED_GATEWAY scope next_command
 
 With distinct per-kind selection the delayed fault picks an original
 scheduled device, but after launch only replacement devices receive
@@ -1513,7 +1513,7 @@ because the tick and the command order are recorded. Focused RED/GREEN in
 the failures engine, scenario parsing rejects the scope on global kinds, then
 the canonical rerun with both assertions positive is the gate.
 
-## 2026-09-27 05:20Z — Stale sqlc output (finding during the 5D gate)
+## 2026-09-27 04:57Z — Stale sqlc output (finding during the 5D gate)
 
 `sqlc diff` shows the committed `services/control/internal/storage/gen/`
 missing models for tables added since migration 0005 (replacement
@@ -1524,7 +1524,7 @@ the `generate` target, regenerates, and commits the generated package by
 exact path; the check is `sqlc diff` printing nothing and `go vet
 ./services/control/...` clean. New plan item 5D.7 records it.
 
-## 2026-09-27 05:30Z — 5D.5/5D.6 director rerun
+## 2026-09-27 04:58Z — 5D.5/5D.6 director rerun
 
 Cached broad run: `Executed 0 out of 31 tests: 31 tests pass` (all from
 lane 5D's run on the same Bazel server, so not independent). Uncached rerun
