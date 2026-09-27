@@ -2293,3 +2293,14 @@ graph. Rerun inside a declared window with no generated-code writes:
 recorded browser gates run in a window with no binding regeneration.
 Open on the console track: the integrated 17-step demo path against the
 rebuilt demo (3F.5, 4F.5, 5F.2).
+
+## 2026-09-27 10:14Z — 2B.11 verified
+
+RED 1f0026a (test only, `unavailable: unavailable`) then GREEN 94fa18d:
+a per-device Unavailable records that command's attempt with bounded
+backoff, the rest of the batch is delivered, the activity succeeds, and
+after three durable attempts the command becomes UNCERTAIN. `go test
+./services/control/internal/storage/publisher -count=1` ok (3.168s) here;
+root posted three consecutive isolated canonical passes (119.7 s, 120.1 s,
+119.4 s). Marked done. The demo is rebuilt on this tree with 4E.10 and the
+steps 11/12 proof is rerun.

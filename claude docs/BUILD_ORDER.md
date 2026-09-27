@@ -964,7 +964,7 @@ Owns: `services/control/internal/dispatch/`, `services/control/cmd/worker`,
   every action is audited and appears as a typed exception. The
   heat-event-canonical assertion reads `required_recovery_actions` from the
   scenario and checks each appears. Verify: `go test ./services/control/internal/dispatch/ -run Recovery` passes and `TestHeatEventCanonical` asserts RETRY, REMOVE_STALE_CAPACITY, and REBALANCE entries.
-- `[ ]` 2B.11 `[after 2B.10]` One unreachable device never stalls a batch.
+- `[x]` 2B.11 `[after 2B.10]` One unreachable device never stalls a batch.
   When the gateway answers Unavailable for one command, the publisher records
   that command's attempt and schedules its bounded backoff retry, delivers the
   rest of the batch, and returns success; after the bounded attempts the
