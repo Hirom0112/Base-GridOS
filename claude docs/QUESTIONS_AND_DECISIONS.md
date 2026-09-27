@@ -1308,3 +1308,10 @@ assumptions reported by workers land here too.
   delivered energy is negative or non-finite the energy totals are
   omitted and a delivered_energy_unavailable gap is recorded, while the
   signed delivery figure stays in the delivery section. Root owns the fix.
+- **Trace identity regression (2026-09-27, Gate 4 group four):** Travel
+  Flex fails alone with the workflow ending in an activity error "invalid
+  trace identity": the activity span seeding rejects an event whose
+  correlation id is absent or shaped differently from the demo's, and the
+  activity fails instead of tracing without ids. Rule: an activity never
+  fails on a trace attribute. Lane 5C owns the fix ahead of 2B.9; group
+  five and the canonical heat event rerun after it.
