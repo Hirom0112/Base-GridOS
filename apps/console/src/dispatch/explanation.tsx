@@ -4,6 +4,7 @@ import { useSession } from "../api/auth";
 import { evidenceSchema } from "../api/Provenance";
 import type { GetPlanExplanationResponse } from "../api/gen/gridos/v1/api_pb";
 import "./explanation.css";
+import { ForecastEvidence, FallbackEvidence } from "./forecast";
 
 const timeSchema = evidenceSchema.shape.timestamp;
 const explanationSchema = z.object({
@@ -232,6 +233,8 @@ export function ExplanationEvidence({
           <p>No interval feasibility returned.</p>
         )}
       </section>
+      <ForecastEvidence evidence={explanation.evidence} />
+      <FallbackEvidence evidence={explanation.evidence} />
       <ObjectiveEvidence objectiveBreakdown={objectiveBreakdown} />
       {marginExplanation ? (
         <EconomicMargin margin={marginExplanation} />

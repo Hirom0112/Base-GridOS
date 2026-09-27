@@ -28,7 +28,7 @@
 }
 .plan-explanation .explanation-note {
   color: var(--paper-2);
-  font-size: 12px;
+  font-size: 14px;
   margin-block: 16px;
 }
 .plan-explanation section {
@@ -46,7 +46,7 @@
   width: 100%;
   border-collapse: collapse;
   text-align: left;
-  font-size: 12px;
+  font-size: 14px;
 }
 .plan-explanation th,
 .plan-explanation td {
