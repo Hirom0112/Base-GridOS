@@ -1615,3 +1615,18 @@ DROPPED_MESSAGES at the point where the newer generation is issued);
 commanded goes dark". Proof: three consecutive isolated runs of each
 scenario green, posted with their last lines, before the gate reruns
 groups 2 and 3.
+
+## 2026-09-27 05:50Z — Console back in local auth mode, mock signer refreshed
+
+The console lane's badge rename c580b55 verified here (`vitest related` on
+auth: 18 passed) and no STUBBED text remains under apps/console/src. The
+standing console rendered "Sign-in is not configured" because `make demo`
+started it without GRIDOS_AUTH_MODE, so the Makefile console line now sets
+local mode and the identity URL (5d4cd49), and only the console process was
+restarted with that environment (backend untouched inside the gate window).
+The mock identity signer on :8080 was a build older than the step-up route
+(404), so it was rebuilt and restarted with a random 64-byte key kept in
+the ignored `.local/demo/step-up.key`; it now answers `/local/step-up`. The
+control binary still runs without GRIDOS_STEP_UP_KEY, so enforcement stays
+off until the console proves the flow live; the same key then goes onto
+control at the next demo rebuild.
