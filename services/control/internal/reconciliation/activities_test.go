@@ -256,7 +256,7 @@ func (harness *activityHarness) observeExport(t *testing.T, minuteOffsets ...int
 			PowerFlow: &gridosv1.PowerFlow{FromGridKw: -4, FromStorageKw: 4},
 		})
 	}
-	if _, err := storage.NewTelemetryStoreAt(harness.pool, func() time.Time { return harness.now }).Write(context.Background(), observations); err != nil {
+	if _, err := storage.NewTelemetryStoreAt(harness.pool, func() time.Time { return harness.now }).Write(context.Background(), "reconciliation-gateway", observations); err != nil {
 		t.Fatal(err)
 	}
 }

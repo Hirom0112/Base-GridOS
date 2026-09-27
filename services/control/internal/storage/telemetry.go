@@ -35,7 +35,10 @@ func NewTelemetryStoreAt(pool *pgxpool.Pool, now func() time.Time) *TelemetrySto
 	return &TelemetryStore{pool: pool, now: now}
 }
 
-func (store *TelemetryStore) Write(ctx context.Context, observations []*gridosv1.TelemetryObservation) ([]*gridosv1.TelemetryObservation, error) {
+func (store *TelemetryStore) Write(ctx context.Context, gatewayID string, observations []*gridosv1.TelemetryObservation) ([]*gridosv1.TelemetryObservation, error) {
+	if gatewayID == "" {
+		return nil, errors.New("gateway identifier required")
+	}
 	rows, keys, err := telemetryRows(observations)
 	if err != nil || len(rows) == 0 {
 		return nil, err
@@ -48,15 +51,11 @@ func (store *TelemetryStore) Write(ctx context.Context, observations []*gridosv1
 	if _, err = tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtextextended('telemetry:' || key, 0)) FROM (SELECT unnest($1::text[]) AS key ORDER BY key) AS ordered`, keys); err != nil {
 		return nil, err
 	}
-	cutoff := retentionStart(store.now())
-	expired := false
-	for _, row := range rows {
-		if row.observation.GetObservationTime().AsTime().Before(cutoff) {
-			if err = rejectExpired(ctx, tx, row); err != nil {
-				return nil, err
-			}
-			expired = true
-		}
+	receivedAt := store.now()
+	cutoff := retentionStart(receivedAt)
+	expired, err := rejectExpiredRows(ctx, tx, rows, cutoff)
+	if err != nil {
+		return nil, err
 	}
 	if expired {
 		if err = tx.Commit(ctx); err != nil {
@@ -87,10 +86,60 @@ func (store *TelemetryStore) Write(ctx context.Context, observations []*gridosv1
 			return nil, err
 		}
 	}
+	if err = recordGatewayPublication(ctx, tx, gatewayID, receivedAt, len(rows), inserted); err != nil {
+		return nil, err
+	}
 	if err = tx.Commit(ctx); err != nil {
 		return nil, err
 	}
 	return inserted, nil
+}
+
+func rejectExpiredRows(ctx context.Context, tx pgx.Tx, rows []telemetryRow, cutoff time.Time) (bool, error) {
+	expired := false
+	for _, row := range rows {
+		if row.observation.GetObservationTime().AsTime().Before(cutoff) {
+			if err := rejectExpired(ctx, tx, row); err != nil {
+				return false, err
+			}
+			expired = true
+		}
+	}
+	return expired, nil
+}
+
+func recordGatewayPublication(ctx context.Context, tx pgx.Tx, gatewayID string, receivedAt time.Time, count int, inserted []*gridosv1.TelemetryObservation) error {
+	_, err := tx.Exec(ctx, `INSERT INTO gateway_heartbeats(gateway_id,last_published_at,last_sequence_count)
+		VALUES ($1,$2,$3) ON CONFLICT (gateway_id) DO UPDATE
+		SET last_published_at = GREATEST(gateway_heartbeats.last_published_at, EXCLUDED.last_published_at),
+		last_sequence_count = CASE WHEN EXCLUDED.last_published_at >= gateway_heartbeats.last_published_at
+		THEN EXCLUDED.last_sequence_count ELSE gateway_heartbeats.last_sequence_count END`, gatewayID, receivedAt, count)
+	if err != nil {
+		return err
+	}
+	latest := make(map[string]time.Time, len(inserted))
+	for _, observation := range inserted {
+		at := observation.GetObservationTime().AsTime()
+		if at.After(latest[observation.GetDeviceId()]) {
+			latest[observation.GetDeviceId()] = at
+		}
+	}
+	if len(latest) > 0 {
+		deviceIDs := make([]string, 0, len(latest))
+		times := make([]time.Time, 0, len(latest))
+		for deviceID, at := range latest {
+			deviceIDs = append(deviceIDs, deviceID)
+			times = append(times, at)
+		}
+		_, err = tx.Exec(ctx, `INSERT INTO gateway_device_sources(device_id,gateway_id,observed_at)
+			SELECT device_id,$1,observed_at FROM unnest($2::text[],$3::timestamptz[]) AS source(device_id,observed_at)
+			ON CONFLICT (device_id) DO UPDATE SET gateway_id = EXCLUDED.gateway_id, observed_at = EXCLUDED.observed_at
+			WHERE EXCLUDED.observed_at > gateway_device_sources.observed_at`, gatewayID, deviceIDs, times)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func telemetryRows(observations []*gridosv1.TelemetryObservation) ([]telemetryRow, []string, error) {

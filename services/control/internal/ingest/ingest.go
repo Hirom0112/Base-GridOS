@@ -13,7 +13,7 @@ import (
 )
 
 type Store interface {
-	Write(context.Context, []*gridosv1.TelemetryObservation) ([]*gridosv1.TelemetryObservation, error)
+	Write(context.Context, string, []*gridosv1.TelemetryObservation) ([]*gridosv1.TelemetryObservation, error)
 }
 
 type Twin interface {
@@ -36,7 +36,7 @@ func (service *Service) PublishTelemetry(ctx context.Context, request *connect.R
 	}
 	ordered := slices.Clone(request.Msg.GetObservations())
 	slices.SortFunc(ordered, compareObservations)
-	inserted, err := service.store.Write(ctx, ordered)
+	inserted, err := service.store.Write(ctx, request.Msg.GetGatewayId(), ordered)
 	if err != nil {
 		if errors.Is(err, storage.ErrTelemetryExpired) {
 			return nil, connect.NewError(connect.CodeInvalidArgument, err)

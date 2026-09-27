@@ -84,7 +84,7 @@ func TestControlLifecycleWithRealDecisionAndGateway(t *testing.T) {
 		ValueState: gridosv1.ValueState_VALUE_STATE_PRESENT, StateOfEnergyPercent: 74,
 		OperatingState: &gridosv1.TelemetryObservation_OnGrid{OnGrid: &gridosv1.OnGrid{ObservedAt: timestamppb.New(now)}},
 	})
-	if _, err = storage.NewTelemetryStore(pool).Write(context.Background(), []*gridosv1.TelemetryObservation{{
+	if _, err = storage.NewTelemetryStore(pool).Write(context.Background(), "lifecycle-gateway", []*gridosv1.TelemetryObservation{{
 		ObservationId: "worker-lifecycle-observation", DeviceId: deviceID, Sequence: 1, ObservationTime: timestamppb.New(now),
 		ValueState: gridosv1.ValueState_VALUE_STATE_PRESENT, StateOfEnergyPercent: 74,
 		OperatingState: &gridosv1.TelemetryObservation_OnGrid{OnGrid: &gridosv1.OnGrid{ObservedAt: timestamppb.New(now)}},

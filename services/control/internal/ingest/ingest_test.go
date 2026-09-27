@@ -25,7 +25,7 @@ type observationKey struct {
 	sequence uint64
 }
 
-func (store *recordingStore) Write(ctx context.Context, observations []*gridosv1.TelemetryObservation) ([]*gridosv1.TelemetryObservation, error) {
+func (store *recordingStore) Write(ctx context.Context, _ string, observations []*gridosv1.TelemetryObservation) ([]*gridosv1.TelemetryObservation, error) {
 	if store.entered != nil {
 		close(store.entered)
 	}
@@ -134,13 +134,13 @@ func TestPublishTelemetryReturnsPermanentRejectionForExpiredObservation(t *testi
 
 type expiredStore struct{}
 
-func (expiredStore) Write(context.Context, []*gridosv1.TelemetryObservation) ([]*gridosv1.TelemetryObservation, error) {
+func (expiredStore) Write(context.Context, string, []*gridosv1.TelemetryObservation) ([]*gridosv1.TelemetryObservation, error) {
 	return nil, storage.ErrTelemetryExpired
 }
 
 type failingStore struct{}
 
-func (failingStore) Write(context.Context, []*gridosv1.TelemetryObservation) ([]*gridosv1.TelemetryObservation, error) {
+func (failingStore) Write(context.Context, string, []*gridosv1.TelemetryObservation) ([]*gridosv1.TelemetryObservation, error) {
 	return nil, errors.New("write failed")
 }
 
