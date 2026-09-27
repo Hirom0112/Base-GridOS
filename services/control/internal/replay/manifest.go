@@ -19,7 +19,7 @@ type Input struct {
 	EventID               string `json:"event_id"`
 	Seed                  int64  `json:"seed"`
 	FleetFile             string `json:"fleet_file"`
-	ScenarioFile          string `json:"scenario_file"`
+	ScenarioFile          string `json:"scenario_file,omitempty"`
 	InputSnapshotID       string `json:"input_snapshot_id"`
 	EligibilitySnapshotID string `json:"eligibility_snapshot_id"`
 	PolicyVersion         string `json:"policy_version"`
@@ -31,7 +31,7 @@ type Input struct {
 type Manifest struct {
 	Input
 	FleetSHA256    string `json:"fleet_sha256"`
-	ScenarioSHA256 string `json:"scenario_sha256"`
+	ScenarioSHA256 string `json:"scenario_sha256,omitempty"`
 }
 
 func Create(directory string, input Input) (result Manifest, createErr error) {
@@ -116,9 +116,12 @@ func Load(directory, eventID string) (Manifest, error) {
 }
 
 func (input Input) validate() error {
+	if input.CodeVersion == "" || input.CodeVersion == "(devel)" {
+		return errors.New("replay manifest code version required")
+	}
 	if !eventIDPattern.MatchString(input.EventID) || input.Seed == 0 || input.FleetFile == "" ||
 		input.InputSnapshotID == "" || input.EligibilitySnapshotID == "" || input.PolicyVersion == "" ||
-		input.SolverVersion == "" || input.FallbackVersion == "" || input.CodeVersion == "" {
+		input.SolverVersion == "" || input.FallbackVersion == "" {
 		return errors.New("replay manifest seed or input is incomplete or unsafe")
 	}
 	return nil

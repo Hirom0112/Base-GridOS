@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"runtime/debug"
+	"strings"
 	"time"
 
 	"connectrpc.com/connect"
@@ -40,9 +41,10 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	build, ok := debug.ReadBuildInfo()
-	if !ok || build.Main.Version == "" {
-		log.Fatal("worker build version required")
+	build, _ := debug.ReadBuildInfo()
+	version, err := codeVersion(build, os.Getenv("GRIDOS_CODE_VERSION"))
+	if err != nil {
+		log.Fatal(err)
 	}
 	httpClient := h2Client()
 	events := controlapi.NewPostgresEventStore(pool)
@@ -60,7 +62,7 @@ func main() {
 	activities := &dispatch.Activities{
 		Dispatcher: dispatcher, Events: events, Pool: pool, Reports: controlapi.NewPostgresReportSource(pool), Now: time.Now,
 		ReplayDirectory: environment("GRIDOS_REPLAY_DIR", ".local/replay"),
-		ReplayInput:     replay.Input{Seed: seed, FleetFile: fleetPath, ScenarioFile: os.Getenv("GRIDOS_SCENARIO"), SolverVersion: "highs", FallbackVersion: "1", CodeVersion: build.Main.Version},
+		ReplayInput:     replay.Input{Seed: seed, FleetFile: fleetPath, ScenarioFile: os.Getenv("GRIDOS_SCENARIO"), SolverVersion: "highs", FallbackVersion: "1", CodeVersion: version},
 	}
 	temporalClient, err := client.Dial(client.Options{HostPort: environment("TEMPORAL_ADDRESS", client.DefaultHostPort)})
 	if err != nil {
@@ -74,6 +76,30 @@ func main() {
 	if err = dispatchWorker.Run(worker.InterruptCh()); err != nil {
 		log.Fatal(err)
 	}
+}
+
+func codeVersion(build *debug.BuildInfo, fallback string) (string, error) {
+	revision, modified := "", false
+	if build != nil {
+		for _, setting := range build.Settings {
+			switch setting.Key {
+			case "vcs.revision":
+				revision = setting.Value
+			case "vcs.modified":
+				modified = setting.Value == "true"
+			}
+		}
+	}
+	if revision != "" {
+		if modified {
+			return revision + "+modified", nil
+		}
+		return revision, nil
+	}
+	if version := strings.TrimSpace(fallback); version != "" && version != "(devel)" {
+		return version, nil
+	}
+	return "", errors.New("worker code version required")
 }
 
 func loadFleet(path string) ([]*gridosv1.AuthorizedSite, *fleet.Twin, *fleet.TelemetryTwin, error) {
