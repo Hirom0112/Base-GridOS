@@ -72,6 +72,25 @@ func TestFixturesCaptureExplanationEvidence(t *testing.T) {
 	}
 }
 
+func TestFixturesCaptureRegionalExplanationEvidence(t *testing.T) {
+	root := filepath.Join(repositoryRoot(t), "testdata", "fixtures", "api")
+	explanation := new(gridosv1.GetPlanExplanationResponse)
+	readPlanningFixture(t, root, "DispatchService/GetPlanExplanation.json", explanation)
+	evidence := explanation.GetEvidence()
+	if len(evidence.GetDeviceAvailability()) == 0 || len(evidence.GetUnavailableSources()) == 0 {
+		t.Fatal("recorded explanation lacks frozen availability or unavailable sources")
+	}
+	availability := evidence.GetDeviceAvailability()[0].GetProbability()
+	if availability.GetIssuedAt() == nil || availability.GetValueKind() == "" || availability.GetProvenance() == gridosv1.DataProvenance_DATA_PROVENANCE_UNSPECIFIED {
+		t.Fatal("recorded availability lacks source evidence")
+	}
+	for field, present := range map[string]bool{"regional_price:": len(evidence.GetRegionalPrices()) > 0, "outage_risk:": len(evidence.GetOutageRisks()) > 0} {
+		if !present && !strings.Contains(strings.Join(evidence.GetUnavailableSources(), ","), field) {
+			t.Fatalf("recorded explanation lacks %s evidence or explicit gap", field)
+		}
+	}
+}
+
 func TestFixturesCaptureContext(t *testing.T) {
 	root := filepath.Join(repositoryRoot(t), "testdata", "fixtures", "api")
 	market := new(gridosv1.GetMarketContextResponse)
