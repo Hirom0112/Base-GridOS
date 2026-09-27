@@ -2105,3 +2105,12 @@ COMMUNICATIONS override and one Travel Flex binding; `go test
 ./tools/development/mockapi -run 'Fixtures|ReserveBasis'` ok (0.871s)
 here. The override, window and event rows match on the demo. Marked done;
 the seeding window is closed and the demo reopened to the console.
+
+## 2026-09-27 09:20Z — Demo step 7 proven live
+
+The console's step 7 proof against the seeded event passed here too
+(`playwright test --config playwright.live.config.ts -g 'live frozen reserve'`:
+1 passed 4.0s): the frozen reserve bases with the COMMUNICATIONS override
+and the bound Travel Flex window render from the explanation evidence
+with matching source, policy and credit. Step 7 no longer carries a
+missing-evidence label.
