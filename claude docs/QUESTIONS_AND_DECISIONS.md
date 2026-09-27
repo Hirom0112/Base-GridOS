@@ -2141,3 +2141,12 @@ first command to that device fails once and is retried deterministically,
 before the persistent scheduled OFFLINE and the delayed receipt. RED
 scenario assertion first, then three consecutive isolated passes. The
 standing demo's live scenario picks the same file up.
+
+## 2026-09-27 09:26Z — 4C.10 frozen manifest for demo step 3
+
+Step 3 asks the operator to inspect the frozen version, but only
+ReplayEvent exposes the snapshot ids and versions, and it does so by
+recomputing the plan. Decision: 4C.10 adds the stored input and
+eligibility snapshot ids and the policy, solver, model and code versions
+to GetPlanExplanation, read from the plan row and frozen inputs. Root,
+queued after 2A.13 and 5F.5.

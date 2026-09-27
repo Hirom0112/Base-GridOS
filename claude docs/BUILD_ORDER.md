@@ -1555,6 +1555,13 @@ Owns: `services/control/internal/context/`, `services/control/internal/api/conte
   issue time. Verify: `go test ./services/control/internal/api/ -run ReserveBasis`
   passes and the recorded fixture carries at least one override and one
   Travel Flex binding from a demo plan.
+- `[ ]` 4C.10 `[after 4C.6]` Frozen manifest in the explanation.
+  `GetPlanExplanation` carries the plan version's stored
+  `input_snapshot_id`, `eligibility_snapshot_id`, policy, solver, model and
+  code versions read from the plan row and frozen inputs (never recomputed),
+  so demo step 3 shows the frozen manifest without a replay. Verify:
+  `go test ./services/control/internal/api/ -run Manifest` passes and the
+  recorded fixture carries all six values.
 - `[x]` 4D.1 `[P]` RED then GREEN: reference loaders for normalized ERCOT
   prices, system load, outage rates, and NWS forecasts and alerts from
   `testdata/fixtures/public` (offline default) with provenance and freshness
