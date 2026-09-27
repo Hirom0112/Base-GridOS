@@ -12,11 +12,19 @@ import (
 )
 
 func (source *PostgresReportSource) fillReserveCompliance(ctx context.Context, begin, end time.Time, frozen *gridosv1.OptimizationRequest, report *reporting.StoredEvent) error {
+	discharged, err := source.dischargedDevices(ctx, frozen.GetEventId())
+	if err != nil {
+		return err
+	}
 	devices := make(map[string]*gridosv1.DeviceState, len(frozen.GetDevices()))
-	ids := make([]string, 0, len(frozen.GetDevices()))
+	ids := make([]string, 0, len(discharged))
 	for _, device := range frozen.GetDevices() {
 		if device.GetDeviceId() == "" || devices[device.GetDeviceId()] != nil {
 			return errors.New("frozen reserve device identity is invalid")
+		}
+		if !discharged[device.GetDeviceId()] {
+			devices[device.GetDeviceId()] = device
+			continue
 		}
 		capacity, reserve := device.GetUsableEnergyKwh(), device.GetEffectiveReserveKwh()
 		if !finiteLiveReport(capacity) || !finiteLiveReport(reserve) || reserve < 0 || reserve > capacity {
@@ -43,6 +51,23 @@ func (source *PostgresReportSource) fillReserveCompliance(ctx context.Context, b
 	}
 	report.ReserveCompliance = measured
 	return nil
+}
+
+func (source *PostgresReportSource) dischargedDevices(ctx context.Context, eventID string) (map[string]bool, error) {
+	rows, err := source.pool.Query(ctx, `SELECT DISTINCT device_id FROM command_intents WHERE event_id = $1 AND setpoint_kw > 0`, eventID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	discharged := make(map[string]bool)
+	for rows.Next() {
+		var deviceID string
+		if err := rows.Scan(&deviceID); err != nil {
+			return nil, err
+		}
+		discharged[deviceID] = true
+	}
+	return discharged, rows.Err()
 }
 
 func (source *PostgresReportSource) measureReserve(ctx context.Context, ids []string, begin, end time.Time, devices map[string]*gridosv1.DeviceState) (*reporting.ReserveCompliance, error) {
