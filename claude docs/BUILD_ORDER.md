@@ -4,9 +4,13 @@
 **Written:** 2026-09-26
 **Sources:** [`FULL_SPEC.md`](../FULL_SPEC.md) (product and safety authority),
 [`TECHSTACK.md`](../TECHSTACK.md) (architecture, layout, implementation
-sequence), [`DATASETS.md`](../DATASETS.md) (what data exists),
-[`docs/domain/system-understanding.md`](../docs/domain/system-understanding.md)
-(physics and worked numbers).
+sequence), [`DATASETS.md`](../DATASETS.md) (what data exists), and the domain
+research notes `docs/domain/system-understanding.md` and
+`docs/domain/truth-model.md` (physics and worked numbers).
+
+The domain, design, and data research notes, `UI_TRACK.md`, `ISSUES.md`, and
+the Terraform plan report were removed before submission; items that cite them
+are historical and those files remain in git history.
 
 This document is the whole plan and the whole TODO in one place. Nothing in it
 invents scope: every item traces to a section of the three root specs or to

@@ -1,5 +1,9 @@
 # Questions and decisions
 
+The domain, design, and data research notes under `docs/`, `UI_TRACK.md`,
+`ISSUES.md`, and the Terraform plan report were removed before submission;
+entries that cite them are historical and those files remain in git history.
+
 Running log kept by the director. Every decision made without asking Hirom is
 written here the moment it is made, with the reason. Questions that genuinely
 need Hirom appear under **Open** and move down once answered. This file
