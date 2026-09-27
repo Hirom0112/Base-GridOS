@@ -160,14 +160,16 @@ def _conservative_public_margin(request: optimization_pb2.OptimizationRequest) -
             "base_reserve_kwh"
         ):
             continue
-        lower = prices.get(device.load_zone)
-        if lower is None:
+        zone_lower = prices.get(device.load_zone)
+        if zone_lower is None:
             continue
-        if lower < 0:
+        if zone_lower < 0:
             incremental_kwh = Decimal(str(device.base_reserve_kwh)) - Decimal(
                 str(device.travel_flex_reserve_kwh)
             )
-            margin += lower * incremental_kwh * Decimal(str(device.discharge_efficiency)) / 1000
+            margin += (
+                zone_lower * incremental_kwh * Decimal(str(device.discharge_efficiency)) / 1000
+            )
     return margin
 
 
@@ -237,10 +239,10 @@ def _response(
             ("RESERVE", plan.margins.reserve_kwh, "kWh"),
             ("DISCHARGE_POWER", plan.margins.power_kw, "kW"),
         ):
-            margin = response.plan.constraint_margins.add()
-            margin.constraint_name = name
-            margin.margin = value
-            margin.units = units
+            constraint_margin = response.plan.constraint_margins.add()
+            constraint_margin.constraint_name = name
+            constraint_margin.margin = value
+            constraint_margin.units = units
     for exclusion in plan.exclusions:
         item = response.plan.exclusions.add()
         item.device_id = exclusion.device_id
