@@ -169,3 +169,19 @@ func TestReserveSelectionPersistsWithPlanVersion(t *testing.T) {
 	require.Equal(t, gridosv1.ReserveSelection_RESERVE_SELECTION_TRAVEL_FLEX, loaded.GetDeviceSchedules()[0].GetReserveSelection())
 	require.Equal(t, 6.0, loaded.GetDeviceSchedules()[0].GetSelectedReserveKwh())
 }
+
+func TestFreezeLocksMaintenanceDevices(t *testing.T) {
+	now := time.Date(2026, 9, 26, 12, 0, 0, 0, time.UTC)
+	site := &gridosv1.AuthorizedSite{Site: &gridosv1.Site{SiteId: "site-1"}, Devices: []*gridosv1.Device{{DeviceId: "device-1",
+		BatteryParameters: &gridosv1.BatteryParameters{UsableEnergyKwh: 10, MaxChargeKw: 2, MaxDischargeKw: 2, ChargeEfficiency: 0.95, DischargeEfficiency: 0.95}}}}
+	for _, test := range []struct {
+		availability fleet.Availability
+		locked       bool
+	}{{fleet.Maintenance, true}, {fleet.Online, false}} {
+		optimization := &gridosv1.OptimizationRequest{EligibilitySnapshot: &gridosv1.EligibilitySnapshot{}}
+		canonical := safety.CanonicalState{Devices: make(map[string]safety.DeviceState)}
+		state := fleet.SiteState{SiteID: "site-1", ObservedAt: now, OperatingState: fleet.OnGrid, Availability: test.availability, EnergyKWh: 9, HardwareFloorKWh: 1}
+		require.NoError(t, appendFrozenSite(optimization, &canonical, site, state, nil, now))
+		require.Equal(t, test.locked, canonical.Devices["device-1"].MaintenanceLocked, test.availability)
+	}
+}
