@@ -1293,3 +1293,12 @@ assumptions reported by workers land here too.
   now, and the UNCERTAIN assertion lands with 2B.10, because no command is
   sent inside the window until recovery issues replacements. Ordering,
   not weakening: both assertions are required for Gate 4.
+- **2A.9 (lane 5C), verified on the demo:** the gateway survived one
+  hour on the slot fix (uptime 1:00:48 at 03:38Z, telemetry one second
+  fresh, no exit line in its log) through two Gate 4 groups and the load
+  spike; repeated slots are skipped and a producer rejection no longer
+  kills the fleet loop.
+- **Gate 4 group four, first pass:** zero-percent green (111 s); Travel
+  Flex stalled at REQUESTED for two minutes, which it had not done in the
+  earlier standalone run; rerun alone follows group four, with logs kept
+  if it repeats.

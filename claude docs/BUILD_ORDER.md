@@ -882,7 +882,7 @@ For 2A.6, after lane F's 2F.1: `services/gateway-simulator/internal/telemetry/`.
   populated on every observation, deterministic from the seed. Owns
   `services/gateway-simulator/internal/telemetry/` and `internal/battery/`
   additively. Found by the director on the standing demo. Verify: `go test ./services/gateway-simulator/... -run Physical` passes and a fresh event on `make demo` reaches VALIDATED with schedules.
-- `[ ]` 2A.9 `[P]` Gateway never exits on a repeated slot. With the
+- `[x]` 2A.9 `[P]` Gateway never exits on a repeated slot. With the
   wall-clock anchor, a tick that lands in the same quantized slot as the
   previous one makes the producer reject "source time must advance" and the
   whole gateway process exits (found twice on the standing demo: a
