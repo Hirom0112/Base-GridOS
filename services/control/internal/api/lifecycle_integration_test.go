@@ -108,6 +108,7 @@ func TestControlLifecycleWithRealDecisionAndGateway(t *testing.T) {
 		"GRIDOS_GATEWAY_ADDR=http://" + gatewayAddress,
 		"GRIDOS_FLEET=" + fleetPath,
 		"GRIDOS_TASK_QUEUE=" + taskQueue,
+		"GRIDOS_CODE_VERSION=api-lifecycle-test",
 	}, "go", "run", "./services/control/cmd/worker")
 	control := httptest.NewServer(NewHandler(service))
 	defer control.Close()
