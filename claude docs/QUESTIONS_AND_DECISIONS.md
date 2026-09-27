@@ -1403,3 +1403,15 @@ assumptions reported by workers land here too.
   tagged manual in BUILD (explicit attribute); database harness tests
   resolve the repository root from the Bazel test source directory when
   present, falling back to the caller path on the host.
+
+## 2026-09-27 04:45Z — Bazel host-only tests, third grant (5D.5)
+
+Lane 5D found three more test cases that spawn the host `go` or `uv`
+toolchain from inside a Bazel test (publisher nested build, api lifecycle
+nested run, dispatch replacement-server nested uv). Decision: same rule as
+the analytics isolation and gateway restart tests. Those tests stay host
+only under `tags = ["manual"]`; the two files that live inside mixed
+packages move to their own `go_test` targets so the remaining unit coverage
+keeps running in the sandbox. `make test-go` covers all five, and the 5F
+docs must say so. The gate stays the broad `bazelisk test //services/...`
+line, rerun by the director.
