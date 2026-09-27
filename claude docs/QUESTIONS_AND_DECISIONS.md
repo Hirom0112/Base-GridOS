@@ -683,3 +683,30 @@ assumptions reported by workers land here too.
   inside the one-minute live window. Two earlier failures (old-expiry and
   outage-replay stuck at REQUESTED) happened while a dozen commits from
   other lanes were landing in the shared tree and did not reproduce.
+- **2A.8 (lane 2A), verified on the standing demo:** each simulated device
+  now runs a battery model seeded from the fleet file with home load from
+  its public load profile; observations carry state of energy and power
+  flow; the gateway store writes each tick's sequences and buffer in one
+  transaction; the scale test honors short mode. On a fresh database and
+  gateway store, a fresh 1 MW event reached VALIDATED in two seconds with
+  149 HiGHS device schedules at plan version 1. Assumption accepted: a
+  10 percent hardware floor stands in for the missing protected operating
+  floor, and initial energy derives deterministically from the seed.
+- **Demo reset lesson, repeated:** resetting the gateway sequence store
+  alone makes every new observation id collide with the control database's
+  history and be deduplicated away; the two reset together or not at all.
+- **Gate 2 sweep (director):** contracts lint, breaking, and generation
+  clean; 23 Go packages ok; Python 95 tests green across three projects;
+  decision mypy clean; safety benchmarks 0.03 s and 0.27 s; sqlc clean;
+  seed loads 50 sites; hook installed and rejects a comment; no
+  suppressions, no comments, no `any`, no file over 500 lines; two stub
+  markers match two STUBS.md rows; no prefixed subjects, no stashes. Two
+  findings: `tests/integration` now exceeds Go's default ten-minute package
+  timeout when run whole (thirteen scenarios at about 100 s each), so the
+  `test-go` target needs an explicit timeout for that package and the
+  director runs the scenarios in groups; migration 0005_replacement.sql is
+  not re-runnable (plain ADD COLUMN), unlike the earlier migrations, and
+  goes back to its author.
+- **Early start of Wave 4 lane E (2026-09-27):** the agent freed by lane
+  3F takes 4E (event report, comparison, modeled economics) in
+  `internal/report/`, which nothing open touches.

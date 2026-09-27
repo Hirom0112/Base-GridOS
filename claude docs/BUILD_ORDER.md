@@ -872,7 +872,7 @@ For 2A.6, after lane F's 2F.1: `services/gateway-simulator/internal/telemetry/`.
   start quantized to the cadence; a missed tick is skipped and recorded as
   a data-quality gap, never backlogged. Found by the director on the
   standing demo. Verify: `go test ./services/gateway-simulator/... -run Anchor` passes and the demo lag stays under the cadence.
-- `[ ]` 2A.8 `[P]` Physical telemetry. `telemetry.Fleet` publishes empty
+- `[x]` 2A.8 `[P]` Physical telemetry. `telemetry.Fleet` publishes empty
   samples (no state of energy, no power flow), so no plan can validate
   against simulator telemetry. RED then GREEN: each producer owns a
   `battery.Model` seeded from the fleet file (usable energy, power limits,
