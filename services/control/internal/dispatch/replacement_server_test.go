@@ -59,12 +59,13 @@ func TestReplacementUsesRealDecisionServer(t *testing.T) {
 	now := time.Now().UTC()
 	begin := timestamppb.New(now.Add(time.Minute))
 	end := timestamppb.New(now.Add(time.Hour))
-	device := &gridosv1.DeviceState{DeviceId: "device-a", UsableEnergyKwh: 10, EnergyKwh: 8, HardwareFloorKwh: 1, EffectiveReserveKwh: 2, MaxDischargeKw: 5, DischargeEfficiency: 1, AvailabilityProbability: 1}
+	device := &gridosv1.DeviceState{DeviceId: "device-a", SiteId: "site-a", UsableEnergyKwh: 10, EnergyKwh: 8, HardwareFloorKwh: 1, EffectiveReserveKwh: 2, MaxDischargeKw: 5, DischargeEfficiency: 1, AvailabilityProbability: 1}
 	request := &gridosv1.OptimizationRequest{
 		RequestId: "replace-real", EventId: "replace-real", PlanVersion: 1, RequestedAt: timestamppb.New(now), Budget: durationpb.New(time.Second),
 		MeasurementBoundary: gridosv1.MeasurementBoundary_MEASUREMENT_BOUNDARY_METER_NET_EXPORT,
 		Intervals:           []*gridosv1.OptimizationInterval{{BeginTime: begin, EndTime: end, TargetKw: 3}},
 		Devices:             []*gridosv1.DeviceState{device},
+		Forecast:            &gridosv1.ForecastResponse{SiteLoads: []*gridosv1.ForecastSiteLoad{{SiteId: "site-a", IntervalBeginTime: begin, LoadKwh: &gridosv1.ForecastValue{Value: 0.5, Lower: 0.4, Upper: 0.6}}}},
 	}
 	approved, err := optimizer.Optimize(context.Background(), request)
 	require.NoError(t, err)

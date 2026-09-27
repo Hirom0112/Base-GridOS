@@ -37,6 +37,10 @@ func (activities *Activities) IssueReplacement(ctx context.Context, replacement 
 	current := snapshot.Optimization
 	now := activities.Now()
 	ctx = observability.WithActivityTraceIDs(ctx, current.GetCorrelationId(), replacement.EventID)
+	if current.Forecast, err = activities.forecast(ctx, current, replacement.EventID, current.GetBudget().AsDuration()); err != nil {
+		return err
+	}
+	controlapi.ApplyFrozenHomeLoads(snapshot.Canonical.Devices, current)
 	response, err := activities.Dispatcher.Optimizer.Replace(ctx, &gridosv1.ReplaceRequest{
 		Current: current, ApprovedPlan: approved, DroppedDeviceIds: replacement.DroppedDeviceIDs,
 		EnvelopeDeviceIds: replacement.EnvelopeDeviceIDs, IdempotencyKey: key,

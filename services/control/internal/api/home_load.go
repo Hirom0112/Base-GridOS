@@ -7,11 +7,24 @@ import (
 	"time"
 
 	gridosv1 "github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1"
+	"github.com/Hirom0112/Base-GridOS/services/control/internal/safety"
 )
 
 type frozenSiteLoad struct {
 	begin time.Time
 	kwh   float64
+}
+
+func ApplyFrozenHomeLoads(devices map[string]safety.DeviceState, request *gridosv1.OptimizationRequest) {
+	homeLoads := frozenHomeLoadsKW(request)
+	for _, device := range request.GetDevices() {
+		state, present := devices[device.GetDeviceId()]
+		if !present {
+			continue
+		}
+		state.HomeLoadKW = homeLoads[device.GetSiteId()]
+		devices[device.GetDeviceId()] = state
+	}
 }
 
 func frozenHomeLoadsKW(request *gridosv1.OptimizationRequest) map[string]float64 {
