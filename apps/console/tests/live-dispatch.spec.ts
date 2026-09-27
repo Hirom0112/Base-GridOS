@@ -287,3 +287,93 @@ test("live Austin context retains regional geography and source dates", async ({
     page.getByRole("table", { name: "Reference system load" }),
   ).toContainText("SOUTH_C");
 });
+
+test("live member selects stored terms, schedules Travel Flex and returns early", async ({
+  page,
+}, testInfo) => {
+  test.setTimeout(150000);
+  await page.goto("/member");
+  await page
+    .getByRole("combobox", { name: "Demo role" })
+    .selectOption("member");
+  await page
+    .getByLabel("Local member principal")
+    .fill("member-9d5ecb7e1fda8fcce5d0");
+  await page
+    .getByLabel("Site ID", { exact: true })
+    .fill("site_9d5ecb7e1fda8fcce5d0");
+  await page.getByRole("button", { name: "Open household" }).click();
+  await page.getByRole("button", { name: "View Balanced plan" }).click();
+  await expect(
+    page.getByRole("region", { name: "Review Balanced", exact: true }),
+  ).toContainText("reserve-sim-balanced-1");
+  await page.getByRole("button", { name: "Review offer" }).click();
+  await page
+    .getByRole("checkbox", { name: "I agree to the displayed plan terms." })
+    .check();
+  const selection = page.waitForResponse(
+    "**/gridos.v1.MemberService/SelectResiliencePlan",
+  );
+  await page.getByRole("button", { name: "Confirm plan" }).click();
+  expect((await selection).ok()).toBe(true);
+  await expect(page.getByText(/Plan selection recorded/)).toBeVisible();
+  await page.getByRole("button", { name: "Browse offers" }).click();
+  await page.getByRole("button", { name: "View Balanced Travel Flex" }).click();
+  await page.getByRole("button", { name: "Review offer" }).click();
+  await expect(page.getByLabel("Travel starts")).toBeVisible();
+  const begins = Math.ceil((Date.now() + 10000) / 60000) * 60000;
+  await page
+    .getByLabel("Travel starts")
+    .fill(new Date(begins).toISOString().slice(0, 16));
+  await page
+    .getByLabel("Travel ends")
+    .fill(new Date(begins + 600000).toISOString().slice(0, 16));
+  await page.getByLabel("Household timezone").fill("UTC");
+  await page
+    .getByRole("checkbox", {
+      name: "I agree to the displayed Travel Flex terms and reserve change.",
+    })
+    .check();
+  const scheduled = page.waitForResponse(
+    "**/gridos.v1.MemberService/ScheduleTravelFlex",
+  );
+  await page.getByRole("button", { name: "Confirm Travel Flex" }).click();
+  const response = await scheduled;
+  expect(response.ok(), await response.text()).toBe(true);
+  const receipt = z
+    .object({ windowId: z.string().min(1) })
+    .parse(await response.json());
+  await expect(page.getByText(/Travel Flex scheduled/)).toBeVisible();
+  await expect
+    .poll(
+      async () => {
+        await page
+          .getByRole("button", { name: "Refresh offers and windows" })
+          .click();
+        return page
+          .getByRole("button", { name: "Confirm early return" })
+          .count();
+      },
+      { timeout: 80000, intervals: [5000] },
+    )
+    .toBe(1);
+  const active = page
+    .getByRole("button", { name: "Confirm early return" })
+    .locator("..");
+  await active.getByRole("checkbox").check();
+  const returned = page.waitForResponse(
+    "**/gridos.v1.MemberService/EndTravelFlexEarly",
+  );
+  await active.getByRole("button", { name: "Confirm early return" }).click();
+  const returnedResponse = await returned;
+  expect(returnedResponse.ok(), await returnedResponse.text()).toBe(true);
+  expect(await returnedResponse.json()).toMatchObject({
+    windowId: receipt.windowId,
+  });
+  await expect(page.getByText(/Early return recorded/)).toBeVisible();
+  await page.screenshot({
+    path: testInfo.outputPath("live-member-travel.png"),
+    fullPage: true,
+  });
+  console.log(`LIVE MEMBER WINDOW ${receipt.windowId}`);
+});
