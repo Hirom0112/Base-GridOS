@@ -244,6 +244,7 @@ func (service *Service) ApproveEvent(ctx context.Context, request *connect.Reque
 		}
 		approval.ApprovedBy = subject
 	}
+	approval.ApprovedAt = timestamppb.New(service.now())
 	if approval.GetApprovedBy() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("approver required"))
 	}
@@ -277,7 +278,9 @@ func (service *Service) LaunchEvent(ctx context.Context, request *connect.Reques
 	if service.launchWorkflow == nil {
 		return nil, connect.NewError(connect.CodeUnavailable, errors.New("workflow client required"))
 	}
-	if err = service.launchWorkflow(ctx, request.Msg.GetEventId(), request.Msg); err != nil {
+	launch := proto.Clone(request.Msg).(*gridosv1.LaunchEventRequest)
+	launch.RequestedAt = timestamppb.New(service.now())
+	if err = service.launchWorkflow(ctx, launch.GetEventId(), launch); err != nil {
 		return nil, connect.NewError(connect.CodeUnavailable, err)
 	}
 	return connect.NewResponse(&gridosv1.LaunchEventResponse{Event: current}), nil
