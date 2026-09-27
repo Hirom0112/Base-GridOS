@@ -1,9 +1,10 @@
 import json
 import re
-from collections.abc import Iterator, Mapping, Sequence
+from collections.abc import Callable, Iterator, Mapping, Sequence
 from contextlib import contextmanager
 from typing import TextIO
 
+import grpc
 from opentelemetry.sdk.trace import ReadableSpan, TracerProvider
 from opentelemetry.sdk.trace.export import SimpleSpanProcessor, SpanExporter, SpanExportResult
 from opentelemetry.trace import Span
@@ -69,3 +70,28 @@ def start_span(
         for key, value in fields.items():
             span.set_attribute(key, value)
         yield span
+
+
+def traced_rpc[Request, Response](
+    provider: TracerProvider,
+    name: str,
+    handler: Callable[[Request, grpc.ServicerContext], Response],
+) -> Callable[[Request, grpc.ServicerContext], Response]:
+    def call(request: Request, context: grpc.ServicerContext) -> Response:
+        metadata = dict(context.invocation_metadata())
+        correlation_id = metadata.get("x-correlation-id", "unavailable")
+        workflow_id = metadata.get("x-workflow-id", "unavailable")
+        correlation = (
+            correlation_id
+            if isinstance(correlation_id, str) and _safe_identity(correlation_id)
+            else "redacted"
+        )
+        workflow = (
+            workflow_id
+            if isinstance(workflow_id, str) and _safe_identity(workflow_id)
+            else "redacted"
+        )
+        with start_span(provider, name, correlation, workflow, {}):
+            return handler(request, context)
+
+    return call

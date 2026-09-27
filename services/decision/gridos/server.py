@@ -1,5 +1,6 @@
 import argparse
 import os
+import sys
 from concurrent.futures import ThreadPoolExecutor
 from decimal import Decimal
 from math import isfinite
@@ -17,6 +18,7 @@ from gridos.fallback.planner import (
 )
 from gridos.fallback.replacement import replace_dropped
 from gridos.forecasting.serve import forecast_response
+from gridos.observability import new_provider, traced_rpc
 from gridos.optimization.model import OptimizedPlan, optimize
 from gridos.solver.bounded import Decision, Planner, resolve, solve_within_budget
 from gridos.v1 import device_pb2, dispatch_pb2, optimization_pb2, telemetry_pb2
@@ -429,19 +431,20 @@ def _solver_budget_from_env() -> float | None:
 
 def serve(port: int) -> None:
     server = grpc.server(ThreadPoolExecutor())
+    traces = new_provider(sys.stdout)
     optimizer = OptimizationServer(solver_budget_seconds=_solver_budget_from_env())
     optimize_handler = grpc.unary_unary_rpc_method_handler(
-        optimizer.Optimize,
+        traced_rpc(traces, "Optimize", optimizer.Optimize),
         request_deserializer=optimization_pb2.OptimizeRequest.FromString,
         response_serializer=optimization_pb2.OptimizeResponse.SerializeToString,
     )
     forecast_handler = grpc.unary_unary_rpc_method_handler(
-        optimizer.Forecast,
+        traced_rpc(traces, "Forecast", optimizer.Forecast),
         request_deserializer=optimization_pb2.ForecastRequest.FromString,
         response_serializer=optimization_pb2.ForecastResponse.SerializeToString,
     )
     replace_handler = grpc.unary_unary_rpc_method_handler(
-        optimizer.Replace,
+        traced_rpc(traces, "Replace", optimizer.Replace),
         request_deserializer=optimization_pb2.ReplaceRequest.FromString,
         response_serializer=optimization_pb2.ReplaceResponse.SerializeToString,
     )
@@ -464,6 +467,8 @@ def serve(port: int) -> None:
         server.wait_for_termination()
     except KeyboardInterrupt:
         server.stop(0).wait()
+    finally:
+        traces.shutdown()
 
 
 def main() -> None:
