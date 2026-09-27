@@ -3,6 +3,7 @@ import { z } from "zod";
 import { useSession } from "../api/auth";
 import type { Role } from "../api/client";
 import "./report.css";
+import { ReserveEvidence } from "./reserve";
 
 const number = z.number().finite();
 const reportSchema = z.object({
@@ -32,6 +33,7 @@ const reportSchema = z.object({
       DeliveredMWh: number,
     })
     .nullable(),
+  ReserveCompliance: z.unknown().optional(),
   ReserveViolationsPrevented: z.number().int().nonnegative(),
   MemberRewardsCents: z.number().int().safe().nullable(),
   Margin: z
@@ -179,6 +181,7 @@ function DetailedReport({ report }: { report: z.infer<typeof reportSchema> }) {
           ],
         ]}
       />
+      <ReserveEvidence evidence={report.ReserveCompliance} />
       <ReportEconomics report={report} />
       <ReportLineage report={report} />
     </>
