@@ -1,0 +1,1 @@
+{"violations":[{"code":"DISCHARGE_BOUND"},{"code":"ENERGY_BALANCE_DRIFT"},{"code":"ENERGY_BELOW_RESERVE"},{"code":"METER_EXPORT_LIMIT"},{"code":"INTERCONNECTION_LIMIT"}],"operatorExplanation":"discharge bound"}

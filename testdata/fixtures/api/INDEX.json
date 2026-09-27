@@ -10,11 +10,19 @@
     "plan_approval": [
       "gridos.v1.DispatchService.GetEvent",
       "gridos.v1.DispatchService.ApproveEvent",
-      "gridos.v1.DispatchService.LaunchEvent"
+      "gridos.v1.DispatchService.LaunchEvent",
+      "gridos.v1.DispatchService.GetPlanExplanation",
+      "gridos.v1.DispatchService.ValidateUnsafeAlternative"
     ],
     "event_timeline": [
       "gridos.v1.EventsService.GetEventTimeline",
       "gridos.v1.EventsService.EmergencyStop"
+    ],
+    "forecast_review": [
+      "gridos.v1.OptimizationService.Forecast"
+    ],
+    "fallback_review": [
+      "gridos.v1.OptimizationService.Optimize"
     ]
   },
   "requests": {
@@ -87,6 +95,286 @@
         "reason": "fixture safety drill",
         "requestedAt": "2026-09-26T22:31:18Z",
         "correlationId": "event_austin_wave2_live_0002"
+      }
+    },
+    "gridos.v1.DispatchService.GetPlanExplanation": {
+      "role": "analyst",
+      "body": {
+        "eventId": "event_dir_1790468067",
+        "planVersion": "1"
+      }
+    },
+    "gridos.v1.DispatchService.ValidateUnsafeAlternative": {
+      "role": "operator",
+      "body": {
+        "eventId": "event_dir_1790468067",
+        "planVersion": "1",
+        "alternativePlan": {
+          "eventId": "event_dir_1790468067",
+          "planVersion": "1",
+          "deviceSchedules": [
+            {
+              "deviceId": "device_47c1fe0be3a401826067",
+              "intervals": [
+                {
+                  "endTime": "2026-09-27T01:16:27Z",
+                  "beginTime": "2026-09-27T00:16:27Z",
+                  "setpointKw": 99999,
+                  "expectedEnergyKwh": 26.073170650512836,
+                  "expectedStateOfEnergyPercent": 80.33390020493232
+                }
+              ]
+            }
+          ],
+          "shortfalls": [
+            {
+              "feasibleKw": 999.9999999999999,
+              "requestedKw": 1000,
+              "intervalEndTime": "2026-09-27T01:16:27Z",
+              "intervalBeginTime": "2026-09-27T00:16:27Z"
+            }
+          ]
+        }
+      }
+    },
+    "gridos.v1.OptimizationService.Forecast": {
+      "role": "service",
+      "body": {
+        "request": {
+          "requestId": "event_dir_1790468067",
+          "eventId": "event_dir_1790468067",
+          "planVersion": "1",
+          "eligibilitySnapshot": {
+            "eventId": "event_dir_1790468067",
+            "capturedAt": "2026-09-27T00:14:27.343791Z",
+            "eligibleDeviceIds": [
+              "device_bf95b2c3b700fe5bbac6",
+              "device_17802d8b9270b5c3abef"
+            ],
+            "policyVersion": "fleet-file"
+          },
+          "reservePolicy": {
+            "policyVersion": "fleet-file",
+            "effectiveAt": "2026-09-27T00:14:27.343791Z",
+            "expiresAt": "2026-09-27T01:16:27Z"
+          },
+          "intervals": [
+            {
+              "beginTime": "2026-09-27T00:16:27Z",
+              "endTime": "2026-09-27T01:16:27Z",
+              "targetKw": 1000
+            }
+          ],
+          "requestedAt": "2026-09-27T00:14:27.343791Z",
+          "correlationId": "event_dir_1790468067",
+          "budget": "5s",
+          "measurementBoundary": "MEASUREMENT_BOUNDARY_METER_NET_EXPORT",
+          "devices": [
+            {
+              "deviceId": "device_bf95b2c3b700fe5bbac6",
+              "usableEnergyKwh": 39.013,
+              "energyKwh": 25.69023509918631,
+              "hardwareFloorKwh": 3.9013,
+              "effectiveReserveKwh": 3.9013,
+              "maxChargeKw": 7.608,
+              "maxDischargeKw": 6.477,
+              "chargeEfficiency": 0.9202,
+              "dischargeEfficiency": 0.9618,
+              "availabilityProbability": 1,
+              "telemetryObservedAt": "2026-09-27T00:14:14Z",
+              "loadZone": "LZ_AEN",
+              "siteId": "site_9d5ecb7e1fda8fcce5d0",
+              "reliabilityTrait": "HIGH"
+            },
+            {
+              "deviceId": "device_17802d8b9270b5c3abef",
+              "usableEnergyKwh": 37.242,
+              "energyKwh": 32.851622013190884,
+              "hardwareFloorKwh": 22.3452,
+              "effectiveReserveKwh": 22.3452,
+              "maxChargeKw": 5.163,
+              "maxDischargeKw": 6.466,
+              "chargeEfficiency": 0.9443,
+              "dischargeEfficiency": 0.9249,
+              "availabilityProbability": 1,
+              "telemetryObservedAt": "2026-09-27T00:14:14Z",
+              "loadZone": "LZ_AEN",
+              "siteId": "site_55d1340af829cb929d74",
+              "reliabilityTrait": "MEDIUM"
+            }
+          ],
+          "sites": [
+            {
+              "siteId": "site_9d5ecb7e1fda8fcce5d0",
+              "loadProfileType": "RESHIWR_SCENT",
+              "loadZone": "LZ_AEN",
+              "weatherZone": "SCENT"
+            },
+            {
+              "siteId": "site_55d1340af829cb929d74",
+              "loadProfileType": "RESHIWR_SCENT",
+              "loadZone": "LZ_AEN",
+              "weatherZone": "SCENT"
+            }
+          ]
+        }
+      }
+    },
+    "gridos.v1.OptimizationService.Optimize": {
+      "role": "service",
+      "body": {
+        "request": {
+          "requestId": "event_dir_1790468067",
+          "eventId": "event_dir_1790468067",
+          "planVersion": "1",
+          "eligibilitySnapshot": {
+            "eventId": "event_dir_1790468067",
+            "capturedAt": "2026-09-27T00:14:27.343791Z",
+            "eligibleDeviceIds": [
+              "device_bf95b2c3b700fe5bbac6",
+              "device_17802d8b9270b5c3abef"
+            ],
+            "policyVersion": "fleet-file"
+          },
+          "reservePolicy": {
+            "policyVersion": "fleet-file",
+            "effectiveAt": "2026-09-27T00:14:27.343791Z",
+            "expiresAt": "2026-09-27T01:16:27Z"
+          },
+          "intervals": [
+            {
+              "beginTime": "2026-09-27T00:16:27Z",
+              "endTime": "2026-09-27T01:16:27Z",
+              "targetKw": 1000
+            }
+          ],
+          "requestedAt": "2026-09-27T00:14:27.343791Z",
+          "correlationId": "event_dir_1790468067",
+          "budget": "0.000000001s",
+          "measurementBoundary": "MEASUREMENT_BOUNDARY_METER_NET_EXPORT",
+          "devices": [
+            {
+              "deviceId": "device_bf95b2c3b700fe5bbac6",
+              "usableEnergyKwh": 39.013,
+              "energyKwh": 25.69023509918631,
+              "hardwareFloorKwh": 3.9013,
+              "effectiveReserveKwh": 3.9013,
+              "maxChargeKw": 7.608,
+              "maxDischargeKw": 6.477,
+              "chargeEfficiency": 0.9202,
+              "dischargeEfficiency": 0.9618,
+              "availabilityProbability": 1,
+              "telemetryObservedAt": "2026-09-27T00:14:14Z",
+              "loadZone": "LZ_AEN",
+              "siteId": "site_9d5ecb7e1fda8fcce5d0",
+              "reliabilityTrait": "HIGH"
+            },
+            {
+              "deviceId": "device_17802d8b9270b5c3abef",
+              "usableEnergyKwh": 37.242,
+              "energyKwh": 32.851622013190884,
+              "hardwareFloorKwh": 22.3452,
+              "effectiveReserveKwh": 22.3452,
+              "maxChargeKw": 5.163,
+              "maxDischargeKw": 6.466,
+              "chargeEfficiency": 0.9443,
+              "dischargeEfficiency": 0.9249,
+              "availabilityProbability": 1,
+              "telemetryObservedAt": "2026-09-27T00:14:14Z",
+              "loadZone": "LZ_AEN",
+              "siteId": "site_55d1340af829cb929d74",
+              "reliabilityTrait": "MEDIUM"
+            }
+          ],
+          "sites": [
+            {
+              "siteId": "site_9d5ecb7e1fda8fcce5d0",
+              "loadProfileType": "RESHIWR_SCENT",
+              "loadZone": "LZ_AEN",
+              "weatherZone": "SCENT"
+            },
+            {
+              "siteId": "site_55d1340af829cb929d74",
+              "loadProfileType": "RESHIWR_SCENT",
+              "loadZone": "LZ_AEN",
+              "weatherZone": "SCENT"
+            }
+          ],
+          "forecast": {
+            "siteLoads": [
+              {
+                "siteId": "site_9d5ecb7e1fda8fcce5d0",
+                "intervalBeginTime": "2026-09-27T00:16:27Z",
+                "loadKwh": {
+                  "value": 1.8722266666666665,
+                  "lower": 1.6202266666666667,
+                  "upper": 2.1242266666666665,
+                  "featureVersion": "similar-day-weekday-v1",
+                  "modelVersion": "load-baseline-v1",
+                  "valueKind": "modeled_estimate",
+                  "provenance": "DATA_PROVENANCE_DERIVED",
+                  "trainingWindowBegin": "2025-01-01T06:00:00Z",
+                  "trainingWindowEnd": "2025-01-08T05:45:00Z",
+                  "issuedAt": "2026-09-27T00:14:27.343791Z",
+                  "horizon": "119.656209s"
+                }
+              },
+              {
+                "siteId": "site_55d1340af829cb929d74",
+                "intervalBeginTime": "2026-09-27T00:16:27Z",
+                "loadKwh": {
+                  "value": 1.8722266666666665,
+                  "lower": 1.6202266666666667,
+                  "upper": 2.1242266666666665,
+                  "featureVersion": "similar-day-weekday-v1",
+                  "modelVersion": "load-baseline-v1",
+                  "valueKind": "modeled_estimate",
+                  "provenance": "DATA_PROVENANCE_DERIVED",
+                  "trainingWindowBegin": "2025-01-01T06:00:00Z",
+                  "trainingWindowEnd": "2025-01-08T05:45:00Z",
+                  "issuedAt": "2026-09-27T00:14:27.343791Z",
+                  "horizon": "119.656209s"
+                }
+              }
+            ],
+            "deviceAvailability": [
+              {
+                "deviceId": "device_bf95b2c3b700fe5bbac6",
+                "intervalBeginTime": "2026-09-27T00:16:27Z",
+                "probability": {
+                  "value": 0.9469304421935948,
+                  "lower": 0.9469304421935948,
+                  "upper": 0.9469304421935948,
+                  "featureVersion": "reliability-freshness-v1",
+                  "modelVersion": "availability-baseline-v1",
+                  "valueKind": "modeled_estimate",
+                  "provenance": "DATA_PROVENANCE_DERIVED",
+                  "issuedAt": "2026-09-27T00:14:27.343791Z",
+                  "horizon": "119.656209s"
+                }
+              },
+              {
+                "deviceId": "device_17802d8b9270b5c3abef",
+                "intervalBeginTime": "2026-09-27T00:16:27Z",
+                "probability": {
+                  "value": 0.9086706263473888,
+                  "lower": 0.9086706263473888,
+                  "upper": 0.9086706263473888,
+                  "featureVersion": "reliability-freshness-v1",
+                  "modelVersion": "availability-baseline-v1",
+                  "valueKind": "modeled_estimate",
+                  "provenance": "DATA_PROVENANCE_DERIVED",
+                  "issuedAt": "2026-09-27T00:14:27.343791Z",
+                  "horizon": "119.656209s"
+                }
+              }
+            ],
+            "unavailableSources": [
+              "regional_price:LZ_AEN",
+              "outage_risk:site_9d5ecb7e1fda8fcce5d0"
+            ]
+          }
+        }
       }
     }
   }
