@@ -8,6 +8,17 @@ import (
 	"time"
 )
 
+func TestSourceAllowsLabelledSimulation(t *testing.T) {
+	now := time.Now().UTC()
+	stamp, err := source("SIMULATED", now.Add(-time.Minute), now)
+	if err != nil || stamp.Provenance != "SIMULATED" {
+		t.Fatalf("simulated source=%+v error=%v", stamp, err)
+	}
+	if _, err := source("UNVERIFIED", now.Add(-time.Minute), now); err == nil {
+		t.Fatal("unverified source was accepted")
+	}
+}
+
 func TestLoadPublicContextProvenanceFreshness(t *testing.T) {
 	now := time.Date(2026, 9, 26, 18, 0, 0, 0, time.UTC)
 	root := filepath.Join("..", "..", "..", "..", "testdata", "fixtures", "public")

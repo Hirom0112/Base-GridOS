@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -70,6 +71,14 @@ func loadForecast(path, city string, now time.Time) ([]Forecast, error) {
 }
 
 func loadAlerts(path, city string, now time.Time) ([]Alert, error) {
+	provenanceFile, err := os.ReadFile(filepath.Join(filepath.Dir(path), "PROVENANCE.md"))
+	if err != nil {
+		return nil, err
+	}
+	provenance, found := strings.CutPrefix(strings.SplitN(string(provenanceFile), "\n", 2)[0], "Provenance: ")
+	if !found {
+		return nil, errors.New("weather alert provenance is missing")
+	}
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
@@ -104,7 +113,7 @@ func loadAlerts(path, city string, now time.Time) ([]Alert, error) {
 		if sentErr != nil || effectiveErr != nil || expiresErr != nil || !effective.Before(expires) || properties.Event == "" {
 			return nil, errors.New("invalid weather alert")
 		}
-		stamp, err := source("CONFIRMED_PUBLIC", sent, now)
+		stamp, err := source(provenance, sent, now)
 		if err != nil {
 			return nil, err
 		}

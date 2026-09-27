@@ -94,7 +94,7 @@ func source(provenance string, asOf, now time.Time) (Source, error) {
 	if asOf.IsZero() || asOf.After(now) {
 		return Source{}, errors.New("public source timestamp is missing or in the future")
 	}
-	if provenance != "CONFIRMED_PUBLIC" && provenance != "DERIVED" {
+	if provenance != "CONFIRMED_PUBLIC" && provenance != "DERIVED" && provenance != "SIMULATED" {
 		return Source{}, errors.New("public source provenance is invalid")
 	}
 	return Source{Provenance: provenance, AsOf: asOf, Age: now.Sub(asOf)}, nil
