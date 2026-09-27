@@ -10,6 +10,7 @@ import (
 
 	"connectrpc.com/connect"
 	gridosv1 "github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1"
+	"github.com/Hirom0112/Base-GridOS/services/control/internal/storage"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -117,6 +118,24 @@ func TestPublishTelemetryDoesNotAcknowledgeFailedWrite(t *testing.T) {
 	if err == nil || response != nil {
 		t.Fatalf("response, error = %v, %v; want nil response and error", response, err)
 	}
+}
+
+func TestPublishTelemetryReturnsPermanentRejectionForExpiredObservation(t *testing.T) {
+	request := connect.NewRequest(&gridosv1.PublishTelemetryRequest{GatewayId: "gateway-1", Observations: []*gridosv1.TelemetryObservation{observation(1, gridosv1.ValueState_VALUE_STATE_PRESENT)}})
+	response, err := NewService(expiredStore{}, &recordingTwin{}, time.Now).PublishTelemetry(context.Background(), request)
+	if response != nil || connect.CodeOf(err) != connect.CodeInvalidArgument {
+		t.Fatalf("expired response, code = %v, %v; want nil, invalid argument", response, connect.CodeOf(err))
+	}
+	_, err = NewService(failingStore{}, &recordingTwin{}, time.Now).PublishTelemetry(context.Background(), request)
+	if connect.CodeOf(err) != connect.CodeInternal {
+		t.Fatalf("failed write code = %v; want internal", connect.CodeOf(err))
+	}
+}
+
+type expiredStore struct{}
+
+func (expiredStore) Write(context.Context, []*gridosv1.TelemetryObservation) ([]*gridosv1.TelemetryObservation, error) {
+	return nil, storage.ErrTelemetryExpired
 }
 
 type failingStore struct{}
