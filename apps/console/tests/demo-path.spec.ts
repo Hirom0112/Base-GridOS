@@ -156,7 +156,7 @@ test("seventeen-step severe-weather operating loop against the live demo", async
     ).toBeVisible({ timeout: 1000 });
   });
   await test.step("11 Seeded failure takes devices offline and delays a gateway", async () => {
-    const failures = page.getByRole("region", { name: "Scenario failures" });
+    const failures = page.getByRole("region", { name: "Recorded failures" });
     await expect(failures).toContainText(/MISSING[_ ]TELEMETRY/, {
       timeout: 180000,
     });

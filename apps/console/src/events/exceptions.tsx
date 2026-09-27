@@ -48,37 +48,69 @@ export function EventExceptions({
         subsequent acknowledgement and measured delivery.
       </p>
       {parsed.data.length ? (
-        <ol aria-label="Exception evidence">
-          {parsed.data.map((record, index) => {
-            const at = new Date(
-              Number(record.occurredAt.seconds) * 1000 +
-                record.occurredAt.nanos / 1000000,
-            ).toISOString();
-            return (
-              <li key={`${record.evidenceId}:${index}`}>
-                <div>
-                  <strong>{EventExceptionKind[record.kind]}</strong>
-                  <time className="mono" dateTime={at}>
-                    {at}
-                  </time>
-                </div>
-                <p>{record.detail || "No detail supplied by the server."}</p>
-                <p className="mono">
-                  Device: {record.deviceId || "Not supplied"} · Command:{" "}
-                  {record.commandId || "Not supplied"}
-                </p>
-                <p className="mono">
-                  Evidence: {record.evidenceId || "Not supplied"}
-                </p>
-              </li>
-            );
-          })}
-        </ol>
+        <>
+          <section aria-label="Recorded failures">
+            <h4>Recorded failures</h4>
+            <ExceptionRecords
+              records={records.filter((record) =>
+                [1, 2, 3, 6, 10].includes(record.kind),
+              )}
+              label="Failure evidence"
+            />
+          </section>
+          <section aria-label="Recovery decisions">
+            <h4>Recovery decisions</h4>
+            <ExceptionRecords
+              records={records.filter((record) =>
+                [4, 5, 7, 8, 9].includes(record.kind),
+              )}
+              label="Recovery evidence"
+            />
+          </section>
+        </>
       ) : (
         <p className="history-gap">
           No exception records returned by the server.
         </p>
       )}
     </section>
+  );
+}
+
+function ExceptionRecords({
+  records,
+  label,
+}: {
+  records: EventException[];
+  label: string;
+}) {
+  if (!records.length) return <p>No matching records returned.</p>;
+  return (
+    <ol aria-label={label}>
+      {records.map((record, index) => {
+        const at = new Date(
+          Number(record.occurredAt!.seconds) * 1000 +
+            record.occurredAt!.nanos / 1000000,
+        ).toISOString();
+        return (
+          <li key={`${record.evidenceId}:${index}`}>
+            <div>
+              <strong>{EventExceptionKind[record.kind]}</strong>
+              <time className="mono" dateTime={at}>
+                {at}
+              </time>
+            </div>
+            <p>{record.detail || "No detail supplied by the server."}</p>
+            <p className="mono">
+              Device: {record.deviceId || "Not supplied"} · Command:{" "}
+              {record.commandId || "Not supplied"}
+            </p>
+            <p className="mono">
+              Evidence: {record.evidenceId || "Not supplied"}
+            </p>
+          </li>
+        );
+      })}
+    </ol>
   );
 }
