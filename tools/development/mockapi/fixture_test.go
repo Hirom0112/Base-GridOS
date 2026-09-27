@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -44,6 +45,71 @@ func TestFixturesCapturePlanningCases(t *testing.T) {
 	readPlanningFixture(t, root, "DispatchService/ValidateUnsafeAlternative.json", unsafe)
 	if unsafe.GetApproved() || len(unsafe.GetViolations()) == 0 || unsafe.GetOperatorExplanation() == "" {
 		t.Fatal("recorded unsafe alternative lacks a violation explanation")
+	}
+}
+
+func TestFixturesCaptureContextGeo(t *testing.T) {
+	root := filepath.Join(repositoryRoot(t), "testdata", "fixtures", "api")
+	market := new(gridosv1.GetMarketContextResponse)
+	readPlanningFixture(t, root, "ContextService/GetMarketContext.json", market)
+	if len(market.GetDayAheadPrices()) == 0 || len(market.GetRealTimePrices()) == 0 || len(market.GetSystemLoads()) == 0 || market.GetDayAheadPrices()[0].GetSource().GetAsOf() == nil {
+		t.Fatal("recorded market context lacks priced and sourced public data")
+	}
+	weather := new(gridosv1.GetWeatherContextResponse)
+	readPlanningFixture(t, root, "ContextService/GetWeatherContext.json", weather)
+	if len(weather.GetForecasts()) == 0 || weather.GetForecasts()[0].GetSource().GetAsOf() == nil {
+		t.Fatal("recorded weather context lacks sourced forecasts")
+	}
+	outage := new(gridosv1.GetOutageRiskResponse)
+	readPlanningFixture(t, root, "ContextService/GetOutageRisk.json", outage)
+	if len(outage.GetRates()) == 0 || outage.GetRates()[0].GetSource().GetAsOf() == nil {
+		t.Fatal("recorded outage risk lacks sourced rates")
+	}
+	windows := new(gridosv1.ListDispatchWindowsResponse)
+	readPlanningFixture(t, root, "ContextService/ListDispatchWindows.json", windows)
+	if len(windows.GetWindows()) < 2 || windows.GetWindows()[0].GetValueKind() != "modeled_estimate" {
+		t.Fatal("recorded dispatch windows lack modeled ranking")
+	}
+	for _, resolution := range []uint64{5, 6, 7} {
+		cells := new(gridosv1.ListCellsResponse)
+		readPlanningFixture(t, root, "GeoService/ListCells.res"+strconv.FormatUint(resolution, 10)+".json", cells)
+		foundResolution := false
+		for _, cell := range cells.GetCells() {
+			index, err := strconv.ParseUint(cell.GetH3Cell(), 16, 64)
+			if err != nil || cell.GetSiteCount() < 5 || cell.GetProvenance() != gridosv1.DataProvenance_DATA_PROVENANCE_SIMULATED || (index>>52)&15 > resolution {
+				t.Fatalf("recorded resolution %d cell violates privacy or provenance: %s", resolution, cell.GetH3Cell())
+			}
+			foundResolution = foundResolution || (index>>52)&15 == resolution
+		}
+		if !foundResolution {
+			t.Fatalf("recorded resolution %d has no cells at the requested resolution", resolution)
+		}
+	}
+	path := []string{"market:ERCOT", "load_zone:LZ_AEN", "utility:LZ_AEN", "substation:LZ_AEN:85489e37fffffff", "feeder:LZ_AEN:86489e367ffffff"}
+	for index, level := range []string{"root", "market", "load_zone", "utility", "substation", "feeder"} {
+		response := new(gridosv1.DrilldownResponse)
+		name := "GeoService/Drilldown." + level + ".json"
+		if level == "root" {
+			name = "GeoService/Drilldown.json"
+		}
+		readPlanningFixture(t, root, name, response)
+		if level == "feeder" {
+			if len(response.GetSites()) == 0 {
+				t.Fatal("recorded drilldown path has no authorized sites")
+			}
+			continue
+		}
+		parent := ""
+		if index > 0 {
+			parent = path[index-1]
+		}
+		found := false
+		for _, node := range response.GetNodes() {
+			found = found || node.GetId() == path[index] && node.GetParentId() == parent && node.GetProvenance() == gridosv1.DataProvenance_DATA_PROVENANCE_SIMULATED
+		}
+		if !found {
+			t.Fatalf("recorded drilldown path breaks at %s", level)
+		}
 	}
 }
 
