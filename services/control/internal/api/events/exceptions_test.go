@@ -33,9 +33,11 @@ func TestExceptionsFromDurableEvidence(t *testing.T) {
 		INSERT INTO plan_versions (event_id, version, input_snapshot_id, eligibility_snapshot_id, plan, solver_version, model_version, correlation_id)
 		VALUES ('event-exception', 2, 'input-exception', 'eligibility-exception', '{"deviceSchedules":[{"deviceId":"device-2"}]}', 'fallback-1', 'model-1', 'exception');
 		INSERT INTO command_intents (command_id, idempotency_key, device_id, event_id, plan_version, generation, setpoint_kw, issued_at, effective_at, expires_at, policy_version, correlation_id)
-		VALUES ('command-1', 'key-command-1', 'device-1', 'event-exception', 1, 0, 10, $1, $1, $1::timestamptz + interval '1 hour', 'policy-1', 'exception');
+		VALUES ('command-1', 'key-command-1', 'device-1', 'event-exception', 1, 5, 10, $1, $1, $1::timestamptz + interval '1 hour', 'policy-1', 'exception');
 		INSERT INTO command_intents (command_id, idempotency_key, device_id, event_id, plan_version, generation, setpoint_kw, issued_at, effective_at, expires_at, policy_version, correlation_id)
-		VALUES ('command-2', 'key-command-2', 'device-2', 'event-exception', 2, 1, 10, $1::timestamptz + interval '5 minutes', $1::timestamptz + interval '5 minutes', $1::timestamptz + interval '1 hour', 'policy-1', 'exception');
+		VALUES ('command-2', 'key-command-2', 'device-2', 'event-exception', 2, 6, 10, $1::timestamptz + interval '5 minutes', $1::timestamptz + interval '5 minutes', $1::timestamptz + interval '1 hour', 'policy-1', 'exception');
+		INSERT INTO command_intents (command_id, idempotency_key, device_id, event_id, plan_version, generation, setpoint_kw, issued_at, effective_at, expires_at, policy_version, correlation_id)
+		VALUES ('command-3', 'key-command-3', 'device-2', 'event-exception', 2, 7, 0, $1::timestamptz + interval '6 minutes', $1::timestamptz + interval '6 minutes', $1::timestamptz + interval '1 hour', 'policy-1', 'exception');
 		INSERT INTO command_states (command_id, state, recorded_at, correlation_id)
 		VALUES ('command-1', 'SENT', $1, 'exception'), ('command-1', 'UNCERTAIN', $1::timestamptz + interval '2 minutes', 'exception'), ('command-1', 'ACKNOWLEDGED', $1::timestamptz + interval '4 minutes', 'exception');
 		INSERT INTO command_acknowledgements (acknowledgement_id, command_id, idempotency_key, receipt_status, received_at, gateway_id, correlation_id)
@@ -58,6 +60,18 @@ func TestExceptionsFromDurableEvidence(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	assertExceptionEvidence(t, response.Msg.GetExceptions())
+	snapshot, err := source.Snapshot(ctx, "event-exception")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(snapshot.GetExceptions()) != len(response.Msg.GetExceptions()) {
+		t.Fatalf("watch exceptions = %d, timeline exceptions = %d", len(snapshot.GetExceptions()), len(response.Msg.GetExceptions()))
+	}
+}
+
+func assertExceptionEvidence(t *testing.T, exceptions []*gridosv1.EventException) {
+	t.Helper()
 	want := map[gridosv1.EventExceptionKind]string{
 		gridosv1.EventExceptionKind_EVENT_EXCEPTION_KIND_MISSING_TELEMETRY:      "observation-1",
 		gridosv1.EventExceptionKind_EVENT_EXCEPTION_KIND_UNCERTAIN_COMMAND:      "command-1",
@@ -67,7 +81,10 @@ func TestExceptionsFromDurableEvidence(t *testing.T) {
 		gridosv1.EventExceptionKind_EVENT_EXCEPTION_KIND_STALE_CAPACITY_REMOVED: "",
 		gridosv1.EventExceptionKind_EVENT_EXCEPTION_KIND_REBALANCED_COMMAND:     "command-2",
 	}
-	for _, exception := range response.Msg.GetExceptions() {
+	for _, exception := range exceptions {
+		if exception.GetKind() == gridosv1.EventExceptionKind_EVENT_EXCEPTION_KIND_REBALANCED_COMMAND && exception.GetCommandId() == "command-3" {
+			t.Fatal("zero-setpoint stop was classified as a rebalance")
+		}
 		if exception.GetEventId() != "event-exception" || exception.GetOccurredAt() == nil || exception.GetEvidenceId() == "" {
 			t.Fatalf("incomplete exception: %v", exception)
 		}
@@ -86,13 +103,6 @@ func TestExceptionsFromDurableEvidence(t *testing.T) {
 	}
 	if len(want) != 0 {
 		t.Fatalf("missing exception kinds: %v", want)
-	}
-	snapshot, err := source.Snapshot(ctx, "event-exception")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(snapshot.GetExceptions()) != len(response.Msg.GetExceptions()) {
-		t.Fatalf("watch exceptions = %d, timeline exceptions = %d", len(snapshot.GetExceptions()), len(response.Msg.GetExceptions()))
 	}
 }
 
