@@ -8,7 +8,7 @@ import { recordedApi } from "./recorded-api";
 
 test("queued planning has no invented plan version or premature approval", async ({
   page,
-}) => {
+}, testInfo) => {
   await recordedApi(page);
   const recorded = await readFile(
     resolve(
@@ -40,15 +40,18 @@ test("queued planning has no invented plan version or premature approval", async
   await expect(page.locator(".event-identifiers")).toContainText(
     "Plan pending",
   );
-  await expect(page.locator(".event-panel").getByRole("status")).toContainText(
-    "Planning is queued",
-  );
+  await expect(
+    page
+      .locator(".event-panel")
+      .getByRole("status")
+      .filter({ hasText: "Planning is queued" }),
+  ).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Review approval" }),
   ).toHaveCount(0);
   await page
     .locator(".event-panel")
-    .screenshot({ path: "test-results/planning-queued.png" });
+    .screenshot({ path: testInfo.outputPath("planning-queued.png") });
   validated = true;
   await expect(
     page.getByRole("heading", { name: "Safety validated" }),

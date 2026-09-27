@@ -7,7 +7,7 @@ import { recordedApi } from "./recorded-api";
 for (const width of [390, 1440]) {
   test(`approval and launch require separate server-backed confirmations at ${width}`, async ({
     page,
-  }) => {
+  }, testInfo) => {
     await page.setViewportSize({ width, height: 900 });
     await recordedApi(page);
     const responses = await Promise.all(
@@ -28,7 +28,8 @@ for (const width of [390, 1440]) {
     const commands: string[] = [];
     await page.route("**/rpc/gridos.v1.DispatchService/*", async (route) => {
       const method = new URL(route.request().url()).pathname.split("/").at(-1);
-      if (method === "CreateEventRequest") return route.fallback();
+      if (!["GetEvent", "ApproveEvent", "LaunchEvent"].includes(method ?? ""))
+        return route.fallback();
       if (method === "ApproveEvent") {
         commands.push(method);
         event = { ...event, ...responses[1] };
@@ -65,7 +66,7 @@ for (const width of [390, 1440]) {
         .violations,
     ).toEqual([]);
     await page.screenshot({
-      path: `test-results/approval-dialog-${width}.png`,
+      path: testInfo.outputPath(`approval-dialog-${width}.png`),
     });
     await page.getByRole("button", { name: "Confirm approval" }).click();
     await expect(
@@ -75,34 +76,44 @@ for (const width of [390, 1440]) {
     await expect(page.getByText("No launch record returned")).toBeVisible();
     await page.getByRole("button", { name: "Review launch" }).click();
     await page.getByLabel("Type plan version 1").fill("1");
-    await page.screenshot({ path: `test-results/launch-dialog-${width}.png` });
+    await page.screenshot({
+      path: testInfo.outputPath(`launch-dialog-${width}.png`),
+    });
     await page.getByRole("button", { name: "Confirm launch" }).click();
     await expect(
       page.getByRole("heading", {
-        name: "Acknowledged or uncertain",
+        name: "Approved",
         exact: true,
       }),
     ).toBeVisible();
     expect(commands).toEqual(["ApproveEvent", "LaunchEvent"]);
+    await expect(page.getByText("No launch record returned")).toBeVisible();
+    await expect(
+      page.getByText("Commands have not been reported sent"),
+    ).toBeVisible();
     await page.getByRole("link", { name: "Execution", exact: true }).click();
     await expect(
-      page.getByText("Awaiting measured delivery evidence"),
-    ).toBeVisible();
+      page
+        .getByRole("region", { name: "Measured event response" })
+        .getByRole("alert"),
+    ).toContainText("Live connection unavailable");
     await page.screenshot({
-      path: `test-results/execution-${width}.png`,
+      path: testInfo.outputPath(`execution-${width}.png`),
       fullPage: true,
     });
     await page.getByRole("link", { name: "Report", exact: true }).click();
     await expect(
       page.getByRole("heading", { name: "Event evidence" }),
     ).toBeVisible();
-    await expect(page.getByText(/Verified delivery, replay/)).toBeVisible();
+    await expect(
+      page.getByRole("region", { name: "Event report", exact: true }),
+    ).toBeVisible();
     expect(
       (await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze())
         .violations,
     ).toEqual([]);
     await page.screenshot({
-      path: `test-results/report-${width}.png`,
+      path: testInfo.outputPath(`report-${width}.png`),
       fullPage: true,
     });
     await page
