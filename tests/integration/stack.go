@@ -102,13 +102,17 @@ func startStack(t *testing.T, scenarioName string) *stack {
 	stack.pool = pool
 	decisionAddress, gatewayAddress, controlAddress := freeAddress(t), freeAddress(t), freeAddress(t)
 	stack.decisionURL, stack.gatewayURL, stack.controlURL = "http://"+decisionAddress, "http://"+gatewayAddress, "http://"+controlAddress
-	stack.start(t, "decision", decisionAddress, nil, "uv", "run", "--project", "services/decision", "python", "-m", "gridos.server", "--port", port(t, decisionAddress))
+	var decisionEnv []string
+	if scenario.Name == "optimizer-timeout-fallback" {
+		decisionEnv = []string{"GRIDOS_SOLVER_BUDGET_SECONDS=0.000001"}
+	}
+	stack.start(t, "decision", decisionAddress, decisionEnv, "uv", "run", "--project", "services/decision", "python", "-m", "gridos.server", "--port", port(t, decisionAddress))
 	stack.start(t, "gateway", gatewayAddress, []string{"GRIDOS_GATEWAY_TOKEN=" + gatewayToken}, built.gateway,
 		"--scenario", runtimeScenarioPath, "--address", gatewayAddress, "--database", stack.gatewayDB, "--gateway-id", gatewayID, "--cadence", "5s", "--control-address", stack.controlURL)
 	controlEnv := []string{
 		"GRIDOS_CONTROL_ADDRESS=" + controlAddress, "GRIDOS_DATABASE_URL=" + stack.databaseURL, "GRIDOS_GATEWAY_ADDR=" + stack.gatewayURL,
 		"GRIDOS_DECISION_ADDR=" + stack.decisionURL, "GRIDOS_FLEET=" + scenario.Fleet.Path, "GRIDOS_GATEWAY_TOKEN=" + gatewayToken, "TEMPORAL_ADDRESS=" + temporalAddress,
-		"GRIDOS_TASK_QUEUE=" + name,
+		"GRIDOS_TASK_QUEUE=" + name, "GRIDOS_SCENARIO=" + runtimeScenarioPath,
 	}
 	stack.start(t, "control", controlAddress, controlEnv, built.control)
 	stack.start(t, "worker", "", controlEnv, built.worker)

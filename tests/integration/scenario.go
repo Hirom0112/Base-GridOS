@@ -96,15 +96,19 @@ func (scenario Scenario) retime(now time.Time) Scenario {
 }
 
 func (stack *stack) cohort(t *testing.T) []FleetDevice {
+	return stack.fleetDevices(t, cohortSize)
+}
+
+func (stack *stack) fleetDevices(t *testing.T, count int) []FleetDevice {
 	t.Helper()
 	file, err := os.Open(filepath.Join(stack.root, stack.scenario.Fleet.Path))
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer func() { _ = file.Close() }()
-	devices := make([]FleetDevice, 0, cohortSize)
+	devices := make([]FleetDevice, 0, count)
 	scanner := bufio.NewScanner(file)
-	for scanner.Scan() && len(devices) < cohortSize {
+	for scanner.Scan() && len(devices) < count {
 		var device FleetDevice
 		if err = json.Unmarshal(scanner.Bytes(), &device); err != nil {
 			t.Fatal(err)
@@ -116,8 +120,8 @@ func (stack *stack) cohort(t *testing.T) []FleetDevice {
 	if err = scanner.Err(); err != nil {
 		t.Fatal(err)
 	}
-	if len(devices) < cohortSize {
-		t.Fatalf("fleet %s holds %d devices in %s, cohort needs %d", stack.scenario.Fleet.Path, len(devices), stack.scenario.Event.Region, cohortSize)
+	if len(devices) < count {
+		t.Fatalf("fleet %s holds %d devices in %s, scenario needs %d", stack.scenario.Fleet.Path, len(devices), stack.scenario.Event.Region, count)
 	}
 	return devices
 }
