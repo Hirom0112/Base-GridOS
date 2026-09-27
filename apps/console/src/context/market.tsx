@@ -8,7 +8,7 @@ import { ContextEvidence, sourceSchema } from "./source";
 
 const priceSchema = z.object({
   intervalEnd: evidenceSchema.shape.timestamp,
-  settlementPoint: z.string().min(1),
+  settlementPoint: z.literal("LZ_AEN"),
   usdPerMwh: z.number().finite(),
   source: sourceSchema,
 });
@@ -18,7 +18,7 @@ const marketSchema = z.object({
   systemLoads: z.array(
     z.object({
       intervalEnd: evidenceSchema.shape.timestamp,
-      weatherZone: z.string().min(1),
+      weatherZone: z.literal("SOUTH_C"),
       mw: z.number().nonnegative(),
       source: sourceSchema,
     }),
@@ -64,8 +64,8 @@ export function MarketEvidence({ data }: { data: GetMarketContextResponse }) {
   return (
     <>
       <p className="boundary-note">
-        Austin LZ_AEN prices and SOUTH_C load are missing from this reference
-        request. HB_HOUSTON and NORTH_C describe other regions.
+        Austin reference prices cover LZ_AEN; regional load covers SOUTH_C.
+        Source dates may differ from the event window.
       </p>
       {tables.map(({ name, rows }) => (
         <section key={name}>
@@ -117,16 +117,16 @@ export function MarketEvidence({ data }: { data: GetMarketContextResponse }) {
 export function MarketContext() {
   const { client, identity } = useSession();
   const query = useQuery({
-    queryKey: ["market-context", "HB_HOUSTON", "NORTH_C", identity.role],
+    queryKey: ["market-context", "LZ_AEN", "SOUTH_C", identity.role],
     queryFn: ({ signal }) =>
       client.context.getMarketContext(
-        { settlementPoint: "HB_HOUSTON", weatherZone: "NORTH_C" },
+        { settlementPoint: "LZ_AEN", weatherZone: "SOUTH_C" },
         { signal },
       ),
   });
   return (
     <details>
-      <summary>Inspect reference markets · Houston and North Central</summary>
+      <summary>Inspect Austin markets · LZ_AEN and SOUTH_C</summary>
       {query.isPending && <p role="status">Loading reference markets…</p>}
       {query.isError && (
         <p role="alert">
