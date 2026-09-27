@@ -809,3 +809,10 @@ assumptions reported by workers land here too.
   a backtest window and returns member savings and company margin as
   SIMULATED values with source lineage; no measured savings are claimed.
   Director: test passes, mypy clean over 27 files.
+- **4A.1 and 4A.2 (lane 4A), verified:** a plan selection applies only
+  with consent text, version, effective time, and the explanation shown;
+  names, bands, prices, and rewards come from an immutable versioned
+  catalog row referenced by foreign key; the idempotency key rejects a
+  replay with different consent or plan; an inactive catalog is refused.
+  Migration 0008 applies twice and survives rollback and re-apply.
+  Director: policy package tests pass.

@@ -1306,11 +1306,11 @@ Owns: `services/control/internal/fleet/policy/`,
 (handler registration), `database/migrations/` and `database/queries/`
 (additions only), `services/control/go.mod` (Wave 4 owner).
 
-- `[ ]` 4A.1 `[P]` RED: `policy_test.go`: only a consented, effective-dated
+- `[x]` 4A.1 `[P]` RED: `policy_test.go`: only a consented, effective-dated
   plan applies; a plan change records consent text, version, effective time,
   and the explanation shown (FULL_SPEC §5.10); plan names, bands, prices, and
   rewards come from a versioned market catalog, never constants. Verify: fails.
-- `[ ]` 4A.2 `[P]` GREEN: `fleet/policy` with catalog loading from
+- `[x]` 4A.2 `[P]` GREEN: `fleet/policy` with catalog loading from
   `pricing_catalog_snapshots`. Verify: `go test ./services/control/internal/fleet/policy/` passes.
 - `[ ]` 4A.3 `[P]` RED then GREEN: Travel Flex lifecycle. Window applies only
   between consented start and end in its local timezone, expires
