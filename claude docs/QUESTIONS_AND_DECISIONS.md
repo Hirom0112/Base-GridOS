@@ -863,3 +863,11 @@ assumptions reported by workers land here too.
   demo from HEAD. Lane 4A was ordered to commit 0010_member_sites before
   anything else. Rule recorded: a commit that references a table its
   migrations do not create is red even when the hook passes.
+- **4E.7 (lane 4E), verified:** `ReportService.GetEventReport` returns
+  the stored report for a REPORTED event and the live view otherwise,
+  applies the partner redaction on request, and denies partner callers the
+  full view and unauthorized roles any view; the transport test proves
+  private device data appears only in the full view. It stays in
+  `api.proto` (479 lines) because buf breaking forbids moving committed
+  symbols between files. Director: report package ok, control builds; the
+  demo curl follows the demo rebuild after migration 0010.

@@ -1436,7 +1436,7 @@ Owns: `services/control/internal/report/`.
   stored delivery, and lists every field it cannot source as an explicit
   data gap; modeled economics stay a named gap until 4B.5 and 4E.4 land.
   Nothing is estimated in the report source. Verify: `go test ./services/control/internal/api/ -run LiveReport` passes and a demo event's report shows baseline values with provenance and an economics gap.
-- `[ ]` 4E.7 `[after 4E.6]` Full report over the API. `GetEvent` carries only
+- `[x]` 4E.7 `[after 4E.6]` Full report over the API. `GetEvent` carries only
   `BasicEventReport`; the complete report from 4E.1 (baseline, measurement,
   economics, gaps, assumptions, versions) is unreachable from the console.
   Additive `GetEventReport` on a new `ReportService` in `api.proto` returning
