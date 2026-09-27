@@ -302,11 +302,19 @@ test("live member selects stored terms, schedules Travel Flex and returns early"
   await page
     .getByLabel("Site ID", { exact: true })
     .fill("site_9d5ecb7e1fda8fcce5d0");
+  const household = page.waitForResponse(
+    "**/gridos.v1.MemberService/GetMemberStatus",
+  );
   await page.getByRole("button", { name: "Open household" }).click();
-  await page.getByRole("button", { name: "View Balanced plan" }).click();
+  const current = z
+    .object({ currentPlan: z.object({ memberPlanId: z.string() }).optional() })
+    .parse(await (await household).json());
+  const plan =
+    current.currentPlan?.memberPlanId === "balanced" ? "Maximum" : "Balanced";
+  await page.getByRole("button", { name: `View ${plan} plan` }).click();
   await expect(
-    page.getByRole("region", { name: "Review Balanced", exact: true }),
-  ).toContainText("reserve-sim-balanced-1");
+    page.getByRole("region", { name: `Review ${plan}`, exact: true }),
+  ).toContainText(`reserve-sim-${plan.toLowerCase()}-1`);
   await page.getByRole("button", { name: "Review offer" }).click();
   await page
     .getByRole("checkbox", { name: "I agree to the displayed plan terms." })
@@ -315,10 +323,11 @@ test("live member selects stored terms, schedules Travel Flex and returns early"
     "**/gridos.v1.MemberService/SelectResiliencePlan",
   );
   await page.getByRole("button", { name: "Confirm plan" }).click();
-  expect((await selection).ok()).toBe(true);
+  const selectedResponse = await selection;
+  expect(selectedResponse.ok(), await selectedResponse.text()).toBe(true);
   await expect(page.getByText(/Plan selection recorded/)).toBeVisible();
   await page.getByRole("button", { name: "Browse offers" }).click();
-  await page.getByRole("button", { name: "View Balanced Travel Flex" }).click();
+  await page.getByRole("button", { name: `View ${plan} Travel Flex` }).click();
   await page.getByRole("button", { name: "Review offer" }).click();
   await expect(page.getByLabel("Travel starts")).toBeVisible();
   const begins = Math.ceil((Date.now() + 10000) / 60000) * 60000;
