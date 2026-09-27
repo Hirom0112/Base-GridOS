@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 	"time"
 
@@ -10,10 +11,11 @@ import (
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/fleet/policy"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/safety"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-func TestTravelFlexFreezeRequiresBoundActiveConsent(t *testing.T) {
+func TestTravelFlexReserveBasisFreezeRequiresBoundActiveConsent(t *testing.T) {
 	pool := apiTestDatabase(t)
 	ctx := context.Background()
 	now := time.Date(2026, 9, 26, 12, 0, 0, 0, time.UTC)
@@ -55,6 +57,56 @@ func TestTravelFlexFreezeRequiresBoundActiveConsent(t *testing.T) {
 	require.NotNil(t, frozen.Canonical.Devices[bound.GetDeviceId()].TravelFlexReserveKWh)
 	require.Equal(t, 2.0, *frozen.Canonical.Devices[bound.GetDeviceId()].TravelFlexReserveKWh)
 	require.False(t, frozen.Optimization.GetDevices()[1].TravelFlexReserveKwh != nil)
+	require.NoError(t, store.ApplyOverride(ctx, policy.ReserveOverride{ID: "weather-freeze", MemberID: "member-flex", Reason: policy.OverrideWeather, FloorPercent: 40, EffectiveAt: now.Add(-time.Second), ExpiresAt: now.Add(time.Minute), PolicyVersion: "policy-freeze", EvidenceID: "alert-freeze", CorrelationID: "freeze"}))
+	frozen, err = snapshotter.Freeze(ctx, &gridosv1.DispatchEvent{EventId: "event-reserve-basis"}, &gridosv1.EventRequest{RequestId: "request-reserve-basis", BeginTime: timestamppb.New(now), EndTime: timestamppb.New(now.Add(time.Minute)), TargetKw: 1})
+	require.NoError(t, err)
+	encoded, err := protojson.Marshal(frozen.Optimization.GetEligibilitySnapshot())
+	require.NoError(t, err)
+	var evidence struct {
+		ReserveBases []struct {
+			DeviceID            string  `json:"deviceId"`
+			PlanReserveKwh      float64 `json:"planReserveKwh"`
+			OverrideFloorKwh    float64 `json:"overrideFloorKwh"`
+			OverrideReason      string  `json:"overrideReason"`
+			OverrideSourceID    string  `json:"overrideSourceId"`
+			PolicyVersion       string  `json:"policyVersion"`
+			EffectiveReserveKwh float64 `json:"effectiveReserveKwh"`
+			Provenance          string  `json:"provenance"`
+			IssuedAt            string  `json:"issuedAt"`
+		} `json:"reserveBases"`
+		TravelFlexBindings []struct {
+			WindowID       string `json:"windowId"`
+			SiteID         string `json:"siteId"`
+			CreditType     string `json:"creditType"`
+			CreditCents    string `json:"creditCents"`
+			ConsentVersion string `json:"consentVersion"`
+			Provenance     string `json:"provenance"`
+			IssuedAt       string `json:"issuedAt"`
+		} `json:"travelFlexBindings"`
+	}
+	require.NoError(t, json.Unmarshal(encoded, &evidence))
+	basis := evidence.ReserveBases
+	require.Len(t, basis, 2)
+	require.Equal(t, "device-site-flex", basis[0].DeviceID)
+	require.Equal(t, 6.5, basis[0].PlanReserveKwh)
+	require.Equal(t, 4.0, basis[0].OverrideFloorKwh)
+	require.Equal(t, "RESERVE_OVERRIDE_REASON_WEATHER", basis[0].OverrideReason)
+	require.Equal(t, "alert-freeze", basis[0].OverrideSourceID)
+	require.Equal(t, "policy-freeze", basis[0].PolicyVersion)
+	require.Equal(t, 6.5, basis[0].EffectiveReserveKwh)
+	require.Equal(t, "DATA_PROVENANCE_SIMULATED", basis[0].Provenance)
+	require.Equal(t, now.Format(time.RFC3339), basis[0].IssuedAt)
+	require.Equal(t, "device-site-unbound", basis[1].DeviceID)
+	require.Empty(t, basis[1].OverrideSourceID)
+	bindings := evidence.TravelFlexBindings
+	require.Len(t, bindings, 1)
+	require.Equal(t, "window-freeze", bindings[0].WindowID)
+	require.Equal(t, "site-flex", bindings[0].SiteID)
+	require.Equal(t, "TRAVEL_FLEX_CREDIT_TYPE_FIXED_EVENT", bindings[0].CreditType)
+	require.Equal(t, "100", bindings[0].CreditCents)
+	require.Equal(t, "v1", bindings[0].ConsentVersion)
+	require.Equal(t, "DATA_PROVENANCE_SIMULATED", bindings[0].Provenance)
+	require.Equal(t, now.Format(time.RFC3339), bindings[0].IssuedAt)
 }
 
 func TestReserveSelectionFromFrozenIsEnforced(t *testing.T) {

@@ -185,3 +185,42 @@ func TestGetPlanExplanationFrozenRegionalEvidence(t *testing.T) {
 		}
 	}
 }
+
+func TestGetPlanExplanationReserveBasisUsesFrozenEligibilityAndPlan(t *testing.T) {
+	now := time.Date(2026, 9, 26, 12, 0, 0, 0, time.UTC)
+	events := NewMemoryEventStore()
+	events.Put(&gridosv1.DispatchEvent{EventId: "event-reserve-basis", PlanVersion: 1})
+	eligibility := new(gridosv1.EligibilitySnapshot)
+	if err := protojson.Unmarshal([]byte(`{"reserveBases":[{"deviceId":"device-1","hardwareFloorKwh":1,"planReserveKwh":6,"overrideFloorKwh":8,"overrideReason":"RESERVE_OVERRIDE_REASON_WEATHER","overrideSourceId":"alert-1","policyVersion":"policy-v1","effectiveReserveKwh":8,"provenance":"DATA_PROVENANCE_SIMULATED","issuedAt":"2026-09-26T12:00:00Z"}],"travelFlexBindings":[{"windowId":"window-1","siteId":"site-1","creditType":"TRAVEL_FLEX_CREDIT_TYPE_FIXED_EVENT","creditCents":"500","provenance":"DATA_PROVENANCE_SIMULATED","issuedAt":"2026-09-26T12:00:00Z"}]}`), eligibility); err != nil {
+		t.Fatal(err)
+	}
+	store := explanationStore{EventStore: events,
+		request: &gridosv1.OptimizationRequest{Devices: []*gridosv1.DeviceState{{DeviceId: "device-1", EffectiveReserveKwh: 8}}, EligibilitySnapshot: eligibility},
+		plan:    &gridosv1.DispatchPlan{EventId: "event-reserve-basis", PlanVersion: 1, DeviceSchedules: []*gridosv1.DeviceSchedule{{DeviceId: "device-1", ReserveSelection: gridosv1.ReserveSelection_RESERVE_SELECTION_TRAVEL_FLEX, SelectedReserveKwh: 8}}},
+	}
+	request := connect.NewRequest(&gridosv1.GetPlanExplanationRequest{EventId: "event-reserve-basis", PlanVersion: 1})
+	request.Header().Set(roleHeader, "analyst")
+	response, err := NewService(store, nil, nil, func() time.Time { return now }).GetPlanExplanation(context.Background(), request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	encoded, err := protojson.Marshal(response.Msg.GetEvidence())
+	if err != nil {
+		t.Fatal(err)
+	}
+	var evidence struct {
+		ReserveBases []struct {
+			OverrideSourceID    string  `json:"overrideSourceId"`
+			EffectiveReserveKwh float64 `json:"effectiveReserveKwh"`
+		} `json:"reserveBases"`
+		TravelFlexBindings []struct {
+			CreditCents string `json:"creditCents"`
+		} `json:"travelFlexBindings"`
+	}
+	if err := json.Unmarshal(encoded, &evidence); err != nil {
+		t.Fatal(err)
+	}
+	if len(evidence.ReserveBases) != 1 || evidence.ReserveBases[0].OverrideSourceID != "alert-1" || evidence.ReserveBases[0].EffectiveReserveKwh != 8 || len(evidence.TravelFlexBindings) != 1 || evidence.TravelFlexBindings[0].CreditCents != "500" {
+		t.Fatalf("frozen reserve evidence = %s", encoded)
+	}
+}
