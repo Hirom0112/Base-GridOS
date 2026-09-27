@@ -2106,7 +2106,7 @@ COMMUNICATIONS override and one Travel Flex binding; `go test
 here. The override, window and event rows match on the demo. Marked done;
 the seeding window is closed and the demo reopened to the console.
 
-## 2026-09-27 09:20Z — Demo step 7 proven live
+## 2026-09-27 09:15Z — Demo step 7 proven live
 
 The console's step 7 proof against the seeded event passed here too
 (`playwright test --config playwright.live.config.ts -g 'live frozen reserve'`:
