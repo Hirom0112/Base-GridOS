@@ -4,7 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"math"
+	"time"
 
+	gridosv1 "github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/reconciliation"
 	reporting "github.com/Hirom0112/Base-GridOS/services/control/internal/report"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/storage"
@@ -28,10 +31,12 @@ func (source *PostgresReportSource) EventReportData(ctx context.Context, eventID
 	var report reporting.StoredEvent
 	var approved bool
 	var planVersion int64
+	var begin, end time.Time
 	err := source.pool.QueryRow(ctx, `SELECT request.target_kw / 1000.0, event.plan_version,
+		request.begin_time, request.end_time,
         EXISTS (SELECT 1 FROM operator_approvals WHERE event_id = event.event_id AND decision = 'APPROVED')
         FROM dispatch_events AS event JOIN dispatch_requests AS request USING (request_id)
-		WHERE event.event_id = $1`, eventID).Scan(&report.RequestedMW, &planVersion, &approved)
+		WHERE event.event_id = $1`, eventID).Scan(&report.RequestedMW, &planVersion, &begin, &end, &approved)
 	if err != nil {
 		return report, err
 	}
@@ -69,7 +74,155 @@ func (source *PostgresReportSource) EventReportData(ctx context.Context, eventID
 	if err != nil {
 		return report, err
 	}
+	report.Energy = &reporting.EnergyTotals{}
+	if report.Delivered != nil {
+		report.Energy.DeliveredMWh = report.Delivered.DeliveredMWh
+	} else {
+		addLiveReportGap(&report, begin, end, "delivered_energy_unavailable")
+	}
+	for _, reason := range []string{"requested_energy_unavailable", "approved_energy_unavailable", "commanded_energy_unavailable", "acknowledged_energy_unavailable", "reserve_violations_prevented_unavailable", "modeled_economics_unavailable"} {
+		addLiveReportGap(&report, begin, end, reason)
+	}
+	var inputID, eligibilityID string
+	err = source.pool.QueryRow(ctx, `SELECT input_snapshot_id, eligibility_snapshot_id FROM plan_versions WHERE event_id = $1 AND version = $2`, eventID, planVersion).Scan(&inputID, &eligibilityID)
+	if err != nil {
+		return report, err
+	}
+	frozen, err := storage.NewPostgresEventStore(source.pool).LoadFrozen(ctx, eventID, inputID, eligibilityID)
+	if err != nil {
+		return report, err
+	}
+	fillLiveForecast(&report, frozen, begin, end)
 	return report, nil
+}
+
+func addLiveReportGap(report *reporting.StoredEvent, begin, end time.Time, reason string) {
+	report.DataGaps = append(report.DataGaps, reporting.DataGap{Begin: begin, End: end, Reason: reason})
+}
+
+func fillLiveForecast(report *reporting.StoredEvent, frozen *gridosv1.OptimizationRequest, begin, end time.Time) {
+	addLiveReportGap(report, begin, end, "baseline_confidence_unavailable")
+	addLiveReportGap(report, begin, end, "delivery_method_unavailable")
+	forecast := frozen.GetForecast()
+	if forecast == nil {
+		addLiveReportGap(report, begin, end, "frozen_forecast_unavailable")
+		addLiveReportGap(report, begin, end, "baseline_unavailable")
+		addLiveReportGap(report, begin, end, "availability_unavailable")
+		return
+	}
+	baselineKWh, hours, baselineVersion, valid := frozenBaseline(frozen)
+	if !valid {
+		addLiveReportGap(report, begin, end, "baseline_unavailable")
+		addLiveReportGap(report, begin, end, "availability_unavailable")
+		return
+	}
+	report.Measurement = &reporting.Measurement{
+		BaselineMWh:    baselineKWh / 1000,
+		BaselineMW:     baselineKWh / 1000 / hours,
+		BaselineMethod: baselineVersion,
+		DeliveryMethod: "UNAVAILABLE",
+	}
+	report.Versions.Baseline = baselineVersion
+	report.Versions.Forecast = baselineVersion
+	report.Provenance = append(report.Provenance, "FROZEN_FORECAST")
+	availability, version, valid := frozenAvailability(frozen)
+	if !valid {
+		addLiveReportGap(report, begin, end, "availability_unavailable")
+		return
+	}
+	report.Measurement.Availability = availability
+	report.Versions.Availability = version
+}
+
+type forecastCell struct {
+	id    string
+	begin time.Time
+}
+
+func frozenCells(ids []string, intervals []*gridosv1.OptimizationInterval) (map[forecastCell]bool, float64) {
+	cells := make(map[forecastCell]bool, len(ids)*len(intervals))
+	hours := 0.0
+	for _, interval := range intervals {
+		if interval.GetBeginTime() == nil || interval.GetEndTime() == nil {
+			return nil, 0
+		}
+		begin := interval.GetBeginTime().AsTime()
+		duration := interval.GetEndTime().AsTime().Sub(begin).Hours()
+		if duration <= 0 {
+			return nil, 0
+		}
+		hours += duration
+		for _, id := range ids {
+			if id == "" {
+				return nil, 0
+			}
+			cells[forecastCell{id: id, begin: begin}] = true
+		}
+	}
+	if len(cells) != len(ids)*len(intervals) {
+		return nil, 0
+	}
+	return cells, hours
+}
+
+func frozenBaseline(frozen *gridosv1.OptimizationRequest) (float64, float64, string, bool) {
+	ids := make([]string, 0, len(frozen.GetSites()))
+	for _, site := range frozen.GetSites() {
+		ids = append(ids, site.GetSiteId())
+	}
+	cells, hours := frozenCells(ids, frozen.GetIntervals())
+	loads := frozen.GetForecast().GetSiteLoads()
+	if len(cells) == 0 || len(loads) != len(cells) {
+		return 0, 0, "", false
+	}
+	energy := 0.0
+	version := ""
+	for _, load := range loads {
+		value := load.GetLoadKwh()
+		if load.GetIntervalBeginTime() == nil {
+			return 0, 0, "", false
+		}
+		cell := forecastCell{id: load.GetSiteId(), begin: load.GetIntervalBeginTime().AsTime()}
+		if !cells[cell] || value == nil || value.GetModelVersion() == "" || !finiteLiveReport(value.GetValue()) || value.GetValue() < 0 || (version != "" && version != value.GetModelVersion()) {
+			return 0, 0, "", false
+		}
+		delete(cells, cell)
+		energy += value.GetValue()
+		version = value.GetModelVersion()
+	}
+	return energy, hours, version, len(cells) == 0
+}
+
+func frozenAvailability(frozen *gridosv1.OptimizationRequest) (float64, string, bool) {
+	ids := make([]string, 0, len(frozen.GetDevices()))
+	for _, device := range frozen.GetDevices() {
+		ids = append(ids, device.GetDeviceId())
+	}
+	cells, _ := frozenCells(ids, frozen.GetIntervals())
+	availability := frozen.GetForecast().GetDeviceAvailability()
+	if len(cells) == 0 || len(availability) != len(cells) {
+		return 0, "", false
+	}
+	value := 0.0
+	version := ""
+	for _, device := range availability {
+		probability := device.GetProbability()
+		if device.GetIntervalBeginTime() == nil {
+			return 0, "", false
+		}
+		cell := forecastCell{id: device.GetDeviceId(), begin: device.GetIntervalBeginTime().AsTime()}
+		if !cells[cell] || probability == nil || probability.GetModelVersion() == "" || !finiteLiveReport(probability.GetValue()) || probability.GetValue() < 0 || probability.GetValue() > 1 || (version != "" && version != probability.GetModelVersion()) {
+			return 0, "", false
+		}
+		delete(cells, cell)
+		value += probability.GetValue() / float64(len(availability))
+		version = probability.GetModelVersion()
+	}
+	return value, version, len(cells) == 0
+}
+
+func finiteLiveReport(value float64) bool {
+	return !math.IsNaN(value) && !math.IsInf(value, 0)
 }
 
 func reportExclusions(contents []byte) (map[string]uint64, error) {
