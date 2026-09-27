@@ -42,7 +42,8 @@ func (runtime *Runtime) TargetCommand(now time.Time, eventID, deviceID string) m
 func (runtime *Runtime) RecordCommand(now time.Time, eventID, deviceID string, setpointKW float64) map[Kind]bool {
 	runtime.mutex.Lock()
 	defer runtime.mutex.Unlock()
-	if runtime.awaitLaunch && eventID != "" && setpointKW != 0 {
+	launched := runtime.awaitLaunch && eventID != "" && setpointKW != 0
+	if launched {
 		shift := now.Sub(runtime.engine.scenario.Start)
 		runtime.engine.scenario.Start = now
 		for index := range runtime.engine.scenario.Injections {
@@ -55,6 +56,9 @@ func (runtime *Runtime) RecordCommand(now time.Time, eventID, deviceID string, s
 	}
 	runtime.engine.recordCommand(eventID, deviceID, setpointKW)
 	runtime.advance(now, eventID)
+	if launched {
+		return nil
+	}
 	return runtime.targetCommand(eventID, deviceID)
 }
 
