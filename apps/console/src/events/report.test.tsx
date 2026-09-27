@@ -128,3 +128,38 @@ test("zero coverage withholds delivery while measured zero remains valid", () =>
     screen.getByText("Measurement completeness").parentElement,
   ).toHaveTextContent("0.000 %");
 });
+
+test("response latency requires an observed response count", () => {
+  const report = z.record(z.string(), z.unknown()).parse(JSON.parse(fixture()));
+  const json = (responded: number | undefined) =>
+    JSON.stringify({
+      ...report,
+      Delivered: {
+        DeliveredMW: 0,
+        DeliveredMWh: 0,
+        Completeness: 1,
+        TrackingErrorMW: -1,
+        ResponseLatency: 0,
+        Responded: responded,
+        Commanded: 1,
+      },
+    });
+  const { rerender } = render(
+    <ReportEvidence eventId="event-report-a" role="operator" json={json(1)} />,
+  );
+  expect(screen.getByText("Response latency").parentElement).toHaveTextContent(
+    "0.000 s",
+  );
+  for (const responded of [0, undefined]) {
+    rerender(
+      <ReportEvidence
+        eventId="event-report-a"
+        role="operator"
+        json={json(responded)}
+      />,
+    );
+    expect(
+      screen.getByText("Response latency").parentElement,
+    ).toHaveTextContent("Unavailable");
+  }
+});
