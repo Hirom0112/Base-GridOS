@@ -1848,3 +1848,13 @@ minimum margin, floor touches and observation gaps as a MEASURED aggregate;
 with no usable telemetry the report records a data gap instead of a number.
 Marked done. The demo is rebuilt once on this tree so 4E.8 and 4E.9 land
 together; reports published after the rebuild carry reserve compliance.
+
+## 2026-09-27 08:50Z — Demo rebuilt on 2def79e (4E.8 and 4E.9 live)
+
+Enforcement probe denied without an assertion; the console's live approval
+passed (1 passed 9.1s); ListEventCommands on a past demo event returned 498
+commands with the lifecycle enum and 12 verification intervals; telemetry
+lag 19 s. The mock signer again needed a second start after `demo ready`
+(the first start collided with the outgoing signer before the make target's
+PID sweep reached it), so the standing procedure is: rebuild, wait for
+`demo ready`, then start the signer and confirm :8080 answers.
