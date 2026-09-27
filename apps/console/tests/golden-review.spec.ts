@@ -134,6 +134,13 @@ for (const profile of profiles) {
               .filter((animation) => animation.playState === "running").length,
         ),
       ).toBe(0);
+    await page.locator(".living-grid").scrollIntoViewIfNeeded();
+    await page.evaluate(
+      () =>
+        new Promise<void>((resolve) =>
+          requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+        ),
+    );
     await page.screenshot({
       path: testInfo.outputPath("fleet.png"),
       fullPage: true,

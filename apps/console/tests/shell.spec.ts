@@ -54,6 +54,13 @@ for (const theme of ["dark", "light"] as const) {
             .analyze()
         ).violations,
       ).toEqual([]);
+      await page.locator(".living-grid").scrollIntoViewIfNeeded();
+      await page.evaluate(
+        () =>
+          new Promise<void>((resolve) =>
+            requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+          ),
+      );
       await expect(page).toHaveScreenshot(`shell-${theme}-${width}.png`, {
         fullPage: true,
       });
