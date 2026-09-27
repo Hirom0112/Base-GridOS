@@ -9,6 +9,7 @@ import (
 	"io"
 	"log"
 	"math"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -21,8 +22,10 @@ import (
 	"github.com/Hirom0112/Base-GridOS/services/gateway-simulator/internal/battery"
 	"github.com/Hirom0112/Base-GridOS/services/gateway-simulator/internal/failures"
 	"github.com/Hirom0112/Base-GridOS/services/gateway-simulator/internal/gateway"
+	"github.com/Hirom0112/Base-GridOS/services/gateway-simulator/internal/observability"
 	"github.com/Hirom0112/Base-GridOS/services/gateway-simulator/internal/protocol"
 	"github.com/Hirom0112/Base-GridOS/services/gateway-simulator/internal/telemetry"
+	"go.opentelemetry.io/otel"
 )
 
 type config struct {
@@ -74,6 +77,12 @@ func main() {
 }
 
 func run() error {
+	tracer, err := observability.NewTraceProvider(os.Stdout)
+	if err != nil {
+		return err
+	}
+	otel.SetTracerProvider(tracer)
+	defer func() { _ = tracer.Shutdown(context.Background()) }()
 	configuration, err := parseConfig(os.Args[1:])
 	if err != nil {
 		return err
@@ -92,6 +101,27 @@ func run() error {
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
+	if address := os.Getenv("GRIDOS_GATEWAY_METRICS_ADDRESS"); address != "" {
+		listener, err := net.Listen("tcp", address)
+		if err != nil {
+			return err
+		}
+		metrics := &http.Server{Addr: address, Handler: http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			w.Header().Set("Content-Type", "text/plain; version=0.0.4")
+			_, _ = io.WriteString(w, "# TYPE gridos_gateway_up gauge\ngridos_gateway_up 1\n")
+		}), ReadHeaderTimeout: 5 * time.Second}
+		go func() {
+			<-ctx.Done()
+			shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			_ = metrics.Shutdown(shutdownCtx)
+		}()
+		go func() {
+			if err := metrics.Serve(listener); err != nil && !errors.Is(err, http.ErrServerClosed) {
+				log.Printf("gateway metrics: %v", err)
+			}
+		}()
+	}
 	store, err := gateway.Open(ctx, configuration.databasePath)
 	if err != nil {
 		return err
