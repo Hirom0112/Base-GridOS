@@ -247,8 +247,11 @@ def _response(
         output_schedule.selected_reserve_kwh = selected
         exported_energy = device.energy_kwh
         for index, planned in enumerate(schedule.intervals):
+            home_load_kw = device.home_load_kw if planned.grid_service_kw > 0.0 else 0.0
             exported_energy -= (
-                planned.grid_service_kw * durations[index] / device.discharge_efficiency
+                (planned.grid_service_kw + home_load_kw)
+                * durations[index]
+                / device.discharge_efficiency
             )
             output_interval = output_schedule.intervals.add()
             output_interval.begin_time.CopyFrom(request.intervals[index].begin_time)
