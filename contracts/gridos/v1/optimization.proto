@@ -191,6 +191,14 @@ message DispatchPlan {
   MarginExplanation margin_explanation = 14;
 }
 
+message PlanExplanationEvidence {
+  repeated ForecastSiteLoad site_loads = 1;
+  string site_load_units = 2;
+  bool fallback_used = 3;
+  string fallback_reason = 4;
+  repeated DeviceSchedule device_schedules = 5;
+}
+
 message OptimizeRequest {
   OptimizationRequest request = 1;
 }

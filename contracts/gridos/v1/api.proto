@@ -155,7 +155,6 @@ message GetPlanExplanationRequest {
   string event_id = 1;
   uint64 plan_version = 2;
 }
-
 message GetPlanExplanationResponse {
   ObjectiveBreakdown objective_breakdown = 1;
   double reserve_held_back_kwh = 2;
@@ -163,6 +162,7 @@ message GetPlanExplanationResponse {
   repeated DeviceExclusion exclusions = 4;
   repeated ShortfallReport shortfalls = 5;
   MarginExplanation margin_explanation = 6;
+  PlanExplanationEvidence evidence = 7;
 }
 
 message ValidateUnsafeAlternativeRequest {

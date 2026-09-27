@@ -109,27 +109,30 @@ func TestGetPlanExplanationFrozenEvidence(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var evidence struct {
-		SiteLoads []struct {
-			SiteID            string `json:"siteId"`
-			IntervalBeginTime string `json:"intervalBeginTime"`
-			LoadKwh           struct {
-				Value      float64 `json:"value"`
-				ValueKind  string  `json:"valueKind"`
-				Provenance string  `json:"provenance"`
-				IssuedAt   string  `json:"issuedAt"`
-			} `json:"loadKwh"`
-		} `json:"siteLoads"`
-		SiteLoadUnits   string `json:"siteLoadUnits"`
-		FallbackUsed    bool   `json:"fallbackUsed"`
-		FallbackReason  string `json:"fallbackReason"`
-		DeviceSchedules []struct {
-			DeviceID string `json:"deviceId"`
-		} `json:"deviceSchedules"`
+	var decoded struct {
+		Evidence struct {
+			SiteLoads []struct {
+				SiteID            string `json:"siteId"`
+				IntervalBeginTime string `json:"intervalBeginTime"`
+				LoadKwh           struct {
+					Value      float64 `json:"value"`
+					ValueKind  string  `json:"valueKind"`
+					Provenance string  `json:"provenance"`
+					IssuedAt   string  `json:"issuedAt"`
+				} `json:"loadKwh"`
+			} `json:"siteLoads"`
+			SiteLoadUnits   string `json:"siteLoadUnits"`
+			FallbackUsed    bool   `json:"fallbackUsed"`
+			FallbackReason  string `json:"fallbackReason"`
+			DeviceSchedules []struct {
+				DeviceID string `json:"deviceId"`
+			} `json:"deviceSchedules"`
+		} `json:"evidence"`
 	}
-	if err := json.Unmarshal(encoded, &evidence); err != nil {
+	if err := json.Unmarshal(encoded, &decoded); err != nil {
 		t.Fatal(err)
 	}
+	evidence := decoded.Evidence
 	if len(evidence.SiteLoads) != 1 {
 		t.Fatalf("frozen site loads = %s", encoded)
 	}

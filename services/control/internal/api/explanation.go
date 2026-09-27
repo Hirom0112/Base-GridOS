@@ -40,6 +40,9 @@ func (service *Service) GetPlanExplanation(ctx context.Context, request *connect
 	return connect.NewResponse(&gridosv1.GetPlanExplanationResponse{
 		ObjectiveBreakdown: plan.GetObjectiveBreakdown(), ReserveHeldBackKwh: reserve,
 		ConstraintMargins: plan.GetConstraintMargins(), Exclusions: plan.GetExclusions(), Shortfalls: plan.GetShortfalls(),
-		MarginExplanation: plan.GetMarginExplanation(),
+		MarginExplanation: plan.GetMarginExplanation(), Evidence: &gridosv1.PlanExplanationEvidence{
+			SiteLoads: input.GetForecast().GetSiteLoads(), SiteLoadUnits: "kWh", FallbackUsed: plan.GetFallbackUsed(),
+			FallbackReason: plan.GetFallbackReason(), DeviceSchedules: plan.GetDeviceSchedules(),
+		},
 	}), nil
 }
