@@ -1882,3 +1882,14 @@ the consent version and early-return action stored when it was scheduled
 version it binds, stored in `offer_terms` beside the contract and consent
 versions. The console echoes served values only; it never reuses the
 current plan's policy version for a new selection and never invents one.
+
+## 2026-09-27 09:25Z — 4B.9 verified
+
+`go test ./services/control/internal/api/member -run 'Offers|OfferTermsMigration' -count=1 -v`
+here: TestListMemberOffersUsesStoredTerms and
+TestOfferTermsMigrationRollsBackAndReapplies PASS (ok 0.995s). RED c849ba5
+stages tests only; GREEN 8be3c7c adds migration 0018 with rollback (no DO
+blocks), simulated dev offer terms, ListMemberOffers with catalog terms
+and the member's scheduled windows carrying their stored consent versions,
+and PresentOffer rejecting term mismatches. Marked done. The demo gets
+migration 0018 at the next rebuild, which waits for the console's release.

@@ -1462,7 +1462,7 @@ Owns: `services/decision/` (whole package this wave, including
 Owns: `services/control/internal/fleet/geo/`,
 `services/control/internal/api/geo/`, `testdata/fixtures/geo/`.
 
-- `[ ]` 4B.9 `[after 4B.6]` Member catalog read. `ListMemberOffers` returns the
+- `[x]` 4B.9 `[after 4B.6]` Member catalog read. `ListMemberOffers` returns the
   current pricing catalog's plans and Travel Flex terms for a member with the
   pricing, reward, and consent versions they would bind, plus the member's
   scheduled Travel Flex and away windows; `PresentOffer` and the console use
