@@ -3,6 +3,7 @@ import { create, fromJsonString, toJsonString } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import { expect, test, type Page } from "@playwright/test";
 import { ReplayEventResponseSchema } from "../src/api/gen/gridos/v1/api_pb";
+import { ListEventCommandsResponseSchema } from "../src/api/gen/gridos/v1/events_pb";
 import {
   DrilldownResponseSchema,
   ListCellsRequestSchema,
@@ -46,6 +47,28 @@ test("one replay clock drives the field, map and geographic hierarchy", async ({
 }, testInfo) => {
   await replayApi(page);
   const requested: string[] = [];
+  await page.route("**/gridos.v1.EventsService/ListEventCommands", (route) =>
+    route.fulfill({
+      contentType: "application/json",
+      body: toJsonString(
+        ListEventCommandsResponseSchema,
+        create(ListEventCommandsResponseSchema, {
+          verificationIntervals: times.map((at, index) => ({
+            beginTime: timestampFromDate(new Date("2026-09-27T12:00:00Z")),
+            endTime: timestampFromDate(new Date(at)),
+            requestedKw: 4,
+            commandedKw: 3,
+            deliveredKw: index === 0 ? 2.25 : 8.5,
+            trackingErrorKw: index === 0 ? -1.75 : 4.5,
+            confidence: 0.9,
+            measurementBoundary: "METER_NET_EXPORT",
+            baselineMethod: "DIRECT",
+            valueKind: "MEASURED",
+          })),
+        }),
+      ),
+    }),
+  );
   const hierarchy: string[] = [];
   await page.route("**/gridos.v1.GeoService/ListCells", async (route) => {
     const input = fromJsonString(
@@ -96,8 +119,20 @@ test("one replay clock drives the field, map and geographic hierarchy", async ({
   await page.getByRole("button", { name: "Replay event", exact: true }).click();
   const field = page.getByRole("region", { name: "Living Grid geography" });
   await expect(field).toContainText("2.000");
+  await expect(
+    page.getByRole("table", { name: "Replay interval power" }),
+  ).toContainText("2.25 kW");
+  await expect(
+    page.getByRole("table", { name: "Replay interval power" }),
+  ).not.toContainText("8.5 kW");
   await page.getByRole("slider", { name: "Replay position" }).fill("1");
   await expect(field).toContainText("3.000");
+  await expect(
+    page.getByRole("table", { name: "Replay interval power" }),
+  ).toContainText("8.5 kW");
+  await page
+    .getByRole("region", { name: "Replay interval measurements" })
+    .screenshot({ path: testInfo.outputPath("replay-interval-chart.png") });
   const first = timestampFromDate(new Date(times[0]!)).seconds.toString();
   const last = timestampFromDate(new Date(times[1]!)).seconds.toString();
   expect(requested).toContain(first);
