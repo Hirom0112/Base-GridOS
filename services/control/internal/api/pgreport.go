@@ -123,13 +123,22 @@ func (source *PostgresReportSource) EventReportData(ctx context.Context, eventID
 }
 
 func sourcedMargin(explanation *gridosv1.MarginExplanation) (*reporting.ModeledMargin, bool) {
-	if explanation == nil || len(explanation.GetTerms()) == 0 || !finiteLiveReport(explanation.GetConservativeMargin()) || !finiteLiveReport(explanation.GetMarginHurdle()) || explanation.GetMarginHurdle() < 0 {
+	if explanation == nil || !finiteLiveReport(explanation.GetConservativeMargin()) || !finiteLiveReport(explanation.GetMarginHurdle()) || explanation.GetMarginHurdle() < 0 {
 		return nil, false
 	}
+	expected := map[string]bool{
+		"DISPATCH_VALUE": true, "AVOIDED_PEAK_COST": true, "COMMITMENT_RELIABILITY_VALUE": true,
+		"CHARGING_ENERGY": true, "INCREMENTAL_DEGRADATION": true, "PENALTY_EXPOSURE": true,
+		"MEMBER_REWARD": true, "SUPPORT_AND_RISK_COST": true,
+	}
 	for _, term := range explanation.GetTerms() {
-		if term.GetName() == "" || term.GetUnavailable() || term.GetSource() == "" || term.GetSource() == "UNAVAILABLE" || !finiteLiveReport(term.GetLow()) || !finiteLiveReport(term.GetHigh()) || term.GetLow() > term.GetHigh() {
+		if !expected[term.GetName()] || term.GetUnavailable() || term.GetSource() == "" || term.GetSource() == "UNAVAILABLE" || !finiteLiveReport(term.GetLow()) || !finiteLiveReport(term.GetHigh()) || term.GetLow() > term.GetHigh() {
 			return nil, false
 		}
+		delete(expected, term.GetName())
+	}
+	if len(expected) != 0 {
+		return nil, false
 	}
 	return &reporting.ModeledMargin{ValueUSD: explanation.GetConservativeMargin(), HurdleUSD: explanation.GetMarginHurdle()}, true
 }
