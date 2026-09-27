@@ -91,11 +91,15 @@ export default function MemberOffers({
             <div className="member-offers">
               {query.data.offers.map((terms) => {
                 const valid = offerTerms.safeParse(terms).success;
+                const matchesPlan =
+                  terms.memberPlanId === currentPlan?.memberPlanId &&
+                  terms.catalogVersion === currentPlan.catalogVersion &&
+                  terms.policyVersion === currentPlan.policyVersion;
+                const current = terms.kind === 1 && matchesPlan;
                 const eligible =
                   terms.kind === 1 ||
-                  (terms.memberPlanId === currentPlan?.memberPlanId &&
-                    terms.catalogVersion === currentPlan.catalogVersion &&
-                    terms.policyVersion === currentPlan.policyVersion &&
+                  (matchesPlan &&
+                    currentPlan &&
                     terms.temporaryReservePercent !== undefined &&
                     terms.temporaryReservePercent <=
                       currentPlan.reserveFloorPercent);
@@ -120,13 +124,14 @@ export default function MemberOffers({
                       </p>
                     )}
                     <button
-                      disabled={!valid || !eligible}
+                      disabled={!valid || !eligible || current}
                       onClick={() =>
                         setSelected(clone(MemberOfferTermsSchema, terms))
                       }
                     >
-                      View {terms.displayName}{" "}
-                      {terms.kind === 2 ? "Travel Flex" : "plan"}
+                      {current
+                        ? `Current plan: ${terms.displayName}`
+                        : `View ${terms.displayName} ${terms.kind === 2 ? "Travel Flex" : "plan"}`}
                     </button>
                   </article>
                 );
