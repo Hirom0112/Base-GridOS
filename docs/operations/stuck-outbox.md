@@ -9,12 +9,13 @@ state. A `PUBLISHING` row with an `ACKNOWLEDGED` command is not an unresolved
 send, even if the outbox row has not advanced:
 
 ```sh
-psql 'postgres://gridos:gridos@127.0.0.1:5432/gridos?sslmode=disable' -P pager=off -c "SELECT o.command_id, o.state AS outbox_state, o.attempts, s.state AS command_state FROM command_outbox o JOIN LATERAL (SELECT state FROM command_states WHERE command_id=o.command_id ORDER BY recorded_at DESC LIMIT 1) s ON true ORDER BY o.next_attempt_at DESC LIMIT 5"
+PGOPTIONS='-c statement_timeout=10s' psql 'postgres://gridos:gridos@127.0.0.1:5432/gridos?sslmode=disable' -P pager=off -c "SELECT o.command_id, o.state AS outbox_state, o.attempts, s.state AS command_state FROM command_outbox o JOIN LATERAL (SELECT state FROM command_states WHERE command_id=o.command_id ORDER BY recorded_at DESC LIMIT 1) s ON true ORDER BY o.next_attempt_at DESC LIMIT 5"
 ```
 
-Observed output on the standing demo: one `PUBLISHING` row with
-`ACKNOWLEDGED`, and two `PUBLISHED` rows with `ACKNOWLEDGED`. There were no
-unresolved rows. Check the worker log and gateway availability before acting.
+Observed output on the standing demo after the stop rehearsal: five
+`PUBLISHED` rows, including two `REJECTED` command states. A published row
+does not imply acceptance. Check the worker log and gateway availability
+before acting.
 
 **Act.** If the worker has stopped, follow [Worker restart](worker-restart.md)
 with the same task queue and database. Let the publisher reclaim the due row

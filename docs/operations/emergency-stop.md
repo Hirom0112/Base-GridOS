@@ -40,8 +40,20 @@ psql 'postgres://gridos:gridos@127.0.0.1:5432/gridos?sslmode=disable' -P pager=o
 
 Observed output: one stop with reason `Operator runbook rehearsal` and one
 zero-setpoint intent. The audit journal also contained
-`EMERGENCY_STOP_REQUESTED`. If the gateway is unavailable, use the gateway
-and uncertain-command runbooks; retain the reserve floor.
+`EMERGENCY_STOP_REQUESTED`. Inspect the latest state and gateway receipt for
+every command before calling the stop complete:
+
+```sh
+PGOPTIONS='-c statement_timeout=10s' psql 'postgres://gridos:gridos@127.0.0.1:5432/gridos?sslmode=disable' -P pager=off -c "SELECT i.command_id, i.setpoint_kw, s.state AS latest_state, a.receipt_status, a.rejection_reason FROM command_intents i JOIN LATERAL (SELECT state FROM command_states WHERE command_id=i.command_id ORDER BY recorded_at DESC LIMIT 1) s ON true LEFT JOIN command_acknowledgements a ON a.command_id=i.command_id WHERE i.event_id='runbook-stop-20260927T0323Z' ORDER BY i.generation"
+```
+
+Observed output: the original generation-0 command and emergency generation-1
+zero-setpoint command were both `REJECTED` with `OBSOLETE_GENERATION`. This
+rehearsal did **not** prove physical stop. Keep the event under observation
+and escalate the generation mismatch; do not send a new generation by hand.
+If the gateway is unavailable, use the gateway and uncertain-command
+runbooks; retain the reserve floor. A recovered stop requires an accepted
+zero-setpoint receipt and fresh physical telemetry confirming safe return.
 
 The isolated API test proves the response does not falsely claim confirmation:
 `go test ./services/control/internal/api/events -run '^TestEmergencyStopReportsRequestedWithoutConfirmation$' -count=1`

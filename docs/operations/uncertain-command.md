@@ -7,7 +7,7 @@ opposite setpoint until reconciliation establishes a safe interval.
 **Confirm.** Compare the durable latest states with the process metric:
 
 ```sh
-psql 'postgres://gridos:gridos@127.0.0.1:5432/gridos?sslmode=disable' -Atqc "SELECT COUNT(*) FROM (SELECT DISTINCT ON (command_id) state FROM command_states ORDER BY command_id, recorded_at DESC) latest WHERE state='UNCERTAIN'"
+PGOPTIONS='-c statement_timeout=10s' psql 'postgres://gridos:gridos@127.0.0.1:5432/gridos?sslmode=disable' -Atqc "SELECT COUNT(*) FROM (SELECT DISTINCT ON (command_id) state FROM command_states ORDER BY command_id, recorded_at DESC) latest WHERE state='UNCERTAIN'"
 curl -fsS --max-time 5 http://127.0.0.1:9464/metrics | rg '^gridos_uncertain_commands'
 ```
 
