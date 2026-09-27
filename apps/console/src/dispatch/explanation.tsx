@@ -4,6 +4,7 @@ import { useSession } from "../api/auth";
 import { evidenceSchema } from "../api/Provenance";
 import type { GetPlanExplanationResponse } from "../api/gen/gridos/v1/api_pb";
 import "./explanation.css";
+import { RegionalForecasts } from "./regional-forecast";
 import { UnsafeAlternative } from "./unsafe-alternative";
 import { ForecastEvidence, FallbackEvidence } from "./forecast";
 
@@ -249,6 +250,7 @@ export function ExplanationEvidence({
       </section>
       <ForecastEvidence evidence={explanation.evidence} />
       <FallbackEvidence evidence={explanation.evidence} />
+      <RegionalForecasts evidence={explanation.evidence} />
       <ObjectiveEvidence objectiveBreakdown={objectiveBreakdown} />
       {marginExplanation ? (
         <EconomicMargin margin={marginExplanation} />

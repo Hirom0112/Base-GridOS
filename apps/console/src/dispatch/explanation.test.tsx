@@ -145,7 +145,11 @@ test("forecast site search bounds the selector and never shows a mismatched site
   const target = explanation.evidence!.siteLoads[100]!.siteId;
   render(<ExplanationEvidence explanation={explanation} />);
   const search = screen.getByLabelText("Find forecast site");
-  expect(screen.getAllByRole("option").length).toBeLessThanOrEqual(50);
+  expect(
+    within(
+      screen.getByRole("region", { name: "Forecast intervals" }),
+    ).getAllByRole("option").length,
+  ).toBeLessThanOrEqual(50);
   fireEvent.change(search, { target: { value: target } });
   expect(screen.getByLabelText("Forecast site")).toHaveValue(target);
   expect(

@@ -102,10 +102,7 @@ export function ForecastEvidence({
                 : "No frozen site forecasts returned."}
             </p>
           )}
-          <p>
-            Interval end times, outage forecasts, and device availability
-            forecasts are not supplied by this response.
-          </p>
+          <p>Interval end times are not supplied with these site forecasts.</p>
         </>
       )}
     </section>
