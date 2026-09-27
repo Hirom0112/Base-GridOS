@@ -17,6 +17,8 @@ import (
 )
 
 func (activities *Activities) IssueReplacement(ctx context.Context, replacement ReplacementCommand) error {
+	ctx, span := activities.startActivity(ctx, replacement.EventID, "IssueReplacement")
+	defer span.End()
 	if err := replacement.validate(); err != nil {
 		return err
 	}
