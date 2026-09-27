@@ -11,6 +11,8 @@ import (
 	gridosv1 "github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1"
 	"github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1/gridosv1connect"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/fleet"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 )
 
 func TestGeoServicePrivacyAndDrilldown(t *testing.T) {
@@ -66,5 +68,14 @@ func TestGeoServicePrivacyAndDrilldown(t *testing.T) {
 	exact, err := client.Drilldown(context.Background(), allowed)
 	if err != nil || len(exact.Msg.GetSites()) != 6 {
 		t.Fatalf("authorized site drilldown: %v, %+v", err, exact)
+	}
+	for _, response := range []proto.Message{cells.Msg, exact.Msg} {
+		encoded, err := protojson.Marshal(response)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := ValidateResponse(encoded); err != nil {
+			t.Fatalf("private field in geo response: %v", err)
+		}
 	}
 }
