@@ -9,9 +9,28 @@ import (
 )
 
 type ReserveState struct {
-	BasePercent       float64
-	TravelFlexPercent *float64
-	EffectivePercent  float64
+	BasePercent           float64
+	TravelFlexPercent     *float64
+	EffectivePercent      float64
+	PlanPercent           float64
+	PolicyFloorPercent    float64
+	OverridePercent       *float64
+	OverrideReason        OverrideReason
+	OverrideSourceID      string
+	OverridePolicyVersion string
+	PolicyVersion         string
+	TravelFlex            *TravelFlexBinding
+}
+
+type TravelFlexBinding struct {
+	WindowID       string
+	MemberID       string
+	Start          time.Time
+	End            time.Time
+	CreditType     CreditType
+	CreditCents    int64
+	ConsentVersion string
+	PolicyVersion  string
 }
 
 func (store *Store) EffectiveReserve(ctx context.Context, memberID string, at time.Time) (float64, error) {

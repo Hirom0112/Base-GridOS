@@ -9,6 +9,7 @@ go_library(
         "pgreport.go",
         "pgstore.go",
         "reserve_compliance.go",
+        "reserve_snapshot.go",
         "runtime.go",
         "service.go",
         "store.go",

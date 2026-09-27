@@ -200,41 +200,13 @@ func (snapshotter *FleetSnapshotter) Freeze(ctx context.Context, event *gridosv1
 	canonical := safety.CanonicalState{Now: now, Boundary: safety.MeterNetExport, PolicyVersion: "fleet-file", ExpectedGeneration: int64(planVersion), Devices: make(map[string]safety.DeviceState)}
 	for _, site := range snapshotter.sites {
 		state := states[site.GetSite().GetSiteId()]
-		optimization.Sites = append(optimization.Sites, &gridosv1.ForecastSite{
-			SiteId: site.GetSite().GetSiteId(), LoadProfileType: site.GetSite().GetLoadProfileType(),
-			LoadZone: site.GetSite().GetLoadZone(), WeatherZone: site.GetSite().GetWeatherZone(), County: site.GetSite().GetCounty(),
-		})
-		for _, device := range site.GetDevices() {
-			parameters := device.GetBatteryParameters()
-			energy := state.EnergyKWh
-			available := state.OperatingState == fleet.OnGrid && state.Availability == fleet.Online
-			baseReserve := max(state.ReserveKWh, state.HardwareFloorKWh)
-			var baseField, flexField *float64
-			if reserve, found := reserves[site.GetSite().GetSiteId()]; found {
-				baseReserve = max(baseReserve, parameters.GetUsableEnergyKwh()*reserve.BasePercent/100)
-				baseField = &baseReserve
-				if reserve.TravelFlexPercent != nil {
-					flex := min(baseReserve, max(state.HardwareFloorKWh, parameters.GetUsableEnergyKwh()*(*reserve.TravelFlexPercent)/100))
-					flexField = &flex
-				}
-			}
-			optimization.Devices = append(optimization.Devices, &gridosv1.DeviceState{
-				DeviceId: device.GetDeviceId(), UsableEnergyKwh: parameters.GetUsableEnergyKwh(), EnergyKwh: energy,
-				HardwareFloorKwh: state.HardwareFloorKWh, EffectiveReserveKwh: baseReserve, BaseReserveKwh: baseField, TravelFlexReserveKwh: flexField,
-				MaxChargeKw: parameters.GetMaxChargeKw(), MaxDischargeKw: parameters.GetMaxDischargeKw(),
-				ChargeEfficiency: parameters.GetChargeEfficiency(), DischargeEfficiency: parameters.GetDischargeEfficiency(),
-				AvailabilityProbability: boolFloat(available), Stale: state.Availability == fleet.Stale, TelemetryObservedAt: timestamppb.New(state.ObservedAt), LoadZone: site.GetSite().GetLoadZone(),
-				SiteId: site.GetSite().GetSiteId(), ReliabilityTrait: site.GetSite().GetReliabilityTrait(),
-			})
-			if available {
-				optimization.EligibilitySnapshot.EligibleDeviceIds = append(optimization.EligibilitySnapshot.EligibleDeviceIds, device.GetDeviceId())
-			}
-			observedAt := state.ObservedAt
-			canonical.Devices[device.GetDeviceId()] = safety.DeviceState{
-				EnergyKWh: &energy, UsableCapacityKWh: parameters.GetUsableEnergyKwh(), HardwareReserveKWh: state.HardwareFloorKWh, PlanReserveKWh: baseReserve, TravelFlexReserveKWh: flexField,
-				MaxChargeKW: parameters.GetMaxChargeKw(), MaxDischargeKW: parameters.GetMaxDischargeKw(), ChargeEfficiency: parameters.GetChargeEfficiency(), DischargeEfficiency: parameters.GetDischargeEfficiency(),
-				Available: available, TelemetryAt: &observedAt, FreshnessLimit: 30 * time.Second, MeterExportLimitKW: parameters.GetMaxDischargeKw(), InterconnectionLimitKW: parameters.GetMaxDischargeKw(),
-			}
+		reserve, bound := reserves[site.GetSite().GetSiteId()]
+		var policyReserve *policy.ReserveState
+		if bound {
+			policyReserve = &reserve
+		}
+		if err := appendFrozenSite(optimization, &canonical, site, state, policyReserve, now); err != nil {
+			return FrozenSnapshot{}, err
 		}
 	}
 	return FrozenSnapshot{Optimization: optimization, Canonical: canonical}, nil

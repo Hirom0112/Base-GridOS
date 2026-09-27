@@ -201,6 +201,8 @@ message PlanExplanationEvidence {
   repeated ForecastOutageRisk outage_risks = 7;
   repeated ForecastDeviceAvailability device_availability = 8;
   repeated string unavailable_sources = 9;
+  repeated FrozenReserveBasis reserve_bases = 10;
+  repeated FrozenTravelFlexBinding travel_flex_bindings = 11;
 }
 
 message OptimizeRequest {

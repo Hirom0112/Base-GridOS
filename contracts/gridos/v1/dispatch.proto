@@ -6,6 +6,7 @@ option go_package = "github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1
 
 import "google/protobuf/timestamp.proto";
 import "gridos/v1/device.proto";
+import "gridos/v1/member_policy.proto";
 import "gridos/v1/telemetry.proto";
 
 enum DispatchEventState {
@@ -86,6 +87,37 @@ message EligibilitySnapshot {
   repeated string eligible_device_ids = 4;
   repeated DeviceExclusion exclusions = 5;
   string policy_version = 6;
+  repeated FrozenReserveBasis reserve_bases = 7;
+  repeated FrozenTravelFlexBinding travel_flex_bindings = 8;
+}
+
+message FrozenReserveBasis {
+  string device_id = 1;
+  double hardware_floor_kwh = 2;
+  double plan_reserve_kwh = 3;
+  double policy_floor_kwh = 4;
+  optional double override_floor_kwh = 5;
+  ReserveOverrideReason override_reason = 6;
+  string override_source_id = 7;
+  string policy_version = 8;
+  double effective_reserve_kwh = 9;
+  DataProvenance provenance = 10;
+  google.protobuf.Timestamp issued_at = 11;
+  string override_policy_version = 12;
+}
+
+message FrozenTravelFlexBinding {
+  string window_id = 1;
+  string member_id = 2;
+  string site_id = 3;
+  google.protobuf.Timestamp start_time = 4;
+  google.protobuf.Timestamp end_time = 5;
+  TravelFlexCreditType credit_type = 6;
+  int64 credit_cents = 7;
+  string consent_version = 8;
+  string policy_version = 9;
+  DataProvenance provenance = 10;
+  google.protobuf.Timestamp issued_at = 11;
 }
 
 message ReservePolicy {
