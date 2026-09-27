@@ -24,12 +24,12 @@ func weatherForSite(at time.Time, policy RiskPolicy, source riskSource, site *gr
 		active = true
 		for _, code := range alert.UGC {
 			if slices.Contains(codes.UGC, code) {
-				return &RiskWeather{EvidenceID: alert.ID, AsOf: alert.Source.AsOf, Active: true}, ""
+				return &RiskWeather{EvidenceID: alert.ID, AsOf: alert.Source.AsOf, Active: true, Provenance: alert.Source.Provenance}, ""
 			}
 		}
 		for _, code := range alert.SAME {
 			if slices.Contains(codes.SAME, code) {
-				return &RiskWeather{EvidenceID: alert.ID, AsOf: alert.Source.AsOf, Active: true}, ""
+				return &RiskWeather{EvidenceID: alert.ID, AsOf: alert.Source.AsOf, Active: true, Provenance: alert.Source.Provenance}, ""
 			}
 		}
 	}

@@ -36,6 +36,7 @@ type RiskWeather struct {
 	EvidenceID string
 	AsOf       time.Time
 	Active     bool
+	Provenance string
 }
 
 type RiskOutage struct {
