@@ -93,6 +93,10 @@ type Source interface {
 	EventReportData(context.Context, string) (StoredEvent, error)
 }
 
+type PublishedSource interface {
+	StoredReport(context.Context, string) (*EventReport, error)
+}
+
 type EventReport struct {
 	EventID                    string
 	PlanVersion                uint64
@@ -115,6 +119,13 @@ type EventReport struct {
 func Build(ctx context.Context, source Source, eventID string) (EventReport, error) {
 	if source == nil || eventID == "" {
 		return EventReport{}, errors.New("report source and event identifier required")
+	}
+	published, err := loadPublished(ctx, source, eventID)
+	if err != nil {
+		return EventReport{}, err
+	}
+	if published != nil {
+		return cloneReport(*published), nil
 	}
 	stored, err := source.EventReportData(ctx, eventID)
 	if err != nil {
@@ -157,6 +168,46 @@ func Build(ctx context.Context, source Source, eventID string) (EventReport, err
 		report.Economics = &economics
 	}
 	return report, nil
+}
+
+func loadPublished(ctx context.Context, source Source, eventID string) (*EventReport, error) {
+	published, available := source.(PublishedSource)
+	if !available {
+		return nil, nil
+	}
+	stored, err := published.StoredReport(ctx, eventID)
+	if err != nil || stored == nil {
+		return stored, err
+	}
+	if stored.EventID != eventID {
+		return nil, errors.New("published report event identifier mismatch")
+	}
+	return stored, nil
+}
+
+func cloneReport(report EventReport) EventReport {
+	clone := report
+	clone.ExcludedByReason = make(map[string]uint64, len(report.ExcludedByReason))
+	for reason, count := range report.ExcludedByReason {
+		clone.ExcludedByReason[reason] = count
+	}
+	clone.Provenance = append([]string(nil), report.Provenance...)
+	clone.Assumptions = append([]string(nil), report.Assumptions...)
+	clone.DataGaps = append([]DataGap(nil), report.DataGaps...)
+	clone.Delivered = cloneDelivered(report.Delivered)
+	if report.Energy != nil {
+		energy := *report.Energy
+		clone.Energy = &energy
+	}
+	if report.Measurement != nil {
+		measurement := *report.Measurement
+		clone.Measurement = &measurement
+	}
+	if report.Economics != nil {
+		economics := *report.Economics
+		clone.Economics = &economics
+	}
+	return clone
 }
 
 func validateAccounting(stored StoredEvent) error {
