@@ -1784,3 +1784,14 @@ evidence message; fixture GREEN 42fc3aa records it from the rebuilt demo
 units, one stored schedule). Fallback fields are absent from the recorded
 fixture because the demo plan did not fall back and protojson omits false
 and empty values. Marked done.
+
+## 2026-09-27 08:08Z — 4C.8 remaining frozen forecast inputs
+
+The console's risk, availability and window panels still read live public
+samples (January 2025 prices, September 14 load) because the explanation
+evidence carries only the frozen site loads. Decision: additive 4C.8 puts
+the frozen regional prices, outage risks, device availability and
+unavailable sources into PlanExplanationEvidence with the same provenance,
+issue time and value kind. Root's order becomes 4E.8, 4E.9, 4C.8, 4B.9,
+4C.7. Until 4C.8 lands those substeps stay labelled missing evidence; the
+console never scores a window from candidate values it invents.

@@ -1509,6 +1509,12 @@ Owns: `services/control/internal/context/`, `services/control/internal/api/conte
   telemetry, so replay scrubbing moves power and geography together (today
   both sample the service clock). Verify: `go test
   ./services/control/internal/api/geo/ -run AsOf` passes.
+- `[ ]` 4C.8 `[after 4C.6]` The rest of the frozen forecast in the explanation.
+  `PlanExplanationEvidence` also carries the frozen `regional_prices`,
+  `outage_risks`, `device_availability` and `unavailable_sources` the plan
+  was built from, each with provenance, issue time and value kind, so the
+  console's risk, availability and window panels read frozen inputs rather
+  than live public samples. Verify: `go test ./services/control/internal/api/ -run Explanation` passes and the recorded fixture carries all four.
 - `[x]` 4D.1 `[P]` RED then GREEN: reference loaders for normalized ERCOT
   prices, system load, outage rates, and NWS forecasts and alerts from
   `testdata/fixtures/public` (offline default) with provenance and freshness
