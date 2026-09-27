@@ -1453,3 +1453,22 @@ The demo runbook text covers steps 1 to 17, but the Playwright demo-path
 spec asserts softly and only checks region presence for steps 11 to 15.
 5F.2 stays open until the console lane hardens the spec and ships the
 remaining screens; the director then walks the runbook on the same build.
+
+## 2026-09-27 04:55Z — 3F.3 verified, STUBS.md reconciled
+
+`go test ./tools/development/mockapi/ -run Fixtures -count=1` printed
+`ok github.com/Hirom0112/Base-GridOS/tools/development/mockapi 0.604s`;
+`testdata/fixtures/api/OptimizationService/Optimize.json` carries the
+`fallbackUsed: true` case, and the DispatchService fixtures hold the
+explanation and alternative-validation recordings from a demo event. 3F.3
+marked done. The tree holds sixteen `STUBBED` or `PENDING-LIVE` markers in
+code plus the console's `STUBBED IDENTITY` badge, which reflects the mock
+API's local auth stub; that row in STUBS.md now names the badge. The PII grep
+over `testdata` printed nothing.
+
+## 2026-09-27 04:55Z — 5D.5 Bazel-only time zone mismatch
+
+The broad Bazel run is down to one failing case, a retry expiry test that
+compares a UTC instant against a local-zone instant; the sandbox runs with no
+TZ. Decision: root normalizes the comparison in the test to instants (`.UTC()`
+or `Equal`), no production change. The broad rerun is still the gate.

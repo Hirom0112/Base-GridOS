@@ -1323,7 +1323,7 @@ Owns: `services/control/internal/replay/`, `services/control/cmd/replay`,
   and §10, so it lives with the control plane) re-running an event from its
   manifest and diffing the outcome; identical apart from explicitly recorded
   nondeterminism. Verify: `go run ./services/control/cmd/replay --event <id>` prints `IDENTICAL`.
-- `[ ]` 3F.3 `[after 3D.3, 3A.6]` Record `GetPlanExplanation`, forecast
+- `[x]` 3F.3 `[after 3D.3, 3A.6]` Record `GetPlanExplanation`, forecast
   responses with intervals, a `fallback=true` case, and `ValidateAlternative`
   violations into `testdata/fixtures/api/`. Verify: `go test ./tools/development/mockapi/ -run Fixtures` passes.
 - `[x]` 3F.4 `[after 3F.2]` `internal/api/replay`: `ReplayEvent` Connect
