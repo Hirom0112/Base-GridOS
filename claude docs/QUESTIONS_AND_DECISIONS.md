@@ -1273,3 +1273,10 @@ assumptions reported by workers land here too.
   removed and rebalanced through the safety gate once per device per
   event, or a quantified shortfall is recorded, and the scenario asserts
   the actions. It follows 2B.9 because a rebalance issues new commands.
+- **Gate 4 group three (2026-09-27):** the canonical heat event fails on
+  the new typed-exception assertion (no MISSING and no UNCERTAIN entry
+  derived inside the retimed window) while the scenario's injections are
+  unscoped and may miss the commanded cohort; root investigates the real
+  cause with the assertion kept. Group two's lost-acknowledgement and
+  old-expiry scenarios wait on the report-energy fix. Both reruns follow
+  the fixes inside the gate window.
