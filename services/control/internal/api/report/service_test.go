@@ -81,7 +81,7 @@ func (source *reportSource) EventReportData(context.Context, string) (core.Store
 }
 
 func TestGetEventReportReturnsStoredAndLiveViews(t *testing.T) {
-	source := &reportSource{published: &core.EventReport{EventID: "event-1", PlanVersion: 2, Measurement: &core.Measurement{BaselineMW: 1.5}, Delivered: &core.Delivered{DeliveredMWh: 0.3, UncertainIntervals: []core.UncertainInterval{{DeviceID: "private-device"}}}}}
+	source := &reportSource{published: &core.EventReport{EventID: "event-1", PlanVersion: 2, Measurement: &core.Measurement{BaselineMW: 1.5}, Delivered: &core.Delivered{DeliveredMWh: 0.3, Completeness: 1, UncertainIntervals: []core.UncertainInterval{{DeviceID: "private-device"}}}}}
 	_, handler := gridosv1connect.NewReportServiceHandler(NewService(source))
 	server := httptest.NewServer(handler)
 	defer server.Close()
@@ -98,7 +98,7 @@ func TestGetEventReportReturnsStoredAndLiveViews(t *testing.T) {
 	partnerResponse, err := client.GetEventReport(context.Background(), partner)
 	require.NoError(t, err)
 	require.NotContains(t, partnerResponse.Msg.GetReportJson(), "private-device")
-	require.JSONEq(t, `{"event_id":"event-1","plan_version":2,"requested_mw":0,"approved_mw":0,"commanded_mw":0,"acknowledged_mw":0,"delivered_mw":0,"delivered_mwh":0.3}`, partnerResponse.Msg.GetReportJson())
+	require.JSONEq(t, `{"event_id":"event-1","plan_version":2,"requested_mw":0,"approved_mw":0,"commanded_mw":0,"acknowledged_mw":0,"delivery_coverage":1,"delivered_mw":0,"delivered_mwh":0.3}`, partnerResponse.Msg.GetReportJson())
 	partner.Msg.PartnerView = false
 	_, err = client.GetEventReport(context.Background(), partner)
 	require.Equal(t, connect.CodePermissionDenied, connect.CodeOf(err))

@@ -110,6 +110,8 @@ type StoredEvent struct {
 	Margin                     *ModeledMargin
 	DataGaps                   []DataGap
 	Assumptions                []string
+	PlannedShortfall           []PlannedShortfall  `json:"planned_shortfall,omitempty"`
+	DeliveryShortfall          []DeliveryShortfall `json:"delivery_shortfall,omitempty"`
 }
 
 type Source interface {
@@ -146,6 +148,8 @@ type EventReport struct {
 	Margin                     *ModeledMargin
 	DataGaps                   []DataGap
 	Assumptions                []string
+	PlannedShortfall           []PlannedShortfall  `json:"planned_shortfall,omitempty"`
+	DeliveryShortfall          []DeliveryShortfall `json:"delivery_shortfall,omitempty"`
 }
 
 func Build(ctx context.Context, source Source, eventID string) (EventReport, error) {
@@ -185,6 +189,8 @@ func Build(ctx context.Context, source Source, eventID string) (EventReport, err
 		ReserveCompliance:          cloneReserveCompliance(stored.ReserveCompliance),
 		DataGaps:                   append([]DataGap(nil), stored.DataGaps...),
 		Assumptions:                append([]string(nil), stored.Assumptions...),
+		PlannedShortfall:           clonePlannedShortfalls(stored.PlannedShortfall),
+		DeliveryShortfall:          cloneDeliveryShortfalls(stored.DeliveryShortfall),
 	}
 	if stored.Energy != nil {
 		energy := *stored.Energy
@@ -268,6 +274,8 @@ func cloneReport(report EventReport) EventReport {
 	clone.Provenance = append([]string(nil), report.Provenance...)
 	clone.Assumptions = append([]string(nil), report.Assumptions...)
 	clone.DataGaps = append([]DataGap(nil), report.DataGaps...)
+	clone.PlannedShortfall = clonePlannedShortfalls(report.PlannedShortfall)
+	clone.DeliveryShortfall = cloneDeliveryShortfalls(report.DeliveryShortfall)
 	clone.Delivered = cloneDelivered(report.Delivered)
 	clone.ReserveCompliance = cloneReserveCompliance(report.ReserveCompliance)
 	if report.Energy != nil {
@@ -308,6 +316,12 @@ func cloneReserveCompliance(value *ReserveCompliance) *ReserveCompliance {
 }
 
 func validateAccounting(stored StoredEvent) error {
+	if err := validatePlannedShortfalls(stored.PlannedShortfall); err != nil {
+		return err
+	}
+	if err := validateDeliveryShortfalls(stored.DeliveryShortfall); err != nil {
+		return err
+	}
 	if reserve := stored.ReserveCompliance; reserve != nil {
 		if err := reserve.validate(); err != nil {
 			return err

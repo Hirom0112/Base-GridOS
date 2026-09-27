@@ -1,0 +1,1 @@
+ALTER TABLE verification_summaries DROP COLUMN measured_delivered_kwh;

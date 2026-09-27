@@ -44,6 +44,10 @@ func TestVerifyDeliveryActivityWritesSummariesAndUncertainty(t *testing.T) {
 	if deliveredKW, confidence := harness.summary(t, harness.begin); deliveredKW != 4 || confidence != 0.5 {
 		t.Fatalf("first interval delivered = %v kW at confidence %v, want 4 kW at 0.5", deliveredKW, confidence)
 	}
+	var measuredKWh float64
+	if err := harness.pool.QueryRow(context.Background(), `SELECT measured_delivered_kwh FROM verification_summaries WHERE event_id = 'event-1' AND interval_begin_time = $1`, harness.begin).Scan(&measuredKWh); err != nil || math.Abs(measuredKWh-4*5.0/60) > 1e-9 {
+		t.Fatalf("stored measured energy = %v kWh, error = %v", measuredKWh, err)
+	}
 	if deliveredKW, confidence := harness.summary(t, harness.begin.Add(30*time.Minute)); deliveredKW != 0 || confidence != 0 {
 		t.Fatalf("gap interval delivered = %v kW at confidence %v, want 0 kW at 0", deliveredKW, confidence)
 	}

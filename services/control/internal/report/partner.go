@@ -7,6 +7,7 @@ type PartnerReport struct {
 	ApprovedMW         float64  `json:"approved_mw"`
 	CommandedMW        float64  `json:"commanded_mw"`
 	AcknowledgedMW     float64  `json:"acknowledged_mw"`
+	DeliveryCoverage   float64  `json:"delivery_coverage"`
 	DeliveredMW        *float64 `json:"delivered_mw,omitempty"`
 	DeliveredMWh       *float64 `json:"delivered_mwh,omitempty"`
 	ModeledNetValueUSD *float64 `json:"modeled_net_value_usd,omitempty"`
@@ -20,8 +21,11 @@ func ForPartner(report EventReport) PartnerReport {
 		CommandedMW: report.CommandedMW, AcknowledgedMW: report.AcknowledgedMW,
 	}
 	if report.Delivered != nil {
-		deliveredMW, deliveredMWh := report.Delivered.DeliveredMW, report.Delivered.DeliveredMWh
-		partner.DeliveredMW, partner.DeliveredMWh = &deliveredMW, &deliveredMWh
+		partner.DeliveryCoverage = report.Delivered.Completeness
+		if partner.DeliveryCoverage > 0 {
+			deliveredMW, deliveredMWh := report.Delivered.DeliveredMW, report.Delivered.DeliveredMWh
+			partner.DeliveredMW, partner.DeliveredMWh = &deliveredMW, &deliveredMWh
+		}
 	}
 	if report.Economics != nil {
 		net := report.Economics.NetValueUSD

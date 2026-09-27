@@ -79,6 +79,10 @@ func (source *PostgresReportSource) EventReportData(ctx context.Context, eventID
 	if err != nil {
 		return report, err
 	}
+	report.DeliveryShortfall, err = source.deliveryShortfalls(ctx, eventID, begin, end, report.RequestedMW*1000)
+	if err != nil {
+		return report, err
+	}
 	if report.Delivered != nil && finiteLiveReport(report.Delivered.DeliveredMWh) && report.Delivered.DeliveredMWh >= 0 {
 		report.Energy = &reporting.EnergyTotals{DeliveredMWh: report.Delivered.DeliveredMWh}
 	} else {
@@ -119,6 +123,10 @@ func (source *PostgresReportSource) fillPlanEvidence(ctx context.Context, eventI
 	}
 	plan := new(gridosv1.DispatchPlan)
 	if err = protojson.Unmarshal(planJSON, plan); err != nil {
+		return *report, err
+	}
+	report.PlannedShortfall, err = plannedShortfalls(plan)
+	if err != nil {
 		return *report, err
 	}
 	if margin, valid := sourcedMargin(plan.GetMarginExplanation()); valid {

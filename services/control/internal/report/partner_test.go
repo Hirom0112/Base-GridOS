@@ -9,7 +9,7 @@ import (
 func TestPartnerViewContainsAggregatesWithoutHouseholdDetails(t *testing.T) {
 	report := EventReport{
 		EventID: "event-1", PlanVersion: 2, RequestedMW: 10, ApprovedMW: 9, CommandedMW: 8, AcknowledgedMW: 7,
-		Delivered:        &Delivered{DeliveredMW: 6, DeliveredMWh: 12, UncertainIntervals: []UncertainInterval{{DeviceID: "private-device"}}},
+		Delivered:        &Delivered{DeliveredMW: 6, DeliveredMWh: 12, Completeness: 1, UncertainIntervals: []UncertainInterval{{DeviceID: "private-device"}}},
 		ExcludedByReason: map[string]uint64{"RESERVE": 3}, Economics: &ModeledEconomics{NetValueUSD: 45, ValueKind: "modeled_estimate"},
 		Assumptions: []string{"private site_id site-1 travel away"},
 	}
