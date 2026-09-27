@@ -2176,3 +2176,17 @@ testdata/scenarios/check-demo-public.sh` prints PASS and the context
 weather loader test is ok here. The live clause (a WEATHER override row on
 the demo) is checked at the rebuild that follows the running steps 11/12
 proof.
+
+## 2026-09-27 09:45Z — Demo proof: four kinds within eight minutes, RETRY absent
+
+live-proof-1790501468 on the rebuilt demo showed MISSING_TELEMETRY,
+UNCERTAIN_COMMAND, REPLACEMENT_PLANNED, STALE_CAPACITY_REMOVED and
+REBALANCED_COMMAND by 09:39Z, so persistent live faults and recovery work
+at the demo's real cadence. COMMAND_RETRY did not appear: all 3,340
+intents have outbox attempts 1 (3,339 ACCEPTED, one PUBLISHING), so the
+gateway never returned Unavailable, meaning the seeded one-shot OFFLINE
+next_command at the anchor did not target any command at demo timing
+(3,340 commands in 100-command batches within the anchor's 15 s cadence
+slot). The isolated scenario passes because its timing differs. Root
+traces it with a runtime RED that reproduces the demo timing; 2A.13 stays
+dispatched until RETRY shows on the demo.
