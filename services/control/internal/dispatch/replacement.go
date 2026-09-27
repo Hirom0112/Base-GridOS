@@ -8,6 +8,7 @@ import (
 
 	gridosv1 "github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1"
 	controlapi "github.com/Hirom0112/Base-GridOS/services/control/internal/api"
+	"github.com/Hirom0112/Base-GridOS/services/control/internal/observability"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/storage"
 	"github.com/jackc/pgx/v5"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -33,6 +34,10 @@ func (activities *Activities) IssueReplacement(ctx context.Context, replacement 
 	}
 	current := snapshot.Optimization
 	now := activities.Now()
+	ctx, err = observability.WithTraceIDs(ctx, current.GetCorrelationId(), replacement.EventID)
+	if err != nil {
+		return err
+	}
 	response, err := activities.Dispatcher.Optimizer.Replace(ctx, &gridosv1.ReplaceRequest{
 		Current: current, ApprovedPlan: approved, DroppedDeviceIds: replacement.DroppedDeviceIDs,
 		EnvelopeDeviceIds: replacement.EnvelopeDeviceIDs, IdempotencyKey: key,

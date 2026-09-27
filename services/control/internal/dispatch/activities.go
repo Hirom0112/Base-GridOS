@@ -58,19 +58,9 @@ func (activities *Activities) FreezeInputs(ctx context.Context, input Input) (Fr
 	if budget <= 0 {
 		return FrozenEvent{}, errors.New("positive forecast budget required")
 	}
-	forecastCtx, cancel := context.WithTimeout(ctx, budget+time.Second)
-	forecast, err := activities.Dispatcher.Optimizer.Forecast(forecastCtx, &gridosv1.ForecastRequest{Request: snapshot.Optimization})
-	cancel()
-	if errors.Is(err, context.DeadlineExceeded) || connect.CodeOf(err) == connect.CodeDeadlineExceeded {
-		forecast = &gridosv1.ForecastResponse{UnavailableSources: []string{"forecast_transport_timeout"}}
-		if err = activities.recordPlanningDecision(ctx, snapshot.Optimization, "FORECAST_TIMEOUT", "TRANSPORT_TIMEOUT"); err != nil {
-			return FrozenEvent{}, err
-		}
-	} else if err != nil {
+	forecast, err := activities.forecast(ctx, snapshot.Optimization, input.EventID, budget)
+	if err != nil {
 		return FrozenEvent{}, err
-	}
-	if forecast == nil {
-		return FrozenEvent{}, errors.New("forecast response required")
 	}
 	snapshot.Optimization.Forecast = forecast
 	inputID, eligibilityID, err := storage.NewPostgresEventStore(activities.Pool).StoreFrozen(ctx, input.EventID, snapshot.Optimization, activities.Now())
@@ -98,12 +88,38 @@ func (activities *Activities) FreezeInputs(ctx context.Context, input Input) (Fr
 	return FrozenEvent{Input: input, InputSnapshotID: inputID, EligibilitySnapshotID: eligibilityID, SnapshotDigest: digest}, err
 }
 
+func (activities *Activities) forecast(ctx context.Context, request *gridosv1.OptimizationRequest, eventID string, budget time.Duration) (*gridosv1.ForecastResponse, error) {
+	ctx, err := observability.WithTraceIDs(ctx, request.GetCorrelationId(), eventID)
+	if err != nil {
+		return nil, err
+	}
+	forecastCtx, cancel := context.WithTimeout(ctx, budget+time.Second)
+	forecast, err := activities.Dispatcher.Optimizer.Forecast(forecastCtx, &gridosv1.ForecastRequest{Request: request})
+	cancel()
+	if errors.Is(err, context.DeadlineExceeded) || connect.CodeOf(err) == connect.CodeDeadlineExceeded {
+		forecast = &gridosv1.ForecastResponse{UnavailableSources: []string{"forecast_transport_timeout"}}
+		if err = activities.recordPlanningDecision(ctx, request, "FORECAST_TIMEOUT", "TRANSPORT_TIMEOUT"); err != nil {
+			return nil, err
+		}
+	} else if err != nil {
+		return nil, err
+	}
+	if forecast == nil {
+		return nil, errors.New("forecast response required")
+	}
+	return forecast, nil
+}
+
 func (activities *Activities) RequestPlan(ctx context.Context, frozen FrozenEvent) (FrozenEvent, error) {
 	request, err := storage.NewPostgresEventStore(activities.Pool).LoadFrozen(ctx, frozen.Input.EventID, frozen.InputSnapshotID, frozen.EligibilitySnapshotID)
 	if err != nil {
 		return frozen, err
 	}
 	if err = frozen.verifySnapshot(request); err != nil {
+		return frozen, err
+	}
+	ctx, err = observability.WithTraceIDs(ctx, request.GetCorrelationId(), frozen.Input.EventID)
+	if err != nil {
 		return frozen, err
 	}
 	if request.GetBudget() == nil {
