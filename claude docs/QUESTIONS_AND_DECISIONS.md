@@ -1817,3 +1817,13 @@ durable state, receipt and expiry, and separate MEASURED verification
 intervals; no per-command verified flag. Marked done. The demo binary
 predates it; one rebuild follows 4E.9 so both RPCs land in a single
 restart.
+
+## 2026-09-27 08:24Z — 4E.8 reopened: command state must be a closed enum
+
+EventCommand.state in c86347c is a free string. No command state enum
+exists in the contracts, and AGENTS.md requires mutually exclusive states
+to be closed unions. Reopened as dispatched: root adds a
+`CommandLifecycleState` enum (PERSISTED, SENT, ACKNOWLEDGED, UNCERTAIN,
+EXPIRED, REJECTED, plus UNSPECIFIED) mapped from the durable text with an
+error on any unknown value, RED/GREEN, before the demo rebuild. The
+director's earlier [x] was premature.

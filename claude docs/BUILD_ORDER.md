@@ -1573,7 +1573,7 @@ Owns: `services/control/internal/report/`.
 Owns: `tests/integration/`, `testdata/scenarios/`, `tests/end-to-end/`,
 `testdata/fixtures/api/`.
 
-- `[x]` 4E.8 `[after 4E.2]` Per-command truth for the console. `ListEventCommands`
+- `[~]` 4E.8 `[after 4E.2]` Per-command truth for the console. `ListEventCommands`
   on `EventsService` returns every command intent of an event with device,
   generation, setpoint, issued, effective and expiry times, the latest
   durable state (PERSISTED, SENT, ACKNOWLEDGED, UNCERTAIN, EXPIRED,
