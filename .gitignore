@@ -32,3 +32,8 @@ presentations/system-overview/build/
 
 # Rendered walkthrough media; kept next to the repo, not in it
 /presentations/
+
+/control
+/gateway-simulator
+/services/control/control
+*.egg-info/
