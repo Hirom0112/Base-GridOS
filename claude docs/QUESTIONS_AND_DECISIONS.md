@@ -2249,3 +2249,22 @@ assembled public context directory; `select count(*) from
 reserve_overrides where reason='WEATHER' and expires_at > now()` returned
 2. Marked done. The console's step 7 proof can now show the WEATHER floor
 on a fresh plan.
+
+## 2026-09-27 10:05Z — Demo proof: persistent offline device stalls the replacement batch (2B.11)
+
+live-proof-1790502698 showed COMMAND_RETRY (the seed works), MISSING,
+REPLACEMENT_PLANNED, STALE_CAPACITY_REMOVED and REBALANCED, and a live
+WEATHER floor, but no UNCERTAIN: the replacement command sits PERSISTED
+with an outbox row never claimed. The worker log explains it:
+IssueReplacement and PublishCommands fail with `unavailable: device
+unavailable` on every attempt because the now-persistent OFFLINE fault
+keeps one device (the one whose zero command is in the batch) unreachable
+until the live window ends, and the publisher turns one per-device
+Unavailable into a whole-batch activity failure. The compressed
+integration clock hid this because the fault ended before the retry. This
+is a durable-failure defect, not a scenario nit: one unreachable device
+must never stall a batch. Decision: 2B.11 (root, top priority, before the
+4C.10 fixture): per-command attempt and bounded backoff, the rest of the
+batch delivered, the activity succeeds, and after bounded attempts the
+command becomes UNCERTAIN with its typed exception. The two stuck
+replacement rows on the demo resolve when the fix lands.

@@ -964,6 +964,17 @@ Owns: `services/control/internal/dispatch/`, `services/control/cmd/worker`,
   every action is audited and appears as a typed exception. The
   heat-event-canonical assertion reads `required_recovery_actions` from the
   scenario and checks each appears. Verify: `go test ./services/control/internal/dispatch/ -run Recovery` passes and `TestHeatEventCanonical` asserts RETRY, REMOVE_STALE_CAPACITY, and REBALANCE entries.
+- `[ ]` 2B.11 `[after 2B.10]` One unreachable device never stalls a batch.
+  When the gateway answers Unavailable for one command, the publisher records
+  that command's attempt and schedules its bounded backoff retry, delivers the
+  rest of the batch, and returns success; after the bounded attempts the
+  command becomes UNCERTAIN with a typed exception (receipt unknown, device
+  unreachable) and reconciliation treats it as such. `IssueReplacement` and
+  `PublishCommands` never fail the activity for a per-device Unavailable.
+  Verify: `go test ./services/control/internal/storage/publisher/ -run Unavailable`
+  proves a two-command batch with one unavailable device acknowledges the
+  other, retries the first with backoff, then marks it UNCERTAIN, and
+  `TestHeatEventCanonical` passes three consecutive isolated runs.
 - `[x]` 2B.9 `[P]` Per-device generation across events. Control numbers
   command generations per event (0, then 1 for replacements and stops)
   while the gateway enforces monotonic generations per device, so on a
