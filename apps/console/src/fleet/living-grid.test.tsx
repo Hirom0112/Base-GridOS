@@ -60,3 +60,24 @@ test("refreshes geography without replacing the renderer or losing selection", a
   unmount();
   expect(engine.dispose).toHaveBeenCalledTimes(1);
 });
+
+test("geographic source label comes from evidence instead of the demo environment", () => {
+  const derived = create(H3SiteAggregateSchema, {
+    ...cell,
+    installedMw: {
+      value: 0.1,
+      metadata: {
+        timestamp: { seconds: 1786575300n },
+        freshness: {},
+        provenanceMix: [{ provenance: 4, recordCount: 12n }],
+      },
+    },
+  });
+  const { container } = render(
+    <LivingGrid cells={[derived]} selected={null} onSelect={() => {}} />,
+  );
+  expect(container.querySelector(".field-footer")).toHaveTextContent("DERIVED");
+  expect(container.querySelector(".field-footer")).not.toHaveTextContent(
+    "SIMULATED",
+  );
+});
