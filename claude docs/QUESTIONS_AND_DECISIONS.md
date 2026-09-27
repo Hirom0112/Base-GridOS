@@ -897,3 +897,8 @@ assumptions reported by workers land here too.
   that instant), which is the 3C.5 behaviour working as intended, and the
   live report shows the stale exclusions, FROZEN_FORECAST provenance, and
   the economics version gap.
+- **4C.2 (lane 4C), verified; lane 4C complete:** `GeoService` in its own
+  `geo.proto` serves privacy-merged cells and a market to feeder
+  drill-down over a synthetic hierarchy labelled SIMULATED at every node,
+  with the address scan covering its responses. Director: contracts lint
+  and breaking clean, geo packages ok, control builds.

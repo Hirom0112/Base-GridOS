@@ -1399,7 +1399,7 @@ Owns: `services/control/internal/fleet/geo/`,
   active dispatch per cell; cells with fewer than 5 sites are merged upward
   before leaving the server (FULL_SPEC §5.2 privacy; the resolutions and the
   merge threshold are assumptions to report). Verify: `go test ./services/control/internal/fleet/geo/` passes.
-- `[ ]` 4C.2 `[after 4D.3]` Connect service `internal/api/geo` with
+- `[x]` 4C.2 `[after 4D.3]` Connect service `internal/api/geo` with
   `ListCells` and `Drilldown` through market → load zone → utility territory
   → substation → feeder → authorized site, substation and feeder from a
   clearly labelled synthetic or licensed public model (FULL_SPEC §5.2), exact
