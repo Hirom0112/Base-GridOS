@@ -13,8 +13,9 @@ by the director. A marked stub is honest; a silent one is not.
 | `PENDING-LIVE` | `services/control/internal/connectors/connectors.go` (`HouseholdLoadLiveSlot`) | Simulated household load | An authorized interval meter or gateway feed |
 | `PENDING-LIVE` | `services/control/internal/connectors/connectors.go` (`BatteryLiveSlot`) | Simulated battery telemetry | An authorized device stream |
 | `PENDING-LIVE` | `services/control/internal/connectors/connectors.go` (`TopologyLiveSlot`) | Simulated grid topology | An approved operational network mapping |
-| `PENDING-LIVE` | `services/control/internal/connectors/connectors.go` (`MemberPolicyLiveSlot`) | Simulated member reserve and consent | A consented member configuration feed |
+| `PENDING-LIVE` | `services/control/internal/connectors/connectors.go` (`MemberPolicyLiveSlot`) | Simulated member reserve and consent; MEMBER_AUTHORIZED site bindings wait for a live identity entitlement source, while only SIMULATED bindings exist today | A consented member configuration and identity entitlement feed |
 | `PENDING-LIVE` | `services/control/internal/connectors/connectors.go` (`BehaviorLiveSlot`) | Simulated resilience and Travel Flex behavior | Consented settings and observed outcomes |
 | `PENDING-LIVE` | `services/control/internal/connectors/connectors.go` (`CommandsLiveSlot`) | Simulated command acceptance | An authenticated device command API |
 | `PENDING-LIVE` | `services/control/internal/connectors/connectors.go` (`SettlementLiveSlot`) | Simulated settlement economics | Contract rules and actual statements |
 | `PENDING-LIVE` | `services/control/internal/connectors/connectors.go` (`PricingLiveSlot`) | Simulated pricing and rewards | Authorized catalog, agreements, and reward ledger |
+| `PENDING-LIVE` | `services/control/internal/connectors/notification.go` (`NotificationLiveSlot`) | Simulated member alert delivery rows; no live channel is authorized | A consented and authorized notification channel with delivery evidence |
