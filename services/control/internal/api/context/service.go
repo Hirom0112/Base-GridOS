@@ -46,21 +46,24 @@ func (service *Service) GetMarketContext(_ context.Context, request *connect.Req
 	if err != nil {
 		return nil, err
 	}
-	response := &gridosv1.GetMarketContextResponse{}
-	for _, price := range snapshot.DayAheadPrices {
-		if price.SettlementPoint == request.Msg.GetSettlementPoint() {
-			response.DayAheadPrices = append(response.DayAheadPrices, marketPrice(price))
-		}
+	dayAhead, err := settlementPrices(snapshot.DayAheadPrices, request.Msg.GetSettlementPoint())
+	if err != nil {
+		return nil, err
 	}
-	for _, price := range snapshot.RealTimePrices {
-		if price.SettlementPoint == request.Msg.GetSettlementPoint() {
-			response.RealTimePrices = append(response.RealTimePrices, marketPrice(price))
-		}
+	realTime, err := settlementPrices(snapshot.RealTimePrices, request.Msg.GetSettlementPoint())
+	if err != nil {
+		return nil, err
 	}
+	response := &gridosv1.GetMarketContextResponse{DayAheadPrices: dayAhead, RealTimePrices: realTime}
 	for _, load := range snapshot.SystemLoads {
-		if load.Zone == request.Msg.GetWeatherZone() {
-			response.SystemLoads = append(response.SystemLoads, &gridosv1.ContextSystemLoad{IntervalEnd: timestamppb.New(load.At), WeatherZone: load.Zone, Mw: load.MW, Source: contextSource(load.Source)})
+		if load.Zone != request.Msg.GetWeatherZone() {
+			continue
 		}
+		source, err := contextSource(load.Source)
+		if err != nil {
+			return nil, err
+		}
+		response.SystemLoads = append(response.SystemLoads, &gridosv1.ContextSystemLoad{IntervalEnd: timestamppb.New(load.At), WeatherZone: load.Zone, Mw: load.MW, Source: source})
 	}
 	if len(response.DayAheadPrices) == 0 || len(response.RealTimePrices) == 0 || len(response.SystemLoads) == 0 {
 		return nil, connect.NewError(connect.CodeNotFound, errors.New("market context is unavailable for the requested region"))
@@ -81,20 +84,30 @@ func (service *Service) GetWeatherContext(_ context.Context, request *connect.Re
 	}
 	response := &gridosv1.GetWeatherContextResponse{}
 	for _, forecast := range snapshot.Forecasts {
-		if forecast.City == request.Msg.GetCity() {
-			response.Forecasts = append(response.Forecasts, &gridosv1.ContextWeatherForecast{
-				City: forecast.City, BeginTime: timestamppb.New(forecast.Start), EndTime: timestamppb.New(forecast.End),
-				TemperatureF: int32(forecast.TemperatureF), Summary: forecast.Summary, Source: contextSource(forecast.Source),
-			})
+		if forecast.City != request.Msg.GetCity() {
+			continue
 		}
+		source, err := contextSource(forecast.Source)
+		if err != nil {
+			return nil, err
+		}
+		response.Forecasts = append(response.Forecasts, &gridosv1.ContextWeatherForecast{
+			City: forecast.City, BeginTime: timestamppb.New(forecast.Start), EndTime: timestamppb.New(forecast.End),
+			TemperatureF: int32(forecast.TemperatureF), Summary: forecast.Summary, Source: source,
+		})
 	}
 	for _, alert := range snapshot.Alerts {
-		if alert.City == request.Msg.GetCity() {
-			response.Alerts = append(response.Alerts, &gridosv1.ContextWeatherAlert{
-				City: alert.City, Event: alert.Event, Severity: alert.Severity,
-				EffectiveAt: timestamppb.New(alert.Effective), ExpiresAt: timestamppb.New(alert.Expires), Source: contextSource(alert.Source),
-			})
+		if alert.City != request.Msg.GetCity() {
+			continue
 		}
+		source, err := contextSource(alert.Source)
+		if err != nil {
+			return nil, err
+		}
+		response.Alerts = append(response.Alerts, &gridosv1.ContextWeatherAlert{
+			City: alert.City, Event: alert.Event, Severity: alert.Severity,
+			EffectiveAt: timestamppb.New(alert.Effective), ExpiresAt: timestamppb.New(alert.Expires), Source: source,
+		})
 	}
 	if len(response.Forecasts) == 0 {
 		return nil, connect.NewError(connect.CodeNotFound, errors.New("weather context is unavailable for the requested city"))
@@ -115,9 +128,14 @@ func (service *Service) GetOutageRisk(_ context.Context, request *connect.Reques
 	}
 	response := &gridosv1.GetOutageRiskResponse{}
 	for _, rate := range snapshot.OutageRates {
-		if rate.County == request.Msg.GetCounty() {
-			response.Rates = append(response.Rates, &gridosv1.ContextOutageRate{County: rate.County, Month: rate.Month, Rate: rate.Rate, Source: contextSource(rate.Source)})
+		if rate.County != request.Msg.GetCounty() {
+			continue
 		}
+		source, err := contextSource(rate.Source)
+		if err != nil {
+			return nil, err
+		}
+		response.Rates = append(response.Rates, &gridosv1.ContextOutageRate{County: rate.County, Month: rate.Month, Rate: rate.Rate, Source: source})
 	}
 	if len(response.Rates) == 0 {
 		return nil, connect.NewError(connect.CodeNotFound, errors.New("outage rate is unavailable for the requested county"))
