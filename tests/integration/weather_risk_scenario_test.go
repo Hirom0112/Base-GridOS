@@ -33,6 +33,14 @@ func TestWeatherStaleAlarmRaiseFloor(t *testing.T) {
 	stack.publishTelemetry(t, ctx, stack.cohort(t), time.Now().UTC(), constantStateOfEnergy)
 	stack.evaluateRiskNow(t)
 	stack.assertRiskFloor(t, memberID, selected.SiteID, "WEATHER", 60)
+	var weatherEvidence int
+	if err := stack.pool.QueryRow(ctx, `SELECT count(*) FROM risk_policy_evaluations WHERE site_id = $1
+		AND signals->'Weather'->>'Provenance' = 'SIMULATED'`, selected.SiteID).Scan(&weatherEvidence); err != nil {
+		t.Fatal(err)
+	}
+	if weatherEvidence == 0 {
+		t.Fatal("risk audit omitted SIMULATED weather provenance")
+	}
 
 	stack.processes["gateway"].stop()
 	time.Sleep(31 * time.Second)
@@ -54,7 +62,9 @@ func TestWeatherStaleAlarmRaiseFloor(t *testing.T) {
 
 	eventID := fmt.Sprintf("weather-risk-%d", time.Now().UnixNano())
 	response := stack.runEvent(t, ctx, eventID, time.Now().UTC())
-	stack.assertOutcome(t, ctx, eventID, response)
+	if response.GetEvent().GetState().String() != "DISPATCH_EVENT_STATE_REPORTED" || len(response.GetSafetyViolations()) != 0 {
+		t.Fatalf("weather risk event=%+v safety violations=%+v", response.GetEvent(), response.GetSafetyViolations())
+	}
 	report := stack.scenarioReport(t, eventID)
 	if report.PlanVersion != 1 || report.ReserveViolationsPrevented != 0 || report.Versions.Policy == "" {
 		t.Fatalf("stored weather risk report=%+v", report)
