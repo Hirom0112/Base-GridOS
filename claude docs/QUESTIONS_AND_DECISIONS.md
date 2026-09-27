@@ -1216,3 +1216,13 @@ assumptions reported by workers land here too.
   v1.16.4 (binary at /tmp/gridos-terraform-bin, downloaded from the
   official release with a matching checksum; not part of the pinned
   toolchain yet, which 5F records); no apply was run and no account exists.
+- **Evidence for seeded failures (2F.11, 2026-09-27):** the control plane
+  must never carry a simulator label; the console's steps 11 to 15 assert
+  typed exception entries derived from durable truth (telemetry MISSING
+  inside the window, commands UNCERTAIN past deadline, late acceptances,
+  recovery actions) added to the event timeline and the live watch. Found
+  while lane 5F drafted the demo runbook against live scenario mode.
+- **5F.1 rejected:** each runbook was a single test invocation; the
+  standard is an operator procedure against the running system with the
+  confirming query, the action, the recovered state, and the observed
+  output pasted, with the test cited only as proof.
