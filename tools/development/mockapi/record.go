@@ -28,9 +28,10 @@ type recordingIndex struct {
 }
 
 type recordingRequest struct {
-	Role     string          `json:"role"`
-	MemberID string          `json:"memberId"`
-	Body     json.RawMessage `json:"body"`
+	Role        string          `json:"role"`
+	MemberID    string          `json:"memberId"`
+	Permissions string          `json:"permissions"`
+	Body        json.RawMessage `json:"body"`
 }
 
 type recordedFixture struct {
@@ -147,6 +148,9 @@ func callMethod(baseURL, fixtureRoot, methodName string, indexedRequest recordin
 	}
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("X-GridOS-Role", indexedRequest.Role)
+	if indexedRequest.Permissions != "" {
+		request.Header.Set("X-GridOS-Permissions", indexedRequest.Permissions)
+	}
 	if err := setRecorderIdentity(request, methodName, indexedRequest); err != nil {
 		return recordedFixture{}, err
 	}
