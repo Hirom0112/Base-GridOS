@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	gridosv1 "github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1"
+	"github.com/Hirom0112/Base-GridOS/services/control/internal/fleet"
 	"github.com/stretchr/testify/require"
 )
 
@@ -131,4 +133,22 @@ func TestTravelFlexMigrationReappliesAfterRollback(t *testing.T) {
 	err = pool.QueryRow(context.Background(), `SELECT EXISTS (SELECT 1 FROM pg_attribute WHERE attrelid = 'travel_flex_windows'::regclass AND attname = 'end_idempotency_key' AND NOT attisdropped)`).Scan(&present)
 	require.NoError(t, err)
 	require.True(t, present)
+}
+
+func TestTravelFlexSimulatedMemberSiteBindingIsIdempotent(t *testing.T) {
+	pool := policyDatabase(t)
+	seed := int64(20260926)
+	sites := []*gridosv1.AuthorizedSite{{Site: &gridosv1.Site{
+		SiteId: "site_abc", Provenance: &gridosv1.Provenance{
+			Provenance: gridosv1.DataProvenance_DATA_PROVENANCE_SIMULATED, SourceId: "fleet-file", SimulationSeed: &seed,
+		},
+	}}}
+	require.NoError(t, fleet.SeedSimulatedMemberSites(context.Background(), pool, sites))
+	require.NoError(t, fleet.SeedSimulatedMemberSites(context.Background(), pool, sites))
+	var memberID, source, provenance string
+	err := pool.QueryRow(context.Background(), `SELECT member_id, source, provenance->>'provenance' FROM member_sites WHERE site_id = 'site_abc'`).Scan(&memberID, &source, &provenance)
+	require.NoError(t, err)
+	require.Equal(t, "member-abc", memberID)
+	require.Equal(t, "SIMULATED", source)
+	require.Equal(t, "SIMULATED", provenance)
 }
