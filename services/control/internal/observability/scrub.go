@@ -2,15 +2,9 @@ package observability
 
 import (
 	"context"
-	"crypto/hmac"
-	"crypto/sha256"
-	"encoding/hex"
-	"encoding/json"
-	"errors"
 	"log/slog"
 	"strings"
 
-	"github.com/Hirom0112/Base-GridOS/services/control/internal/analytics"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/sdk/instrumentation"
 	"go.opentelemetry.io/otel/sdk/resource"
@@ -151,48 +145,4 @@ func safeTraceAttr(item attribute.KeyValue) bool {
 	default:
 		return false
 	}
-}
-
-type ScrubbedAnalyticsSink struct {
-	next analytics.Sink
-	key  []byte
-}
-
-func NewScrubbedAnalyticsSink(next analytics.Sink, key []byte) (*ScrubbedAnalyticsSink, error) {
-	if next == nil || len(key) < 16 {
-		return nil, errors.New("analytics scrubber requires sink and key")
-	}
-	return &ScrubbedAnalyticsSink{next: next, key: append([]byte(nil), key...)}, nil
-}
-
-func (s *ScrubbedAnalyticsSink) Write(ctx context.Context, record analytics.Record) error {
-	var fields map[string]json.RawMessage
-	if err := json.Unmarshal(record.Payload, &fields); err != nil {
-		return err
-	}
-	clean := make(map[string]json.RawMessage)
-	for key, value := range fields {
-		switch key {
-		case "count", "duration_ms", "power_kw", "energy_kwh":
-			var number json.Number
-			if err := json.Unmarshal(value, &number); err == nil {
-				clean[key] = value
-			}
-		}
-	}
-	payload, err := json.Marshal(clean)
-	if err != nil {
-		return err
-	}
-	record.ID = s.digest(record.ID)
-	record.Provenance.SourceID = s.digest(record.Provenance.SourceID)
-	record.Provenance.SourceURI = "redacted"
-	record.Payload = payload
-	return s.next.Write(ctx, record)
-}
-
-func (s *ScrubbedAnalyticsSink) digest(value string) string {
-	hash := hmac.New(sha256.New, s.key)
-	_, _ = hash.Write([]byte(value))
-	return hex.EncodeToString(hash.Sum(nil))
 }

@@ -7,9 +7,7 @@ import (
 	"log/slog"
 	"strings"
 	"testing"
-	"time"
 
-	"github.com/Hirom0112/Base-GridOS/services/control/internal/analytics"
 	"go.opentelemetry.io/otel/attribute"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/trace"
@@ -23,7 +21,6 @@ func TestScrubExporters(t *testing.T) {
 	t.Parallel()
 	assertScrubbedLog(t)
 	assertScrubbedTrace(t)
-	assertScrubbedAnalytics(t)
 }
 
 func assertScrubbedLog(t *testing.T) {
@@ -71,36 +68,6 @@ func assertScrubbedTrace(t *testing.T) {
 	}
 }
 
-func assertScrubbedAnalytics(t *testing.T) {
-	t.Helper()
-	sink := &capturedAnalytics{}
-	wrapped, err := NewScrubbedAnalyticsSink(sink, []byte("test-only-scrub-key"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	record := analytics.Record{
-		ID:   privateSite,
-		Kind: analytics.DispatchFact,
-		Provenance: analytics.Provenance{
-			Class: "SIMULATED", SourceID: privateSite, SourceURI: privateTravelWindow,
-			ObservedAt: time.Date(2026, 8, 12, 18, 0, 0, 0, time.UTC),
-			IngestedAt: time.Date(2026, 8, 12, 18, 1, 0, 0, time.UTC), SchemaVersion: "v1",
-		},
-		Payload: json.RawMessage(`{"site_id":"site-private-123","command_credential":"credential-private-456","travel_window":"travel-window-private-789","count":5}`),
-	}
-	if err := wrapped.Write(context.Background(), record); err != nil {
-		t.Fatal(err)
-	}
-	encoded, err := json.Marshal(sink.record)
-	if err != nil {
-		t.Fatal(err)
-	}
-	assertPrivateAbsent(t, string(encoded))
-	if !strings.Contains(string(encoded), `"count":5`) {
-		t.Fatalf("safe aggregate count removed: %s", encoded)
-	}
-}
-
 func assertPrivateAbsent(t *testing.T, output string) {
 	t.Helper()
 	for _, private := range []string{privateSite, privateCredential, privateTravelWindow} {
@@ -120,14 +87,5 @@ func (c *capturedSpans) ExportSpans(_ context.Context, spans []sdktrace.ReadOnly
 }
 
 func (c *capturedSpans) Shutdown(context.Context) error {
-	return nil
-}
-
-type capturedAnalytics struct {
-	record analytics.Record
-}
-
-func (c *capturedAnalytics) Write(_ context.Context, record analytics.Record) error {
-	c.record = record
 	return nil
 }
