@@ -108,3 +108,24 @@ func TestRecordSendsScopedMemberIdentity(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestRecordSendsStepUpForApproval(t *testing.T) {
+	t.Setenv("GRIDOS_STEP_UP_KEY", "gridos-local-step-up-key-32-bytes-minimum")
+	fixtureRoot := t.TempDir()
+	index := []byte(`{"screens":{"dispatch":["gridos.v1.DispatchService.ApproveEvent"]},"requests":{"gridos.v1.DispatchService.ApproveEvent":{"role":"approver","body":{"eventId":"event-1","planVersion":1,"approvedBy":"approver"}}}}`)
+	if err := os.WriteFile(filepath.Join(fixtureRoot, "INDEX.json"), index, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	stub := httptest.NewServer(http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+		if request.Header.Get("X-GridOS-Step-Up") == "" {
+			http.Error(response, "step-up required", http.StatusForbidden)
+			return
+		}
+		response.Header().Set("Content-Type", "application/json")
+		_, _ = response.Write([]byte(`{"recorded":true}`))
+	}))
+	defer stub.Close()
+	if err := recordFixtures(fixtureRoot, stub.URL, &http.Client{Timeout: time.Second}); err != nil {
+		t.Fatal(err)
+	}
+}
