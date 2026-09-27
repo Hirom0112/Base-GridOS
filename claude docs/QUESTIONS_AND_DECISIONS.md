@@ -1375,3 +1375,10 @@ assumptions reported by workers land here too.
   cleanly and replacement publishing drains multiple same-device interval
   intents under the predecessor claim rule; the consecutive-events stack
   run is the remaining leg before the emergency-stop rehearsal.
+- **Emergency-stop rehearsal on the rebuilt demo (2026-09-27):** with the
+  per-device generation counter, the launch of 166 commands on a fleet
+  that had run events before was ACCEPTED at generations 1 and 2. The
+  emergency stop then persisted 166 zero commands at generations 2 and 3,
+  of which exactly 100 were accepted and 66 never published: the stop path
+  sends a single batch, the defect 2F.9 removed from the launch path. Lane
+  5C owns the drain under 2B.9; the physical-stop proof is still open.
