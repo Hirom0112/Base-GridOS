@@ -1044,3 +1044,9 @@ assumptions reported by workers land here too.
   golangci-lint on every staged Go package and skips only test execution
   for tests-only commits. Proven with a scratch nested test that the hook
   rejected as a tests-only commit; scratch removed.
+- **Weather alert matching (4A.10, 2026-09-27):** alerts match sites
+  through a SIMULATED (fleet, weather_zone) to UGC and SAME code mapping
+  seeded only for fleets that exist, never by city string or by an entire
+  ERCOT zone. The recorded Austin fixture holds zero alerts, so the demo
+  shows no weather override with an audit saying so; the WEATHER path is
+  proven in an isolated test with a synthetic Travis County alert.
