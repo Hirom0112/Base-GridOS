@@ -2,6 +2,8 @@ package policy
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"os"
 	"testing"
 	"time"
@@ -68,6 +70,56 @@ func TestRewardPostingRequiresAcceptedNonzeroCommandAndPaysExpiredConsent(t *tes
 	require.NoError(t, pool.QueryRow(ctx, `SELECT member_id,amount_cents FROM reward_ledger WHERE event_id = 'reward-event'`).Scan(&member, &amount))
 	require.Equal(t, "member-one", member)
 	require.Equal(t, int64(500), amount)
+}
+
+func TestRewardPostingCatchesLateAcceptedReportedEventWithinDayOnce(t *testing.T) {
+	pool := policyDatabase(t)
+	ctx := context.Background()
+	begin := time.Now().UTC().Truncate(time.Second).Add(-2 * time.Hour)
+	end := begin.Add(30 * time.Minute)
+	seedRewardPostingEvent(t, pool, begin, end)
+	store := New(pool)
+	_, err := selectWithOffer(t, store, Selection{ID: "reward-selection-one",
+		MemberID: "member-one", Market: "TX", CatalogVersion: "catalog-v1",
+		MemberPlanID: "plan-cedar", PolicyVersion: "policy-v1", ConsentText: "I consent",
+		ConsentVersion: "v1", ExplanationShown: "Backup reserve", EffectiveAt: begin.Add(-time.Minute),
+		CorrelationID: "reward-event"})
+	require.NoError(t, err)
+	posted, err := store.PostEventRewards(ctx, "reward-event", end)
+	require.NoError(t, err)
+	require.Zero(t, posted)
+	reportedAt := end.Add(time.Minute)
+	reportBytes := []byte(`{"event_id":"reward-event","member_rewards_cents":0}`)
+	digest := sha256.Sum256(reportBytes)
+	_, err = pool.Exec(ctx, `INSERT INTO event_reports(event_id,version,report,sha256,produced_at)
+		VALUES ('reward-event',1,$1,$2,$3)`, reportBytes, hex.EncodeToString(digest[:]), reportedAt)
+	require.NoError(t, err)
+	_, err = pool.Exec(ctx, `UPDATE dispatch_events SET state = 'REPORTED', updated_at = $1 WHERE event_id = 'reward-event'`, reportedAt)
+	require.NoError(t, err)
+	_, err = pool.Exec(ctx, `INSERT INTO command_acknowledgements
+		(acknowledgement_id,command_id,idempotency_key,receipt_status,received_at,gateway_id,correlation_id)
+		VALUES ('late-ack','live-command','late-ack','ACCEPTED',$1,'gateway','reward-event')`, reportedAt.Add(time.Minute))
+	require.NoError(t, err)
+	at := reportedAt.Add(2 * time.Minute)
+	_, err = pool.Exec(ctx, `UPDATE dispatch_events SET updated_at = $1 WHERE event_id = 'reward-event'`, at.Add(-25*time.Hour))
+	require.NoError(t, err)
+	posted, err = store.PostLateEventRewards(ctx, at)
+	require.NoError(t, err)
+	require.Zero(t, posted)
+	_, err = pool.Exec(ctx, `UPDATE dispatch_events SET updated_at = $1 WHERE event_id = 'reward-event'`, reportedAt)
+	require.NoError(t, err)
+	posted, err = store.PostLateEventRewards(ctx, at)
+	require.NoError(t, err)
+	require.Equal(t, 1, posted)
+	posted, err = store.PostLateEventRewards(ctx, at.Add(time.Hour))
+	require.NoError(t, err)
+	require.Zero(t, posted)
+	var rows int
+	require.NoError(t, pool.QueryRow(ctx, `SELECT count(*) FROM reward_ledger WHERE event_id = 'reward-event'`).Scan(&rows))
+	require.Equal(t, 1, rows)
+	var storedReport []byte
+	require.NoError(t, pool.QueryRow(ctx, `SELECT report FROM event_reports WHERE event_id = 'reward-event' AND version = 1`).Scan(&storedReport))
+	require.Equal(t, reportBytes, storedReport)
 }
 
 func TestRewardPostingAddsFixedEventTravelCreditOnlyForFullWindow(t *testing.T) {

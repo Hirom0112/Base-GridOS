@@ -12,6 +12,7 @@ import (
 
 const PruneTelemetryActivity = "PruneTelemetry"
 const PostPeriodicRewardsActivity = "PostPeriodicRewards"
+const PostLateEventRewardsActivity = "PostLateEventRewards"
 const RiskOverridesActivity = "EvaluateRiskOverrides"
 const RiskAnomaliesActivity = "EvaluateRiskAnomalies"
 
@@ -43,6 +44,11 @@ func (activities *TelemetryMaintenanceActivities) PostPeriodicRewards(ctx contex
 	return err
 }
 
+func (activities *TelemetryMaintenanceActivities) PostLateEventRewards(ctx context.Context, at time.Time) error {
+	_, err := activities.Rewards.PostLateEventRewards(ctx, at)
+	return err
+}
+
 func TelemetryMaintenance(ctx workflow.Context) error {
 	at := workflow.Now(ctx)
 	ctx = workflow.WithActivityOptions(ctx, workflow.ActivityOptions{
@@ -56,7 +62,10 @@ func TelemetryMaintenance(ctx workflow.Context) error {
 	if err := workflow.ExecuteActivity(ctx, PruneTelemetryActivity).Get(ctx, nil); err != nil {
 		return err
 	}
-	return workflow.ExecuteActivity(ctx, PostPeriodicRewardsActivity, at).Get(ctx, nil)
+	if err := workflow.ExecuteActivity(ctx, PostPeriodicRewardsActivity, at).Get(ctx, nil); err != nil {
+		return err
+	}
+	return workflow.ExecuteActivity(ctx, PostLateEventRewardsActivity, at).Get(ctx, nil)
 }
 
 func RiskOverrides(ctx workflow.Context) error {

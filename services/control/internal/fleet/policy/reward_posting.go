@@ -67,6 +67,47 @@ func (store *Store) PostEventRewards(ctx context.Context, eventID string, at tim
 	return posted, nil
 }
 
+func (store *Store) PostLateEventRewards(ctx context.Context, at time.Time) (int, error) {
+	if at.IsZero() {
+		return 0, errors.New("posting time required")
+	}
+	rows, err := store.pool.Query(ctx, `SELECT event.event_id FROM dispatch_events event
+		WHERE event.state = 'REPORTED' AND event.updated_at >= $1::timestamptz - interval '24 hours'
+		AND event.updated_at <= $1 AND EXISTS (
+			SELECT 1 FROM command_intents command
+			JOIN command_acknowledgements acknowledgement ON acknowledgement.command_id = command.command_id
+			WHERE command.event_id = event.event_id AND command.setpoint_kw <> 0
+			AND acknowledgement.receipt_status = 'ACCEPTED'
+			AND acknowledgement.received_at > event.updated_at AND acknowledgement.received_at <= $1)
+		ORDER BY event.updated_at,event.event_id`, at)
+	if err != nil {
+		return 0, err
+	}
+	var eventIDs []string
+	for rows.Next() {
+		var eventID string
+		if err = rows.Scan(&eventID); err != nil {
+			rows.Close()
+			return 0, err
+		}
+		eventIDs = append(eventIDs, eventID)
+	}
+	err = rows.Err()
+	rows.Close()
+	if err != nil {
+		return 0, err
+	}
+	posted := 0
+	for _, eventID := range eventIDs {
+		count, err := store.PostEventRewards(ctx, eventID, at)
+		if err != nil {
+			return posted, err
+		}
+		posted += count
+	}
+	return posted, nil
+}
+
 func eventRewards(ctx context.Context, tx pgx.Tx, eventID string, begin, end time.Time) ([]eventReward, error) {
 	rows, err := tx.Query(ctx, `WITH participants AS (
 		SELECT DISTINCT site.member_id FROM command_intents command
