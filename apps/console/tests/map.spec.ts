@@ -19,7 +19,7 @@ test.beforeEach(async ({ page }) => {
 for (const width of [390, 1440]) {
   test(`map preserves evidence and releases competing canvases at ${width}`, async ({
     page,
-  }) => {
+  }, testInfo) => {
     await page.setViewportSize({ width, height: 1000 });
     await page.goto("/fleet");
     await expect(page.locator("canvas[data-living-grid]")).toHaveCount(1);
@@ -37,7 +37,20 @@ for (const width of [390, 1440]) {
         ),
       )
       .toBe(true);
+    await page.getByLabel("Map measure").selectOption("unknown");
+    await expect(
+      page.getByRole("columnheader", {
+        name: "Unknown state of charge · sites",
+      }),
+    ).toBeVisible();
+    await page.getByLabel("Map measure").selectOption("connected");
+    await expect(
+      page.getByRole("columnheader", { name: "Connected sites · count" }),
+    ).toBeVisible();
     await page.getByLabel("Map measure").selectOption("sites");
+    await expect(
+      page.getByRole("region", { name: "Geographic hierarchy" }),
+    ).toContainText("SIMULATED market:ERCOT");
     await page
       .getByRole("button", { name: /^Inspect / })
       .first()
@@ -55,7 +68,7 @@ for (const width of [390, 1440]) {
         .violations,
     ).toEqual([]);
     await page.screenshot({
-      path: `test-results/map-${width}.png`,
+      path: testInfo.outputPath(`map-${width}.png`),
       fullPage: true,
     });
     await page.getByRole("link", { name: /Observe/ }).click();
@@ -66,7 +79,7 @@ for (const width of [390, 1440]) {
 
 test("map remains usable without WebGL and with reduced motion", async ({
   page,
-}) => {
+}, testInfo) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.addInitScript(() => {
     HTMLCanvasElement.prototype.getContext = () => null;
@@ -86,14 +99,14 @@ test("map remains usable without WebGL and with reduced motion", async ({
     page.getByRole("region", { name: "Selected map cell" }),
   ).toContainText("SIMULATED");
   await page.screenshot({
-    path: "test-results/map-fallback.png",
+    path: testInfo.outputPath("map-fallback.png"),
     fullPage: true,
   });
 });
 
 test("map supports light theme and retains evidence when the basemap fails", async ({
   page,
-}) => {
+}, testInfo) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.route("**/geo/style.json", (route) =>
     route.fulfill({ status: 503, body: "Basemap unavailable" }),
@@ -117,7 +130,7 @@ test("map supports light theme and retains evidence when the basemap fails", asy
       .violations,
   ).toEqual([]);
   await page.screenshot({
-    path: "test-results/map-light-basemap-failure.png",
+    path: testInfo.outputPath("map-light-basemap-failure.png"),
     fullPage: true,
   });
 });

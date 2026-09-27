@@ -5,6 +5,7 @@ import { expect, test } from "vitest";
 import {
   WatchEventResponseSchema,
   EventPowerAggregateSchema,
+  H3EventPowerAggregateSchema,
 } from "../api/gen/gridos/v1/api_pb";
 import { UncertaintyIntervalSchema } from "../api/gen/gridos/v1/verification_pb";
 import { reduceEventSamples, EventResponse } from "./events-live";
@@ -116,11 +117,11 @@ test("stream keeps independently measured H3 evidence", () => {
   const spatial = create(WatchEventResponseSchema, {
     ...update,
     h3: [
-      {
+      create(H3EventPowerAggregateSchema, {
         h3Cell: "87489d884ffffff",
         power: update.fleet,
         metadata: update.fleet!.metadata,
-      },
+      }),
     ],
   });
   const samples = reduceEventSamples([], spatial, "event-1");
@@ -137,11 +138,11 @@ test("zero per-cell delivery cannot carry a nonzero measurement", () => {
   const spatial = create(WatchEventResponseSchema, {
     ...update,
     h3: [
-      {
+      create(H3EventPowerAggregateSchema, {
         h3Cell: "87489d884ffffff",
         power: { ...update.fleet!, deliveredState: 5, deliveredMw: 0.2 },
         metadata: update.fleet!.metadata,
-      },
+      }),
     ],
   });
   expect(() => reduceEventSamples([], spatial, "event-1")).toThrow();
