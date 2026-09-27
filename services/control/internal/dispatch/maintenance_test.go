@@ -12,11 +12,13 @@ import (
 	"go.temporal.io/sdk/testsuite"
 )
 
-func TestTelemetryMaintenanceRunsOneBoundedPruneActivity(t *testing.T) {
+func TestTelemetryMaintenanceRunsBoundedPruneAndRewardPosting(t *testing.T) {
 	var suite testsuite.WorkflowTestSuite
 	environment := suite.NewTestWorkflowEnvironment()
 	environment.RegisterActivityWithOptions(func(context.Context) error { return nil }, activity.RegisterOptions{Name: PruneTelemetryActivity})
+	environment.RegisterActivityWithOptions(func(context.Context, time.Time) error { return nil }, activity.RegisterOptions{Name: "PostPeriodicRewards"})
 	environment.OnActivity(PruneTelemetryActivity, mock.Anything).Return(nil).Once()
+	environment.OnActivity("PostPeriodicRewards", mock.Anything, mock.Anything).Return(nil).Once()
 	environment.ExecuteWorkflow(TelemetryMaintenance)
 	require.True(t, environment.IsWorkflowCompleted())
 	require.NoError(t, environment.GetWorkflowError())
