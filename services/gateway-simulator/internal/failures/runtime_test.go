@@ -154,7 +154,7 @@ func TestZeroCommandsEndScheduledFaultEligibility(t *testing.T) {
 	}
 }
 
-func TestNextCommandScopeTargetsFirstNonzeroCommandAfterTick(t *testing.T) {
+func TestNextCommandScopeTargetsFirstEventCommandAfterTick(t *testing.T) {
 	start := time.Date(2026, time.August, 12, 18, 0, 0, 0, time.UTC)
 	devices := []Device{{ID: "first", Region: "LZ_AEN"}, {ID: "second", Region: "LZ_AEN"}}
 	scenario := Scenario{Seed: 17, Start: start, Tick: time.Minute, Injections: []Injection{{At: start, Kind: DelayedGateway, Scope: "next_command"}}}
@@ -163,15 +163,12 @@ func TestNextCommandScopeTargetsFirstNonzeroCommandAfterTick(t *testing.T) {
 		t.Fatal(err)
 	}
 	runtime := NewRuntime(engine)
-	runtime.RecordCommand(start, "event", "first", 0)
-	if runtime.Affects(string(DelayedGateway), "first") {
-		t.Fatal("zero command consumed next-command fault")
-	}
+	runtime.Advance(start)
 	runtime.Advance(start.Add(time.Minute))
-	first := runtime.RecordCommand(start.Add(2*time.Minute), "event", "first", 1)
+	first := runtime.RecordCommand(start.Add(2*time.Minute), "event", "first", 0)
 	second := runtime.RecordCommand(start.Add(2*time.Minute+time.Second), "event", "second", 1)
 	if !first[DelayedGateway] || second[DelayedGateway] {
-		t.Fatal("next-command fault did not target first nonzero command only")
+		t.Fatal("next-command fault did not target the first event command only")
 	}
 	runtime.Advance(start.Add(3 * time.Minute))
 	if runtime.Affects(string(DelayedGateway), "first") {

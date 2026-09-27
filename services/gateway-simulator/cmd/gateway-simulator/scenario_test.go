@@ -221,6 +221,9 @@ func TestRuntimeNextCommandScopeDelaysOnlyFirstEventCommand(t *testing.T) {
 	for index, deviceID := range []string{"first", "second"} {
 		request := connect.NewRequest(commandRequest(deviceID, commandAt))
 		request.Msg.CommandIntent.EventId = "event"
+		if index == 0 {
+			request.Msg.CommandIntent.SetpointKw = 0
+		}
 		request.Header().Set("Authorization", "token")
 		_, err := handler.SubmitCommand(ctx, request)
 		if index == 0 && connect.CodeOf(err) != connect.CodeDeadlineExceeded {
