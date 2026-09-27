@@ -1668,3 +1668,18 @@ not; protojson whitespace is documented as unstable, so the comparison must
 be semantic (unmarshal both and compare with proto.Equal, or compact both)
 rather than byte-for-byte. Root owns both; the gate reruns `make test-go`
 in full afterwards.
+
+## 2026-09-27 06:42Z — Regional context and frozen forecast for the console
+
+The console lane found the public samples serve HB_HOUSTON prices and the
+context code reads the NORTH_C load column, while the demo event sits in
+LZ_AEN (Austin); the price sample's raw source in the research cache holds
+every settlement point and the load sample already carries SOUTH_C, so the
+gap is selection, not data. It also found no way to read the forecast a
+plan was built from: GetPlanExplanation has no forecast field and the
+decision service's Forecast RPC is not proxied to the console. Decisions:
+new items 4D.8 (region-correct context, labelled by settlement point and
+zone) and 4C.6 (frozen forecast intervals in the explanation), both root
+after the gate window. Until they land the console shows exactly what the
+API returns with its geography label and states the mismatch as missing
+evidence, and supplies its own window candidates to ListDispatchWindows.

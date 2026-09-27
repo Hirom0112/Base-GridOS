@@ -1489,6 +1489,12 @@ Owns: `services/control/internal/fleet/geo/`,
 
 Owns: `services/control/internal/context/`, `services/control/internal/api/context/`.
 
+- `[ ]` 4C.6 `[after 4C.2]` Frozen forecast in the explanation. `GetPlanExplanation`
+  returns the forecast intervals the plan was built from, read from the
+  frozen input snapshot per site, each with provenance, source time, units,
+  and `MODELED` value kind; the 3F.3 fixture is refreshed from the demo.
+  Verify: `go test ./services/control/internal/api/ -run Explanation` passes
+  and the recorded fixture carries at least one interval.
 - `[x]` 4D.1 `[P]` RED then GREEN: reference loaders for normalized ERCOT
   prices, system load, outage rates, and NWS forecasts and alerts from
   `testdata/fixtures/public` (offline default) with provenance and freshness
@@ -1506,6 +1512,14 @@ Owns: `services/control/internal/context/`, `services/control/internal/api/conte
 
 Owns: `services/control/internal/report/`.
 
+- `[ ]` 4D.8 `[after 4D.1]` Region-correct context. For an event in load
+  zone LZ_AEN the market context serves the LZ_AEN settlement point and the
+  load context serves SOUTH_C, both labelled with the settlement point or
+  zone and the source dates; the ERCOT price sample under
+  `testdata/fixtures/public/ercot-prices/` is re-cut from the research cache
+  to include LZ_AEN with the same provenance note. Verify: `go test
+  ./services/control/internal/context/ -run Region` passes and the demo's
+  `GetMarketContext` for LZ_AEN reports `LZ_AEN`.
 - `[x]` 4E.1 `[P]` RED then GREEN: full event report per FULL_SPEC §5.9:
   requested, approved, commanded, acknowledged, delivered MW and MWh;
   baseline and measurement method; latency, tracking error, availability,
