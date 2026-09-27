@@ -67,3 +67,22 @@ func TestBigQuerySinkRejectsRowErrors(t *testing.T) {
 		t.Fatal("partial BigQuery insert was accepted")
 	}
 }
+
+func TestECSTaskCredentialsConfigure(t *testing.T) {
+	t.Setenv("GRIDOS_ANALYTICS", "local")
+	if _, err := NewSink(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("GRIDOS_ANALYTICS", "bigquery")
+	t.Setenv("GOOGLE_APPLICATION_CREDENTIALS", "/nonexistent/gridos-credentials.json")
+	t.Setenv("AWS_CONTAINER_CREDENTIALS_RELATIVE_URI", "/v2/credentials/task")
+	t.Setenv("AWS_REGION", "us-east-1")
+	t.Setenv("GRIDOS_WIF_AUDIENCE", "//iam.googleapis.com/projects/123/locations/global/workloadIdentityPools/gridos-aws/providers/ecs-task")
+	t.Setenv("GRIDOS_WIF_SERVICE_ACCOUNT", "telemetry@example.iam.gserviceaccount.com")
+	t.Setenv("GRIDOS_BIGQUERY_PROJECT", "example")
+	t.Setenv("GRIDOS_BIGQUERY_DATASET", "telemetry")
+	t.Setenv("GRIDOS_BIGQUERY_TABLE", "observations")
+	if _, err := NewSink(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+}
