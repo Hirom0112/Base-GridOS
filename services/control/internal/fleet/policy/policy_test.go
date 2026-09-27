@@ -69,7 +69,7 @@ func TestPlanSelectionRejectsInactiveCatalog(t *testing.T) {
 	begin := time.Date(2026, 9, 26, 12, 0, 0, 0, time.UTC)
 	seedPolicyCatalog(t, pool, begin)
 	store := New(pool)
-	selection := Selection{ID: "selection-2", MemberID: "member-2", Market: "TX", CatalogVersion: "catalog-v2", MemberPlanID: "plan-cedar", PolicyVersion: "policy-v1", ConsentText: "I accept", ConsentVersion: "consent-v1", ExplanationShown: "Reserve and reward", EffectiveAt: begin.Add(time.Hour), CorrelationID: "correlation-2"}
+	selection := Selection{ID: "selection-2", MemberID: "member-2", Market: "TX", CatalogVersion: "catalog-v2", MemberPlanID: "plan-cedar", PolicyVersion: "policy-v2", ConsentText: "I accept", ConsentVersion: "consent-v1", ExplanationShown: "Reserve and reward", EffectiveAt: begin.Add(time.Hour), CorrelationID: "correlation-2"}
 	_, err := store.Select(context.Background(), selection)
 	require.Error(t, err)
 	selection.EffectiveAt = begin.Add(48 * time.Hour)
@@ -80,11 +80,30 @@ func TestPlanSelectionRejectsInactiveCatalog(t *testing.T) {
 	require.Equal(t, int64(900), selected.FlexibilityRewardCents)
 }
 
+func TestCatalogMigrationReappliesAfterRollback(t *testing.T) {
+	pool := policyDatabase(t)
+	forward, err := os.ReadFile("../../../../../database/migrations/0008_policy_catalog.sql")
+	require.NoError(t, err)
+	rollback, err := os.ReadFile("../../../../../database/rollback/0008_policy_catalog.sql")
+	require.NoError(t, err)
+	_, err = pool.Exec(context.Background(), string(forward))
+	require.NoError(t, err)
+	_, err = pool.Exec(context.Background(), string(rollback))
+	require.NoError(t, err)
+	_, err = pool.Exec(context.Background(), string(forward))
+	require.NoError(t, err)
+	var linked bool
+	err = pool.QueryRow(context.Background(), `SELECT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'resilience_plans_catalog_entry_fk')`).Scan(&linked)
+	require.NoError(t, err)
+	require.True(t, linked)
+}
+
 func seedPolicyCatalog(t *testing.T, pool *pgxpool.Pool, begin time.Time) {
 	t.Helper()
 	ctx := context.Background()
 	_, err := pool.Exec(ctx, `INSERT INTO reserve_policies (policy_version, protected_hardware_floor_percent, member_plan_floor_percent, dynamic_override_percent, effective_reserve_percent, effective_at, correlation_id)
-		VALUES ('policy-v1', 10, 65, 0, 65, $1, 'policy-fixture')`, begin.Add(-24*time.Hour))
+		VALUES ('policy-v1', 10, 65, 0, 65, $1, 'policy-fixture'),
+		('policy-v2', 10, 30, 0, 30, $2, 'policy-fixture')`, begin.Add(-24*time.Hour), begin.Add(24*time.Hour))
 	require.NoError(t, err)
 	_, err = pool.Exec(ctx, `INSERT INTO pricing_catalog_snapshots (catalog_version, member_plan_id, market, display_name, reserve_floor_percent, energy_plan, energy_term_months, energy_monthly_charge_cents, battery_plan, battery_term_months, battery_monthly_charge_cents, flexibility_reward_cents, effective_at, expires_at, correlation_id)
 		VALUES ('catalog-v1', 'plan-cedar', 'TX', 'Cedar', 65, '{}', 0, 1999, '{}', 0, 1500, 500, $1, $2, 'catalog-fixture'),
