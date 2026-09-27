@@ -1327,7 +1327,7 @@ Owns: `services/control/internal/fleet/policy/`,
   is immutable; the reward ledger is append-only; every decision stores the
   pricing, reward, and consent versions it used (FULL_SPEC §5.11, §10).
   Verify: `-run "Offer|Ledger"` passes.
-- `[ ]` 4A.6 `[P]` RED then GREEN: away-mode anomaly alert compares load to a
+- `[x]` 4A.6 `[P]` RED then GREEN: away-mode anomaly alert compares load to a
   consented baseline only while the home is marked away (by an active Travel
   Flex window or an explicit away flag) and the member opted in; the alert
   text is the fixed "energy anomaly signal" wording (FULL_SPEC §5.10).

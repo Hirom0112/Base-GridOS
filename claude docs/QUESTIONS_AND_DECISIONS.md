@@ -943,3 +943,10 @@ assumptions reported by workers land here too.
   the same typed interface and compares their outputs for the same request
   across all eleven connectors. Director: connectors package ok.
 - **5A.3 (lane 5A), verified:** the integration notes map every FULL_SPEC §7 missing-field bullet to the connector that supplies it and its production authorization requirement, and name deployment, maintenance, and validated reliability as uncovered by the eleven connectors. Director: independent bullet match, none missing.
+- **4A.6 (lane 4A), verified:** the away-mode anomaly compares measured
+  site load against a member-stated upper bound only while the member is
+  opted in and explicitly away (an active consented Travel Flex window or
+  an explicit away period), creating one append-only alert with the fixed
+  "energy anomaly signal" text and household-only evidence; no opt-in, no
+  away, normal load, an expired window, or an early return creates none.
+  Migration 0013 re-applies. Director: four anomaly tests pass.
