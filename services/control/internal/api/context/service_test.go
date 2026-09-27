@@ -3,6 +3,7 @@ package context
 import (
 	"context"
 	"math"
+	"os"
 	"path/filepath"
 	"testing"
 	"time"
@@ -77,6 +78,34 @@ func TestGetMarketContextAustinRegion(t *testing.T) {
 			t.Fatalf("unlabelled Austin load = %#v", load)
 		}
 	}
+}
+
+func TestGetWeatherContextSimulatedScenarioAlert(t *testing.T) {
+	now := time.Date(2026, 9, 26, 18, 0, 0, 0, time.UTC)
+	testdata, err := filepath.Abs(filepath.Join("..", "..", "..", "..", "..", "testdata"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	root := t.TempDir()
+	for _, name := range []string{"ercot-prices", "system-load", "outages", "load-profiles", "fleet"} {
+		if err := os.Symlink(filepath.Join(testdata, "fixtures", "public", name), filepath.Join(root, name)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := os.Symlink(filepath.Join(testdata, "scenarios", "weather"), filepath.Join(root, "weather")); err != nil {
+		t.Fatal(err)
+	}
+	response, err := NewService(root, func() time.Time { return now }).GetWeatherContext(context.Background(), operatorRequest(&gridosv1.GetWeatherContextRequest{City: "austin"}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, alert := range response.Msg.GetAlerts() {
+		if alert.GetSource().GetProvenance() == gridosv1.DataProvenance_DATA_PROVENANCE_SIMULATED {
+			assertPublicSource(t, alert.GetSource(), gridosv1.DataProvenance_DATA_PROVENANCE_SIMULATED)
+			return
+		}
+	}
+	t.Fatalf("no simulated Austin alert in %#v", response.Msg.GetAlerts())
 }
 
 func TestContextServiceRejectsInvalidWindows(t *testing.T) {
