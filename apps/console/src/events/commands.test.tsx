@@ -91,6 +91,9 @@ test("zero setpoints and measured intervals do not claim a stopped fleet", () =>
     screen.getByRole("region", { name: "Safe return evidence" }),
   ).toHaveTextContent("1 zero-setpoint intents");
   expect(
+    screen.getByRole("region", { name: "Safe return evidence" }),
+  ).toHaveTextContent("do not confirm the fleet has stopped");
+  expect(
     screen.getByRole("region", { name: "Measured interval verification" }),
   ).toHaveTextContent("3.5 kW");
   expect(
