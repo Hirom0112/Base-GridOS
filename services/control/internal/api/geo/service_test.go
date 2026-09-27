@@ -79,10 +79,10 @@ func TestGeoServicePrivacyAndDrilldown(t *testing.T) {
 	}
 }
 
-func TestGeoServiceRejectsDrilldownWithoutAuthorizedSites(t *testing.T) {
+func TestGeoServiceRejectsDrilldownWithoutSnapshot(t *testing.T) {
 	service := NewService(nil, nil, time.Now)
 	request := connect.NewRequest(&gridosv1.DrilldownRequest{})
 	request.Header().Set("X-GridOS-Role", "operator")
 	_, err := service.Drilldown(context.Background(), request)
-	require.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+	require.Equal(t, connect.CodeUnavailable, connect.CodeOf(err))
 }
