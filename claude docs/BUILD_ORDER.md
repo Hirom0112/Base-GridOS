@@ -1352,10 +1352,10 @@ Owns: `services/control/internal/fleet/policy/`,
 Owns: `services/decision/` (whole package this wave, including
 `gridos/optimization/` for 4B.6 and `pyproject.toml`).
 
-- `[ ]` 4B.1 `[P]` RED: `test_margin.py` pins the FULL_SPEC §5.11 formula on a
+- `[x]` 4B.1 `[P]` RED: `test_margin.py` pins the FULL_SPEC §5.11 formula on a
   worked case with every term, and that the conservative estimate uses the
   low end of value and the high end of every cost. Verify: fails.
-- `[ ]` 4B.2 `[P]` GREEN: `economics/margin.py` producing `MarginEstimate`.
+- `[x]` 4B.2 `[P]` GREEN: `economics/margin.py` producing `MarginEstimate`.
   Verify: `uv run --project services/decision pytest services/decision -k margin_formula` passes.
 - `[ ]` 4B.3 `[P]` RED then GREEN: hurdle gate. Additional flexibility is used
   only when the conservative margin clears the configured hurdle; a negative

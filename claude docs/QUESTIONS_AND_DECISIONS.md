@@ -770,3 +770,8 @@ assumptions reported by workers land here too.
   with PLAN_FALLBACK_SELECTED. Two earlier failures came from an
   uncommitted partition migration in the shared tree, since replaced by a
   declarative migration.
+- **4B.1 and 4B.2 (lane 4B), verified:** `economics/margin.py` models
+  every FULL_SPEC §5.11 term as a validated nonnegative Decimal range and
+  the conservative estimate takes the low end of each value and the high
+  end of each cost; the RED failed on the missing module. Director: 8
+  margin tests pass, mypy clean over 25 files.
