@@ -45,3 +45,14 @@ test("comparison rejects invalid identifiers and unsafe version numbers", () => 
     }).success,
   ).toBe(false);
 });
+
+test("non-numeric versions fail validation without throwing", () => {
+  expect(
+    comparisonSchema.safeParse({
+      eventIdA: "a",
+      eventIdB: "b",
+      planVersionA: "invalid",
+      planVersionB: "",
+    }).success,
+  ).toBe(false);
+});
