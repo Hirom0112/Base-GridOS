@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -64,7 +65,16 @@ func TestCadenceOverridesScenarioTickWithoutChangingLogicalClock(t *testing.T) {
 }
 
 func TestLiveScenarioUsesWallClockAndLiveCadence(t *testing.T) {
-	path := filepath.Join("..", "..", "..", "testdata", "scenarios", "heat-event-canonical.yaml")
+	root := filepath.Join("..", "..", "..", "..")
+	fixture, err := os.ReadFile(filepath.Join(root, "testdata", "scenarios", "heat-event-canonical.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(t.TempDir(), "scenario.yaml")
+	payload := strings.Replace(string(fixture), "testdata/fleets/austin-5000.jsonl", filepath.Join(root, "testdata", "fleets", "austin-5000.jsonl"), 1)
+	if err := os.WriteFile(path, []byte(payload), 0o600); err != nil {
+		t.Fatal(err)
+	}
 	started := time.Now()
 	configuration, err := parseConfig([]string{"--scenario", path, "--live", "--gateway-id", "gateway-live", "--cadence", "15s"})
 	if err != nil {
@@ -75,6 +85,28 @@ func TestLiveScenarioUsesWallClockAndLiveCadence(t *testing.T) {
 	}
 	if configuration.scenarioStart.Before(started) || configuration.scenarioStart.After(time.Now()) {
 		t.Fatalf("scenario start=%s, want process wall clock", configuration.scenarioStart)
+	}
+	runtime, err := failureRuntime(configuration, []fleetDevice{{DeviceID: "device-live", LoadZone: "LZ_AEN"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	runtime.Advance(configuration.scenarioStart.Add(24 * time.Hour))
+	for _, kind := range []string{"OFFLINE_DEVICES", "DELAYED_GATEWAY"} {
+		if runtime.Affects(kind, "device-live") {
+			t.Fatalf("%s fired before event launch", kind)
+		}
+	}
+	launch := configuration.scenarioStart.Add(24 * time.Hour)
+	runtime.RecordCommand(launch, "event-live", "device-live", 1)
+	seen := map[string]bool{}
+	for tick := time.Duration(0); tick <= 2*time.Minute; tick += configuration.telemetryCadence {
+		runtime.Advance(launch.Add(tick))
+		for _, kind := range []string{"OFFLINE_DEVICES", "DELAYED_GATEWAY"} {
+			seen[kind] = seen[kind] || runtime.Affects(kind, "device-live")
+		}
+	}
+	if !seen["OFFLINE_DEVICES"] || !seen["DELAYED_GATEWAY"] {
+		t.Fatalf("live injections not observed: %v", seen)
 	}
 }
 
