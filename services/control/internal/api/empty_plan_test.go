@@ -27,6 +27,16 @@ func TestEmptyPlanShortfall(t *testing.T) {
 	if err := (IndependentSafetyGate{}).Validate(plan, canonical); err == nil {
 		t.Fatal("underdeclared shortfall approved")
 	}
+	shortfall.ShortfallKw = 5
+	plan.Shortfalls = append(plan.Shortfalls, &gridosv1.ShortfallReport{
+		IntervalBeginTime: timestamppb.New(now.Add(6 * time.Minute)),
+		IntervalEndTime:   timestamppb.New(now.Add(11 * time.Minute)),
+		RequestedKw:       5,
+		ShortfallKw:       4,
+	})
+	if err := (IndependentSafetyGate{}).Validate(plan, canonical); err == nil {
+		t.Fatal("partially declared second interval approved")
+	}
 	plan.Shortfalls = nil
 	if err := (IndependentSafetyGate{}).Validate(plan, canonical); err == nil {
 		t.Fatal("unquantified empty plan approved")
