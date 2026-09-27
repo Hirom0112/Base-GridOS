@@ -61,8 +61,12 @@ func CanonicalFromFrozen(request *gridosv1.OptimizationRequest) safety.Canonical
 	for _, device := range request.GetDevices() {
 		energy := device.GetEnergyKwh()
 		observedAt := device.GetTelemetryObservedAt().AsTime()
+		baseReserve := device.GetEffectiveReserveKwh()
+		if device.BaseReserveKwh != nil {
+			baseReserve = device.GetBaseReserveKwh()
+		}
 		canonical.Devices[device.GetDeviceId()] = safety.DeviceState{
-			EnergyKWh: &energy, UsableCapacityKWh: device.GetUsableEnergyKwh(), HardwareReserveKWh: device.GetHardwareFloorKwh(), PlanReserveKWh: device.GetEffectiveReserveKwh(),
+			EnergyKWh: &energy, UsableCapacityKWh: device.GetUsableEnergyKwh(), HardwareReserveKWh: device.GetHardwareFloorKwh(), PlanReserveKWh: baseReserve, TravelFlexReserveKWh: device.TravelFlexReserveKwh,
 			MaxChargeKW: device.GetMaxChargeKw(), MaxDischargeKW: device.GetMaxDischargeKw(), ChargeEfficiency: device.GetChargeEfficiency(), DischargeEfficiency: device.GetDischargeEfficiency(),
 			Available: device.GetAvailabilityProbability() == 1, TelemetryAt: &observedAt, FreshnessLimit: 30 * time.Second, MeterExportLimitKW: device.GetMaxDischargeKw(), InterconnectionLimitKW: device.GetMaxDischargeKw(),
 		}

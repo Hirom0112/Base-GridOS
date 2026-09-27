@@ -211,6 +211,16 @@ func safetyPlan(plan *gridosv1.DispatchPlan, canonical safety.CanonicalState) (s
 			return requestPlan, errors.New("canonical device state required")
 		}
 		device := safety.DevicePlan{DeviceID: schedule.GetDeviceId(), EnergyKWh: []float64{*state.EnergyKWh}}
+		switch schedule.GetReserveSelection() {
+		case gridosv1.ReserveSelection_RESERVE_SELECTION_BASE:
+			device.ReserveSelection = safety.BaseReserveSelection
+		case gridosv1.ReserveSelection_RESERVE_SELECTION_TRAVEL_FLEX:
+			device.ReserveSelection = safety.TravelFlexReserveSelection
+		case gridosv1.ReserveSelection_RESERVE_SELECTION_UNSPECIFIED:
+		default:
+			return requestPlan, errors.New("unknown reserve selection")
+		}
+		device.SelectedReserveKWh = schedule.GetSelectedReserveKwh()
 		for _, interval := range schedule.GetIntervals() {
 			if interval.GetBeginTime() == nil || interval.GetEndTime() == nil {
 				return requestPlan, errors.New("schedule interval times required")

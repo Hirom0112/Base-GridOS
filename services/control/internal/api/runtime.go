@@ -181,7 +181,7 @@ func (snapshotter *FleetSnapshotter) Freeze(ctx context.Context, event *gridosv1
 			}
 			observedAt := state.ObservedAt
 			canonical.Devices[device.GetDeviceId()] = safety.DeviceState{
-				EnergyKWh: &energy, UsableCapacityKWh: parameters.GetUsableEnergyKwh(), HardwareReserveKWh: state.ReserveKWh, PlanReserveKWh: baseReserve,
+				EnergyKWh: &energy, UsableCapacityKWh: parameters.GetUsableEnergyKwh(), HardwareReserveKWh: state.ReserveKWh, PlanReserveKWh: baseReserve, TravelFlexReserveKWh: flexField,
 				MaxChargeKW: parameters.GetMaxChargeKw(), MaxDischargeKW: parameters.GetMaxDischargeKw(), ChargeEfficiency: parameters.GetChargeEfficiency(), DischargeEfficiency: parameters.GetDischargeEfficiency(),
 				Available: available, TelemetryAt: &observedAt, FreshnessLimit: 30 * time.Second, MeterExportLimitKW: parameters.GetMaxDischargeKw(), InterconnectionLimitKW: parameters.GetMaxDischargeKw(),
 			}
