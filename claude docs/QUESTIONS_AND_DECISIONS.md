@@ -2340,3 +2340,36 @@ active through 13:15Z, worker log clean. Released to the console lane for
 the integrated 17-step run, which is the first launch on this gateway and
 therefore the five-fault proof; the director verifies from the durable
 rows afterwards.
+
+## 2026-09-27 14:28Z — Weather RPC fix, 5D.8 closed, UI recorded gate green
+
+Root went silent after the grant, so the director dispatched the weather
+RPC fix to its own subagent. RED f8ee28b stages only the scenario weather
+test (panic: unvalidated public context provenance); GREEN 3e5ef01 maps
+SIMULATED and returns CodeInternal instead of panicking.
+`go test ./services/control/internal/api/context/ -count=1` ok here.
+
+5D.8 closed: the last demo rebuild ran `make up`, and
+`docker compose -f infrastructure/local/compose.yaml exec postgres psql -U gridos -Atc 'show max_locks_per_transaction'`
+prints 256.
+
+Final recorded UI gate in a declared window: vitest 47 files, 188 tests
+passed; Playwright excluding the live seventeen-step spec, 80 passed
+(2.4m).
+
+The seeded Travel Flex window expired at 13:15Z, so a fresh one was
+scheduled through MemberService only: seed-dp-1790518948-window for
+member-7c5d14c0efe32d3cff5a, FIXED_DAILY 500, 14:22:28Z to 19:22:28Z.
+
+## 2026-09-27 14:28Z — Integrated run: two spec defects, launch consumed
+
+Rebuilt on HEAD with the weather fix; every readiness check passed. The
+first integrated attempt stopped at step 04 before launch in strict mode
+because the evidence scroll regions are labelled "<section> table";
+baed119 makes every region locator in demo-path exact. The second attempt
+passed steps 01 to 08 and launched event
+c94b11df-72e1-4fa1-b801-e615116d09e7, then failed step 09: the spec waits
+15 s for an execution heading, but SENT landed 20 s after
+COMMANDS_PERSISTED. Root cause under investigation. The gateway's armed
+launch is consumed; the five-fault proof is read from this event's durable
+rows, and the full seventeen-step run needs another rebuild.
