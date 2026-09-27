@@ -136,3 +136,17 @@ func TestGetEventReportRequiresRoleAndEvent(t *testing.T) {
 	_, err = service.GetEventReport(context.Background(), request)
 	require.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 }
+
+func TestGetEventReportReserveCompliance(t *testing.T) {
+	source := &reportSource{live: core.StoredEvent{PlanVersion: 1, RequestedMW: 1}}
+	request := connect.NewRequest(&gridosv1.GetEventReportRequest{EventId: "event-reserve"})
+	request.Header().Set("X-GridOS-Role", "analyst")
+	response, err := NewService(source).GetEventReport(context.Background(), request)
+	require.NoError(t, err)
+	var report map[string]json.RawMessage
+	require.NoError(t, json.Unmarshal([]byte(response.Msg.GetReportJson()), &report))
+	require.Equal(t, `"event-reserve"`, string(report["EventID"]))
+	if _, found := report["ReserveCompliance"]; !found {
+		t.Fatalf("measured reserve compliance missing from report: %s", response.Msg.GetReportJson())
+	}
+}
