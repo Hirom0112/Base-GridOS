@@ -14,7 +14,7 @@ Personally inspect browser screenshots before inviting the user to open a previe
 
 ## Visual north star
 
-[Proposal B concept image](../../docs/design/assets/operator-console-cinematic.png) is the art-direction target. [Proposal A](../../docs/design/assets/operator-console-static.png) is the static truth frame and fallback, not the eventual substitute for B.
+[Proposal B concept image](assets/operator-console-cinematic.png) is the art-direction target. [Proposal A](assets/operator-console-static.png) is the static truth frame and fallback, not the eventual substitute for B.
 
 The experience should feel like one quiet energy control room: a large geographic field, a narrow operating-loop rail, restrained evidence on the right, and a persistent truth strip. Every route is another lens on the same fleet and event.
 
@@ -41,14 +41,14 @@ Approval and launch never trigger delivery animation. Acknowledgement is not del
 
 ## Read before resuming
 
-Follow the full reading order in [VISUAL_HANDOFF.md](../../docs/design/VISUAL_HANDOFF.md), especially:
+Follow the full reading order in [VISUAL_HANDOFF.md](VISUAL_HANDOFF.md), especially:
 
 1. [AGENTS.md](../../AGENTS.md): ownership, tests, commits, and enforced ceilings.
-2. [Visual system](../../docs/design/visual-system.md): golden system, tokens, composition, rendering boundaries, and scorecard.
-3. [Proposal descriptions](../../docs/design/operator-console-proposals.md) and both concept images.
+2. [Visual system](visual-system.md): golden system, tokens, composition, rendering boundaries, and scorecard.
+3. [Proposal descriptions](operator-console-proposals.md) and both concept images.
 4. [UI_TRACK.md](../../claude%20docs/UI_TRACK.md): UI items and acceptance requirements.
 5. [ISSUES.md](../../claude%20docs/ISSUES.md) and [BUILD_ORDER.md](../../claude%20docs/BUILD_ORDER.md): dependencies and current backend ownership.
-6. [FULL_SPEC.md](../../FULL_SPEC.md), [TECHSTACK.md](../../TECHSTACK.md), and [system understanding](../../docs/domain/system-understanding.md).
+6. [FULL_SPEC.md](../../FULL_SPEC.md), [TECHSTACK.md](../../TECHSTACK.md), and [system understanding](../domain/system-understanding.md).
 
 Before each item, read the latest 40 `director:` lines in `.local/mailbox.log`, addressing messages for the UI lane first. Older blocker reports may have been resolved.
 
@@ -139,7 +139,7 @@ The build emits size warnings for lazy spatial chunks. MapLibre and its worker a
 
 ## Local workflow and ownership
 
-Work only in `apps/console/`, plus append-only UI coordination in `.local/mailbox.log`. Preserve the shared tree's unrelated changes. Do not edit backend, contracts, root docs, hooks, or infrastructure without the director's path grant. This handoff lives inside UI ownership.
+Implementation work stays in `apps/console/`, plus append-only UI coordination in `.local/mailbox.log`. Preserve the shared tree's unrelated changes. Do not edit backend, contracts, root docs, hooks, or infrastructure without the director's path grant. This handoff lives in `docs/design/` at the user's explicit request.
 
 If no console dev server is running, start it with:
 
@@ -151,12 +151,12 @@ Check the existing listener first; do not create duplicate preview servers. Stan
 
 Useful entry points:
 
-- [Console and persistent state](src/console.tsx), [shell](src/shell.tsx), [design tokens](src/tokens.css).
-- [Living Grid](src/fleet/living-grid.tsx), [renderer](src/fleet/renderer.ts), [projection validation](src/fleet/scene.ts).
-- [Map view](src/map/map.tsx), [map renderer](src/map/map-renderer.ts), [map tests](tests/map.spec.ts).
-- [API client](src/api/client.ts), [auth](src/api/auth.tsx), [evidence validation](src/api/Provenance.tsx).
-- [Live event](src/events/events-live.tsx), [audit timeline](src/events/audit-timeline.tsx), [stop control](src/events/emergency-stop.tsx).
-- [Approval](src/dispatch/approval.tsx), [canonical demo acceptance](tests/demo-path.spec.ts).
+- [Console and persistent state](../../apps/console/src/console.tsx), [shell](../../apps/console/src/shell.tsx), [design tokens](../../apps/console/src/tokens.css).
+- [Living Grid](../../apps/console/src/fleet/living-grid.tsx), [renderer](../../apps/console/src/fleet/renderer.ts), [projection validation](../../apps/console/src/fleet/scene.ts).
+- [Map view](../../apps/console/src/map/map.tsx), [map renderer](../../apps/console/src/map/map-renderer.ts), [map tests](../../apps/console/tests/map.spec.ts).
+- [API client](../../apps/console/src/api/client.ts), [auth](../../apps/console/src/api/auth.tsx), [evidence validation](../../apps/console/src/api/Provenance.tsx).
+- [Live event](../../apps/console/src/events/events-live.tsx), [audit timeline](../../apps/console/src/events/audit-timeline.tsx), [stop control](../../apps/console/src/events/emergency-stop.tsx).
+- [Approval](../../apps/console/src/dispatch/approval.tsx), [canonical demo acceptance](../../apps/console/tests/demo-path.spec.ts).
 
 Use exact-path commits, separate RED/GREEN commits where required, zero code comments/docstrings, no TypeScript `any`, and no hook bypasses. An index lock may belong to another agent; never delete it. Run focused checks for changed work; the director owns full wave gates.
 
