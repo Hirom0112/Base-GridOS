@@ -1198,3 +1198,13 @@ assumptions reported by workers land here too.
   the ten geo fixtures were recaptured from an isolated stack with real
   telemetry. Director: contracts clean, geo and mockapi packages ok,
   fixture inspected.
+- **2A.10 live scenario mode, unit side accepted:** the gateway takes
+  `--scenario <file> --live`, streams physical telemetry until the first
+  accepted nonzero command of an event, then retimes the scenario's
+  injections over the live window; `make demo` passes
+  `GRIDOS_DEMO_SCENARIO` through. The demo proof runs at the next rebuild
+  after the one-hour gateway survival check.
+- **5D.2 credential path:** the analytics sink's workload identity
+  federation reads rotating ECS task-role credentials from the container
+  credential endpoint, since the pinned OAuth library only reads instance
+  metadata; no static Google key exists anywhere.
