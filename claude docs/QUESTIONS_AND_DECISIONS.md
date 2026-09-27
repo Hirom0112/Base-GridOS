@@ -2269,7 +2269,7 @@ batch delivered, the activity succeeds, and after bounded attempts the
 command becomes UNCERTAIN with its typed exception. The two stuck
 replacement rows on the demo resolve when the fix lands.
 
-## 2026-09-27 10:07Z — 4E.10 API verified; recorded console gate down to two
+## 2026-09-27 10:03Z — 4E.10 API verified; recorded console gate down to two
 
 RED 16ad5bf and 7383f53 (tests only) then GREEN 68aba6a: operator reports
 carry `planned_shortfall` and `delivery_shortfall`, the partner
