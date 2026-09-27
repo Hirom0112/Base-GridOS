@@ -9,8 +9,10 @@ import (
 )
 
 type storedReportSource struct {
-	eventID string
-	data    StoredEvent
+	eventID   string
+	data      StoredEvent
+	published *EventReport
+	reads     int
 }
 
 func TestFullEventReportPreservesAccountingAndModeledEconomics(t *testing.T) {
@@ -64,7 +66,29 @@ func TestFullEventReportRejectsNonfiniteFinancialInput(t *testing.T) {
 
 func (source *storedReportSource) EventReportData(_ context.Context, eventID string) (StoredEvent, error) {
 	source.eventID = eventID
+	source.reads++
 	return source.data, nil
+}
+
+func (source *storedReportSource) StoredReport(context.Context, string) (*EventReport, error) {
+	return source.published, nil
+}
+
+func TestImmutableReportReturnsPublishedVersion(t *testing.T) {
+	source := &storedReportSource{data: StoredEvent{RequestedMW: 20}}
+	first, err := Build(context.Background(), source, "event-immutable")
+	if err != nil {
+		t.Fatal(err)
+	}
+	source.published = &first
+	source.data.RequestedMW = 99
+	second, err := Build(context.Background(), source, "event-immutable")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if second.RequestedMW != 20 || source.reads != 1 {
+		t.Fatalf("published report changed or raw data reread: %+v reads=%d", second, source.reads)
+	}
 }
 
 func TestBuildEventReportFromStorage(t *testing.T) {
