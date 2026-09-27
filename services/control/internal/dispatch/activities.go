@@ -13,6 +13,7 @@ import (
 	"connectrpc.com/connect"
 	gridosv1 "github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1"
 	controlapi "github.com/Hirom0112/Base-GridOS/services/control/internal/api"
+	"github.com/Hirom0112/Base-GridOS/services/control/internal/fleet/policy"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/observability"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/replay"
 	reporting "github.com/Hirom0112/Base-GridOS/services/control/internal/report"
@@ -377,6 +378,9 @@ func (activities *Activities) EndEvent(ctx context.Context, input Input) error {
 }
 
 func (activities *Activities) ProduceReport(ctx context.Context, input Input) error {
+	if _, err := policy.New(activities.Pool).PostEventRewards(ctx, input.EventID, activities.Now()); err != nil {
+		return err
+	}
 	complete, err := reporting.Build(ctx, activities.Reports, input.EventID)
 	if err != nil {
 		return err
