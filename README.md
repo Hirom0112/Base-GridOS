@@ -18,16 +18,16 @@ verified settlement reports on top of what Base already operates).
 [![Watch the narrated GridOS demo](docs/demo/video-poster.png)](https://github.com/Hirom0112/Base-GridOS/releases/download/demo-video-2026-09-27/GridOS-demo.mp4)
 
 [Watch or download the video](https://github.com/Hirom0112/Base-GridOS/releases/download/demo-video-2026-09-27/GridOS-demo.mp4)
-· [Slides](https://github.com/Hirom0112/Base-GridOS/releases/download/demo-video-2026-09-27/GridOS-slides.pdf)
+· [Slides](https://github.com/Hirom0112/Base-GridOS/releases/download/demo-video-2026-09-27/GridOS-tracks.pdf)
 · [System diagram](https://github.com/Hirom0112/Base-GridOS/releases/download/demo-video-2026-09-27/GridOS-architecture.svg)
 · [Captions](https://github.com/Hirom0112/Base-GridOS/releases/download/demo-video-2026-09-27/GridOS-demo.srt)
 
-The narrated walkthrough covers the working console, an existing demonstration
-event, system architecture, failure evidence, delivery reporting, and remaining
-integration limits. Device behavior and telemetry are simulated; financial
-outputs are modeled. Narration uses ElevenLabs' Daniel stock voice. The video
-inspects a recorded event rather than launching a new dispatch or establishing
-that the full integrated acceptance gate has passed.
+The four-minute walkthrough targets **Orchestration** and **Most Commercializable**.
+The video records the actual local application: fleet observation, an existing
+completed event's planning evidence, command and recovery records, delivery and
+reserve reporting, and the member plans and Travel Flex screen. Architecture and
+an illustrative event-cost example connect the operating loop to the business case.
+Device data is simulated. The $400 contribution example uses explicit assumptions.
 
 ## Quick start
 
