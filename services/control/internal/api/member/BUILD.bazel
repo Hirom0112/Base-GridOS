@@ -29,6 +29,7 @@ go_test(
         "role_matrix_test.go",
         "service_test.go",
     ],
+    data = ["//database:migrations", "//database:seeds"],
     embed = [":member"],
     deps = [
         "//contracts/gen/go/gridos/v1:gridos",

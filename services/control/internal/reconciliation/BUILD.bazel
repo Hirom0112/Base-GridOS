@@ -36,6 +36,7 @@ go_test(
         "reallocation_test.go",
         "uncertain_test.go",
     ],
+    data = ["//database:migrations"],
     embed = [":reconciliation"],
     deps = [
         "//contracts/gen/go/gridos/v1:gridos",

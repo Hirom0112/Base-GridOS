@@ -19,5 +19,6 @@ go_test(
         "weather_test.go",
         "windows_test.go",
     ],
+    data = ["//testdata:fixtures"],
     embed = [":context"],
 )

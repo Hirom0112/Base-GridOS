@@ -64,7 +64,7 @@ py_test(
         ["gridos/**/*.py", "tests/**/*.py"],
         exclude = ["gridos/gen/**"],
     ),
-    data = ["//testdata:fixtures"],
+    data = ["//testdata:fixtures", "//testdata:fleets", "//testdata:golden"],
     imports = [".", "gridos/gen"],
     legacy_create_init = 0,
     main = "bazel_test.py",

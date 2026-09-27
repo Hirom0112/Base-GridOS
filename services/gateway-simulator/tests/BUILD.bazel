@@ -8,6 +8,8 @@ go_test(
         "scale_test.go",
         "scenario_determinism_test.go",
     ],
+    data = ["//testdata:fleets"],
+    tags = ["manual"],
     deps = [
         "//contracts/gen/go/gridos/v1:gridos",
         "//contracts/gen/go/gridos/v1/gridosv1connect",

@@ -16,10 +16,12 @@ filegroup(
 
 filegroup(
     name = "container_inputs",
-    srcs = [":proto_inputs"] + glob([
-        "infrastructure/aws/go.gen.yaml",
-        "database/**",
-    ]),
+    srcs = [
+        ":proto_inputs",
+        "//database:migrations",
+        "//database:rollback",
+        "//database:seeds",
+    ] + glob(["infrastructure/aws/go.gen.yaml"]),
     visibility = ["//visibility:public"],
 )
 

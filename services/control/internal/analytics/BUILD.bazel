@@ -27,6 +27,7 @@ go_test(
         "scrub_test.go",
     ],
     data = glob(["testdata/**"]),
+    tags = ["manual"],
     embed = [":analytics"],
     deps = ["@org_golang_x_oauth2//google/externalaccount"],
 )

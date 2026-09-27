@@ -31,6 +31,7 @@ go_test(
         "events_test.go",
         "exceptions_test.go",
     ],
+    data = ["//database:migrations"],
     embed = [":events"],
     deps = [
         "//contracts/gen/go/gridos/v1:gridos",
@@ -38,6 +39,7 @@ go_test(
         "@com_connectrpc_connect//:connect",
         "@com_github_jackc_pgx_v5//:pgx",
         "@com_github_jackc_pgx_v5//pgxpool",
+        "@com_github_stretchr_testify//require",
         "@org_golang_google_protobuf//proto",
         "@org_golang_google_protobuf//types/known/timestamppb",
     ],

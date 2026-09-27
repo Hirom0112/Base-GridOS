@@ -29,6 +29,7 @@ go_test(
         "physical_test.go",
         "producer_test.go",
     ],
+    data = ["//testdata:fixtures"],
     embed = [":telemetry"],
     deps = [
         "//contracts/gen/go/gridos/v1:gridos",

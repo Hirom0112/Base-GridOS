@@ -42,7 +42,7 @@ go_test(
         "reports_test.go",
         "telemetry_retention_test.go",
     ],
-    data = glob(["testdata/**"]),
+    data = glob(["testdata/**"]) + ["//database:migrations"],
     embed = [":storage"],
     deps = [
         "//contracts/gen/go/gridos/v1:gridos",

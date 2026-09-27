@@ -44,6 +44,7 @@ go_test(
         "site_reserve_test.go",
         "travel_flex_test.go",
     ],
+    data = ["//database:migrations", "//database:rollback", "//database:seeds"],
     embed = [":policy"],
     deps = [
         "//contracts/gen/go/gridos/v1:gridos",

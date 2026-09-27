@@ -14,6 +14,7 @@ genrule(
         "//services/control/cmd/migrate:migrate",
         "//services/control/cmd/worker:worker",
         "//testdata:fixtures",
+        "//testdata:fleets",
     ],
     outs = ["control-image.tar"],
     local = True,

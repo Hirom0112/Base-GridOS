@@ -31,6 +31,7 @@ go_test(
         "privacy_test.go",
         "service_test.go",
     ],
+    data = ["//testdata:fixtures"],
     embed = [":geo"],
     deps = [
         "//contracts/gen/go/gridos/v1:gridos",

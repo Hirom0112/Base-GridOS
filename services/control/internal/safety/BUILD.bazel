@@ -19,6 +19,7 @@ go_test(
         "reserve_selection_test.go",
         "safety_test.go",
     ],
+    data = ["//testdata:golden"],
     embed = [":safety"],
     deps = [
         "//services/control/internal/observability",

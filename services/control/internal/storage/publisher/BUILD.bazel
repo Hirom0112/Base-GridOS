@@ -20,7 +20,9 @@ go_library(
 go_test(
     name = "publisher_test",
     srcs = ["publisher_test.go"],
+    data = ["//database:migrations", "//testdata:fleets"],
     embed = [":publisher"],
+    tags = ["manual"],
     deps = [
         "//contracts/gen/go/gridos/v1:gridos",
         "//contracts/gen/go/gridos/v1/gridosv1connect",

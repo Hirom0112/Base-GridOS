@@ -23,6 +23,7 @@ go_test(
         "notification_test.go",
         "simulated_test.go",
     ],
+    data = ["//database:migrations"],
     embed = [":connectors"],
     deps = [
         "@com_github_jackc_pgx_v5//:pgx",

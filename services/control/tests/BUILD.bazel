@@ -3,6 +3,7 @@ load("@rules_go//go:def.bzl", "go_test")
 go_test(
     name = "tests_test",
     srcs = ["worker_restart_test.go"],
+    data = ["//database:migrations"],
     deps = [
         "//contracts/gen/go/gridos/v1:gridos",
         "//services/control/internal/dispatch",

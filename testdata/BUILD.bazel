@@ -1,5 +1,23 @@
 filegroup(
     name = "fixtures",
-    srcs = glob(["**/*"]),
+    srcs = glob(["fixtures/**"]),
+    visibility = ["//visibility:public"],
+)
+
+filegroup(
+    name = "fleets",
+    srcs = glob(["fleets/**"]),
+    visibility = ["//visibility:public"],
+)
+
+filegroup(
+    name = "scenarios",
+    srcs = glob(["scenarios/**"]),
+    visibility = ["//visibility:public"],
+)
+
+filegroup(
+    name = "golden",
+    srcs = glob(["golden/**"]),
     visibility = ["//visibility:public"],
 )

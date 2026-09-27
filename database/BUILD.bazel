@@ -1,0 +1,17 @@
+filegroup(
+    name = "migrations",
+    srcs = glob(["migrations/**"]),
+    visibility = ["//visibility:public"],
+)
+
+filegroup(
+    name = "seeds",
+    srcs = glob(["seeds/**"]),
+    visibility = ["//visibility:public"],
+)
+
+filegroup(
+    name = "rollback",
+    srcs = glob(["rollback/**", "rollbacks/**"]),
+    visibility = ["//visibility:public"],
+)

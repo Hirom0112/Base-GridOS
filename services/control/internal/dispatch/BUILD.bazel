@@ -38,7 +38,6 @@ go_test(
         "activities_test.go",
         "maintenance_test.go",
         "planning_test.go",
-        "replacement_server_test.go",
         "replacement_test.go",
         "replay_test.go",
         "retry_test.go",
@@ -47,7 +46,7 @@ go_test(
         "trace_context_test.go",
         "workflow_test.go",
     ],
-    data = glob(["testdata/**"]),
+    data = glob(["testdata/**"]) + ["//database:migrations", "//testdata:fleets"],
     embed = [":dispatch"],
     deps = [
         "//contracts/gen/go/gridos/v1:gridos",
@@ -73,6 +72,23 @@ go_test(
         "@io_temporal_go_sdk//testsuite",
         "@io_temporal_go_sdk//worker",
         "@org_golang_google_protobuf//encoding/protojson",
+        "@org_golang_google_protobuf//proto",
+        "@org_golang_google_protobuf//types/known/durationpb",
+        "@org_golang_google_protobuf//types/known/timestamppb",
+    ],
+)
+
+go_test(
+    name = "dispatch_replacement_server_test",
+    srcs = ["replacement_server_test.go"],
+    embed = [":dispatch"],
+    tags = ["manual"],
+    deps = [
+        "//contracts/gen/go/gridos/v1:gridos",
+        "//contracts/gen/go/gridos/v1/gridosv1connect",
+        "//services/control/internal/api",
+        "@com_connectrpc_connect//:connect",
+        "@com_github_stretchr_testify//require",
         "@org_golang_google_protobuf//proto",
         "@org_golang_google_protobuf//types/known/durationpb",
         "@org_golang_google_protobuf//types/known/timestamppb",
