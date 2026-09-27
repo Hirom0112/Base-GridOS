@@ -1942,7 +1942,7 @@ control at full CPU during the outage; root checks the as_of path for a
 loop over stale observations while fixing the lock (2A.11 must include a
 timing bound on the as_of query).
 
-## 2026-09-27 08:22Z — 2A.11 verified
+## 2026-09-27 08:18Z — 2A.11 verified
 
 RED fb394fb (test only, "gateway batch bypassed gateway lock") then GREEN
 d89e865: the ingest transaction takes one advisory lock keyed
@@ -1953,7 +1953,7 @@ gateway was stopped, because the failing 5,000-lock retries were the lock
 pressure. Marked done; the demo is rebuilt on d89e865 and telemetry flow is
 the readiness check.
 
-## 2026-09-27 08:28Z — Demo telemetry restored on the lock fix
+## 2026-09-27 08:21Z — Demo telemetry restored on the lock fix
 
 Rebuilt on f183724 (includes d89e865). The gateway replayed its buffer in
 order (320,000 rows drained to zero within two minutes), the heartbeat
@@ -1965,7 +1965,7 @@ here); it ships in the rebuild that carries 2A.12. Stale "database does not
 exist" connection attempts in the PostgreSQL log are leftovers from the
 dropped orphan test databases and stop on their own.
 
-## 2026-09-27 08:36Z — 2A.12 verified; RED evidence produced by the director
+## 2026-09-27 08:24Z — 2A.12 verified; RED evidence produced by the director
 
 83e9bf3 landed tests and implementation in one commit, so no RED commit
 exists. The director produced the red evidence without rewriting history:
