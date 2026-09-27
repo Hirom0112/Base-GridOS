@@ -1621,7 +1621,7 @@ Owns: `docs/operations/security/` (threat model and retention),
 
 - `[x]` 5E.1 `[P]` Role matrix test: every API handler × every role from
   FULL_SPEC §11, asserting allow or deny. Verify: `go test ./services/control/internal/api/ -run RoleMatrix` passes.
-- `[ ]` 5E.2 `[P]` Step-up authorization and immutable audit entry required
+- `[x]` 5E.2 `[P]` Step-up authorization and immutable audit entry required
   for dispatch approval and emergency stop. Verify: `-run StepUp` passes.
 - `[x]` 5E.3 `[P]` `docs/operations/security/threat-model.md` covering the
   browser, API, workflow, outbox, gateway, and analytics boundaries, and

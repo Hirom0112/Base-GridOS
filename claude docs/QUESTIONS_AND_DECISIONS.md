@@ -1160,3 +1160,14 @@ assumptions reported by workers land here too.
   alert RPC via the real maintenance workflow (110 s here). A first run
   had stalled at PLANNED under the load of the orphaned stacks and passed
   once they were removed.
+- **5E.2 (lane 5E), verified:** dispatch approval and emergency stop
+  require a signed step-up assertion bound to subject, action, event, plan
+  version, a five-minute expiry, and a fresh nonce recorded in an
+  append-only table; the accepted assertion writes one immutable audit row
+  carrying the event's stored correlation; approved_by and requested_by
+  come from the assertion subject. Every caller signs locally (integration,
+  end-to-end, recorder); the console obtains assertions from the STUBBED
+  mock identity endpoint. Director: StepUp and LocalStepUp selectors pass.
+  Demo key rollout is deferred until the console consumes that endpoint,
+  so the standing demo keeps accepting approvals with a logged STUBBED
+  warning; enforcement is proven on isolated stacks.
