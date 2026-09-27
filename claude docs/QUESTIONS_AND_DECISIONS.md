@@ -2028,3 +2028,12 @@ and raw database errors no longer reach the API. `go test
 ./services/control/internal/fleet/policy -run 'Reselect|Migration'` here:
 all eleven PASS (ok 2.570s). Marked done; the demo is rebuilt so migration
 0019 applies and the console reruns its member proof.
+
+## 2026-09-27 08:56Z — Console member lifecycle proof verified on the demo
+
+The console's live member proof passed (1 passed 39.9s) against the demo on
+a4bcb17. The audit journal shows RESILIENCE_PLAN_SUPERSEDED and
+RESILIENCE_PLAN_SELECTED at 08:40:28Z followed by TRAVEL_FLEX_SCHEDULED and
+the early-return row for window 5d8a0157, with the stored consent version
+and RESTORE_PLAN_RESERVE read back. 4B.9 and 4B.10 hold end to end with
+the console's strict receipt matching.
