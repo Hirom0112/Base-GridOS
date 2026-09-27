@@ -2404,3 +2404,25 @@ must come from an event reconciled after the next rebuild.
 The launch step wait in demo-path went from 15 s to 60 s (46fc98c). SENT
 follows serial publishing of every command, measured at 20 s for 2,510
 commands, and 60 s is the activity's first-attempt bound.
+
+## 2026-09-27 14:52Z — 4E.10 verified; ListEventCommands indexed
+
+Fixture event fixture-4e10-1790520318 ran on the binary carrying 694787a.
+Its live report (1f19b53, GetEventReport.live.json, a variant so the
+hand-built event-report-a positive control for reward and margin stays)
+has planned_shortfall 0 kW and one full-length MEASURED delivery interval:
+requested 1666.67 kWh, measured 1460.18 kWh, shortfall 206.48 kWh,
+coverage 0.9996. `GOFLAGS=-p=1 go test ./tools/development/mockapi -count=1`
+ok here. Margin is null with a margin_unavailable gap because the frozen
+inputs have no LZ_AEN price for the hour; that is sourced-only behaviour
+per 4B.7 and 4E.6, not a defect. event-report-a/b are now listed in
+STUBS.md as hand-built. Marked done.
+
+Open nit: delivery_shortfall intervals serialize in the database session
+offset (-05:00) while planned_shortfall uses UTC. The instants are
+correct; normalizing needs a re-recorded fixture.
+
+Integrated step 10 failed because ListEventCommands hit its own 5 s
+deadline (commands.go:22): command_acknowledgements had no command_id
+index. 7a90689/f5fbfa9 add migration 0021; applied to the demo database,
+the RPC through the console went from 4.2 s or more to 0.097 s.

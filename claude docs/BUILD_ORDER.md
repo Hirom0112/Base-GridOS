@@ -1646,7 +1646,7 @@ Owns: `tests/integration/`, `testdata/scenarios/`, `tests/end-to-end/`,
   the window: devices observed, minimum margin above the effective reserve,
   devices that touched the floor, and observation gaps, each MEASURED with
   provenance. Verify: `go test ./services/control/internal/api/report/ -run Reserve` passes.
-- `[ ]` 4E.10 `[after 4E.2]` Shortfall in the report. `GetEventReport` carries two
+- `[x]` 4E.10 `[after 4E.2]` Shortfall in the report. `GetEventReport` carries two
   distinct shortfalls: `planned_shortfall` per interval from the approved
   plan's ShortfallReport (requested, feasible, shortfall kW, reasons) and
   `delivery_shortfall` per interval as requested energy minus MEASURED
