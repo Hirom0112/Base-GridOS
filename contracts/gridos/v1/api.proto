@@ -306,6 +306,31 @@ message WatchEventRequest {
   string event_id = 1;
 }
 
+message ReplayEventRequest {
+  string event_id = 1;
+}
+
+message ReplayDifference {
+  string field = 1;
+  string expected_json = 2;
+  string actual_json = 3;
+}
+
+message ReplayEventResponse {
+  int64 seed = 1;
+  string input_snapshot_id = 2;
+  string eligibility_snapshot_id = 3;
+  string policy_version = 4;
+  string solver_version = 5;
+  string fallback_version = 6;
+  string code_version = 7;
+  string fleet_sha256 = 8;
+  string scenario_sha256 = 9;
+  repeated EventTimelineEntry updates = 10;
+  string diff_status = 11;
+  repeated ReplayDifference differences = 12;
+}
+
 service FleetService {
   rpc GetFleetSummary(GetFleetSummaryRequest) returns (GetFleetSummaryResponse);
   rpc ListSites(ListSitesRequest) returns (ListSitesResponse);
@@ -328,4 +353,8 @@ service EventsService {
   rpc GetEventTimeline(GetEventTimelineRequest) returns (GetEventTimelineResponse);
   rpc EmergencyStop(EmergencyStopRequest) returns (EmergencyStopResponse);
   rpc WatchEvent(WatchEventRequest) returns (stream WatchEventResponse);
+}
+
+service ReplayService {
+  rpc ReplayEvent(ReplayEventRequest) returns (ReplayEventResponse);
 }
