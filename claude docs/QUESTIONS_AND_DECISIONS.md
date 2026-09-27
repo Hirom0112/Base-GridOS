@@ -2115,7 +2115,7 @@ and the bound Travel Flex window render from the explanation evidence
 with matching source, policy and credit. Step 7 no longer carries a
 missing-evidence label.
 
-## 2026-09-27 09:24Z — Demo weather floor via the public context directory (5F.5)
+## 2026-09-27 09:18Z — Demo weather floor via the public context directory (5F.5)
 
 FULL_SPEC step 7 names weather risk raising the reserve; the seeded demo
 proves a COMMUNICATIONS override, not WEATHER, because the real Austin
