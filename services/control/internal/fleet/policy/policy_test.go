@@ -38,6 +38,13 @@ func TestPlanSelectionUsesConsentedEffectiveCatalog(t *testing.T) {
 	require.Equal(t, int64(1999), chosen.EnergyMonthlyChargeCents)
 	require.Equal(t, int64(1500), chosen.BatteryMonthlyChargeCents)
 	require.Equal(t, int64(500), chosen.FlexibilityRewardCents)
+	retried, err := store.Select(ctx, selection)
+	require.NoError(t, err)
+	require.Equal(t, chosen, retried)
+	changed := selection
+	changed.ConsentText = "different consent"
+	_, err = store.Select(ctx, changed)
+	require.Error(t, err)
 	before, err = store.Current(ctx, selection.MemberID, selection.EffectiveAt.Add(-time.Nanosecond))
 	require.NoError(t, err)
 	require.Nil(t, before)
