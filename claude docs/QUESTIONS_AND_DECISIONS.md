@@ -1630,3 +1630,15 @@ the ignored `.local/demo/step-up.key`; it now answers `/local/step-up`. The
 control binary still runs without GRIDOS_STEP_UP_KEY, so enforcement stays
 off until the console proves the flow live; the same key then goes onto
 control at the next demo rebuild.
+
+## 2026-09-27 06:00Z — next_command includes zero-setpoint commands
+
+Root's diagnostic (d1078cb) shows the old-expiry scenario's newer
+generation-2 commands are the end-of-event zero stops, so a fault that
+skips zero setpoints can never make one UNCERTAIN, and the "first nonzero"
+qualifier in the 05:45Z decision was wrong. Decision: `next_command`
+selects the first event command received after its trigger, zero included,
+applies to that one command, and disarms. One rule, no setpoint condition.
+The old-expiry scenario places its late DROPPED_MESSAGES fault before
+EndEvent so the stop is the next command; the canonical scenario is
+unchanged. Proof remains three consecutive isolated runs per scenario.
