@@ -1871,3 +1871,14 @@ time), which the console shows as the gap it is. Marked done. Note for
 later: the recorded explanation fixture is 4.55 MB, larger than the
 "small samples" rule intends; trimming the recorded fleet for fixtures is a
 candidate follow-up, not a blocker.
+
+## 2026-09-27 09:15Z — 4B.9 version linkage
+
+The console asked where the versions that EndTravelFlexEarly, EndAway,
+SelectResiliencePlan and ScheduleTravelFlex must echo come from. Decision:
+ListMemberOffers returns each scheduled Travel Flex and away window with
+the consent version and early-return action stored when it was scheduled
+(never the current catalog), and each offer term carries the policy
+version it binds, stored in `offer_terms` beside the contract and consent
+versions. The console echoes served values only; it never reuses the
+current plan's policy version for a new selection and never invents one.
