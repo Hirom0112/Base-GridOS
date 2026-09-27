@@ -12,7 +12,6 @@ import (
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/safety"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/storage"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -172,25 +171,20 @@ func (snapshotter *FleetSnapshotter) loadTelemetry(ctx context.Context) error {
 	if snapshotter.pool == nil || snapshotter.telemetry == nil {
 		return nil
 	}
-	rows, err := snapshotter.pool.Query(ctx, `SELECT DISTINCT ON (actor_id) new_values
-		FROM audit_journal WHERE action = 'TELEMETRY_RECEIVED'
-		ORDER BY actor_id, occurred_at DESC, sequence DESC`)
+	deviceIDs := make([]string, 0)
+	for _, site := range snapshotter.sites {
+		for _, device := range site.GetDevices() {
+			deviceIDs = append(deviceIDs, device.GetDeviceId())
+		}
+	}
+	latest, err := storage.NewTelemetryStore(snapshotter.pool).Latest(ctx, deviceIDs, snapshotter.now().Add(-30*time.Second))
 	if err != nil {
 		return err
 	}
-	defer rows.Close()
-	for rows.Next() {
-		var values []byte
-		if err = rows.Scan(&values); err != nil {
-			return err
-		}
-		var observation gridosv1.TelemetryObservation
-		if err = protojson.Unmarshal(values, &observation); err != nil {
-			return err
-		}
-		snapshotter.telemetry.Accept(&observation)
+	for _, observation := range latest {
+		snapshotter.telemetry.Accept(observation)
 	}
-	return rows.Err()
+	return nil
 }
 
 func boolFloat(value bool) float64 {
