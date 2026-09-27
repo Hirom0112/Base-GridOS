@@ -6,12 +6,42 @@ import (
 	"testing"
 	"time"
 
+	"connectrpc.com/connect"
 	gridosv1 "github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1"
+	"github.com/Hirom0112/Base-GridOS/services/control/internal/fleet"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/report"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
+
+func TestRequestedEventHasReportGapBeforePlan(t *testing.T) {
+	pool := apiTestDatabase(t)
+	now := time.Now().UTC()
+	service := NewService(NewPostgresEventStore(pool), fleet.NewTwin(time.Minute), nil, func() time.Time { return now })
+	service.SetReportSource(NewPostgresReportSource(pool))
+	create := connect.NewRequest(&gridosv1.CreateEventRequestRequest{
+		EventRequest: &gridosv1.EventRequest{
+			RequestId: "request-before-plan", EventType: "GRID_SERVICE",
+			BeginTime: timestamppb.New(now.Add(time.Minute)), EndTime: timestamppb.New(now.Add(time.Hour)),
+			TargetKw: 100, MeasurementBoundary: gridosv1.MeasurementBoundary_MEASUREMENT_BOUNDARY_METER_NET_EXPORT,
+			LoadZones: []string{"LZ_AEN"},
+		},
+		IdempotencyKey: "create-before-plan",
+	})
+	create.Header().Set(roleHeader, "operator")
+	created, err := service.CreateEventRequest(context.Background(), create)
+	require.NoError(t, err)
+	get := connect.NewRequest(&gridosv1.GetEventRequest{EventId: created.Msg.GetEvent().GetEventId()})
+	get.Header().Set(roleHeader, "operator")
+	response, err := service.GetEvent(context.Background(), get)
+	require.NoError(t, err)
+	require.Equal(t, gridosv1.DispatchEventState_DISPATCH_EVENT_STATE_REQUESTED, response.Msg.GetEvent().GetState())
+	require.Nil(t, response.Msg.GetReport())
+	data, err := NewPostgresReportSource(pool).EventReportData(context.Background(), created.Msg.GetEvent().GetEventId())
+	require.NoError(t, err)
+	require.True(t, hasLiveReportGap(data.DataGaps, "plan_unavailable"))
+}
 
 func TestLiveReportUsesFrozenForecastAndStoredDelivery(t *testing.T) {
 	pool := apiTestDatabase(t)
