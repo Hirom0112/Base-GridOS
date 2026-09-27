@@ -95,20 +95,8 @@ export function Console({ children }: { children: ReactNode }) {
       >
         <ConsoleHeading pathname={pathname} role={identity.role} />
         <ReplayClock />
-        {(summary.isError || sites.isError) && (
-          <div role="alert" className="error-notice">
-            {summary.error?.message ?? sites.error?.message}
-            <button
-              onClick={() => {
-                void summary.refetch();
-                void sites.refetch();
-              }}
-            >
-              Retry fleet
-            </button>
-          </div>
-        )}
-        {!position && <FleetHeadlines fleet={fleet} />}
+        <FleetFailure summary={summary} sites={sites} />
+        {!position && pathname === "/fleet" && <FleetHeadlines fleet={fleet} />}
         <ClientOnly
           fallback={
             <div className="grid-loading" role="status">
@@ -125,6 +113,7 @@ export function Console({ children }: { children: ReactNode }) {
           >
             <GeographicField
               eventId={eventId}
+              stage={stageOf(pathname)}
               active={pathname !== "/map"}
               cells={cells}
               selected={selectedCell}
@@ -136,6 +125,35 @@ export function Console({ children }: { children: ReactNode }) {
       </div>
     </Shell>
   );
+}
+
+function FleetFailure({
+  summary,
+  sites,
+}: Pick<ReturnType<typeof useFleet>, "summary" | "sites">) {
+  if (!summary.isError && !sites.isError) return null;
+  return (
+    <div role="alert" className="error-notice">
+      {summary.error?.message ?? sites.error?.message}
+      <button
+        onClick={() => {
+          void summary.refetch();
+          void sites.refetch();
+        }}
+      >
+        Retry fleet
+      </button>
+    </div>
+  );
+}
+
+function stageOf(pathname: string) {
+  if (pathname === "/dispatch/new") return "Optimize";
+  if (pathname.startsWith("/dispatch/")) return "Approve";
+  if (pathname.endsWith("/report")) return "Learn";
+  if (pathname.startsWith("/events/") && pathname !== "/events/compare")
+    return "Dispatch";
+  return "Observe";
 }
 
 function ConsoleHeading({
@@ -198,11 +216,13 @@ function FleetEvidence({
         <span className="mono">LZ_AEN</span>
       </div>
       <section className="evidence-card">
+        <EvidenceIcon kind="observation" />
         <p className="eyebrow">Observation</p>
         <h3>Source before certainty.</h3>
         <Evidence metadata={metadata} />
       </section>
       <section className="evidence-card">
+        <EvidenceIcon kind="focus" />
         <p className="eyebrow">Operator focus</p>
         <h3>
           {pathname === "/map"
@@ -236,6 +256,7 @@ function FleetEvidence({
         )}
       </section>
       <section className="evidence-card reserve-card">
+        <EvidenceIcon kind="reserve" />
         <p className="eyebrow">Protected by design</p>
         <h3>Reserve comes first.</h3>
         <p>
@@ -244,6 +265,7 @@ function FleetEvidence({
         </p>
       </section>
       <section className="evidence-card">
+        <EvidenceIcon kind="reading" />
         <p className="eyebrow">Reading the field</p>
         {pathname === "/map" ? (
           <p>
@@ -257,9 +279,9 @@ function FleetEvidence({
           <p>
             Position: H3 location
             <br />
-            Footprint: site count
+            Height: selected power in MW per km²
             <br />
-            Height: selected power in MW
+            Dashed outline: sparse sites aggregated for privacy
           </p>
         )}
         <p>
@@ -268,6 +290,21 @@ function FleetEvidence({
         </p>
       </section>
     </aside>
+  );
+}
+
+const evidenceIcons = {
+  observation: "M3 12h4l3-7 4 14 3-7h4",
+  focus: "M12 3v4M12 17v4M3 12h4M17 12h4M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z",
+  reserve: "M12 3 5 6v6c0 4 3 7.5 7 9 4-1.5 7-5 7-9V6Z M9 12l2 2 4-4",
+  reading: "M12 3 3 8l9 5 9-5Z M3 13l9 5 9-5",
+};
+
+function EvidenceIcon({ kind }: { kind: keyof typeof evidenceIcons }) {
+  return (
+    <svg className="evidence-icon" viewBox="0 0 24 24" aria-hidden="true">
+      <path d={evidenceIcons[kind]} />
+    </svg>
   );
 }
 

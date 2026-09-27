@@ -1,4 +1,10 @@
-import { cellToBoundary, isValidCell } from "h3-js";
+import {
+  cellArea,
+  cellToBoundary,
+  getResolution,
+  isValidCell,
+  UNITS,
+} from "h3-js";
 import { z } from "zod";
 import { evidenceSchema } from "../api/Provenance";
 import type { GeoCell } from "../api/gen/gridos/v1/geo_pb";
@@ -52,6 +58,7 @@ export const mapMeasureLabels: Record<MapMeasure, string> = {
 
 export function mapFeatures(input: GeoCell[]) {
   const cells = cellsSchema.parse(input);
+  const finest = Math.max(...cells.map((cell) => getResolution(cell.h3Cell)));
   return {
     type: "FeatureCollection" as const,
     features: cells.map((cell) => ({
@@ -69,6 +76,8 @@ export function mapFeatures(input: GeoCell[]) {
         medium: Number(cell.socMediumCount),
         high: Number(cell.socHighCount),
         unknown: Number(cell.socUnknownCount),
+        area: cellArea(cell.h3Cell, UNITS.km2),
+        coarse: getResolution(cell.h3Cell) < finest,
       },
       geometry: {
         type: "Polygon" as const,

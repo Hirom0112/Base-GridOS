@@ -62,7 +62,7 @@
 }
 .console:has([data-view="/map"]) .evidence-card {
   background: transparent;
-  padding: 18px 0;
+  padding: 18px 0 18px 52px;
   border-width: 0 0 1px;
   border-radius: 0;
   margin: 0;

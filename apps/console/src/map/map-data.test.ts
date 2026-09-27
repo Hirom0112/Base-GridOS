@@ -38,6 +38,8 @@ test("map uses closed geographic H3 boundaries and only aggregate properties", (
     medium: 3,
     high: 4,
     unknown: 3,
+    area: expect.closeTo(5.98, 2),
+    coarse: false,
   });
   const ring = feature?.geometry.coordinates[0];
   expect(ring).toHaveLength(7);
@@ -51,4 +53,13 @@ test("map rejects invalid evidence instead of displaying unproven capacity", () 
   expect(() => mapFeatures([cell])).not.toThrow();
   expect(() => mapFeatures([{ ...cell, h3Cell: "invalid" }])).toThrow();
   expect(() => mapFeatures([{ ...cell, metadata: undefined }])).toThrow();
+});
+
+test("map marks privacy-coarsened parents so they never read as dense capacity", async () => {
+  const { cellToParent } = await import("h3-js");
+  const parent = { ...cell, h3Cell: cellToParent(cell.h3Cell, 4) };
+  const [fine, coarse] = mapFeatures([cell, parent]).features;
+  expect(fine?.properties.coarse).toBe(false);
+  expect(coarse?.properties.coarse).toBe(true);
+  expect(coarse!.properties.area).toBeGreaterThan(fine!.properties.area * 300);
 });

@@ -12,7 +12,7 @@
 
 @media (max-width: 1199px) {
   .console {
-    grid-template-columns: 180px minmax(0, 1fr);
+    grid-template-columns: 200px minmax(0, 1fr);
   }
   .workspace {
     grid-template-columns: minmax(0, 1fr) 250px;
@@ -50,7 +50,7 @@
     padding: 28px 16px;
   }
   .evidence-card {
-    padding: 16px;
+    padding: 16px 0 16px 52px;
   }
 }
 
@@ -91,9 +91,6 @@
   }
   .stage small {
     font-size: 10px;
-  }
-  .stage-dot {
-    display: none;
   }
   .scenario {
     font-size: 10px;
@@ -224,6 +221,9 @@
     border-right: 0;
     border-top: 1px solid var(--ink-3);
     padding: 24px 20px;
+  }
+  .operating-rail li::before {
+    display: none;
   }
   .operating-rail ol {
     display: grid;

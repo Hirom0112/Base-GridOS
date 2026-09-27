@@ -152,7 +152,10 @@ function Count({
   aggregate: FleetDeviceCountAggregate | undefined;
 }) {
   return (
-    <details className="fleet-count">
+    <details
+      className="fleet-count"
+      data-empty={aggregate?.deviceCount === 0n || undefined}
+    >
       <summary>
         <span>{label}</span>
         <strong className="mono">

@@ -77,8 +77,8 @@ small {
   color: var(--paper-0);
   min-height: 100svh;
   display: grid;
-  grid-template-columns: minmax(192px, 2fr) minmax(0, 10fr);
-  grid-template-rows: 64px 1fr auto;
+  grid-template-columns: 236px minmax(0, 1fr);
+  grid-template-rows: 56px 1fr auto;
   font-size: 14px;
   line-height: 1.5;
 }

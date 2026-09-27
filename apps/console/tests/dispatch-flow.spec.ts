@@ -117,10 +117,10 @@ for (const width of [390, 1440]) {
       fullPage: true,
     });
     await page
-      .getByRole("link", { name: "01 Observe Understand the fleet" })
+      .getByRole("link", { name: "Observe Understand the fleet" })
       .click();
     await expect(
-      page.getByRole("link", { name: "04 Approve Review and authorize" }),
+      page.getByRole("link", { name: "Approve Review and authorize" }),
     ).toBeVisible();
   });
 }

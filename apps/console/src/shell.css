@@ -92,18 +92,40 @@
   padding: 0;
   margin: 28px 0;
 }
+.operating-rail li {
+  position: relative;
+}
+.operating-rail li:not(:last-child)::before {
+  content: "";
+  position: absolute;
+  left: 19px;
+  top: calc(50% + 9px);
+  height: calc(100% - 18px);
+  border-left: 1px solid var(--ink-3);
+}
 .stage {
   display: flex;
   align-items: center;
   position: relative;
   gap: 14px;
-  padding: 16px 12px;
-  border: 1px solid transparent;
+  padding: 14px 12px;
   border-radius: var(--radius-md);
 }
-.stage.selected {
+.stage:is(a):hover {
   background: var(--ink-2);
-  border-color: var(--ink-3);
+}
+.stage-node {
+  flex: none;
+  width: 15px;
+  height: 15px;
+  border: 1.5px solid var(--paper-2);
+  border-radius: 50%;
+  background: var(--ink-1);
+}
+.stage.selected .stage-node {
+  border-color: var(--energy);
+  background: radial-gradient(circle, var(--energy) 0 3.5px, var(--ink-1) 4px);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--energy) 16%, transparent);
 }
 .stage strong {
   font-size: 14px;
@@ -115,19 +137,8 @@
   color: var(--paper-2);
   margin-top: 3px;
 }
-.stage-number {
-  font-size: 11px;
-  color: var(--paper-2);
-}
 .stage[aria-disabled] {
   color: var(--paper-2);
-}
-.stage-dot {
-  width: 5px;
-  height: 5px;
-  background: var(--paper-0);
-  border-radius: 50%;
-  margin-left: auto;
 }
 .event-thread {
   border-top: 1px solid var(--ink-3);
@@ -369,17 +380,30 @@ h1 {
   font-size: 10px;
 }
 .evidence-card {
+  position: relative;
+  border-bottom: 1px solid var(--ink-3);
+  padding: 20px 0 20px 52px;
+}
+.evidence-icon {
+  position: absolute;
+  left: 0;
+  top: 18px;
+  width: 36px;
+  height: 36px;
+  padding: 8px;
   border: 1px solid var(--ink-3);
   border-radius: var(--radius-md);
-  padding: 20px;
-  background: var(--ink-2);
-  margin-bottom: 14px;
+  fill: none;
+  stroke: var(--paper-1);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 .evidence-card h3 {
   font-size: 16px;
   letter-spacing: -0.02em;
-  font-weight: 400;
-  margin: 14px 0 10px;
+  font-weight: 500;
+  margin: 8px 0 6px;
 }
 .evidence-card > p:not(.eyebrow) {
   color: var(--paper-1);
@@ -409,8 +433,8 @@ h1 {
 .evidence-card .mode-chip {
   margin-top: 18px;
 }
-.reserve-card {
-  background: transparent;
+.reserve-card .evidence-icon {
+  stroke: var(--energy);
 }
 .evidence-note {
   color: var(--paper-2);
@@ -469,5 +493,24 @@ h1 {
 
 .rail-tools {
   display: grid;
-  gap: 8px;
+  gap: 2px;
+  margin: 0 0 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--ink-3);
+}
+.rail-tools .secondary-button {
+  justify-content: space-between;
+  background: transparent;
+  border: 0;
+  padding: 10px 12px;
+  font-weight: 450;
+  color: var(--paper-1);
+}
+.rail-tools .secondary-button::after {
+  content: "→" / "";
+  color: var(--paper-2);
+}
+.rail-tools .secondary-button:hover {
+  background: var(--ink-2);
+  color: var(--paper-0);
 }

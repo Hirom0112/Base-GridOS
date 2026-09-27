@@ -17,12 +17,14 @@ export default function LivingGrid({
   onSelect,
   active = true,
   response,
+  stage = "Observe",
 }: {
   cells: H3SiteAggregate[];
   selected: string | null;
   onSelect: (id: string) => void;
   active?: boolean;
   response?: EventSample;
+  stage?: string;
 }) {
   const [measure, setMeasure] = useState<"installed" | ResponseMeasure>(
     "installed",
@@ -81,22 +83,21 @@ export default function LivingGrid({
       aria-label="Living Grid geography"
       hidden={!active}
     >
-      <div className="field-header">
-        <span className="eyebrow">The Living Grid</span>
-        <span className="mono">{cells.length} H3 cells · LZ_AEN</span>
-      </div>
-      <FieldMeasure
-        measure={measure}
-        onChange={setMeasure}
-        response={response}
-      />
       <div className="grid-stage">
-        <div className="field-caption">
-          <h2>Greater Austin</h2>
-          <p>{measureLabels[measure]}, in place.</p>
+        <div className="field-controls">
+          <div className="field-header">
+            <span className="eyebrow">The Living Grid</span>
+            <span className="mono">{cells.length} H3 cells · LZ_AEN</span>
+          </div>
+          <FieldMeasure
+            measure={measure}
+            onChange={setMeasure}
+            response={response}
+          />
         </div>
-        <div className="north-marker" aria-hidden="true">
-          N <span>↗</span>
+        <div className="field-caption">
+          <h2>{measure === "installed" ? stage : stageTitles[measure]}</h2>
+          <p>{stageDescriptions[measure]}</p>
         </div>
         {projection.error ? (
           <p role="alert">{projection.error}</p>
@@ -104,9 +105,10 @@ export default function LivingGrid({
           <Relief cells={projection.cells} />
         )}
         <div className="webgl-host" ref={host} />
+        <FieldLegend measure={measure} />
         <div className="spatial-caption">
           <span className="mono">{mode}</span>
-          <span>Height = absolute MW · Footprint = sites</span>
+          <span>Height = MW per km² · Dashed = privacy-aggregated region</span>
         </div>
       </div>
       <div className="field-footer">
@@ -266,6 +268,44 @@ const measureSchema = z.enum([
   "acknowledged",
   "delivered",
 ]);
+const stageTitles = {
+  installed: "Observe",
+  sent: "Dispatch",
+  acknowledged: "Verify",
+  delivered: "Verify",
+};
+const stageDescriptions = {
+  installed:
+    "Installed capacity across Greater Austin, in place. Taller cells hold more capacity per square kilometre.",
+  sent: "Command intent the server reports as sent. Intent is not delivery.",
+  acknowledged:
+    "Device receipts by cell. Acknowledgement proves receipt, not delivery.",
+  delivered:
+    "Measured delivery from telemetry. Cells without measurements stay unknown.",
+};
+const legendEntries = {
+  installed: [
+    ["field", "Measured fleet cells"],
+    ["privacy", "Aggregated for privacy"],
+  ],
+  sent: [["sent", "Command intent (sent)"]],
+  acknowledged: [["acknowledged", "Acknowledged receipt"]],
+  delivered: [["delivered", "Delivered (measured)"]],
+} as const;
+
+function FieldLegend({ measure }: { measure: z.infer<typeof measureSchema> }) {
+  return (
+    <ul className="field-legend" aria-label="Field key">
+      {legendEntries[measure].map(([key, label]) => (
+        <li key={key}>
+          <span className={`legend-mark ${key}`} aria-hidden="true" />
+          {label}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 const measureLabels = {
   installed: "Installed capacity",
   sent: "Sent intent",

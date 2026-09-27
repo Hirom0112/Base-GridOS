@@ -1,17 +1,37 @@
 .living-grid {
+  --ink-0: #050907;
+  --ink-1: #09120e;
+  --ink-2: #0e1b15;
+  --ink-3: #1f3529;
+  --paper-0: #f0f7f2;
+  --paper-1: #b9c9bf;
+  --paper-2: #8fa698;
+  --forecast: #6db8ff;
+  color-scheme: dark;
+  color: var(--paper-0);
   border: 1px solid var(--ink-3);
   border-radius: 14px;
-  background: var(--ink-0);
+  background: #050907;
   overflow: hidden;
 }
 .grid-stage {
-  height: 420px;
+  height: 440px;
   position: relative;
-  background: radial-gradient(
-    ellipse at 50% 75%,
-    var(--ink-2),
-    transparent 70%
-  );
+  color: var(--paper-0);
+  background:
+    radial-gradient(ellipse 70% 60% at 52% 48%, #10211a, transparent 72%),
+    #050907;
+  isolation: isolate;
+}
+.grid-stage::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  background:
+    linear-gradient(to top, #050907 0, transparent 34%),
+    linear-gradient(to bottom, #050907cc 0, transparent 18%);
 }
 .webgl-host,
 .grid-relief {
@@ -29,6 +49,147 @@
   touch-action: pan-y;
   cursor: pointer;
 }
+.field-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+.place-label {
+  position: absolute;
+  top: 0;
+  left: 0;
+  translate: -50% -50%;
+  font:
+    500 10px "Geist Mono Variable",
+    monospace;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--paper-1);
+  text-shadow:
+    0 0 6px #050907,
+    0 0 2px #050907;
+  white-space: nowrap;
+}
+.field-compass {
+  position: absolute;
+  top: 20px;
+  right: 28px;
+  z-index: 2;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--ink-3);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font:
+    500 9px "Geist Mono Variable",
+    monospace;
+  color: var(--paper-1);
+  rotate: var(--bearing);
+}
+.field-compass::before {
+  content: "";
+  position: absolute;
+  top: -4px;
+  border-inline: 4px solid transparent;
+  border-bottom: 7px solid var(--energy);
+}
+.field-scale {
+  position: absolute;
+  right: 28px;
+  bottom: 156px;
+  z-index: 2;
+  padding-bottom: 6px;
+  border: 1px solid var(--paper-2);
+  border-top: 0;
+  height: 10px;
+  text-align: center;
+  font:
+    10px "Geist Mono Variable",
+    monospace;
+  color: var(--paper-1);
+  line-height: 0;
+}
+.field-controls {
+  position: absolute;
+  top: 20px;
+  left: 28px;
+  z-index: 3;
+  display: grid;
+  gap: 10px;
+  justify-items: start;
+}
+.field-controls .field-header {
+  padding: 0;
+  gap: 16px;
+}
+.field-controls .field-measure {
+  padding: 0;
+}
+.field-caption {
+  position: absolute;
+  left: 28px;
+  bottom: 64px;
+  z-index: 2;
+  max-width: min(460px, 60%);
+  pointer-events: none;
+}
+.field-caption h2 {
+  font-size: clamp(40px, 4.6vw, 68px);
+  line-height: 0.95;
+  font-weight: 500;
+  letter-spacing: -0.045em;
+}
+.field-caption p {
+  color: var(--paper-1);
+  font-size: 15px;
+  line-height: 1.5;
+  margin-top: 12px;
+}
+.field-legend {
+  position: absolute;
+  right: 28px;
+  bottom: 64px;
+  z-index: 2;
+  list-style: none;
+  margin: 0;
+  padding: 12px 14px;
+  display: grid;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--paper-1);
+  background: #09120ee6;
+  border: 1px solid var(--ink-3);
+  border-radius: var(--radius-md);
+}
+.field-legend li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.legend-mark {
+  width: 22px;
+  border-top: 2px solid var(--paper-1);
+}
+.legend-mark.field {
+  border-color: #66f2a4;
+  box-shadow: 0 0 6px #66f2a4;
+}
+.legend-mark.privacy {
+  border-top-style: dashed;
+  border-color: #66736c;
+}
+.legend-mark.sent {
+  border-color: #f0f7f2;
+}
+.legend-mark.acknowledged {
+  border-top-style: dashed;
+  border-color: #6db8ff;
+}
+.legend-mark.delivered {
+  border-top: 4px double #66f2a4;
+}
 .relief-top {
   fill: var(--paper-2);
   stroke: var(--ink-0);
@@ -39,41 +200,11 @@
   stroke: var(--ink-0);
   stroke-width: 0.04;
 }
-.field-caption {
-  position: absolute;
-  top: 12px;
-  left: 24px;
-  z-index: 1;
-  pointer-events: none;
-}
-.field-caption h2 {
-  font-size: 21px;
-  font-weight: 400;
-  letter-spacing: -0.035em;
-}
-.field-caption p {
-  color: var(--paper-2);
-  font-size: 14px;
-  margin-top: 5px;
-}
-.north-marker {
-  position: absolute;
-  right: 24px;
-  top: 14px;
-  z-index: 1;
-  color: var(--paper-2);
-  font:
-    10px "Geist Mono Variable",
-    monospace;
-}
-.north-marker span {
-  display: block;
-  font-size: 22px;
-}
 .spatial-caption {
   position: absolute;
-  bottom: 16px;
-  inset-inline: 24px;
+  bottom: 22px;
+  inset-inline: 28px;
+  z-index: 2;
   pointer-events: none;
   display: flex;
   justify-content: space-between;
@@ -141,86 +272,80 @@
 }
 @media (min-width: 701px) {
   .fleet-view {
-    padding: 20px 0 24px;
+    padding: 0 0 24px;
   }
   .fleet-view .view-heading {
-    padding: 0 24px 18px;
+    padding: 16px 28px;
+    border-bottom: 1px solid var(--ink-3);
   }
   .fleet-view .view-heading h1 {
-    font-size: 28px;
-    margin-top: 6px;
+    font-size: 24px;
+    margin-top: 4px;
   }
   .fleet-view .view-heading p:not(.eyebrow) {
-    margin-top: 6px;
+    display: none;
   }
   .fleet-view .living-grid {
-    position: relative;
-    border-inline: 0;
+    border: 0;
     border-radius: 0;
     order: 1;
   }
   .fleet-view .grid-stage {
-    height: clamp(520px, 62vh, 760px);
-    background: var(--ink-0);
+    height: clamp(560px, calc(100svh - 300px), 860px);
   }
   .fleet-view .grid-loading {
-    min-height: calc(clamp(520px, 62vh, 760px) + 140px);
+    min-height: clamp(560px, calc(100svh - 300px), 860px);
     order: 1;
-    border-inline: 0;
+    border: 0;
     border-radius: 0;
-  }
-  .fleet-view .field-measure {
-    position: absolute;
-    top: 52px;
-    left: 0;
-    right: 56px;
-    z-index: 3;
-  }
-  .fleet-view .field-caption {
-    top: auto;
-    bottom: 56px;
-  }
-  .fleet-view .field-caption h2 {
-    font-size: 32px;
-    font-weight: 500;
   }
   .fleet-view .headline-quantities {
     order: 2;
     margin: 0;
-    padding: 22px 24px;
-    border-top: 0;
+    padding: 18px 28px;
+    border-top: 1px solid var(--ink-3);
+    background: var(--ink-0);
   }
   .fleet-view .route-evidence {
     order: 3;
-    margin: 24px;
-  }
-  .console:has(.fleet-view) .evidence-card {
-    padding: 18px 0;
-    border-width: 0 0 1px;
-    border-radius: 0;
-    background: transparent;
-    margin: 0;
+    margin: 24px 28px;
   }
 }
 @media (max-width: 700px) {
   .grid-stage {
-    height: 320px;
+    height: 460px;
   }
-  .living-grid .field-header,
-  .living-grid .field-footer {
-    padding-inline: 16px;
+  .field-controls {
+    top: 16px;
+    left: 16px;
+    right: 16px;
   }
   .living-grid .field-header .mono {
     font-size: 9px;
   }
   .field-caption {
     left: 16px;
+    bottom: 76px;
+    max-width: calc(100% - 32px);
+  }
+  .field-caption h2 {
+    font-size: 40px;
+  }
+  .field-legend,
+  .field-scale {
+    display: none;
+  }
+  .field-compass {
+    top: 16px;
+    right: 16px;
   }
   .spatial-caption {
     inset-inline: 16px;
+    bottom: 16px;
     flex-direction: column;
     gap: 3px;
   }
+  .living-grid .field-footer,
   .geography-table > summary {
     padding-inline: 16px;
   }
@@ -235,10 +360,13 @@
   font-size: 14px;
 }
 .field-measure select {
-  padding: 8px;
-  background: var(--ink-1);
+  width: auto;
+  min-width: 220px;
+  padding: 8px 12px;
+  background: #09120ee6;
   color: var(--paper-0);
   border: 1px solid var(--ink-3);
+  border-radius: var(--radius-md);
   font: inherit;
 }
 .grid-relief .relief-top {

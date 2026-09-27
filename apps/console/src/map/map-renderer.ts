@@ -8,6 +8,7 @@ import {
 import type { MapFeatures, MapMeasure } from "./map-data";
 import "maplibre-gl/dist/maplibre-gl.css";
 import workerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
+import groundImagery from "../fleet/austin-ground.jpg";
 
 setWorkerUrl(workerUrl);
 
@@ -54,22 +55,24 @@ export function mountMap(
       if (disposed) return;
       const maximum = Math.max(
         0.001,
-        ...data.features.map((feature) => feature.properties[measure]),
+        ...data.features.map(
+          (feature) => feature.properties[measure] / feature.properties.area,
+        ),
       );
       map.setPaintProperty("fleet-fill", "fill-color", [
         "interpolate",
         ["linear"],
-        ["get", measure],
+        ["/", ["get", measure], ["get", "area"]],
         0,
-        "#263b30",
+        "#1c2e25",
         maximum,
-        "#b9c9bf",
+        "#8fe8b8",
       ]);
       map.setFilter("fleet-selection", ["==", ["get", "id"], selected ?? ""]);
       if (!fitted && data.features.length) {
-        const points = data.features.flatMap((feature) =>
-          feature.geometry.coordinates.flat(),
-        );
+        const points = data.features
+          .filter((feature) => !feature.properties.coarse)
+          .flatMap((feature) => feature.geometry.coordinates.flat());
         map.fitBounds(
           [
             [
@@ -100,31 +103,7 @@ export function mountMap(
   map.on("load", () => {
     if (disposed) return;
     clearTimeout(timeout);
-    map.setPaintProperty("background", "background-color", "#050907");
-    map.setPaintProperty("texas-fill", "fill-color", "#09120e");
-    map.setPaintProperty("texas-outline", "line-color", "#7f9588");
-    map.setLayoutProperty("weather-zones", "visibility", "none");
-    map.setLayoutProperty("load-zones", "visibility", "none");
-    map.addSource("fleet", { type: "geojson", data });
-    map.addLayer({
-      id: "fleet-fill",
-      type: "fill",
-      source: "fleet",
-      paint: { "fill-opacity": 0.85 },
-    });
-    map.addLayer({
-      id: "fleet-outline",
-      type: "line",
-      source: "fleet",
-      paint: { "line-color": "#050907", "line-width": 1 },
-    });
-    map.addLayer({
-      id: "fleet-selection",
-      type: "line",
-      source: "fleet",
-      filter: ["==", ["get", "id"], ""],
-      paint: { "line-color": "#f0f7f2", "line-width": 3 },
-    });
+    addFleetLayers(map, data);
     map.on("click", "fleet-fill", (event) => {
       const id: unknown = event.features?.[0]?.properties.id;
       if (typeof id === "string") select(id);
@@ -146,4 +125,66 @@ export function mountMap(
     },
     dispose,
   };
+}
+
+function addFleetLayers(map: Map, data: MapFeatures) {
+  map.setPaintProperty("background", "background-color", "#050907");
+  map.setPaintProperty("texas-fill", "fill-color", "#09120e");
+  map.setPaintProperty("texas-outline", "line-color", "#7f9588");
+  map.addSource("ground", {
+    type: "image",
+    url: groundImagery,
+    coordinates: [
+      [-98.55, 31.0],
+      [-96.95, 31.0],
+      [-96.95, 29.6],
+      [-98.55, 29.6],
+    ],
+  });
+  map.addLayer({
+    id: "ground",
+    type: "raster",
+    source: "ground",
+    paint: { "raster-opacity": 0.9 },
+  });
+  map.setLayoutProperty("weather-zones", "visibility", "none");
+  map.setLayoutProperty("load-zones", "visibility", "none");
+  map.addSource("fleet", { type: "geojson", data });
+  map.addLayer({
+    id: "fleet-fill",
+    type: "fill",
+    source: "fleet",
+    paint: {
+      "fill-opacity": ["case", ["get", "coarse"], 0.08, 0.85],
+    },
+  });
+  map.addLayer({
+    id: "fleet-outline",
+    type: "line",
+    source: "fleet",
+    filter: ["!", ["get", "coarse"]],
+    paint: {
+      "line-color": "#66f2a4",
+      "line-width": 0.6,
+      "line-opacity": 0.5,
+    },
+  });
+  map.addLayer({
+    id: "fleet-privacy",
+    type: "line",
+    source: "fleet",
+    filter: ["get", "coarse"],
+    paint: {
+      "line-color": "#7f9588",
+      "line-width": 1,
+      "line-dasharray": [3, 2],
+    },
+  });
+  map.addLayer({
+    id: "fleet-selection",
+    type: "line",
+    source: "fleet",
+    filter: ["==", ["get", "id"], ""],
+    paint: { "line-color": "#f0f7f2", "line-width": 3 },
+  });
 }

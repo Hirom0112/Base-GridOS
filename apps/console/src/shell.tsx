@@ -117,16 +117,15 @@ function OperatingRail({
                 href="#fleet-overview"
                 aria-current="page"
               >
-                <span className="stage-number mono">01</span>
+                <span className="stage-node" aria-hidden="true" />
                 <span>
                   <strong>{name}</strong>
                   <small>{description}</small>
                 </span>
-                <span className="stage-dot" aria-hidden="true" />
               </a>
             ) : (
               <span className="stage" aria-disabled="true">
-                <span className="stage-number mono">0{index + 1}</span>
+                <span className="stage-node" aria-hidden="true" />
                 <span>
                   <strong>{name}</strong>
                   <small>{description}</small>
@@ -181,7 +180,7 @@ function StageLink({
 }) {
   const content = (
     <>
-      <span className="stage-number mono">0{index + 1}</span>
+      <span className="stage-node" aria-hidden="true" />
       <span>
         <strong>{name}</strong>
         <small>{description}</small>

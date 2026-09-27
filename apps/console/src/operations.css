@@ -118,39 +118,51 @@
 }
 .event-view .route-evidence {
   order: 2;
-  margin-top: 0;
-  margin-bottom: 28px;
+  margin-top: 28px;
 }
 .event-view .living-grid {
-  order: 3;
+  order: 1;
+  margin-top: 24px;
 }
 .event-view .grid-stage {
-  height: 280px;
+  height: clamp(380px, 44vh, 480px);
+}
+.connected-field h1 {
+  font-size: clamp(28px, 2.4vw, 34px);
 }
 .fleet-quantities {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
+  border-bottom: 1px solid var(--ink-3);
+  padding-bottom: 20px;
 }
 .fleet-quantities > .quantity {
-  padding: 20px;
-  border: 1px solid var(--ink-3);
-  border-radius: 10px;
-  background: var(--ink-2);
+  padding-inline: 18px;
+  border-left: 1px solid var(--ink-3);
+}
+.fleet-quantities > .quantity:nth-child(4) {
+  padding-left: 0;
+  border: 0;
 }
 .fleet-quantities > .quantity:nth-child(-n + 3) {
   display: none;
 }
 .fleet-health {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 28px;
-  margin-top: 32px;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 20px 28px;
+  margin-top: 28px;
 }
 .fleet-health h2 {
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 500;
-  margin-bottom: 15px;
+  margin-bottom: 8px;
+}
+.fleet-count[data-empty] summary {
+  color: var(--paper-2);
+}
+.fleet-count[data-empty] strong {
+  color: var(--paper-2);
 }
 .fleet-count {
   border-top: 1px solid var(--ink-3);
@@ -158,7 +170,7 @@
 .fleet-count summary {
   display: flex;
   justify-content: space-between;
-  padding: 12px 0;
+  padding: 9px 0;
   gap: 12px;
   font-size: 14px;
   cursor: pointer;
