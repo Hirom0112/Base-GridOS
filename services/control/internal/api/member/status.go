@@ -98,6 +98,10 @@ func (service *Service) GetMemberStatus(ctx context.Context, request *connect.Re
 		}
 		result.EffectiveReservePercent = reserve.EffectivePercent
 	}
+	result.RecentEvents, err = service.recentEvents(ctx, siteID)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
 	return connect.NewResponse(result), nil
 }
 
