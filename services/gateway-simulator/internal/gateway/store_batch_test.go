@@ -43,3 +43,42 @@ func TestBatchConfirmationIsAtomic(t *testing.T) {
 		t.Fatalf("confirmed observations remain: %d", len(buffered))
 	}
 }
+
+func TestBatchSequenceAndBufferIsAtomic(t *testing.T) {
+	ctx := context.Background()
+	store, err := Open(ctx, filepath.Join(t.TempDir(), "gateway.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if err := store.Close(); err != nil {
+			t.Error(err)
+		}
+	})
+	first := ObservationDraft{DeviceID: "device", Build: func(sequence uint64) (BufferedObservation, error) {
+		return BufferedObservation{ObservationID: "device-1", Payload: []byte{byte(sequence)}}, nil
+	}}
+	invalid := ObservationDraft{DeviceID: "device", Build: func(uint64) (BufferedObservation, error) {
+		return BufferedObservation{}, nil
+	}}
+	if err := store.BufferObservationBatch(ctx, []ObservationDraft{first, invalid}); err == nil {
+		t.Fatal("invalid batch accepted")
+	}
+	buffered, err := store.BufferedObservations(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(buffered) != 0 {
+		t.Fatalf("failed batch persisted rows: %d", len(buffered))
+	}
+	if err := store.BufferObservationBatch(ctx, []ObservationDraft{first}); err != nil {
+		t.Fatal(err)
+	}
+	buffered, err = store.BufferedObservations(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(buffered) != 1 || buffered[0].ObservationID != "device-1" || len(buffered[0].Payload) != 1 || buffered[0].Payload[0] != 1 {
+		t.Fatalf("committed batch = %#v", buffered)
+	}
+}
