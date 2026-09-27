@@ -976,3 +976,7 @@ assumptions reported by workers land here too.
   (gridos_commands_total, gridos_ack_latency_seconds, gridos_safety_rejections_total,
   gridos_solver_duration_seconds) so the boards are live, not decorative.
   Director: three dashboards return 200 on 33000.
+- **5C.4 (lane 5C), verified:** four provisioned alert rules (safety
+  rejections, fallback rate, uncertain commands, stale telemetry share)
+  are listed by Grafana on 33000. They query these metric names, which
+  5C.1 must emit exactly: gridos_fallback_total gridos_safety_rejections_total gridos_telemetry_devices gridos_telemetry_stale_devices gridos_uncertain_commands 

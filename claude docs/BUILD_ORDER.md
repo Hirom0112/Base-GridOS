@@ -1575,9 +1575,9 @@ the init call, `services/control/go.mod` (Wave 5 owner).
 - `[ ]` 5C.3 `[P]` RED then GREEN: log, trace, and analytics scrubbers; a test
   emits a record containing a site ID, command credential, and travel window
   and asserts none reach the exporter (FULL_SPEC §11). Verify: `go test ./services/control/... -run Scrub` passes.
-- `[ ]` 5C.4 `[P]` Grafana alert rules for safety rejections, fallback rate,
+- `[x]` 5C.4 `[P]` Grafana alert rules for safety rejections, fallback rate,
   uncertain commands, and stale-telemetry share, provisioned with the
-  dashboards. Verify: `curl localhost:3000/api/v1/provisioning/alert-rules` lists the four rules.
+  dashboards. Verify: `curl -u admin:admin localhost:33000/api/v1/provisioning/alert-rules` lists the four rules.
 
 ### Lane 5D — deployment
 
