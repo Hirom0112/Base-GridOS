@@ -36,10 +36,7 @@ func (activities *Activities) IssueReplacement(ctx context.Context, replacement 
 	}
 	current := snapshot.Optimization
 	now := activities.Now()
-	ctx, err = observability.WithTraceIDs(ctx, current.GetCorrelationId(), replacement.EventID)
-	if err != nil {
-		return err
-	}
+	ctx = observability.WithActivityTraceIDs(ctx, current.GetCorrelationId(), replacement.EventID)
 	response, err := activities.Dispatcher.Optimizer.Replace(ctx, &gridosv1.ReplaceRequest{
 		Current: current, ApprovedPlan: approved, DroppedDeviceIds: replacement.DroppedDeviceIDs,
 		EnvelopeDeviceIds: replacement.EnvelopeDeviceIDs, IdempotencyKey: key,

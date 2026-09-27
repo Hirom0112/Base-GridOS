@@ -44,14 +44,14 @@ type FrozenEvent struct {
 }
 
 func (activities *Activities) startActivity(ctx context.Context, eventID, name string) (context.Context, trace.Span) {
+	correlationID := ""
 	if activities.Events != nil {
 		event, _, err := activities.Events.Get(ctx, eventID)
 		if err == nil {
-			if seeded, err := observability.WithTraceIDs(ctx, event.GetCorrelationId(), eventID); err == nil {
-				ctx = seeded
-			}
+			correlationID = event.GetCorrelationId()
 		}
 	}
+	ctx = observability.WithActivityTraceIDs(ctx, correlationID, eventID)
 	return otel.Tracer("gridos.control").Start(ctx, "activity."+name)
 }
 
@@ -106,10 +106,7 @@ func (activities *Activities) FreezeInputs(ctx context.Context, input Input) (Fr
 }
 
 func (activities *Activities) forecast(ctx context.Context, request *gridosv1.OptimizationRequest, eventID string, budget time.Duration) (*gridosv1.ForecastResponse, error) {
-	ctx, err := observability.WithTraceIDs(ctx, request.GetCorrelationId(), eventID)
-	if err != nil {
-		return nil, err
-	}
+	ctx = observability.WithActivityTraceIDs(ctx, request.GetCorrelationId(), eventID)
 	forecastCtx, cancel := context.WithTimeout(ctx, budget+time.Second)
 	forecast, err := activities.Dispatcher.Optimizer.Forecast(forecastCtx, &gridosv1.ForecastRequest{Request: request})
 	cancel()
@@ -137,10 +134,7 @@ func (activities *Activities) RequestPlan(ctx context.Context, frozen FrozenEven
 	if err = frozen.verifySnapshot(request); err != nil {
 		return frozen, err
 	}
-	ctx, err = observability.WithTraceIDs(ctx, request.GetCorrelationId(), frozen.Input.EventID)
-	if err != nil {
-		return frozen, err
-	}
+	ctx = observability.WithActivityTraceIDs(ctx, request.GetCorrelationId(), frozen.Input.EventID)
 	if request.GetBudget() == nil {
 		return frozen, errors.New("optimization budget required")
 	}

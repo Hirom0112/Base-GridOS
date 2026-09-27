@@ -142,6 +142,8 @@ func safeTraceAttr(item attribute.KeyValue) bool {
 		return item.Value.Type() == attribute.STRING && safeIdentifier(item.Value.AsString())
 	case "count", "duration_ms", "power_kw", "energy_kwh":
 		return item.Value.Type() == attribute.INT64 || item.Value.Type() == attribute.FLOAT64
+	case "identity_fallback", "identity_derived":
+		return item.Value.Type() == attribute.BOOL
 	default:
 		return false
 	}

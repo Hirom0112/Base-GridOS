@@ -2,6 +2,8 @@ package observability
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 
 	"go.opentelemetry.io/otel/attribute"
@@ -11,6 +13,8 @@ import (
 type traceIdentity struct {
 	correlationID string
 	workflowID    string
+	fallback      bool
+	derived       bool
 }
 
 type traceIdentityKey struct{}
@@ -22,6 +26,20 @@ func WithTraceIDs(ctx context.Context, correlationID, workflowID string) (contex
 	return context.WithValue(ctx, traceIdentityKey{}, traceIdentity{
 		correlationID: correlationID, workflowID: workflowID,
 	}), nil
+}
+
+func WithActivityTraceIDs(ctx context.Context, correlationID, eventID string) context.Context {
+	identity := traceIdentity{correlationID: correlationID, workflowID: eventID}
+	if !safeIdentifier(eventID) {
+		digest := sha256.Sum256([]byte(eventID))
+		identity.workflowID = "event-" + hex.EncodeToString(digest[:16])
+		identity.derived = true
+	}
+	if !safeIdentifier(correlationID) {
+		identity.correlationID = identity.workflowID
+		identity.fallback = true
+	}
+	return context.WithValue(ctx, traceIdentityKey{}, identity)
 }
 
 func TraceIDs(ctx context.Context) (string, string) {
@@ -50,6 +68,12 @@ func (traceIdentityProcessor) OnStart(ctx context.Context, span sdktrace.ReadWri
 		attribute.String("correlation_id", identity.correlationID),
 		attribute.String("workflow_id", identity.workflowID),
 	)
+	if identity.fallback {
+		span.SetAttributes(attribute.Bool("identity_fallback", true))
+	}
+	if identity.derived {
+		span.SetAttributes(attribute.Bool("identity_derived", true))
+	}
 }
 
 func (traceIdentityProcessor) OnEnd(sdktrace.ReadOnlySpan) {}
