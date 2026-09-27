@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"testing"
 	"time"
 
@@ -142,5 +143,45 @@ func TestGetPlanExplanationFrozenEvidence(t *testing.T) {
 	}
 	if !evidence.FallbackUsed || evidence.FallbackReason != "solver timeout" || len(evidence.DeviceSchedules) != 1 || evidence.DeviceSchedules[0].DeviceID != "a" {
 		t.Fatalf("frozen plan = %s", encoded)
+	}
+}
+
+func TestGetPlanExplanationFrozenRegionalEvidence(t *testing.T) {
+	now := time.Date(2026, 9, 26, 12, 0, 0, 0, time.UTC)
+	value := &gridosv1.ForecastValue{Value: 0.8, ValueKind: "modeled_estimate", Provenance: gridosv1.DataProvenance_DATA_PROVENANCE_SIMULATED, IssuedAt: timestamppb.New(now.Add(-time.Hour))}
+	forecast := &gridosv1.ForecastResponse{
+		RegionalPrices:     []*gridosv1.ForecastRegionalPrice{{LoadZone: "LZ_AEN", IntervalBeginTime: timestamppb.New(now), PricePerMwh: value}},
+		OutageRisks:        []*gridosv1.ForecastOutageRisk{{County: "Travis", IntervalBeginTime: timestamppb.New(now), Probability: value}},
+		DeviceAvailability: []*gridosv1.ForecastDeviceAvailability{{DeviceId: "device-1", IntervalBeginTime: timestamppb.New(now), Probability: value}},
+		UnavailableSources: []string{"weather"},
+	}
+	events := NewMemoryEventStore()
+	events.Put(&gridosv1.DispatchEvent{EventId: "event-regional", PlanVersion: 1})
+	store := explanationStore{EventStore: events, request: &gridosv1.OptimizationRequest{Forecast: forecast}, plan: &gridosv1.DispatchPlan{EventId: "event-regional", PlanVersion: 1}}
+	request := connect.NewRequest(&gridosv1.GetPlanExplanationRequest{EventId: "event-regional", PlanVersion: 1})
+	request.Header().Set(roleHeader, "analyst")
+	response, err := NewService(store, nil, nil, func() time.Time { return now }).GetPlanExplanation(context.Background(), request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	expectedJSON, err := protojson.Marshal(forecast)
+	if err != nil {
+		t.Fatal(err)
+	}
+	actualJSON, err := protojson.Marshal(response.Msg.GetEvidence())
+	if err != nil {
+		t.Fatal(err)
+	}
+	var expected, actual map[string]json.RawMessage
+	if err := json.Unmarshal(expectedJSON, &expected); err != nil {
+		t.Fatal(err)
+	}
+	if err := json.Unmarshal(actualJSON, &actual); err != nil {
+		t.Fatal(err)
+	}
+	for _, field := range []string{"regionalPrices", "outageRisks", "deviceAvailability", "unavailableSources"} {
+		if !reflect.DeepEqual(actual[field], expected[field]) {
+			t.Fatalf("frozen %s = %s, want %s", field, actual[field], expected[field])
+		}
 	}
 }
