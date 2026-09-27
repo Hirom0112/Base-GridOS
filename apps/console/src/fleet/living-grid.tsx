@@ -68,40 +68,16 @@ export default function LivingGrid({
         ),
       ),
     ].join(" · ") || "Provenance unavailable";
-  const host = useRef<HTMLDivElement>(null);
-  const renderer = useRef<ReturnType<typeof mountGrid> | null>(null);
-  const select = useRef(onSelect);
-  useEffect(() => {
-    select.current = onSelect;
-  }, [onSelect]);
-  const [mode, setMode] = useState("Geographic fallback");
-  useEffect(() => {
-    if (!active) {
-      setMode("Geographic field parked");
-      return;
-    }
-    let cancelled = false;
-    void import("./renderer").then(({ mountGrid }) => {
-      if (cancelled || !host.current) return;
-      try {
-        renderer.current = mountGrid(host.current, (id) => select.current(id));
-        setMode("3D geographic field");
-      } catch {
-        setMode("Geographic fallback · WebGL unavailable");
-      }
-    });
-    return () => {
-      cancelled = true;
-      renderer.current?.dispose();
-      renderer.current = null;
-    };
-  }, [active]);
-  useEffect(() => {
-    renderer.current?.update(projection.cells, selected);
-  }, [projection, selected, mode]);
+  const { host, mode } = useGeographicRenderer({
+    active,
+    onSelect,
+    cells: projection.cells,
+    selected,
+  });
   return (
     <section
       className="living-grid"
+      data-renderer={mode === "3D geographic field" ? "webgl" : "fallback"}
       aria-label="Living Grid geography"
       hidden={!active}
     >
@@ -151,6 +127,62 @@ export default function LivingGrid({
       />
     </section>
   );
+}
+
+function useGeographicRenderer({
+  active,
+  onSelect,
+  cells,
+  selected,
+}: {
+  active: boolean;
+  onSelect: (id: string) => void;
+  cells: GridCell[];
+  selected: string | null;
+}) {
+  const host = useRef<HTMLDivElement>(null);
+  const renderer = useRef<ReturnType<typeof mountGrid> | null>(null);
+  const select = useRef(onSelect);
+  useEffect(() => {
+    select.current = onSelect;
+  }, [onSelect]);
+  const [mode, setMode] = useState("Geographic fallback");
+  useEffect(() => {
+    if (!active) {
+      setMode("Geographic field parked");
+      return;
+    }
+    let cancelled = false;
+    const element = host.current;
+    const lost = () => setMode("Geographic fallback · WebGL context lost");
+    const restored = () => setMode("3D geographic field");
+    element?.addEventListener("webglcontextlost", lost, true);
+    element?.addEventListener("webglcontextrestored", restored, true);
+    void import("./renderer")
+      .then(({ mountGrid }) => {
+        if (cancelled || !element) return;
+        try {
+          renderer.current = mountGrid(element, (id) => select.current(id));
+          setMode("3D geographic field");
+        } catch {
+          setMode("Geographic fallback · WebGL unavailable");
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setMode("Geographic fallback · renderer unavailable");
+      });
+    return () => {
+      cancelled = true;
+      element?.removeEventListener("webglcontextlost", lost, true);
+      element?.removeEventListener("webglcontextrestored", restored, true);
+      renderer.current?.dispose();
+      renderer.current = null;
+    };
+  }, [active]);
+  useEffect(() => {
+    renderer.current?.update(cells, selected);
+  }, [cells, selected, mode]);
+  return { host, mode };
 }
 
 function Relief({ cells }: { cells: GridCell[] }) {

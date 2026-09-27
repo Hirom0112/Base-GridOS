@@ -10,12 +10,13 @@ test("context loss exposes the same geographic evidence and restores one canvas"
     page.getByText("3D geographic field", { exact: true }),
   ).toBeVisible();
   const canvas = page.locator("canvas[data-living-grid]");
-  await canvas.evaluate((element) => {
+  const contextLoss = await canvas.evaluateHandle((element) => {
     const gl = (element as HTMLCanvasElement).getContext("webgl2");
     const extension = gl?.getExtension("WEBGL_lose_context");
     if (!extension) throw new Error("Context-loss extension unavailable");
-    extension.loseContext();
+    return extension;
   });
+  await contextLoss.evaluate((extension) => extension.loseContext());
   await expect(
     page.getByText("Geographic fallback · WebGL context lost"),
   ).toBeVisible();
@@ -23,15 +24,16 @@ test("context loss exposes the same geographic evidence and restores one canvas"
     page.getByRole("img", { name: /H3 power relief/ }),
   ).toBeVisible();
   await page.getByText("Inspect the geographic data").click();
-  await expect(page.locator("tbody tr")).toHaveCount(320);
+  await expect(
+    page
+      .getByRole("region", { name: "Geographic measurements" })
+      .locator("tbody tr"),
+  ).toHaveCount(320);
   await page.screenshot({
     path: testInfo.outputPath("context-lost.png"),
     fullPage: true,
   });
-  await canvas.evaluate((element) => {
-    const gl = (element as HTMLCanvasElement).getContext("webgl2");
-    gl?.getExtension("WEBGL_lose_context")?.restoreContext();
-  });
+  await contextLoss.evaluate((extension) => extension.restoreContext());
   await expect(
     page.getByText("3D geographic field", { exact: true }),
   ).toBeVisible();
@@ -60,7 +62,11 @@ test("a failed renderer download keeps the field and actions available", async (
     page.getByRole("img", { name: /H3 power relief/ }),
   ).toBeVisible();
   await page.getByText("Inspect the geographic data").click();
-  await expect(page.locator("tbody tr")).toHaveCount(320);
+  await expect(
+    page
+      .getByRole("region", { name: "Geographic measurements" })
+      .locator("tbody tr"),
+  ).toHaveCount(320);
   expect(errors).toEqual([]);
   await page.screenshot({
     path: testInfo.outputPath("renderer-unavailable.png"),

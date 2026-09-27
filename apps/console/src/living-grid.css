@@ -20,7 +20,8 @@
   position: absolute;
   inset: 0;
 }
-.grid-stage:has(canvas) .grid-relief {
+.living-grid[data-renderer="webgl"] .grid-relief,
+.living-grid[data-renderer="fallback"] .webgl-host {
   visibility: hidden;
 }
 .webgl-host canvas {
