@@ -31,7 +31,7 @@ export function ReplayClock() {
   const { position, setPosition } = useReplayClock();
   if (!position) return null;
   return (
-    <section className="error-notice" aria-label="Historical geography clock">
+    <section className="boundary-note" aria-label="Historical geography clock">
       <p>
         Historical geography · {timestampDate(position.at).toISOString()} ·
         Event {position.eventId}. Current operational panels keep their own

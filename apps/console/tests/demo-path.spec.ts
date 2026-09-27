@@ -233,6 +233,7 @@ async function verifyExecution(page: Page, end: number) {
     );
     const minimum = Number.parseFloat(await reserve.locator("dd").innerText());
     expect(minimum).toBeGreaterThanOrEqual(0);
+    await expect(reserve.getByRole("alert")).toHaveCount(0);
     await expect(reserve).toContainText("Unobserved devices remain unknown");
   });
   await test.step("15 Wait for explicit expiry and recorded zero-setpoint return", async () => {
