@@ -3,12 +3,14 @@ package dispatch
 import (
 	"context"
 	"testing"
+	"time"
 
 	gridosv1 "github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/observability"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
+	"google.golang.org/protobuf/proto"
 )
 
 type traceCaptureOptimizer struct {
@@ -45,6 +47,45 @@ func TestPlanningActivitiesSeedDecisionTraceContext(t *testing.T) {
 	want := [2]string{"correlation-1", "event-1"}
 	require.Equal(t, want, optimizer.identities["Forecast"])
 	require.Equal(t, want, optimizer.identities["Optimize"])
+}
+
+func TestPlanningActivityMissingCorrelationOnTravelEvent(t *testing.T) {
+	harness := newActivityHarness(t)
+	request := proto.Clone(harness.input.Request).(*gridosv1.EventRequest)
+	request.RequestId = "travel-flex-x"
+	request.CorrelationId = ""
+	request.LoadZones = []string{}
+	_, err := harness.events.Create(context.Background(), request, "create-travel-flex-x", time.Now())
+	require.NoError(t, err)
+	exporter := tracetest.NewInMemoryExporter()
+	provider := observability.NewTracerProvider(exporter)
+	previous := otel.GetTracerProvider()
+	otel.SetTracerProvider(provider)
+	t.Cleanup(func() {
+		_ = provider.Shutdown(context.Background())
+		otel.SetTracerProvider(previous)
+	})
+	base := harness.activities.Dispatcher.Optimizer.(activityOptimizer)
+	optimizer := &traceCaptureOptimizer{activityOptimizer: base, identities: make(map[string][2]string)}
+	harness.activities.Dispatcher.Optimizer = optimizer
+	ctx, span := harness.activities.startActivity(context.Background(), request.GetRequestId(), "FreezeInputs")
+	_, err = harness.activities.forecast(ctx, &gridosv1.OptimizationRequest{EventId: request.GetRequestId()}, request.GetRequestId(), time.Second)
+	span.End()
+	require.NoError(t, err)
+	correlationID, workflowID := observability.TraceIDs(ctx)
+	require.Regexp(t, `^event-[0-9a-f]{32}$`, correlationID)
+	require.Equal(t, correlationID, workflowID)
+	require.Equal(t, [2]string{correlationID, workflowID}, optimizer.identities["Forecast"])
+	require.NoError(t, provider.ForceFlush(context.Background()))
+	spans := exporter.GetSpans()
+	require.Len(t, spans, 1)
+	derived := false
+	for _, attribute := range spans[0].Attributes {
+		if string(attribute.Key) == "identity_derived" {
+			derived = attribute.Value.AsBool()
+		}
+	}
+	require.True(t, derived)
 }
 
 func TestFreezeInputsActivitySpanUsesDurableCorrelation(t *testing.T) {
