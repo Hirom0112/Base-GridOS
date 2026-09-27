@@ -2,6 +2,7 @@ import { createClient, ConnectError, Code } from "@connectrpc/connect";
 import { createConnectTransport } from "@connectrpc/connect-web";
 import { QueryClient } from "@tanstack/react-query";
 import { z } from "zod";
+import { GeoService } from "./gen/gridos/v1/geo_pb";
 import { MemberService } from "./gen/gridos/v1/member_pb";
 import { stepUpAuthorization } from "./step-up";
 import {
@@ -68,6 +69,7 @@ export function createConsoleClient(
     ],
   });
   return {
+    geo: createClient(GeoService, transport),
     member: createClient(MemberService, transport),
     replay: createClient(ReplayService, transport),
     reports: createClient(ReportService, transport),

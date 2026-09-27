@@ -1,13 +1,29 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useFleet } from "../fleet/fleet";
-import { Evidence, Quantity } from "../api/Provenance";
-import { mapFeatures, type MapFeatures, type MapMeasure } from "./map-data";
+import { useQuery } from "@tanstack/react-query";
+import { useSession } from "../api/auth";
+import { Evidence } from "../api/Provenance";
+import {
+  mapFeatures,
+  mapMeasureSchema,
+  mapMeasureLabels,
+  type MapFeatures,
+  type MapMeasure,
+} from "./map-data";
 import type { mountMap } from "./map-renderer";
-import type { H3SiteAggregate } from "../api/gen/gridos/v1/api_pb";
+import type { GeoCell } from "../api/gen/gridos/v1/geo_pb";
 import "./map.css";
 
 export function FleetMap() {
-  const { sites } = useFleet();
+  const { client, identity } = useSession();
+  const sites = useQuery({
+    queryKey: ["geo-cells", identity.role, 7],
+    queryFn: ({ signal }) =>
+      client.geo.listCells(
+        { resolution: 7, loadZones: ["LZ_AEN"] },
+        { signal },
+      ),
+    refetchInterval: 5000,
+  });
   const [measure, setMeasure] = useState<MapMeasure>("capacity");
   const [selected, setSelected] = useState<string | null>(null);
   const [status, setStatus] = useState("Preparing geographic map…");
@@ -15,10 +31,7 @@ export function FleetMap() {
   const renderer = useRef<ReturnType<typeof mountMap> | null>(null);
   const projection = useMemo(() => {
     try {
-      const cells =
-        sites.data?.sites.flatMap((site) =>
-          site.location.case === "aggregate" ? [site.location.value] : [],
-        ) ?? [];
+      const cells = sites.data?.cells ?? [];
       return { cells, features: mapFeatures(cells), error: null };
     } catch {
       return {
@@ -61,11 +74,14 @@ export function FleetMap() {
           <select
             value={measure}
             onChange={(event) =>
-              setMeasure(event.target.value === "sites" ? "sites" : "capacity")
+              setMeasure(mapMeasureSchema.parse(event.target.value))
             }
           >
-            <option value="capacity">Installed capacity · MW</option>
-            <option value="sites">Site density · count</option>
+            {mapMeasureSchema.options.map((value) => (
+              <option key={value} value={value}>
+                {mapMeasureLabels[value]}
+              </option>
+            ))}
           </select>
         </label>
         <span className="mode-chip">SIMULATED</span>
@@ -90,8 +106,8 @@ export function FleetMap() {
       <div className="map-legend">
         <span className="map-ramp" aria-hidden="true" />
         <span>
-          Lighter = more {measure === "capacity" ? "installed MW" : "sites"}.
-          Not availability.
+          Lighter = higher {mapMeasureLabels[measure].toLowerCase()}. Unknown
+          charge is its own layer.
         </span>
       </div>
       <p role="status" className="map-status">
@@ -111,11 +127,15 @@ export function FleetMap() {
               {cell.siteCount.toLocaleString()} sites · Aggregate location only
             </p>
           </div>
-          <Quantity
-            label="Installed power"
-            unit="MW"
-            aggregate={cell.installedMw}
-          />
+          <div>
+            <strong>{mapMeasureLabels[measure]}</strong>
+            <p className="mono">
+              {projection.features.features
+                .find((feature) => feature.id === selected)
+                ?.properties[measure].toLocaleString()}
+            </p>
+            <Evidence metadata={cell.metadata} />
+          </div>
           <button className="text-button" onClick={() => setSelected(null)}>
             Clear map selection
           </button>
@@ -123,6 +143,7 @@ export function FleetMap() {
       )}
       <MapTable
         cells={projection.cells}
+        features={projection.features}
         measure={measure}
         selected={selected}
         select={setSelected}
@@ -133,11 +154,13 @@ export function FleetMap() {
 
 function MapTable({
   cells,
+  features,
   measure,
   selected,
   select,
 }: {
-  cells: H3SiteAggregate[];
+  cells: GeoCell[];
+  features: MapFeatures;
   measure: MapMeasure;
   selected: string | null;
   select: (id: string) => void;
@@ -151,35 +174,37 @@ function MapTable({
             <tr>
               <th>H3 region</th>
               <th>Sites</th>
-              <th>Installed MW</th>
+              <th>{mapMeasureLabels[measure]}</th>
               <th>Evidence</th>
             </tr>
           </thead>
           <tbody>
-            {[...cells]
-              .sort((a, b) =>
-                measure === "sites"
-                  ? Number(b.siteCount - a.siteCount)
-                  : (b.installedMw?.value ?? 0) - (a.installedMw?.value ?? 0),
-              )
-              .map((item) => (
-                <tr key={item.h3Cell} aria-selected={selected === item.h3Cell}>
-                  <td>
-                    <button
-                      className="text-button mono"
-                      aria-label={`Inspect ${item.h3Cell}`}
-                      onClick={() => select(item.h3Cell)}
-                    >
-                      {item.h3Cell}
-                    </button>
-                  </td>
-                  <td>{item.siteCount.toLocaleString()}</td>
-                  <td>{item.installedMw?.value.toFixed(3)}</td>
-                  <td>
-                    <Evidence metadata={item.installedMw?.metadata} />
-                  </td>
-                </tr>
-              ))}
+            {[...features.features]
+              .sort((a, b) => b.properties[measure] - a.properties[measure])
+              .map((feature) => {
+                const item = cells.find((cell) => cell.h3Cell === feature.id)!;
+                return (
+                  <tr
+                    key={item.h3Cell}
+                    aria-selected={selected === item.h3Cell}
+                  >
+                    <td>
+                      <button
+                        className="text-button mono"
+                        aria-label={`Inspect ${item.h3Cell}`}
+                        onClick={() => select(item.h3Cell)}
+                      >
+                        {item.h3Cell}
+                      </button>
+                    </td>
+                    <td>{item.siteCount.toLocaleString()}</td>
+                    <td>{feature.properties[measure].toLocaleString()}</td>
+                    <td>
+                      <Evidence metadata={item.metadata} />
+                    </td>
+                  </tr>
+                );
+              })}
           </tbody>
         </table>
       </div>
