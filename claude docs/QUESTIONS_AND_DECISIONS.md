@@ -1837,3 +1837,14 @@ error; the original string field stays deprecated and unpopulated because
 buf breaking forbids removing it against main. `go test
 ./services/control/internal/api/events/ -run 'Commands|Lifecycle'` ok
 (0.733s) here. Marked done.
+
+## 2026-09-27 08:40Z — 4E.9 verified
+
+`go test ./services/control/internal/api/report/ ./services/control/internal/api/ -run Reserve -count=1`
+ok for both packages here. RED 6fa78d8 and 1bff6c1 stage tests only; GREEN
+0772ced computes the measured kWh margin against the frozen effective
+reserve inside the event window and reports devices expected and observed,
+minimum margin, floor touches and observation gaps as a MEASURED aggregate;
+with no usable telemetry the report records a data gap instead of a number.
+Marked done. The demo is rebuilt once on this tree so 4E.8 and 4E.9 land
+together; reports published after the rebuild carry reserve compliance.
