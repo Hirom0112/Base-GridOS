@@ -908,3 +908,8 @@ assumptions reported by workers land here too.
   changes, reject a changed idempotent payload, and write one audit row;
   migration 0011 adds the communications reason. Director: override tests
   pass, 0011 re-applies. The automatic caller is new item 4A.10.
+- **4F.3 (lane 4F), verified:** context and geo fixtures recorded from an
+  isolated control on port 48080 with resolution 5, 6, and 7 cell
+  variants and an authorized drill-down; the mock API validator maps
+  named variants. Director: mockapi fixtures test ok; standing demo
+  untouched.
