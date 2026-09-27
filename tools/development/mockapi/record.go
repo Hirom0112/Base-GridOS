@@ -233,6 +233,10 @@ func recordStepUpAssertion(methodName string, body json.RawMessage) (string, err
 	if len(key) < 32 {
 		return "", errors.New("GRIDOS_STEP_UP_KEY must contain at least 32 bytes")
 	}
+	return signStepUp(key, subject, action, input.EventID, version)
+}
+
+func signStepUp(key, subject, action, eventID string, version uint64) (string, error) {
 	var nonce [16]byte
 	if _, err := rand.Read(nonce[:]); err != nil {
 		return "", err
@@ -246,7 +250,7 @@ func recordStepUpAssertion(methodName string, body json.RawMessage) (string, err
 		IssuedAt    time.Time `json:"issued_at"`
 		ExpiresAt   time.Time `json:"expires_at"`
 		Nonce       string    `json:"nonce"`
-	}{subject, action, input.EventID, version, now, now.Add(5 * time.Minute), hex.EncodeToString(nonce[:])})
+	}{subject, action, eventID, version, now, now.Add(5 * time.Minute), hex.EncodeToString(nonce[:])})
 	if err != nil {
 		return "", err
 	}

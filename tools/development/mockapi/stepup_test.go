@@ -67,7 +67,7 @@ func TestLocalStepUpIssuesBoundAssertion(t *testing.T) {
 	if err := json.Unmarshal(payload, &claims); err != nil {
 		t.Fatal(err)
 	}
-	if claims.Subject != "approver" || claims.Action != "APPROVE_EVENT" || claims.EventID != "event-1" || claims.PlanVersion != 3 || claims.Nonce == "" || claims.ExpiresAt.Sub(claims.IssuedAt) != 5*time.Minute {
+	if claims.Subject != "local-approver" || claims.Action != "APPROVE_EVENT" || claims.EventID != "event-1" || claims.PlanVersion != 3 || claims.Nonce == "" || claims.ExpiresAt.Sub(claims.IssuedAt) != 5*time.Minute {
 		t.Fatalf("unbound assertion: %+v", claims)
 	}
 }
@@ -101,5 +101,24 @@ func TestLocalStepUpRejectsUnboundRequests(t *testing.T) {
 		if response.StatusCode != entry.status {
 			t.Errorf("role %q body %s status = %d, want %d", entry.role, entry.body, response.StatusCode, entry.status)
 		}
+	}
+}
+
+func TestLocalStepUpRequiresSigningKey(t *testing.T) {
+	t.Setenv("GRIDOS_STEP_UP_KEY", "")
+	server := httptest.NewServer(server{fixtureRoot: t.TempDir()})
+	defer server.Close()
+	request, err := http.NewRequest(http.MethodPost, server.URL+"/local/step-up", strings.NewReader(`{"action":"EMERGENCY_STOP","event_id":"event-1","plan_version":0}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	request.Header.Set("X-GridOS-Role", "operator")
+	response, err := server.Client().Do(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = response.Body.Close()
+	if response.StatusCode != http.StatusServiceUnavailable {
+		t.Fatalf("missing key status = %d", response.StatusCode)
 	}
 }

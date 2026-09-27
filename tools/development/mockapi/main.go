@@ -15,6 +15,7 @@ import (
 )
 
 const localAuthStatus = "STUBBED"
+const localStepUpStatus = "STUBBED"
 
 var localRoles = []string{"operator", "approver", "analyst", "partner", "service", "member"}
 
@@ -71,6 +72,10 @@ func (s server) ServeHTTP(response http.ResponseWriter, request *http.Request) {
 		s.serveIdentities(response, request)
 		return
 	}
+	if request.URL.Path == "/local/step-up" {
+		s.serveStepUp(response, request)
+		return
+	}
 	s.serveFixture(response, request)
 }
 
@@ -90,6 +95,55 @@ func (s server) serveIdentities(response http.ResponseWriter, request *http.Requ
 		identities = append(identities, identity{Role: role, Permissions: []string{"site_location"}, Status: localAuthStatus})
 	}
 	writeJSON(response, identities)
+}
+
+func (s server) serveStepUp(response http.ResponseWriter, request *http.Request) {
+	response.Header().Set("Cache-Control", "no-store")
+	response.Header().Set("X-GridOS-Auth-Status", localStepUpStatus)
+	if request.Method != http.MethodPost {
+		http.Error(response, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	role := request.Header.Get("X-GridOS-Role")
+	if role != "approver" && role != "operator" {
+		http.Error(response, "approver or operator role required", http.StatusForbidden)
+		return
+	}
+	var input struct {
+		Action      string `json:"action"`
+		EventID     string `json:"event_id"`
+		PlanVersion uint64 `json:"plan_version"`
+	}
+	decoder := json.NewDecoder(http.MaxBytesReader(response, request.Body, 1024))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&input); err != nil || decoder.Decode(&struct{}{}) != io.EOF || input.EventID == "" {
+		http.Error(response, "invalid step-up request", http.StatusBadRequest)
+		return
+	}
+	if input.Action == "APPROVE_EVENT" && role != "approver" {
+		http.Error(response, "approver role required", http.StatusForbidden)
+		return
+	}
+	if input.Action != "APPROVE_EVENT" && input.Action != "EMERGENCY_STOP" || input.Action == "APPROVE_EVENT" && input.PlanVersion == 0 || input.Action == "EMERGENCY_STOP" && input.PlanVersion != 0 {
+		http.Error(response, "invalid step-up action", http.StatusBadRequest)
+		return
+	}
+	key := os.Getenv("GRIDOS_STEP_UP_KEY")
+	if len(key) < 32 {
+		http.Error(response, "step-up signer unavailable", http.StatusServiceUnavailable)
+		return
+	}
+	assertion, err := signStepUp(key, "local-"+role, input.Action, input.EventID, input.PlanVersion)
+	if err != nil {
+		http.Error(response, "step-up signer unavailable", http.StatusInternalServerError)
+		return
+	}
+	response.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(response).Encode(struct {
+		Assertion string `json:"assertion"`
+	}{assertion}); err != nil {
+		return
+	}
 }
 
 func (s server) serveFixture(response http.ResponseWriter, request *http.Request) {
