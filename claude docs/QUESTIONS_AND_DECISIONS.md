@@ -1110,3 +1110,12 @@ assumptions reported by workers land here too.
   eight historical false positives (fixture keys, test ids, a dataset
   digest, the localhost Grafana default). Director: full-history scan
   reports no leaks over 949 commits; a scratch fake key is rejected.
+- **Periodic Travel Flex credits (4A.11):** one hourly singleton activity
+  in the maintenance workflow posts daily and annual credits with the
+  period start computed in the window's timezone, idempotent through the
+  partial unique index, nothing for windows that ended before the period.
+- **Retention correction (5E.3):** ended away periods and Travel Flex
+  windows keep their full rows today; only active use ceases. The
+  retention document states that and names post-end reduction as a
+  data-owner decision and production gate. The director's earlier line
+  claiming reduction to audit was wrong; the document is the truth.
