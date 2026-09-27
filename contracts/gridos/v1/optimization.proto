@@ -152,9 +152,17 @@ message DeviceScheduleInterval {
   double expected_state_of_energy_percent = 5;
 }
 
+enum ReserveSelection {
+  RESERVE_SELECTION_UNSPECIFIED = 0;
+  RESERVE_SELECTION_BASE = 1;
+  RESERVE_SELECTION_TRAVEL_FLEX = 2;
+}
+
 message DeviceSchedule {
   string device_id = 1;
   repeated DeviceScheduleInterval intervals = 2;
+  ReserveSelection reserve_selection = 3;
+  double selected_reserve_kwh = 4;
 }
 
 message ShortfallReport {
