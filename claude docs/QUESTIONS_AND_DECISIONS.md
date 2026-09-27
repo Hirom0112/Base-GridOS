@@ -1523,3 +1523,16 @@ was written against pgx directly. Decision: lane 5D adds `sqlc generate` to
 the `generate` target, regenerates, and commits the generated package by
 exact path; the check is `sqlc diff` printing nothing and `go vet
 ./services/control/...` clean. New plan item 5D.7 records it.
+
+## 2026-09-27 05:30Z — 5D.5/5D.6 director rerun
+
+Cached broad run: `Executed 0 out of 31 tests: 31 tests pass` (all from
+lane 5D's run on the same Bazel server, so not independent). Uncached rerun
+with `--nocache_test_results`: 19 pass, 11 skipped, and the gateway failures
+target failed, first as a compile error while root was editing that package
+and then, run alone, as the expected RED `unsupported injection scope
+"next_command"` from commit 1c64c3a. `bazelisk test //apps/console:vitest`
+printed `Executed 1 out of 1 test: 1 test passes.` and `bazelisk build
+//services/control:image` printed `Build completed successfully`. 5D.6 marked
+done. 5D.5 stays dispatched until one clean uncached broad run after root's
+GREEN for the new scope lands, at the Gate 5 window.

@@ -1648,11 +1648,11 @@ Owns: `infrastructure/aws/`.
   with pinned base images. Verify: `docker build -f services/control/Dockerfile .` succeeds for each service.
 - `[x]` 5D.4 `[P]` `terraform plan` recorded against a mock provider; no
   `apply` in this build. Verify: plan output saved to `claude docs/gate-reports/terraform-plan.md`.
-- `[ ]` 5D.5 `[P]` `MODULE.bazel` with Bzlmod (`rules_go`, `gazelle`,
+- `[~]` 5D.5 `[P]` `MODULE.bazel` with Bzlmod (`rules_go`, `gazelle`,
   `rules_python`, `rules_proto`, `rules_buf`) now that real build targets
   exist (TECHSTACK: "added with the first build target"). Go and Python
   service tests run under Bazel. Verify: `bazelisk test //services/...` passes.
-- `[ ]` 5D.6 `[after 5D.5]` Console wrapped as a Bazel `sh_test` running
+- `[x]` 5D.6 `[after 5D.5]` Console wrapped as a Bazel `sh_test` running
   `pnpm --dir apps/console test`; container images from 5D.3 buildable
   through Bazel targets. Verify: `bazelisk test //apps/console:vitest` and `bazelisk build //services/control:image` succeed.
 
