@@ -13,6 +13,22 @@ through a durable workflow that survives gateway, network, and worker failures)
 and **Most Commercializable** (member resilience plans, Travel Flex, and
 verified settlement reports on top of what Base already operates).
 
+## Demo video
+
+[![Watch the narrated GridOS demo](docs/demo/video-poster.png)](https://github.com/Hirom0112/Base-GridOS/releases/download/demo-video-2026-09-27/GridOS-demo.mp4)
+
+[Watch or download the video](https://github.com/Hirom0112/Base-GridOS/releases/download/demo-video-2026-09-27/GridOS-demo.mp4)
+· [Slides](https://github.com/Hirom0112/Base-GridOS/releases/download/demo-video-2026-09-27/GridOS-slides.pdf)
+· [System diagram](https://github.com/Hirom0112/Base-GridOS/releases/download/demo-video-2026-09-27/GridOS-architecture.svg)
+· [Captions](https://github.com/Hirom0112/Base-GridOS/releases/download/demo-video-2026-09-27/GridOS-demo.srt)
+
+The narrated walkthrough covers the working console, an existing demonstration
+event, system architecture, failure evidence, delivery reporting, and remaining
+integration limits. Device behavior and telemetry are simulated; financial
+outputs are modeled. Narration uses ElevenLabs' Daniel stock voice. The video
+inspects a recorded event rather than launching a new dispatch or establishing
+that the full integrated acceptance gate has passed.
+
 ## Quick start
 
 Install Go 1.26+, `uv`, `pnpm`, Docker Compose, the PostgreSQL client (`psql`),
