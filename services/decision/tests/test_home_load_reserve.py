@@ -42,3 +42,17 @@ def test_meter_net_export_excludes_device_without_site_load_forecast(
         dispatch_pb2.EXCLUSION_REASON_UNAVAILABLE
     ]
     assert response.plan.shortfalls[0].shortfall_kw == 3.0
+
+
+def test_meter_net_export_expected_energy_includes_home_load_drain(
+    serve: Callable[[OptimizationServer], optimization_pb2_grpc.OptimizationServiceStub],
+    optimize_request: optimization_pb2.OptimizeRequest,
+) -> None:
+    _near_reserve(optimize_request.request)
+    device = optimize_request.request.devices[0]
+
+    response = serve(OptimizationServer()).Optimize(optimize_request)
+
+    interval = response.plan.device_schedules[0].intervals[0]
+    drawn_kwh = (interval.setpoint_kw + HOME_LOAD_KW) * INTERVAL_HOURS / device.discharge_efficiency
+    assert abs(interval.expected_energy_kwh - (device.energy_kwh - drawn_kwh)) < 1e-9
