@@ -1501,9 +1501,10 @@ Owns: `services/control/internal/context/`, `services/control/internal/api/conte
   and `MODELED` value kind; the 3F.3 fixture is refreshed from the demo.
   Verify: `go test ./services/control/internal/api/ -run Explanation` passes
   and the recorded fixture carries at least one interval.
-- `[ ]` 4C.7 `[after 4C.5]` `ListCells` accepts `as_of` like `Drilldown`, serving
-  the H3 layer at a historical instant from the retained telemetry so replay
-  scrubbing moves power and geography together. Verify: `go test
+- `[ ]` 4C.7 `[after 4C.5]` `ListCells` and `Drilldown` accept a request `as_of`
+  and serve the H3 layer at that historical instant from the retained
+  telemetry, so replay scrubbing moves power and geography together (today
+  both sample the service clock). Verify: `go test
   ./services/control/internal/api/geo/ -run AsOf` passes.
 - `[x]` 4D.1 `[P]` RED then GREEN: reference loaders for normalized ERCOT
   prices, system load, outage rates, and NWS forecasts and alerts from
