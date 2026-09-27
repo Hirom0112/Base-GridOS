@@ -207,6 +207,11 @@ func TestMemberOfferSelectionUpdatesStatusReserve(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	_, err = pool.Exec(ctx, `INSERT INTO offer_terms(catalog_version,member_plan_id,kind,contract_version,consent_version,consent_text,price_text,fixed_credit_cents)
+		VALUES ('catalog-v1','plan-1','PLAN','contract-v1','consent-v1','Cedar reserve accepted','Cedar price',0)`)
+	if err != nil {
+		t.Fatal(err)
+	}
 	twin := fleet.NewTwin(time.Minute)
 	twin.Accept(fleet.SiteState{SiteID: "site-1", ObservedAt: begin, OperatingState: fleet.OnGrid, Availability: fleet.Online})
 	sites := []*gridosv1.AuthorizedSite{{Site: &gridosv1.Site{SiteId: "site-1"}}}

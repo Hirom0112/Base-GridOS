@@ -209,6 +209,55 @@ message GetMemberStatusResponse {
   google.protobuf.Timestamp observed_at = 11;
 }
 
+message ListMemberOffersRequest {
+  string member_id = 1;
+}
+
+message MemberOfferTerms {
+  MemberOfferKind kind = 1;
+  string market = 2;
+  string catalog_version = 3;
+  string member_plan_id = 4;
+  string display_name = 5;
+  double reserve_floor_percent = 6;
+  string contract_version = 7;
+  string consent_version = 8;
+  string consent_text = 9;
+  string price_text = 10;
+  optional double temporary_reserve_percent = 11;
+  MemberCreditType credit_type = 12;
+  int64 fixed_credit_cents = 13;
+  int64 energy_monthly_charge_cents = 14;
+  int64 battery_monthly_charge_cents = 15;
+  int64 flexibility_reward_cents = 16;
+  google.protobuf.Timestamp effective_at = 17;
+  google.protobuf.Timestamp expires_at = 18;
+}
+
+message ScheduledTravelFlexWindow {
+  string window_id = 1;
+  google.protobuf.Timestamp start_time = 2;
+  google.protobuf.Timestamp end_time = 3;
+  string timezone = 4;
+  double temporary_reserve_percent = 5;
+  MemberCreditType credit_type = 6;
+  int64 fixed_credit_cents = 7;
+  google.protobuf.Timestamp cancelled_at = 8;
+}
+
+message ScheduledAwayWindow {
+  string window_id = 1;
+  google.protobuf.Timestamp start_time = 2;
+  google.protobuf.Timestamp end_time = 3;
+  google.protobuf.Timestamp ended_at = 4;
+}
+
+message ListMemberOffersResponse {
+  repeated MemberOfferTerms offers = 1;
+  repeated ScheduledTravelFlexWindow travel_flex_windows = 2;
+  repeated ScheduledAwayWindow away_windows = 3;
+}
+
 message ListHomeActivityAlertsRequest {
   string member_id = 1;
 }
@@ -218,6 +267,7 @@ message ListHomeActivityAlertsResponse {
 }
 
 service MemberService {
+  rpc ListMemberOffers(ListMemberOffersRequest) returns (ListMemberOffersResponse);
   rpc PresentOffer(PresentOfferRequest) returns (PresentOfferResponse);
   rpc SelectResiliencePlan(SelectResiliencePlanRequest) returns (SelectResiliencePlanResponse);
   rpc ScheduleTravelFlex(ScheduleTravelFlexRequest) returns (ScheduleTravelFlexResponse);

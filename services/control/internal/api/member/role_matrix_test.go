@@ -23,7 +23,8 @@ func TestRoleMatrixMember(t *testing.T) {
 	server := httptest.NewServer(handler)
 	defer server.Close()
 	roles := []string{"operator", "approver", "analyst", "partner", "service", "member", "", "unknown"}
-	methods := []string{"GetMemberStatus", "PresentOffer", "SelectResiliencePlan", "ScheduleTravelFlex", "EndTravelFlexEarly", "SetAnomalyPreference", "ScheduleAway", "EndAway", "ListHomeActivityAlerts"}
+	methods := []string{"GetMemberStatus", "ListMemberOffers", "PresentOffer", "SelectResiliencePlan", "ScheduleTravelFlex", "EndTravelFlexEarly", "SetAnomalyPreference", "ScheduleAway", "EndAway", "ListHomeActivityAlerts"}
+	readMethods := map[string]bool{"GetMemberStatus": true, "ListMemberOffers": true}
 	for _, method := range methods {
 		for _, role := range roles {
 			body := `{"memberId":"member-1"}`
@@ -47,7 +48,7 @@ func TestRoleMatrixMember(t *testing.T) {
 			if err := response.Body.Close(); err != nil {
 				t.Fatal(err)
 			}
-			allowed := role == "member" || role == "operator" && method == "GetMemberStatus"
+			allowed := role == "member" || role == "operator" && readMethods[method]
 			if allowed && response.StatusCode == http.StatusForbidden {
 				t.Errorf("%s %q rejected", method, role)
 			}

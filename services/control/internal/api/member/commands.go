@@ -98,6 +98,9 @@ func (service *Service) PresentOffer(ctx context.Context, request *connect.Reque
 		value := msg.GetTemporaryReservePercent()
 		offer.TemporaryReservePercent = &value
 	}
+	if err := service.validateOfferTerms(ctx, offer); err != nil {
+		return nil, err
+	}
 	stored, err := service.policy.PresentOffer(ctx, offer)
 	if err != nil {
 		return nil, policyError(err)

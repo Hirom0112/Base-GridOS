@@ -213,6 +213,19 @@ type MemberSite struct {
 	Provenance []byte             `json:"provenance"`
 }
 
+type OfferTerm struct {
+	CatalogVersion          string        `json:"catalog_version"`
+	MemberPlanID            string        `json:"member_plan_id"`
+	Kind                    string        `json:"kind"`
+	ContractVersion         string        `json:"contract_version"`
+	ConsentVersion          string        `json:"consent_version"`
+	ConsentText             string        `json:"consent_text"`
+	PriceText               string        `json:"price_text"`
+	TemporaryReservePercent pgtype.Float8 `json:"temporary_reserve_percent"`
+	CreditType              pgtype.Text   `json:"credit_type"`
+	FixedCreditCents        int64         `json:"fixed_credit_cents"`
+}
+
 type OperatorApproval struct {
 	ApprovalID    string             `json:"approval_id"`
 	EventID       string             `json:"event_id"`

@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 	"time"
 
@@ -79,4 +80,16 @@ func TestListMemberOffersUsesStoredTerms(t *testing.T) {
 	if err != nil || accepted.Msg.GetOffer().GetPriceText() != "Stored price" {
 		t.Fatalf("stored terms rejected: %v, %#v", err, accepted)
 	}
+}
+
+func TestOfferTermsMigrationRollsBackAndReapplies(t *testing.T) {
+	pool := memberDatabase(t)
+	rollback, err := os.ReadFile("../../../../../database/rollback/0018_offer_terms.sql")
+	require.NoError(t, err)
+	forward, err := os.ReadFile("../../../../../database/migrations/0018_offer_terms.sql")
+	require.NoError(t, err)
+	_, err = pool.Exec(context.Background(), string(rollback))
+	require.NoError(t, err)
+	_, err = pool.Exec(context.Background(), string(forward))
+	require.NoError(t, err)
 }

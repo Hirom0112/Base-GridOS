@@ -83,4 +83,20 @@ INSERT INTO pricing_catalog_snapshots (
     ('catalog-sim-1', 'maximum', 'ERCOT', 'Maximum', 60, '{"provenance":"SIMULATED","price_text":"SIMULATED","contract_version":"sim-1"}', 0, 0, '{"provenance":"SIMULATED"}', 0, 0, 1200, '2020-01-01T00:00:00Z', '2100-01-01T00:00:00Z', 'seed:SIMULATED:catalog-sim-1', '{"provenance":"SIMULATED"}')
 ON CONFLICT (catalog_version, member_plan_id) DO NOTHING;
 
+INSERT INTO offer_terms (
+    catalog_version, member_plan_id, kind, contract_version, consent_version,
+    consent_text, price_text, temporary_reserve_percent, credit_type, fixed_credit_cents
+)
+SELECT catalog_version, member_plan_id, 'PLAN', 'sim-contract-1', 'sim-consent-1',
+    'SIMULATED: I accept the ' || display_name || ' plan terms',
+    'SIMULATED: ' || display_name || ' plan, $0 monthly energy and battery charges',
+    NULL, NULL, 0
+FROM pricing_catalog_snapshots WHERE catalog_version = 'catalog-sim-1'
+UNION ALL
+SELECT catalog_version, member_plan_id, 'TRAVEL_FLEX', 'sim-contract-1', 'sim-flex-consent-1',
+    'SIMULATED: I accept temporary Travel Flex reserve terms',
+    'SIMULATED: fixed daily Travel Flex credit', 20, 'FIXED_DAILY', 500
+FROM pricing_catalog_snapshots WHERE catalog_version = 'catalog-sim-1'
+ON CONFLICT (catalog_version, member_plan_id, kind) DO NOTHING;
+
 COMMIT;
