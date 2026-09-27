@@ -64,7 +64,7 @@ func persist(ctx context.Context, pool *pgxpool.Pool, stored storedEvent, verifi
 				delivered_kw, tracking_error_kw, confidence, baseline_method, measurement_boundary, correlation_id, measured_delivered_kwh
 			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
 			ON CONFLICT (verification_id) DO UPDATE SET
-				requested_kw = EXCLUDED.requested_kw, commanded_kw = EXCLUDED.commanded_kw, delivered_kw = EXCLUDED.delivered_kw,
+				interval_end_time = EXCLUDED.interval_end_time, requested_kw = EXCLUDED.requested_kw, commanded_kw = EXCLUDED.commanded_kw, delivered_kw = EXCLUDED.delivered_kw,
 				tracking_error_kw = EXCLUDED.tracking_error_kw, confidence = EXCLUDED.confidence,
 				measured_delivered_kwh = EXCLUDED.measured_delivered_kwh`,
 			stored.eventID+":"+interval.Begin.Format(time.RFC3339), stored.eventID, interval.Begin, interval.End, stored.targetKW,
