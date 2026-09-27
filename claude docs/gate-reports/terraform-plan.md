@@ -754,7 +754,7 @@ Terraform will perform the following actions:
 
       + health_check {
           + matcher = "200-399"
-          + path    = "/geo/"
+          + path    = "/geo/style.json"
           + timeout = (known after apply)
         }
     }

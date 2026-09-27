@@ -266,7 +266,7 @@ resource "aws_lb_target_group" "control" {
   target_type = "ip"
   vpc_id      = var.vpc_id
   health_check {
-    path    = "/geo/"
+    path    = "/geo/style.json"
     matcher = "200-399"
   }
 }
