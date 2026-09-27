@@ -38,30 +38,34 @@ close together on one green run of the integrated spec
 
 ## Open, in priority order
 
-1. **Household reserve breach (safety).** Under METER_NET_EXPORT the
-   optimizer ignored home load (`services/decision/gridos/server.py:92`
-   set `home_load_kw=0.0`), so about 150 dispatched devices ended 0.29 kWh
-   below their protected reserve on live events. Fixed in the decision service (d463c21e RED, ba8c08f2 GREEN: frozen home
-   load is budgeted into export dispatch; 19 decision tests pass), but not
-   yet proven live. Follow-up: the Go safety energy balance still treats
-   the setpoint as total discharge with no home-load term, so the
-   independent check cannot catch this class of breach, and
-   expected_energy_kwh is reported as export-only drain to stay
-   consistent with it. Add a home-load term to the Go safety model, then
-   restore the true value. A site without a covering load forecast is now
-   excluded as UNAVAILABLE rather than treated as zero load.
-   Demo-path step 14 stays red until this lands on a rebuilt demo.
-2. **Integrated 17-step run (3F.5, 4F.5, 5F.2).** Steps 01 to 13 pass
-   live; 14 needs item 1; 15 and 16 pass; 17 needed the server-clock audit
-   fix (landed). The standing demo still runs the pre-fix binary
-   because the user was recording the Loom on it. Rebuild on HEAD, wait for telemetry lag under 15 s, run
-   the spec as the first launch.
+1. **Go safety wiring for home load and temperature.** The optimizer now
+   budgets frozen home load (ba8c08f2, 237189b1 indexed lookup, dc407173
+   linear formulation: 5,000 devices with home load solve in 0.66 s). The
+   Go safety validator gained a home-load term (365133d8) and a
+   temperature check (a284700b), but `internal/api/reserve_snapshot.go:57`
+   and `unsafe_alternative.go:68` do not yet fill `HomeLoadKW` or the
+   temperature fields, so the independent check cannot see either.
+   `expected_energy_kwh` is reported as export-only drain until that
+   wiring lands; then restore the true value in `server.py`.
+2. **Integrated 17-step run (3F.5, 4F.5, 5F.2).** Last live run
+   (event efe64450, 15:26Z) passed steps 01 to 11 including every live
+   fault, then step 12 failed because a 3-minute window ended before
+   rebalancing; the spec window is back to 5 minutes (bb2748c7). Earlier
+   runs passed steps 13 and 15 to 16; step 14 needed the home-load fix and
+   17 the server-clock audit fix, both landed. Rerun after the Loom:
+   rebuild on HEAD, wait for telemetry lag under 15 s, then
+   `PLAYWRIGHT_LIST_PRINT_STEPS=1 pnpm --dir apps/console playwright test demo-path.spec.ts --workers 1 --reporter list`
+   (about 7 minutes; it waits out the live event window).
 3. **Audit P0 leftovers.** Typed CommandState to remove five `_ =`
    RecordCommand drops (plan in the decisions log); `requireDemo` in
    `tests/end-to-end/vertical_slice_test.go` should fail when
    GRIDOS_CONTROL_URL is set and unreachable (not committed because the
    hook runs that package against a live stack); the pre-commit hook runs
    `tests/end-to-end` with `-short` against any listening stack.
+   Safety-gate plan checks still compare declared boundary, policy
+   version and generation to themselves (`dispatcher.go:204`); the fix
+   needs a SafetyGate interface change across the dispatch lane. Ramp,
+   meter-export and interconnection limits have no upstream data.
 4. **Audit tiers 1 to 6** (`.local/audit-tiers.md`, local only): safety
    gate checks that compare values to themselves (`dispatcher.go:204`),
    unset maintenance lock, ramp and grid limits, no temperature check,
