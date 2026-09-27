@@ -1,0 +1,14 @@
+{
+  "uid": "gridos-dispatch",
+  "title": "GridOS Dispatch",
+  "schemaVersion": 40,
+  "version": 1,
+  "refresh": "5s",
+  "time": {"from": "now-6h", "to": "now"},
+  "panels": [
+    {"id": 1, "title": "Commands by state", "type": "timeseries", "datasource": {"type": "prometheus", "uid": "gridos-prometheus"}, "targets": [{"expr": "sum by (state) (rate(gridos_commands_total[5m]))", "refId": "A"}], "gridPos": {"h": 9, "w": 12, "x": 0, "y": 0}},
+    {"id": 2, "title": "Acknowledgement latency p95", "type": "timeseries", "datasource": {"type": "prometheus", "uid": "gridos-prometheus"}, "targets": [{"expr": "histogram_quantile(0.95, sum by (le) (rate(gridos_ack_latency_seconds_bucket[5m])))", "refId": "A"}], "gridPos": {"h": 9, "w": 12, "x": 12, "y": 0}},
+    {"id": 3, "title": "Safety rejections", "type": "timeseries", "datasource": {"type": "prometheus", "uid": "gridos-prometheus"}, "targets": [{"expr": "rate(gridos_safety_rejections_total[5m])", "refId": "A"}], "gridPos": {"h": 9, "w": 12, "x": 0, "y": 9}},
+    {"id": 4, "title": "Solver time p95", "type": "timeseries", "datasource": {"type": "prometheus", "uid": "gridos-prometheus"}, "targets": [{"expr": "histogram_quantile(0.95, sum by (le) (rate(gridos_solver_duration_seconds_bucket[5m])))", "refId": "A"}], "gridPos": {"h": 9, "w": 12, "x": 12, "y": 9}}
+  ]
+}

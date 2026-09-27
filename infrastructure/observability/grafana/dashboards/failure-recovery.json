@@ -1,0 +1,12 @@
+{
+  "uid": "gridos-failure-recovery",
+  "title": "GridOS Failure Recovery",
+  "schemaVersion": 40,
+  "version": 1,
+  "refresh": "5s",
+  "time": {"from": "now-6h", "to": "now"},
+  "panels": [
+    {"id": 1, "title": "Fallback rate", "type": "timeseries", "datasource": {"type": "prometheus", "uid": "gridos-prometheus"}, "targets": [{"expr": "rate(gridos_fallback_total[5m])", "refId": "A"}], "gridPos": {"h": 9, "w": 12, "x": 0, "y": 0}},
+    {"id": 2, "title": "Uncertain commands", "type": "timeseries", "datasource": {"type": "prometheus", "uid": "gridos-prometheus"}, "targets": [{"expr": "gridos_uncertain_commands", "refId": "A"}], "gridPos": {"h": 9, "w": 12, "x": 12, "y": 0}}
+  ]
+}
