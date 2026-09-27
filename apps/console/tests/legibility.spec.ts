@@ -16,6 +16,9 @@ for (const width of [390, 1440]) {
       ".quantity-label",
       ".fleet-count summary",
       ".fleet-health h2",
+      ".field-measure",
+      ".field-caption p",
+      ".geography-table summary",
     ]) {
       const sizes = await page
         .locator(selector)

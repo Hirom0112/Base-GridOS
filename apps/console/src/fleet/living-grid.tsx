@@ -286,7 +286,12 @@ function GeographicTable({
           <option value="capacity">Installed power</option>
         </select>
       </label>
-      <div className="table-scroll">
+      <div
+        className="table-scroll"
+        role="region"
+        aria-label="Geographic measurements"
+        tabIndex={0}
+      >
         <table>
           <thead>
             <tr>

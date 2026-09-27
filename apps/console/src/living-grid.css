@@ -52,7 +52,7 @@
 }
 .field-caption p {
   color: var(--paper-2);
-  font-size: 11px;
+  font-size: 14px;
   margin-top: 5px;
 }
 .north-marker {
@@ -77,7 +77,7 @@
   display: flex;
   justify-content: space-between;
   gap: 12px;
-  font-size: 9px;
+  font-size: 12px;
   color: var(--paper-2);
 }
 .geography-table {
@@ -88,7 +88,7 @@
   padding: 16px 22px;
   display: flex;
   justify-content: space-between;
-  font-size: 11px;
+  font-size: 14px;
   color: var(--paper-1);
   gap: 12px;
 }
@@ -112,7 +112,7 @@
 }
 .geography-table th {
   color: var(--paper-2);
-  font-size: 9px;
+  font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   font-weight: 400;
@@ -123,7 +123,7 @@
   border-top: 1px solid var(--ink-3);
 }
 .geography-table td {
-  font-size: 11px;
+  font-size: 14px;
   white-space: nowrap;
 }
 .geography-table tr[aria-selected="true"] {

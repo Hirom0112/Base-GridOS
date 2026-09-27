@@ -158,7 +158,7 @@ export function EventView({
           <span className="eyebrow">Physical response</span>
           <p>
             {event.state >= DispatchEventState.SENT
-              ? "Awaiting measured delivery evidence"
+              ? "Command state alone does not establish measured delivery"
               : "Commands have not been reported sent"}
           </p>
           <small>Acknowledgement proves receipt, not delivered energy.</small>
