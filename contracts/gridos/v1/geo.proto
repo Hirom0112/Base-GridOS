@@ -3,6 +3,7 @@ syntax = "proto3";
 package gridos.v1;
 
 import "google/protobuf/duration.proto";
+import "google/protobuf/timestamp.proto";
 import "gridos/v1/api.proto";
 import "gridos/v1/device.proto";
 
@@ -30,10 +31,15 @@ message GeoCell {
   DataProvenance provenance = 14;
   repeated OperatingStateDeviceCount operating_state_counts = 15;
   repeated AvailabilityStateDeviceCount availability_state_counts = 16;
+  google.protobuf.Timestamp as_of = 17;
+  AggregateMetadata metadata = 18;
 }
 
 message ListCellsResponse {
   repeated GeoCell cells = 1;
+  google.protobuf.Timestamp as_of = 2;
+  google.protobuf.Duration freshness = 3;
+  AggregateMetadata metadata = 4;
 }
 
 enum GeoLevel {
@@ -52,6 +58,9 @@ message GeoNode {
   string label = 4;
   uint64 site_count = 5;
   DataProvenance provenance = 6;
+  google.protobuf.Timestamp as_of = 7;
+  google.protobuf.Duration freshness = 8;
+  AggregateMetadata metadata = 9;
 }
 
 message DrilldownRequest {
@@ -61,6 +70,9 @@ message DrilldownRequest {
 message DrilldownResponse {
   repeated GeoNode nodes = 1;
   repeated AuthorizedSite sites = 2;
+  google.protobuf.Timestamp as_of = 3;
+  google.protobuf.Duration freshness = 4;
+  AggregateMetadata metadata = 5;
 }
 
 service GeoService {
