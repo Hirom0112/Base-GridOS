@@ -2,6 +2,7 @@ package policy
 
 import (
 	"context"
+	"encoding/json"
 	"os"
 	"testing"
 	"time"
@@ -106,6 +107,22 @@ func TestRiskBridgeWeatherMatchesOnlyMappedFleetAndZone(t *testing.T) {
 	evidence, decisions = riskForSite(now, policy, riskSource{}, site, "testdata/fleets/austin-5000.jsonl")
 	require.Empty(t, decisions)
 	require.Contains(t, evidence.Missing, "weather_no_active_alert")
+}
+
+func TestRiskBridgeWeatherEvidenceCarriesAlertProvenance(t *testing.T) {
+	now := time.Now().UTC().Truncate(time.Second)
+	policy := RiskPolicy{WeatherFloor: 60, WeatherZoneUGC: map[string]map[string]WeatherAreaCodes{
+		"austin-5000.jsonl": {"SCENT": {UGC: []string{"TXZ192"}}},
+	}}
+	site := &gridosv1.AuthorizedSite{Site: &gridosv1.Site{SiteId: "austin-site", WeatherZone: "SCENT"}}
+	alert := publiccontext.Alert{ID: "synthetic-travis", UGC: []string{"TXZ192"},
+		Effective: now.Add(-time.Minute), Expires: now.Add(time.Hour),
+		Source: publiccontext.Source{Provenance: "SIMULATED", AsOf: now.Add(-time.Minute)}}
+	evidence, decisions := riskForSite(now, policy, riskSource{public: publiccontext.Snapshot{Alerts: []publiccontext.Alert{alert}}}, site, "austin-5000.jsonl")
+	require.Len(t, decisions, 1)
+	encoded, err := json.Marshal(evidence)
+	require.NoError(t, err)
+	require.Contains(t, string(encoded), `"Provenance":"SIMULATED"`)
 }
 
 func TestRiskBridgeAwayAnomalyUsesLatestMeasuredHomeLoad(t *testing.T) {
