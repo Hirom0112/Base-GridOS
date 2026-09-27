@@ -38,19 +38,8 @@ close together on one green run of the integrated spec
 
 ## Open, in priority order
 
-0. **Red on main: replacement path lacks home load.** Since ba8c08f2 and
-   12e3b8c1, `TestReplacementUsesRealDecisionServer` in
-   `services/control/internal/dispatch` fails, and 7de44ce2 adds a second
-   RED proving that replacement must carry frozen site IDs and site load
-   forecasts into the optimize request and into replacement safety
-   (`dispatch/replacement.go:53`). Until fixed, live replacements under
-   METER_NET_EXPORT come back empty or are rejected, so rebalancing
-   (demo-path step 12) breaks on HEAD. An unverified GREEN attempt sits
-   uncommitted in `api/home_load.go`, `dispatch/replacement.go` and
-   `dispatch/replacement_server_test.go`; verify with
-   `cd services/control && go test ./internal/dispatch/ ./internal/api/ -count=1`
-   before committing. The standing demo was built on bb2748c7, before
-   this regression, and is what the Loom was recorded on.
+0. Replacement planning now carries frozen site loads (b7514216); the
+   dispatch, api and safety packages are green.
 1. **Go safety wiring for home load and temperature.** The optimizer now
    budgets frozen home load (ba8c08f2, 237189b1 indexed lookup, dc407173
    linear formulation: 5,000 devices with home load solve in 0.66 s). The
