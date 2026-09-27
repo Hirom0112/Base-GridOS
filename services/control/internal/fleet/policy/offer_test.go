@@ -34,3 +34,28 @@ func TestOfferPersistsExactPresentedPlanTermsOnce(t *testing.T) {
 	require.Equal(t, "I accept Cedar terms", consent)
 	require.Equal(t, "consent-v1", version)
 }
+
+func TestOfferSelectionRequiresExactPresentedTerms(t *testing.T) {
+	pool := policyDatabase(t)
+	ctx := context.Background()
+	begin := time.Date(2026, 9, 26, 12, 0, 0, 0, time.UTC)
+	seedPolicyCatalog(t, pool, begin)
+	store := New(pool)
+	offer := Offer{ID: "offer-selection", MemberID: "member-selection", Kind: PlanOffer, Market: "TX", CatalogVersion: "catalog-v1", MemberPlanID: "plan-cedar", ContractVersion: "contract-v1", PriceText: "Energy $19.99 and battery $15.00 monthly; reward $5.00", ConsentText: "I accept Cedar terms", ConsentVersion: "consent-v1", EffectiveAt: begin, ExpiresAt: begin.Add(time.Hour), CorrelationID: "offer-selection"}
+	_, err := store.PresentOffer(ctx, offer)
+	require.NoError(t, err)
+	selection := Selection{ID: "selection-offer", MemberID: offer.MemberID, Market: offer.Market, CatalogVersion: offer.CatalogVersion, MemberPlanID: offer.MemberPlanID, PolicyVersion: "policy-v1", ConsentText: offer.ConsentText, ConsentVersion: offer.ConsentVersion, ExplanationShown: "Backup reserve", EffectiveAt: begin, CorrelationID: "selection-offer"}
+	_, err = store.Select(ctx, selection)
+	require.Error(t, err)
+	selection.OfferID = offer.ID
+	selection.ConsentText = "Changed consent"
+	_, err = store.Select(ctx, selection)
+	require.Error(t, err)
+	selection.ConsentText = offer.ConsentText
+	selected, err := store.Select(ctx, selection)
+	require.NoError(t, err)
+	require.Equal(t, offer.ID, selected.OfferID)
+	var storedOffer string
+	require.NoError(t, pool.QueryRow(ctx, `SELECT offer_id FROM resilience_plans WHERE resilience_plan_id = $1`, selection.ID).Scan(&storedOffer))
+	require.Equal(t, offer.ID, storedOffer)
+}
