@@ -21,7 +21,7 @@ function fixture() {
           effectiveAt: at,
           expiresAt: timestampFromDate(new Date("2026-09-27T12:05:00Z")),
         },
-        state: "ACKNOWLEDGED",
+        lifecycleState: 3,
         stateRecordedAt: at,
         receipt: {
           commandId: "command-1",
