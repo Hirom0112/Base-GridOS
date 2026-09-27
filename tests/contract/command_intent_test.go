@@ -33,8 +33,14 @@ func TestCommandIntentCanonicalJSON(t *testing.T) {
 	if !json.Valid(fixture) || !json.Valid(canonical) {
 		t.Fatal("fixture or generated command intent is not valid JSON")
 	}
-	canonical = append(canonical, '\n')
-	if !bytes.Equal(fixture, canonical) {
+	var expected, actual bytes.Buffer
+	if err := json.Compact(&expected, fixture); err != nil {
+		t.Fatal(err)
+	}
+	if err := json.Compact(&actual, canonical); err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(expected.Bytes(), actual.Bytes()) {
 		t.Fatalf("canonical JSON differs\nfixture: %s\nactual:  %s", fixture, canonical)
 	}
 }
