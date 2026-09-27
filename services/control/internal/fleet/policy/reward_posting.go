@@ -78,7 +78,7 @@ func (store *Store) PostLateEventRewards(ctx context.Context, at time.Time) (int
 			JOIN command_acknowledgements acknowledgement ON acknowledgement.command_id = command.command_id
 			WHERE command.event_id = event.event_id AND command.setpoint_kw <> 0
 			AND acknowledgement.receipt_status = 'ACCEPTED'
-			AND acknowledgement.received_at > event.updated_at AND acknowledgement.received_at <= $1)
+			AND acknowledgement.received_at <= $1)
 		ORDER BY event.updated_at,event.event_id`, at)
 	if err != nil {
 		return 0, err
