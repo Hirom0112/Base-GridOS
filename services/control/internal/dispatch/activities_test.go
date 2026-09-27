@@ -227,6 +227,36 @@ func TestEmergencyStopIssuesPerDeviceZeroSetpoints(t *testing.T) {
 	require.Zero(t, setpoint)
 }
 
+func TestEmergencyStopDrainsAllZeroCommands(t *testing.T) {
+	harness := newActivityHarness(t)
+	harness.plan(t)
+	harness.activities.Now = time.Now
+	harness.activities.Dispatcher.Commands = controlapi.NewCommandPipeline(harness.pool, &activityPublisher{pool: harness.pool, now: time.Now})
+	ctx := context.Background()
+	now := harness.activities.Now()
+	for index := range 166 {
+		id := fmt.Sprintf("prestop-%03d", index)
+		require.NoError(t, storage.InsertCommand(ctx, harness.pool, storage.CommandIntent{
+			CommandID: id, IdempotencyKey: id, DeviceID: fmt.Sprintf("stop-device-%03d", index), EventID: harness.input.EventID,
+			PlanVersion: 1, SetpointKW: 1, IssuedAt: now, EffectiveAt: now.Add(time.Minute), ExpiresAt: now.Add(time.Hour),
+			PolicyVersion: "policy-1", CorrelationID: "correlation-1",
+		}))
+	}
+	for range 2 {
+		require.NoError(t, harness.activities.Dispatcher.Publish(ctx, nil))
+	}
+	var accepted int
+	require.NoError(t, harness.pool.QueryRow(ctx, `SELECT count(*) FROM command_intents intent
+		JOIN command_acknowledgements ack USING (command_id)
+		WHERE intent.event_id = $1 AND intent.setpoint_kw <> 0 AND ack.receipt_status = 'ACCEPTED'`, harness.input.EventID).Scan(&accepted))
+	require.Equal(t, 166, accepted)
+	require.NoError(t, harness.activities.IssueEmergencyStop(ctx, EmergencyCommand{EventID: harness.input.EventID, Generation: 2}))
+	require.NoError(t, harness.pool.QueryRow(ctx, `SELECT count(*) FROM command_intents intent
+		JOIN command_acknowledgements ack USING (command_id)
+		WHERE intent.event_id = $1 AND intent.setpoint_kw = 0 AND ack.receipt_status = 'ACCEPTED'`, harness.input.EventID).Scan(&accepted))
+	require.Equal(t, 166, accepted)
+}
+
 func TestProduceReportActivity(t *testing.T) {
 	harness := newActivityHarness(t)
 	harness.track(t)
