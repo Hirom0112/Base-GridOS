@@ -10,17 +10,19 @@ type Runtime struct {
 	engine      *Engine
 	active      map[Kind]map[string]struct{}
 	pending     map[Kind]bool
-	expires     time.Time
+	expires     map[Kind]time.Time
+	liveEnd     time.Time
 	awaitLaunch bool
 }
 
 func NewRuntime(engine *Engine) *Runtime {
-	return &Runtime{engine: engine, active: make(map[Kind]map[string]struct{}), pending: make(map[Kind]bool)}
+	return &Runtime{engine: engine, active: make(map[Kind]map[string]struct{}), pending: make(map[Kind]bool), expires: make(map[Kind]time.Time)}
 }
 
 func NewLiveRuntime(engine *Engine) *Runtime {
 	runtime := NewRuntime(engine)
 	runtime.awaitLaunch = true
+	runtime.liveEnd = engine.scenario.EventEnd
 	return runtime
 }
 
@@ -46,6 +48,9 @@ func (runtime *Runtime) RecordCommand(now time.Time, eventID, deviceID string, s
 		for index := range runtime.engine.scenario.Injections {
 			runtime.engine.scenario.Injections[index].At = runtime.engine.scenario.Injections[index].At.Add(shift)
 		}
+		runtime.engine.scenario.EventStart = runtime.engine.scenario.EventStart.Add(shift)
+		runtime.engine.scenario.EventEnd = runtime.engine.scenario.EventEnd.Add(shift)
+		runtime.liveEnd = runtime.liveEnd.Add(shift)
 		runtime.awaitLaunch = false
 	}
 	runtime.engine.recordCommand(eventID, deviceID, setpointKW)
@@ -72,16 +77,25 @@ func (runtime *Runtime) advance(now time.Time, eventID string) {
 	if runtime.awaitLaunch {
 		return
 	}
-	if !runtime.expires.IsZero() && !now.Before(runtime.expires) {
-		clear(runtime.active)
-		runtime.expires = time.Time{}
+	for kind, expires := range runtime.expires {
+		if !now.Before(expires) {
+			delete(runtime.active, kind)
+			delete(runtime.expires, kind)
+		}
 	}
 	for _, effect := range runtime.engine.advance(now, eventID) {
 		if effect.Scope == NextCommand {
 			runtime.pending[effect.Kind] = true
 			continue
 		}
-		if !now.Before(effect.At.Add(runtime.engine.scenario.Tick)) {
+		expires := effect.At.Add(runtime.engine.scenario.Tick)
+		if !runtime.liveEnd.IsZero() {
+			switch effect.Kind {
+			case OfflineDevices, DelayedGateway, DroppedMessages:
+				expires = runtime.liveEnd
+			}
+		}
+		if !now.Before(expires) {
 			continue
 		}
 		selected := make(map[string]struct{}, len(effect.DeviceIDs))
@@ -89,7 +103,7 @@ func (runtime *Runtime) advance(now time.Time, eventID string) {
 			selected[deviceID] = struct{}{}
 		}
 		runtime.active[effect.Kind] = selected
-		runtime.expires = effect.At.Add(runtime.engine.scenario.Tick)
+		runtime.expires[effect.Kind] = expires
 	}
 }
 
