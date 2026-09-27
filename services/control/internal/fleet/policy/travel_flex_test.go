@@ -152,3 +152,20 @@ func TestTravelFlexSimulatedMemberSiteBindingIsIdempotent(t *testing.T) {
 	require.Equal(t, "SIMULATED", source)
 	require.Equal(t, "SIMULATED", provenance)
 }
+
+func TestTravelFlexMemberSiteMigrationUpgradesExistingDatabase(t *testing.T) {
+	pool := policyDatabase(t)
+	rollback, err := os.ReadFile("../../../../../database/rollback/0010_member_sites.sql")
+	require.NoError(t, err)
+	forward, err := os.ReadFile("../../../../../database/migrations/0010_member_sites.sql")
+	require.NoError(t, err)
+	_, err = pool.Exec(context.Background(), string(rollback))
+	require.NoError(t, err)
+	_, err = pool.Exec(context.Background(), string(forward))
+	require.NoError(t, err)
+	_, err = pool.Exec(context.Background(), string(forward))
+	require.NoError(t, err)
+	var exists bool
+	require.NoError(t, pool.QueryRow(context.Background(), `SELECT to_regclass('member_sites') IS NOT NULL`).Scan(&exists))
+	require.True(t, exists)
+}
