@@ -32,6 +32,22 @@ func TestWindowReportWaitsForEndAndLateMessages(t *testing.T) {
 	environment.AssertNumberOfCalls(t, ReconcileLateMessagesActivity, 1)
 }
 
+func TestShortWindowVerifiesDuringFaults(t *testing.T) {
+	var suite testsuite.WorkflowTestSuite
+	environment := suite.NewTestWorkflowEnvironment()
+	begin := environment.Now().Add(time.Minute)
+	end := begin.Add(time.Minute)
+	input := Input{EventID: "short-window", Request: &gridosv1.EventRequest{BeginTime: timestamppb.New(begin), EndTime: timestamppb.New(end)}}
+	mockWorkflowActivities(environment, input)
+	environment.RegisterDelayedCallback(func() {
+		environment.SignalWorkflow(ApproveEventSignal, Approval{ApprovedBy: "approver"})
+		environment.SignalWorkflow(LaunchEventSignal, persistArgument(input).Launch)
+	}, time.Millisecond)
+	environment.ExecuteWorkflow(Workflow, input)
+	require.NoError(t, environment.GetWorkflowError())
+	environment.AssertNumberOfCalls(t, VerifyDeliveryActivity, 13)
+}
+
 func TestWindowProcessesSignalsDuringMeasurement(t *testing.T) {
 	var suite testsuite.WorkflowTestSuite
 	environment := suite.NewTestWorkflowEnvironment()
