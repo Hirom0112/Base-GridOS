@@ -2294,7 +2294,7 @@ recorded browser gates run in a window with no binding regeneration.
 Open on the console track: the integrated 17-step demo path against the
 rebuilt demo (3F.5, 4F.5, 5F.2).
 
-## 2026-09-27 10:14Z — 2B.11 verified
+## 2026-09-27 10:13Z — 2B.11 verified
 
 RED 1f0026a (test only, `unavailable: unavailable`) then GREEN 94fa18d:
 a per-device Unavailable records that command's attempt with bounded
@@ -2305,7 +2305,7 @@ root posted three consecutive isolated canonical passes (119.7 s, 120.1 s,
 119.4 s). Marked done. The demo is rebuilt on this tree with 4E.10 and the
 steps 11/12 proof is rerun.
 
-## 2026-09-27 10:16Z — Demo rebuilt on 60290a6; integrated proof plan
+## 2026-09-27 10:14Z — Demo rebuilt on 60290a6; integrated proof plan
 
 The demo runs on 60290a6 with 2B.11 and 4E.10: telemetry lag 8 s, no
 publish failures, signer up, two active WEATHER overrides, worker log
