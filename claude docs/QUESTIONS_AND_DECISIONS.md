@@ -1248,3 +1248,8 @@ assumptions reported by workers land here too.
   the scrubbed sink moved into the analytics package so safety and the
   publisher no longer reach analytics transitively. Director: analytics
   and isolation tests pass, no key material in the configuration.
+- **5D.4 (lane 5D), verified:** a mock-provider Terraform test plans the
+  staging configuration (54 resources to add, none to change or destroy)
+  with no apply and no cloud credentials, and the recorded plan lives in
+  `claude docs/gate-reports/terraform-plan.md` with no key material.
+  Director: the test passes with the same binary.

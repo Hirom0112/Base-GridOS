@@ -1621,7 +1621,7 @@ Owns: `infrastructure/aws/`.
   long-lived key (TECHSTACK "Warehouse identity"). Verify: `grep -rn "private_key" infrastructure/aws` prints nothing.
 - `[ ]` 5D.3 `[P]` Container images for each service built by Bazel or Docker
   with pinned base images. Verify: `docker build -f services/control/Dockerfile .` succeeds for each service.
-- `[ ]` 5D.4 `[P]` `terraform plan` recorded against a mock provider; no
+- `[x]` 5D.4 `[P]` `terraform plan` recorded against a mock provider; no
   `apply` in this build. Verify: plan output saved to `claude docs/gate-reports/terraform-plan.md`.
 - `[ ]` 5D.5 `[P]` `MODULE.bazel` with Bzlmod (`rules_go`, `gazelle`,
   `rules_python`, `rules_proto`, `rules_buf`) now that real build targets
