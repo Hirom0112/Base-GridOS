@@ -100,9 +100,9 @@ func TestLiveScenarioUsesWallClockAndLiveCadence(t *testing.T) {
 	runtime.RecordCommand(launch, "event-live", "device-live", 1)
 	seen := map[string]bool{}
 	for tick := time.Duration(0); tick <= 2*time.Minute; tick += configuration.telemetryCadence {
-		runtime.TargetCommand(launch.Add(tick), "event-live", "device-live", 1)
+		targeted := runtime.TargetCommand(launch.Add(tick), "event-live", "device-live", 1)
 		for _, kind := range []string{"OFFLINE_DEVICES", "DELAYED_GATEWAY"} {
-			seen[kind] = seen[kind] || runtime.Affects(kind, "device-live")
+			seen[kind] = seen[kind] || targeted[failures.Kind(kind)] || runtime.Affects(kind, "device-live")
 		}
 	}
 	if !seen["OFFLINE_DEVICES"] || !seen["DELAYED_GATEWAY"] {

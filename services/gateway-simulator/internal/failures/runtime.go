@@ -30,14 +30,14 @@ func (runtime *Runtime) Advance(now time.Time) {
 	runtime.advance(now, "")
 }
 
-func (runtime *Runtime) TargetCommand(now time.Time, eventID, deviceID string, setpointKW float64) {
+func (runtime *Runtime) TargetCommand(now time.Time, eventID, deviceID string, setpointKW float64) map[Kind]bool {
 	runtime.mutex.Lock()
 	defer runtime.mutex.Unlock()
 	runtime.advance(now, "")
-	runtime.targetCommand(eventID, deviceID, setpointKW)
+	return runtime.targetCommand(eventID, deviceID, setpointKW)
 }
 
-func (runtime *Runtime) RecordCommand(now time.Time, eventID, deviceID string, setpointKW float64) {
+func (runtime *Runtime) RecordCommand(now time.Time, eventID, deviceID string, setpointKW float64) map[Kind]bool {
 	runtime.mutex.Lock()
 	defer runtime.mutex.Unlock()
 	if runtime.awaitLaunch && eventID != "" && setpointKW != 0 {
@@ -50,17 +50,22 @@ func (runtime *Runtime) RecordCommand(now time.Time, eventID, deviceID string, s
 	}
 	runtime.engine.recordCommand(eventID, deviceID, setpointKW)
 	runtime.advance(now, eventID)
-	runtime.targetCommand(eventID, deviceID, setpointKW)
+	return runtime.targetCommand(eventID, deviceID, setpointKW)
 }
 
-func (runtime *Runtime) targetCommand(eventID, deviceID string, setpointKW float64) {
+func (runtime *Runtime) targetCommand(eventID, deviceID string, setpointKW float64) map[Kind]bool {
 	if eventID == "" || deviceID == "" || setpointKW == 0 {
-		return
+		return nil
 	}
+	var targeted map[Kind]bool
 	for kind := range runtime.pending {
-		runtime.active[kind] = map[string]struct{}{deviceID: {}}
+		if targeted == nil {
+			targeted = make(map[Kind]bool, len(runtime.pending))
+		}
+		targeted[kind] = true
 		delete(runtime.pending, kind)
 	}
+	return targeted
 }
 
 func (runtime *Runtime) advance(now time.Time, eventID string) {
@@ -69,16 +74,14 @@ func (runtime *Runtime) advance(now time.Time, eventID string) {
 	}
 	if !runtime.expires.IsZero() && !now.Before(runtime.expires) {
 		clear(runtime.active)
-		clear(runtime.pending)
 		runtime.expires = time.Time{}
 	}
 	for _, effect := range runtime.engine.advance(now, eventID) {
-		if !now.Before(effect.At.Add(runtime.engine.scenario.Tick)) {
-			continue
-		}
 		if effect.Scope == NextCommand {
 			runtime.pending[effect.Kind] = true
-			runtime.expires = effect.At.Add(runtime.engine.scenario.Tick)
+			continue
+		}
+		if !now.Before(effect.At.Add(runtime.engine.scenario.Tick)) {
 			continue
 		}
 		selected := make(map[string]struct{}, len(effect.DeviceIDs))

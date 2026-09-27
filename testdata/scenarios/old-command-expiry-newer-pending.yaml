@@ -19,7 +19,7 @@ injections:
     scope: scheduled
   - at: 2026-08-12T19:50:00-05:00
     kind: DROPPED_MESSAGES
-    scope: scheduled
+    scope: next_command
 expected:
   final_event_state: REPORTED
   reserve_violations: 0
