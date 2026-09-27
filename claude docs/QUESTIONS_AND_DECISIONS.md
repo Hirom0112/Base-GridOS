@@ -2190,3 +2190,15 @@ next_command at the anchor did not target any command at demo timing
 slot). The isolated scenario passes because its timing differs. Root
 traces it with a runtime RED that reproduces the demo timing; 2A.13 stays
 dispatched until RETRY shows on the demo.
+
+## 2026-09-27 09:47Z — 4E.10 shortfall semantics for demo step 16
+
+FULL_SPEC step 16 shows delivery shortfall, but the report carries only
+the measured tracking error (delivered minus commanded), and the console
+rightly refuses to relabel it. Decision: two named quantities in
+GetEventReport. Planned shortfall comes from the approved plan's
+ShortfallReport (requested versus feasible, with reasons). Delivery
+shortfall is requested energy minus measured delivered energy per
+interval, in kWh, with that interval's measurement coverage, and is
+unknown wherever coverage is absent. Root, queued after the retry fix and
+4C.10.

@@ -1635,6 +1635,14 @@ Owns: `tests/integration/`, `testdata/scenarios/`, `tests/end-to-end/`,
   the window: devices observed, minimum margin above the effective reserve,
   devices that touched the floor, and observation gaps, each MEASURED with
   provenance. Verify: `go test ./services/control/internal/api/report/ -run Reserve` passes.
+- `[ ]` 4E.10 `[after 4E.2]` Shortfall in the report. `GetEventReport` carries two
+  distinct shortfalls: `planned_shortfall` per interval from the approved
+  plan's ShortfallReport (requested, feasible, shortfall kW, reasons) and
+  `delivery_shortfall` per interval as requested energy minus MEASURED
+  delivered energy with the measurement coverage of that interval, in kWh,
+  reported as unknown where coverage is absent (never zero). Tracking error
+  stays what it is. Verify: `go test ./services/control/internal/api/report/ -run Shortfall`
+  passes and the recorded report fixture carries both.
 - `[x]` 4F.1 `[after 4A.7, 4B.6]` Scenario files and `tests/integration`
   cases for TECHSTACK e2e scenarios 12 to 17: `travel-flex-lifecycle`
   (activation, automatic expiry, early-return cancellation),
