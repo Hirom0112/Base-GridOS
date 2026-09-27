@@ -42,9 +42,12 @@ func Create(directory string, input Input) (result Manifest, createErr error) {
 	if err != nil {
 		return Manifest{}, fmt.Errorf("hash fleet: %w", err)
 	}
-	scenarioHash, err := fileHash(input.ScenarioFile)
-	if err != nil {
-		return Manifest{}, fmt.Errorf("hash scenario: %w", err)
+	scenarioHash := ""
+	if input.ScenarioFile != "" {
+		scenarioHash, err = fileHash(input.ScenarioFile)
+		if err != nil {
+			return Manifest{}, fmt.Errorf("hash scenario: %w", err)
+		}
 	}
 	manifest := Manifest{Input: input, FleetSHA256: fleetHash, ScenarioSHA256: scenarioHash}
 	if err := os.MkdirAll(directory, 0o700); err != nil {
@@ -104,17 +107,19 @@ func Load(directory, eventID string) (Manifest, error) {
 	if err := manifest.validate(); err != nil {
 		return Manifest{}, err
 	}
-	if manifest.EventID != eventID || !validHash(manifest.FleetSHA256) || !validHash(manifest.ScenarioSHA256) {
+	if manifest.EventID != eventID || !validHash(manifest.FleetSHA256) ||
+		(manifest.ScenarioFile == "" && manifest.ScenarioSHA256 != "") ||
+		(manifest.ScenarioFile != "" && !validHash(manifest.ScenarioSHA256)) {
 		return Manifest{}, errors.New("manifest identity or hashes are invalid")
 	}
 	return manifest, nil
 }
 
 func (input Input) validate() error {
-	if !eventIDPattern.MatchString(input.EventID) || input.FleetFile == "" || input.ScenarioFile == "" ||
+	if !eventIDPattern.MatchString(input.EventID) || input.Seed == 0 || input.FleetFile == "" ||
 		input.InputSnapshotID == "" || input.EligibilitySnapshotID == "" || input.PolicyVersion == "" ||
 		input.SolverVersion == "" || input.FallbackVersion == "" || input.CodeVersion == "" {
-		return errors.New("replay manifest input is incomplete or unsafe")
+		return errors.New("replay manifest seed or input is incomplete or unsafe")
 	}
 	return nil
 }
