@@ -1321,7 +1321,7 @@ Owns: `services/control/internal/fleet/policy/`,
   risk, stale telemetry, device alarms, or loss of communications raise the
   effective reserve immediately and are recorded as `ReserveOverride` rows
   (FULL_SPEC §4 invariant 11). Verify: `-run Override` passes.
-- `[ ]` 4A.5 `[P]` RED then GREEN: versioned offers and the reward ledger. A
+- `[x]` 4A.5 `[P]` RED then GREEN: versioned offers and the reward ledger. A
   `FlexibilityOffer` row is written whenever a plan or Travel Flex option is
   shown, holding the catalog version, price, and consent text presented, and
   is immutable; the reward ledger is append-only; every decision stores the

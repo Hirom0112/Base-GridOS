@@ -927,3 +927,10 @@ assumptions reported by workers land here too.
   5B (load tests) own `internal/connectors/`, `tests/contract/`,
   `docs/data/`, and `tests/load/`, which nothing open touches, so they
   start now. Gate 5 still requires Gate 4 first.
+- **4A.5 (lane 4A), verified:** presented plan and Travel Flex offers are
+  immutable rows (trigger-enforced append-only) holding catalog-derived
+  charges, exact price and consent text and version, contract version,
+  credit type, and temporary reserve; new selections and windows must
+  reference their offer and legacy null-offer windows cannot unlock flex;
+  the reward ledger is append-only with the offer on every entry.
+  Director: policy and api selectors pass, migration 0012 re-applies.
