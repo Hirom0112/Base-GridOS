@@ -1357,6 +1357,12 @@ Owns: `services/control/internal/fleet/policy/`,
   Thresholds and the raised floor per reason live in a versioned
   `risk_policy` row (migration with rollback), never constants; evidence is
   the source record id and as-of. Verify: `go test ./services/control/internal/fleet/policy/ -run RiskBridge` passes and on the demo a forced stale device shows a STALE_TELEMETRY override row within five minutes.
+- `[ ]` 4A.11 `[after 4A.7]` Reward posting. Nothing posts to the
+  append-only reward ledger. At REPORTED, post one fixed event credit per
+  participating member with an active offer, idempotent on (event_id,
+  member_id, offer_id), in the same transaction as the stored report; daily
+  and annual credits post from the maintenance workflow on their schedule.
+  Verify: `go test ./services/control/internal/fleet/policy/ -run RewardPosting` passes and a demo event's report shows the posted credit instead of the reward_unposted gap.
 
 ### Lane 4B — incremental margin evaluator
 
