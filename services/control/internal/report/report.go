@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"math"
+	"slices"
 	"time"
 )
 
@@ -43,9 +44,12 @@ type ModeledEconomics struct {
 }
 
 type ModeledMargin struct {
-	ValueUSD  float64
-	HurdleUSD float64
-	ValueKind string
+	ValueUSD         float64
+	HurdleUSD        float64
+	ValueKind        string
+	Bound            string   `json:"margin_bound,omitempty"`
+	PriceProvenance  string   `json:"price_provenance,omitempty"`
+	UnavailableCosts []string `json:"unavailable_cost_terms,omitempty"`
 }
 
 type DataGap struct {
@@ -189,6 +193,7 @@ func Build(ctx context.Context, source Source, eventID string) (EventReport, err
 	}
 	if stored.Margin != nil {
 		margin := *stored.Margin
+		margin.UnavailableCosts = slices.Clone(margin.UnavailableCosts)
 		margin.ValueKind = "modeled_estimate"
 		report.Margin = &margin
 	}
@@ -269,6 +274,7 @@ func cloneReport(report EventReport) EventReport {
 	}
 	if report.Margin != nil {
 		margin := *report.Margin
+		margin.UnavailableCosts = slices.Clone(margin.UnavailableCosts)
 		clone.Margin = &margin
 	}
 	return clone

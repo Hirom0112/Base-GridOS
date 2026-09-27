@@ -183,8 +183,15 @@ func TestSourcedMarginShowsNegativeUpperBoundWithUnknownCosts(t *testing.T) {
 	margin, valid := sourcedMargin(explanation)
 	require.True(t, valid)
 	require.Equal(t, -3.25, margin.ValueUSD)
+	require.Equal(t, "UPPER", margin.Bound)
+	require.Equal(t, "SIMULATED", margin.PriceProvenance)
+	require.ElementsMatch(t, []string{"CHARGING_ENERGY", "INCREMENTAL_DEGRADATION", "PENALTY_EXPOSURE", "MEMBER_REWARD", "SUPPORT_AND_RISK_COST"}, margin.UnavailableCosts)
 
 	explanation.Terms[1].Unavailable = true
+	_, valid = sourcedMargin(explanation)
+	require.False(t, valid)
+	explanation.Terms[1].Unavailable = false
+	explanation.Terms[0].High = 1
 	_, valid = sourcedMargin(explanation)
 	require.False(t, valid)
 }

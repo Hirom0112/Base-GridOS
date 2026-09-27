@@ -46,3 +46,12 @@ func TestCompareReportsTracksNumericAndVersionChanges(t *testing.T) {
 		t.Fatalf("missing differences: %+v", want)
 	}
 }
+
+func TestCompareReportsTracksMarginBoundProvenance(t *testing.T) {
+	before := EventReport{Margin: &ModeledMargin{ValueUSD: -1, Bound: "UPPER", PriceProvenance: "SIMULATED", UnavailableCosts: []string{"MEMBER_REWARD"}}}
+	after := EventReport{Margin: &ModeledMargin{ValueUSD: -1, Bound: "UPPER", PriceProvenance: "CONFIRMED_PUBLIC", UnavailableCosts: []string{"CHARGING_ENERGY"}}}
+	differences := Compare(before, after)
+	if len(differences) != 2 || differences[0].Field != "margin.price_provenance" || differences[1].Field != "margin.unavailable_cost_terms.0" {
+		t.Fatalf("margin bound differences=%+v", differences)
+	}
+}

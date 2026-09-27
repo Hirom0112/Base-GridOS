@@ -89,6 +89,12 @@ func comparisonValues(report EventReport) map[string]string {
 	if report.Margin != nil {
 		float("margin.value_usd", report.Margin.ValueUSD)
 		float("margin.hurdle_usd", report.Margin.HurdleUSD)
+		values["margin.bound"] = report.Margin.Bound
+		values["margin.price_provenance"] = report.Margin.PriceProvenance
+		values["margin.unavailable_cost_terms"] = strconv.Itoa(len(report.Margin.UnavailableCosts))
+		for index, term := range report.Margin.UnavailableCosts {
+			values["margin.unavailable_cost_terms."+strconv.Itoa(index)] = term
+		}
 	}
 	values["versions.policy"] = report.Versions.Policy
 	values["versions.solver"] = report.Versions.Solver

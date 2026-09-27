@@ -139,21 +139,74 @@ func sourcedMargin(explanation *gridosv1.MarginExplanation) (*reporting.ModeledM
 	if explanation == nil || !finiteLiveReport(explanation.GetConservativeMargin()) || !finiteLiveReport(explanation.GetMarginHurdle()) || explanation.GetMarginHurdle() < 0 {
 		return nil, false
 	}
-	expected := map[string]bool{
-		"DISPATCH_VALUE": true, "AVOIDED_PEAK_COST": true, "COMMITMENT_RELIABILITY_VALUE": true,
-		"CHARGING_ENERGY": true, "INCREMENTAL_DEGRADATION": true, "PENALTY_EXPOSURE": true,
-		"MEMBER_REWARD": true, "SUPPORT_AND_RISK_COST": true,
-	}
+	values := map[string]bool{"DISPATCH_VALUE": true, "AVOIDED_PEAK_COST": true, "COMMITMENT_RELIABILITY_VALUE": true}
+	costs := map[string]bool{"CHARGING_ENERGY": true, "INCREMENTAL_DEGRADATION": true, "PENALTY_EXPOSURE": true,
+		"MEMBER_REWARD": true, "SUPPORT_AND_RISK_COST": true}
+	margin := &reporting.ModeledMargin{ValueUSD: explanation.GetConservativeMargin(), HurdleUSD: explanation.GetMarginHurdle()}
+	var upper float64
+	var missingCosts []string
 	for _, term := range explanation.GetTerms() {
-		if !expected[term.GetName()] || term.GetUnavailable() || term.GetSource() == "" || term.GetSource() == "UNAVAILABLE" || !finiteLiveReport(term.GetLow()) || !finiteLiveReport(term.GetHigh()) || term.GetLow() > term.GetHigh() {
+		name := term.GetName()
+		if !validMarginBounds(term) {
 			return nil, false
 		}
-		delete(expected, term.GetName())
+		if values[name] {
+			if !sourcedMarginTerm(term) {
+				return nil, false
+			}
+			upper += term.GetHigh()
+			if name == "DISPATCH_VALUE" {
+				margin.PriceProvenance = marginPriceProvenance(term.GetSource())
+			}
+			delete(values, name)
+			continue
+		}
+		if !costs[name] {
+			return nil, false
+		}
+		if term.GetUnavailable() {
+			missingCosts = append(missingCosts, name)
+		} else if !sourcedMarginTerm(term) {
+			return nil, false
+		}
+		delete(costs, name)
 	}
-	if len(expected) != 0 {
+	if len(values) != 0 || len(costs) != 0 {
 		return nil, false
 	}
-	return &reporting.ModeledMargin{ValueUSD: explanation.GetConservativeMargin(), HurdleUSD: explanation.GetMarginHurdle()}, true
+	if len(missingCosts) == 0 {
+		return margin, true
+	}
+	if !validUpperMargin(upper, margin.PriceProvenance, missingCosts) {
+		return nil, false
+	}
+	margin.ValueUSD = upper
+	margin.Bound = "UPPER"
+	margin.UnavailableCosts = missingCosts
+	return margin, true
+}
+
+func validUpperMargin(upper float64, provenance string, missingCosts []string) bool {
+	return len(missingCosts) == 5 && upper <= 0 && provenance != ""
+}
+
+func validMarginBounds(term *gridosv1.MarginTerm) bool {
+	return finiteLiveReport(term.GetLow()) && finiteLiveReport(term.GetHigh()) && term.GetLow() <= term.GetHigh()
+}
+
+func sourcedMarginTerm(term *gridosv1.MarginTerm) bool {
+	return !term.GetUnavailable() && term.GetSource() != "" && term.GetSource() != "UNAVAILABLE"
+}
+
+func marginPriceProvenance(source string) string {
+	switch source {
+	case "FROZEN_SIMULATED_PRICE":
+		return "SIMULATED"
+	case "FROZEN_PUBLIC_PRICE":
+		return "CONFIRMED_PUBLIC"
+	default:
+		return ""
+	}
 }
 
 func addLiveReportGap(report *reporting.StoredEvent, begin, end time.Time, reason string) {
