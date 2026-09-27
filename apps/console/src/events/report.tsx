@@ -114,7 +114,6 @@ function DetailedReport({ report }: { report: z.infer<typeof reportSchema> }) {
           ["Approved power", report.ApprovedMW, "MW"],
           ["Commanded power", report.CommandedMW, "MW"],
           ["Acknowledged power", report.AcknowledgedMW, "MW"],
-          ["Delivered power", report.Delivered?.DeliveredMW, "MW"],
           [
             "Requested energy",
             gaps.has("requested_energy_unavailable")
@@ -144,28 +143,6 @@ function DetailedReport({ report }: { report: z.infer<typeof reportSchema> }) {
             "MWh",
           ],
           [
-            "Delivered energy",
-            gaps.has("delivered_energy_unavailable")
-              ? null
-              : report.Delivered?.DeliveredMWh,
-            "MWh",
-          ],
-          [
-            "Measurement completeness",
-            report.Delivered == null
-              ? null
-              : report.Delivered.Completeness * 100,
-            "%",
-          ],
-          ["Tracking error", report.Delivered?.TrackingErrorMW, "MW"],
-          [
-            "Response latency",
-            report.Delivered == null
-              ? null
-              : report.Delivered.ResponseLatency / 1e9,
-            "s",
-          ],
-          [
             "Reserve violations prevented",
             gaps.has("reserve_violations_prevented_unavailable")
               ? null
@@ -181,10 +158,50 @@ function DetailedReport({ report }: { report: z.infer<typeof reportSchema> }) {
           ],
         ]}
       />
+      <DeliveryMeasurements report={report} />
       <ReserveEvidence evidence={report.ReserveCompliance} />
       <ReportEconomics report={report} />
       <ReportLineage report={report} />
     </>
+  );
+}
+
+function DeliveryMeasurements({
+  report,
+}: {
+  report: z.infer<typeof reportSchema>;
+}) {
+  const delivered =
+    report.Delivered && report.Delivered.Completeness > 0
+      ? report.Delivered
+      : null;
+  const energyUnavailable = report.DataGaps?.some(
+    (gap) => gap.Reason === "delivered_energy_unavailable",
+  );
+  return (
+    <ReportValues
+      entries={[
+        ["Delivered power", delivered?.DeliveredMW, "MW"],
+        [
+          "Delivered energy",
+          energyUnavailable ? null : delivered?.DeliveredMWh,
+          "MWh",
+        ],
+        [
+          "Measurement completeness",
+          report.Delivered == null ? null : report.Delivered.Completeness * 100,
+          "%",
+        ],
+        ["Tracking error", delivered?.TrackingErrorMW, "MW"],
+        [
+          "Response latency",
+          report.Delivered == null
+            ? null
+            : report.Delivered.ResponseLatency / 1e9,
+          "s",
+        ],
+      ]}
+    />
   );
 }
 
