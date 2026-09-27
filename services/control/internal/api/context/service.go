@@ -3,6 +3,7 @@ package context
 import (
 	"context"
 	"errors"
+	"net/http"
 	"time"
 
 	"connectrpc.com/connect"
@@ -35,6 +36,9 @@ func (service *Service) snapshot() (publiccontext.Snapshot, error) {
 }
 
 func (service *Service) GetMarketContext(_ context.Context, request *connect.Request[gridosv1.GetMarketContextRequest]) (*connect.Response[gridosv1.GetMarketContextResponse], error) {
+	if err := authorize(request.Header()); err != nil {
+		return nil, err
+	}
 	if request.Msg.GetSettlementPoint() == "" || request.Msg.GetWeatherZone() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("settlement point and weather zone are required"))
 	}
@@ -65,6 +69,9 @@ func (service *Service) GetMarketContext(_ context.Context, request *connect.Req
 }
 
 func (service *Service) GetWeatherContext(_ context.Context, request *connect.Request[gridosv1.GetWeatherContextRequest]) (*connect.Response[gridosv1.GetWeatherContextResponse], error) {
+	if err := authorize(request.Header()); err != nil {
+		return nil, err
+	}
 	if request.Msg.GetCity() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("city is required"))
 	}
@@ -96,6 +103,9 @@ func (service *Service) GetWeatherContext(_ context.Context, request *connect.Re
 }
 
 func (service *Service) GetOutageRisk(_ context.Context, request *connect.Request[gridosv1.GetOutageRiskRequest]) (*connect.Response[gridosv1.GetOutageRiskResponse], error) {
+	if err := authorize(request.Header()); err != nil {
+		return nil, err
+	}
 	if request.Msg.GetCounty() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("county is required"))
 	}
@@ -116,6 +126,9 @@ func (service *Service) GetOutageRisk(_ context.Context, request *connect.Reques
 }
 
 func (service *Service) ListDispatchWindows(_ context.Context, request *connect.Request[gridosv1.ListDispatchWindowsRequest]) (*connect.Response[gridosv1.ListDispatchWindowsResponse], error) {
+	if err := authorize(request.Header()); err != nil {
+		return nil, err
+	}
 	if len(request.Msg.GetCandidates()) > 1000 {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("too many dispatch candidates"))
 	}
@@ -142,4 +155,17 @@ func (service *Service) ListDispatchWindows(_ context.Context, request *connect.
 		})
 	}
 	return connect.NewResponse(response), nil
+}
+
+func authorize(header http.Header) error {
+	role := header.Get("X-GridOS-Role")
+	if role == "" {
+		return connect.NewError(connect.CodeUnauthenticated, errors.New("role required"))
+	}
+	for _, allowed := range []string{"operator", "approver", "analyst", "partner", "service"} {
+		if role == allowed {
+			return nil
+		}
+	}
+	return connect.NewError(connect.CodePermissionDenied, errors.New("role is not authorized"))
 }
