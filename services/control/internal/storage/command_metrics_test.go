@@ -161,3 +161,40 @@ func TestUncertainCommandTransitionCountsOnce(t *testing.T) {
 		t.Fatalf("resolved uncertain count = %v, want %v", got, before+1)
 	}
 }
+
+func TestUncertainCommandCountReadsLatestState(t *testing.T) {
+	ctx := context.Background()
+	pool := testDatabase(t)
+	insertPlan(t, pool, "event-metric-latest")
+	command := testCommand("metric-latest", "event-metric-latest")
+	if err := InsertCommand(ctx, pool, command); err != nil {
+		t.Fatal(err)
+	}
+	_, err := TransitionCommand(ctx, pool, CommandTransition{
+		CommandID: command.CommandID, ExpectedState: "PERSISTED", NextState: "SENT",
+		OccurredAt: time.Now().UTC(), CorrelationID: command.CorrelationID,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	now := time.Now().UTC()
+	changed, err := MarkAcknowledgementUncertain(ctx, pool, now, now.Add(time.Second), testFeasiblePowerInterval(command, now))
+	if err != nil || !changed {
+		t.Fatalf("mark uncertain: changed=%t err=%v", changed, err)
+	}
+	count, err := UncertainCommandCount(ctx, pool)
+	if err != nil || count != 1 {
+		t.Fatalf("latest uncertain count = %d, err=%v", count, err)
+	}
+	if err := RecordAcknowledgement(ctx, pool, Acknowledgement{
+		AcknowledgementID: "ack-latest", CommandID: command.CommandID,
+		IdempotencyKey: "ack-latest-key", ReceiptStatus: "ACCEPTED", ReceivedAt: now.Add(time.Second),
+		GatewayID: "gateway-metric", CorrelationID: command.CorrelationID,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	count, err = UncertainCommandCount(ctx, pool)
+	if err != nil || count != 0 {
+		t.Fatalf("resolved uncertain count = %d, err=%v", count, err)
+	}
+}

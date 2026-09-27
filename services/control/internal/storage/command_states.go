@@ -59,3 +59,13 @@ func TransitionCommand(ctx context.Context, pool *pgxpool.Pool, transition Comma
 	_ = observability.ProcessMetrics.RecordCommand(transition.NextState)
 	return true, nil
 }
+
+func UncertainCommandCount(ctx context.Context, pool *pgxpool.Pool) (int, error) {
+	var count int
+	err := pool.QueryRow(ctx, `SELECT count(*) FROM (
+		SELECT DISTINCT ON (command_id) state
+		FROM command_states
+		ORDER BY command_id, recorded_at DESC
+	) AS latest WHERE state = 'UNCERTAIN'`).Scan(&count)
+	return count, err
+}
