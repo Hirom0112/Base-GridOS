@@ -22,8 +22,9 @@ type recordingIndex struct {
 }
 
 type recordingRequest struct {
-	Role string          `json:"role"`
-	Body json.RawMessage `json:"body"`
+	Role     string          `json:"role"`
+	MemberID string          `json:"memberId"`
+	Body     json.RawMessage `json:"body"`
 }
 
 type recordedFixture struct {
@@ -140,6 +141,17 @@ func callMethod(baseURL, fixtureRoot, methodName string, indexedRequest recordin
 	}
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("X-GridOS-Role", indexedRequest.Role)
+	if indexedRequest.Role == "member" {
+		var body struct {
+			MemberID string `json:"memberId"`
+		}
+		if err := json.Unmarshal(indexedRequest.Body, &body); err != nil || indexedRequest.MemberID == "" || indexedRequest.MemberID != body.MemberID {
+			return recordedFixture{}, fmt.Errorf("%s requires a matching member identity", methodName)
+		}
+		request.Header.Set("X-GridOS-Member-ID", indexedRequest.MemberID)
+	} else if indexedRequest.MemberID != "" {
+		return recordedFixture{}, fmt.Errorf("%s has member identity without member role", methodName)
+	}
 	response, err := client.Do(request)
 	if err != nil {
 		return recordedFixture{}, err
