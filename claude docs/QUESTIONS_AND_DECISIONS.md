@@ -1753,3 +1753,14 @@ sweep by exact PID list or by port, never by a substring that the demo's
 launcher also carries. The make demo target kills every PID in
 `.local/demo/pids`, so the mock signer is restarted after each rebuild and
 its PID appended.
+
+## 2026-09-27 07:50Z — 4D.8 verified
+
+`GOFLAGS=-p=1 go test ./services/control/internal/context/ ./services/control/internal/api/context/ -run Region -count=1`
+printed `ok` for both packages; RED 1c0daf9 stages tests only, GREEN a8bf6b8
+re-cuts the ERCOT price samples from the research cache (168 LZ_AEN
+day-ahead and 1,344 real-time rows added, HB and LZ_HOUSTON rows kept,
+provenance note updated). The standing demo serves `GetMarketContext` for
+settlement point LZ_AEN and weather zone SOUTH_C with CONFIRMED_PUBLIC
+provenance and labelled geography without a restart, since the samples
+are read per request. Marked done.

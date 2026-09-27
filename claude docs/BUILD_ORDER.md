@@ -1526,7 +1526,7 @@ Owns: `services/control/internal/context/`, `services/control/internal/api/conte
 
 Owns: `services/control/internal/report/`.
 
-- `[ ]` 4D.8 `[after 4D.1]` Region-correct context. For an event in load
+- `[x]` 4D.8 `[after 4D.1]` Region-correct context. For an event in load
   zone LZ_AEN the market context serves the LZ_AEN settlement point and the
   load context serves SOUTH_C, both labelled with the settlement point or
   zone and the source dates; the ERCOT price sample under
