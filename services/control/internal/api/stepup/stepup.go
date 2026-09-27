@@ -114,6 +114,10 @@ func (verifier *Verifier) accept(ctx context.Context, assertion Assertion, canon
 		return err
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
+	var correlationID string
+	if err = tx.QueryRow(ctx, `SELECT correlation_id FROM dispatch_events WHERE event_id = $1`, assertion.EventID).Scan(&correlationID); err != nil {
+		return err
+	}
 	result, err := tx.Exec(ctx, `INSERT INTO step_up_assertions(nonce,subject,action,event_id,plan_version,issued_at,expires_at,accepted_at)
 		VALUES ($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT (nonce) DO NOTHING`, assertion.Nonce,
 		assertion.Subject, assertion.Action, assertion.EventID, assertion.PlanVersion, assertion.IssuedAt, assertion.ExpiresAt, now)
@@ -124,7 +128,7 @@ func (verifier *Verifier) accept(ctx context.Context, assertion Assertion, canon
 		return errors.New("step-up assertion was already used")
 	}
 	if err = storage.AppendAudit(ctx, tx, storage.AuditRecord{OccurredAt: now, ActorID: assertion.Subject,
-		Action: "STEP_UP_ACCEPTED", ResourceID: assertion.EventID, NewValues: canonical, CorrelationID: assertion.EventID}); err != nil {
+		Action: "STEP_UP_ACCEPTED", ResourceID: assertion.EventID, NewValues: canonical, CorrelationID: correlationID}); err != nil {
 		return err
 	}
 	return tx.Commit(ctx)
