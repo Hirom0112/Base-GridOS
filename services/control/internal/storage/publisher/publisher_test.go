@@ -170,6 +170,9 @@ func TestPublisherMarksDeadlineUncertain(t *testing.T) {
 	}
 	assertPublisherState(t, pool, command.CommandID, "UNCERTAIN", "PUBLISHING")
 	assertPublisherState(t, pool, following.CommandID, "PERSISTED", "PENDING")
+	if err := publisher.PublishBatch(context.Background()); err != nil {
+		t.Fatal(err)
+	}
 	assertPublisherState(t, pool, following.CommandID, "ACKNOWLEDGED", "PUBLISHED")
 }
 
