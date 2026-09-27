@@ -14,6 +14,7 @@ import (
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/safety"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/storage"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"go.opentelemetry.io/otel"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -27,6 +28,8 @@ func NewConnectOptimizer(client gridosv1connect.OptimizationServiceClient) *Conn
 }
 
 func (optimizer *ConnectOptimizer) Optimize(ctx context.Context, request *gridosv1.OptimizationRequest) (*gridosv1.DispatchPlan, error) {
+	ctx, span := otel.Tracer("gridos.control").Start(ctx, "decision.Optimize")
+	defer span.End()
 	outgoing := connect.NewRequest(&gridosv1.OptimizeRequest{Request: request})
 	correlationID, workflowID := observability.TraceIDs(ctx)
 	outgoing.Header().Set("X-Correlation-Id", correlationID)
@@ -39,6 +42,8 @@ func (optimizer *ConnectOptimizer) Optimize(ctx context.Context, request *gridos
 }
 
 func (optimizer *ConnectOptimizer) Forecast(ctx context.Context, request *gridosv1.ForecastRequest) (*gridosv1.ForecastResponse, error) {
+	ctx, span := otel.Tracer("gridos.control").Start(ctx, "decision.Forecast")
+	defer span.End()
 	outgoing := connect.NewRequest(request)
 	correlationID, workflowID := observability.TraceIDs(ctx)
 	outgoing.Header().Set("X-Correlation-Id", correlationID)
@@ -51,6 +56,8 @@ func (optimizer *ConnectOptimizer) Forecast(ctx context.Context, request *gridos
 }
 
 func (optimizer *ConnectOptimizer) Replace(ctx context.Context, request *gridosv1.ReplaceRequest) (*gridosv1.ReplaceResponse, error) {
+	ctx, span := otel.Tracer("gridos.control").Start(ctx, "decision.Replace")
+	defer span.End()
 	outgoing := connect.NewRequest(request)
 	correlationID, workflowID := observability.TraceIDs(ctx)
 	outgoing.Header().Set("X-Correlation-Id", correlationID)
