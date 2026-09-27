@@ -98,6 +98,14 @@ func TestLiveReportOmitsNegativeAccountingEnergy(t *testing.T) {
 	pool := apiTestDatabase(t)
 	seedAPIEvent(t, pool)
 	ctx := context.Background()
+	_, err := pool.Exec(ctx, `INSERT INTO command_intents
+		(command_id, idempotency_key, device_id, event_id, plan_version, generation, setpoint_kw, issued_at, effective_at, expires_at, policy_version, correlation_id)
+		SELECT 'command-report-uncertain', 'key-report-uncertain', 'device-1', 'event-restart', 3, 1, 10,
+		begin_time, begin_time, end_time, 'policy-1', 'restart' FROM dispatch_requests WHERE request_id = 'request-restart';
+		INSERT INTO command_states (command_id, state, recorded_at, correlation_id)
+		VALUES ('command-report-uncertain', 'SENT', now(), 'restart'),
+		('command-report-uncertain', 'UNCERTAIN', now() + interval '1 second', 'restart')`)
+	require.NoError(t, err)
 	source := NewPostgresReportSource(pool)
 	for index, deliveredMWh := range []float64{0.001, -0.001} {
 		values, err := json.Marshal(report.Delivered{DeliveredMWh: deliveredMWh, DeliveredMW: deliveredMWh})
