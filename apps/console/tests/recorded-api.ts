@@ -24,7 +24,10 @@ export async function recordedApi(page: Page) {
       "utf8",
     ).catch((error: unknown) => {
       if (
-        path === "EventsService/GetEventTimeline" &&
+        [
+          "EventsService/GetEventTimeline",
+          "EventsService/ListEventCommands",
+        ].includes(path) &&
         error instanceof Error &&
         "code" in error &&
         error.code === "ENOENT"
@@ -38,7 +41,7 @@ export async function recordedApi(page: Page) {
         contentType: "application/json",
         body: JSON.stringify({
           code: "unimplemented",
-          message: "Audit recording not available",
+          message: "Recording not available for this evidence",
         }),
       });
       return;
