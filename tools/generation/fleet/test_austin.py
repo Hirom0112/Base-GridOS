@@ -73,3 +73,7 @@ def test_austin_fleet_has_regional_labels_without_addresses() -> None:
         assert device["weather_zone"] == "SCENT"
         assert device["load_zone"] == "LZ_AEN"
         assert not ADDRESS_FIELDS.intersection(device)
+
+
+def test_austin_fleet_names_its_simulated_hardware_floor() -> None:
+    assert {device.get("hardware_floor_percent") for device in records()} == {10}
