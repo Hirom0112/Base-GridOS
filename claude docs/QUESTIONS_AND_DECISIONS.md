@@ -921,3 +921,9 @@ assumptions reported by workers land here too.
   serves the workflow gate and the alternative validator. Director:
   contracts clean, safety, api, dispatch selectors and 16 decision flex
   and margin tests pass.
+- **Early start of Wave 5 lanes A and B (2026-09-27):** lanes 4B, 4C, and
+  4F's fixture half are complete and their agents idle while 4A.5 to 4A.7
+  land. 5A (connector interfaces, contract tests, integration notes) and
+  5B (load tests) own `internal/connectors/`, `tests/contract/`,
+  `docs/data/`, and `tests/load/`, which nothing open touches, so they
+  start now. Gate 5 still requires Gate 4 first.
