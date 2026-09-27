@@ -43,8 +43,8 @@ func main() {
 	otel.SetTracerProvider(tracer)
 	defer func() { _ = tracer.Shutdown(context.Background()) }()
 	observability.ProcessMetrics = observability.NewEventMetrics()
-	if metricsAddress := os.Getenv("GRIDOS_WORKER_METRICS_ADDRESS"); metricsAddress != "" {
-		if err := observability.ServeMetrics(ctx, metricsAddress, observability.ProcessMetrics.Handler()); err != nil {
+	if port := os.Getenv("GRIDOS_WORKER_METRICS_PORT"); port != "" {
+		if err := observability.ServeMetrics(ctx, ":"+port, observability.ProcessMetrics.Handler()); err != nil {
 			log.Fatal(err)
 		}
 	}
@@ -99,7 +99,7 @@ func main() {
 	dispatchWorker.RegisterWorkflow(dispatch.TelemetryMaintenance)
 	dispatchWorker.RegisterWorkflow(dispatch.RiskOverrides)
 	dispatchWorker.RegisterActivity(activities)
-	dispatchWorker.RegisterActivity(&dispatch.TelemetryMaintenanceActivities{Store: storage.NewTelemetryStore(pool), Now: time.Now})
+	dispatchWorker.RegisterActivity(&dispatch.TelemetryMaintenanceActivities{Store: storage.NewTelemetryStore(pool), Rewards: policy.New(pool), Now: time.Now})
 	dispatchWorker.RegisterActivity(&dispatch.RiskOverrideActivities{Bridge: policy.NewRiskBridge(pool, sites, environment("GRIDOS_PUBLIC_CONTEXT_DIR", "testdata/fixtures/public"), fleetPath)})
 	dispatchWorker.RegisterActivity(&reconciliation.Activities{Pool: pool, Events: storage.NewPostgresEventStore(pool), Now: time.Now, MaxGap: 30 * time.Second})
 	startCtx, cancel := context.WithTimeout(ctx, 10*time.Second)

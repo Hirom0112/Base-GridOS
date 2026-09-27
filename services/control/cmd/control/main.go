@@ -142,7 +142,7 @@ func startObservability(ctx context.Context, pool *pgxpool.Pool, twin *fleet.Twi
 	}
 	tracer := observability.NewTracerProvider(exporter)
 	otel.SetTracerProvider(tracer)
-	if address := os.Getenv("GRIDOS_CONTROL_METRICS_ADDRESS"); address != "" {
+	if port := os.Getenv("GRIDOS_CONTROL_METRICS_PORT"); port != "" {
 		snapshotter := controlapi.NewDurableFleetSnapshotter(pool, twin, telemetryTwin, sites, time.Now)
 		var scrapeMu sync.Mutex
 		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -163,7 +163,7 @@ func startObservability(ctx context.Context, pool *pgxpool.Pool, twin *fleet.Twi
 			_ = observability.ProcessMetrics.SetTelemetryFreshness(freshness)
 			observability.ProcessMetrics.Handler().ServeHTTP(w, r)
 		})
-		if err := observability.ServeMetrics(ctx, address, handler); err != nil {
+		if err := observability.ServeMetrics(ctx, ":"+port, handler); err != nil {
 			_ = tracer.Shutdown(ctx)
 			return nil, err
 		}

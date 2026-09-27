@@ -101,12 +101,12 @@ func run() error {
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
-	if address := os.Getenv("GRIDOS_GATEWAY_METRICS_ADDRESS"); address != "" {
-		listener, err := net.Listen("tcp", address)
+	if port := os.Getenv("GRIDOS_GATEWAY_METRICS_PORT"); port != "" {
+		listener, err := net.Listen("tcp", ":"+port)
 		if err != nil {
 			return err
 		}
-		metrics := &http.Server{Addr: address, Handler: http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		metrics := &http.Server{Handler: http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			w.Header().Set("Content-Type", "text/plain; version=0.0.4")
 			_, _ = io.WriteString(w, "# TYPE gridos_gateway_up gauge\ngridos_gateway_up 1\n")
 		}), ReadHeaderTimeout: 5 * time.Second}
