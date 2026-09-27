@@ -58,6 +58,7 @@ func CanonicalFromFrozen(request *gridosv1.OptimizationRequest) safety.Canonical
 		PolicyVersion: request.GetReservePolicy().GetPolicyVersion(), ExpectedGeneration: int64(request.GetPlanVersion()),
 		Devices: make(map[string]safety.DeviceState, len(request.GetDevices())),
 	}
+	homeLoads := frozenHomeLoadsKW(request)
 	for _, device := range request.GetDevices() {
 		energy := device.GetEnergyKwh()
 		observedAt := device.GetTelemetryObservedAt().AsTime()
@@ -68,7 +69,7 @@ func CanonicalFromFrozen(request *gridosv1.OptimizationRequest) safety.Canonical
 		canonical.Devices[device.GetDeviceId()] = safety.DeviceState{
 			EnergyKWh: &energy, UsableCapacityKWh: device.GetUsableEnergyKwh(), HardwareReserveKWh: device.GetHardwareFloorKwh(), PlanReserveKWh: baseReserve, TravelFlexReserveKWh: device.TravelFlexReserveKwh,
 			MaxChargeKW: device.GetMaxChargeKw(), MaxDischargeKW: device.GetMaxDischargeKw(), ChargeEfficiency: device.GetChargeEfficiency(), DischargeEfficiency: device.GetDischargeEfficiency(),
-			Available: device.GetAvailabilityProbability() == 1, TelemetryAt: &observedAt, FreshnessLimit: 30 * time.Second, MeterExportLimitKW: device.GetMaxDischargeKw(), InterconnectionLimitKW: device.GetMaxDischargeKw(),
+			Available: device.GetAvailabilityProbability() == 1, TelemetryAt: &observedAt, FreshnessLimit: 30 * time.Second, MeterExportLimitKW: device.GetMaxDischargeKw(), InterconnectionLimitKW: device.GetMaxDischargeKw(), HomeLoadKW: homeLoads[device.GetSiteId()],
 		}
 	}
 	return canonical
