@@ -1512,3 +1512,14 @@ DELAYED_GATEWAY and keeps `scheduled` for OFFLINE_DEVICES. Determinism holds
 because the tick and the command order are recorded. Focused RED/GREEN in
 the failures engine, scenario parsing rejects the scope on global kinds, then
 the canonical rerun with both assertions positive is the gate.
+
+## 2026-09-27 05:20Z — Stale sqlc output (finding during the 5D gate)
+
+`sqlc diff` shows the committed `services/control/internal/storage/gen/`
+missing models for tables added since migration 0005 (replacement
+snapshot column, device command generations, event reports, and more), and
+`make generate` runs only buf. The tree compiles because later storage code
+was written against pgx directly. Decision: lane 5D adds `sqlc generate` to
+the `generate` target, regenerates, and commits the generated package by
+exact path; the check is `sqlc diff` printing nothing and `go vet
+./services/control/...` clean. New plan item 5D.7 records it.

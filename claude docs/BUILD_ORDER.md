@@ -1662,6 +1662,9 @@ Owns: `docs/operations/security/` (threat model and retention),
 `services/control/internal/api/` (all subpackages, for authorization tests),
 `tools/development/hooks/`.
 
+- `[ ]` 5D.7 `[after 5D.5]` `make generate` also runs `sqlc generate`, and the
+  committed `services/control/internal/storage/gen/` matches the migrations.
+  Verify: `sqlc diff` prints nothing and `go vet ./services/control/...` passes.
 - `[x]` 5E.1 `[P]` Role matrix test: every API handler × every role from
   FULL_SPEC §11, asserting allow or deny. Verify: `go test ./services/control/internal/api/ -run RoleMatrix` passes.
 - `[x]` 5E.2 `[P]` Step-up authorization and immutable audit entry required
