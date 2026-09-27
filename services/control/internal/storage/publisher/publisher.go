@@ -8,6 +8,7 @@ import (
 	"connectrpc.com/connect"
 	gridosv1 "github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1"
 	"github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1/gridosv1connect"
+	"github.com/Hirom0112/Base-GridOS/services/control/internal/observability"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/storage"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -66,7 +67,9 @@ func (publisher *Publisher) Publish(ctx context.Context, command storage.Claimed
 	request.Header().Set("Authorization", publisher.config.AuthorizationToken)
 	deliveryContext, cancel := context.WithTimeout(ctx, publisher.config.AcknowledgementTimeout)
 	defer cancel()
+	started := time.Now()
 	response, err := publisher.config.Client.SubmitCommand(deliveryContext, request)
+	latency := time.Since(started)
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) || connect.CodeOf(err) == connect.CodeDeadlineExceeded {
 			deadline := now.Add(publisher.config.AcknowledgementTimeout)
@@ -83,6 +86,7 @@ func (publisher *Publisher) Publish(ctx context.Context, command storage.Claimed
 	if err != nil {
 		return err
 	}
+	_ = observability.ProcessMetrics.ObserveAckLatency(latency)
 	if err = storage.RecordAcknowledgement(ctx, publisher.config.Pool, acknowledgement); err != nil {
 		return err
 	}
