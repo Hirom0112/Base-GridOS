@@ -74,7 +74,10 @@ func assertScrubbedTrace(t *testing.T) {
 func assertScrubbedAnalytics(t *testing.T) {
 	t.Helper()
 	sink := &capturedAnalytics{}
-	wrapped := NewScrubbedAnalyticsSink(sink, []byte("test-only-scrub-key"))
+	wrapped, err := NewScrubbedAnalyticsSink(sink, []byte("test-only-scrub-key"))
+	if err != nil {
+		t.Fatal(err)
+	}
 	record := analytics.Record{
 		ID:   privateSite,
 		Kind: analytics.DispatchFact,
