@@ -114,3 +114,20 @@
 .forecast-ranges circle {
   fill: var(--paper-0);
 }
+
+.forecast-filter {
+  display: grid;
+  gap: 8px;
+  max-width: 520px;
+  margin-block: 16px;
+}
+.forecast-filter input,
+.forecast-filter select {
+  width: 100%;
+  min-width: 0;
+  padding: 10px;
+  font: inherit;
+  color: var(--paper-0);
+  background: var(--ink-1);
+  border: 1px solid var(--ink-3);
+}
