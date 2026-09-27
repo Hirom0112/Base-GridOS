@@ -88,7 +88,7 @@ func InsertCommand(ctx context.Context, pool *pgxpool.Pool, command CommandInten
 	if err = tx.Commit(ctx); err != nil {
 		return err
 	}
-	_ = observability.ProcessMetrics.RecordCommand("PERSISTED")
+	observability.ProcessMetrics.RecordCommand(observability.CommandPersisted)
 	return nil
 }
 
@@ -136,7 +136,7 @@ func InsertZeroCommand(ctx context.Context, pool *pgxpool.Pool, command CommandI
 	if err = tx.Commit(ctx); err != nil {
 		return err
 	}
-	_ = observability.ProcessMetrics.RecordCommand("PERSISTED")
+	observability.ProcessMetrics.RecordCommand(observability.CommandPersisted)
 	return nil
 }
 

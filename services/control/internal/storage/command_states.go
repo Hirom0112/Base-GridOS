@@ -11,21 +11,25 @@ import (
 
 var ErrIllegalCommandTransition = errors.New("illegal command transition")
 
-var commandTransitions = map[string]map[string]struct{}{
+var commandTransitions = map[string]map[string]observability.CommandState{
 	"PERSISTED": {
-		"SENT": {}, "EXPIRED": {}, "REJECTED": {},
+		"SENT": observability.CommandSent, "EXPIRED": observability.CommandExpired, "REJECTED": observability.CommandRejected,
 	},
 	"SENT": {
-		"ACKNOWLEDGED": {}, "UNCERTAIN": {}, "EXPIRED": {}, "REJECTED": {},
+		"ACKNOWLEDGED": observability.CommandAcknowledged, "UNCERTAIN": observability.CommandUncertain,
+		"EXPIRED": observability.CommandExpired, "REJECTED": observability.CommandRejected,
 	},
 	"ACKNOWLEDGED": {
-		"EXECUTING": {}, "CANCELLED": {}, "EXPIRED": {}, "REJECTED": {},
+		"EXECUTING": observability.CommandExecuting, "CANCELLED": observability.CommandCancelled,
+		"EXPIRED": observability.CommandExpired, "REJECTED": observability.CommandRejected,
 	},
 	"UNCERTAIN": {
-		"ACKNOWLEDGED": {}, "EXECUTING": {}, "REJECTED": {}, "CANCELLED": {}, "EXPIRED": {},
+		"ACKNOWLEDGED": observability.CommandAcknowledged, "EXECUTING": observability.CommandExecuting,
+		"REJECTED": observability.CommandRejected, "CANCELLED": observability.CommandCancelled, "EXPIRED": observability.CommandExpired,
 	},
 	"EXECUTING": {
-		"COMPLETED": {}, "CANCELLED": {}, "EXPIRED": {}, "REJECTED": {},
+		"COMPLETED": observability.CommandCompleted, "CANCELLED": observability.CommandCancelled,
+		"EXPIRED": observability.CommandExpired, "REJECTED": observability.CommandRejected,
 	},
 }
 
@@ -38,7 +42,8 @@ type CommandTransition struct {
 }
 
 func TransitionCommand(ctx context.Context, pool *pgxpool.Pool, transition CommandTransition) (bool, error) {
-	if _, allowed := commandTransitions[transition.ExpectedState][transition.NextState]; !allowed {
+	nextState, allowed := commandTransitions[transition.ExpectedState][transition.NextState]
+	if !allowed {
 		return false, ErrIllegalCommandTransition
 	}
 	tx, err := pool.Begin(ctx)
@@ -56,7 +61,7 @@ func TransitionCommand(ctx context.Context, pool *pgxpool.Pool, transition Comma
 	if err = tx.Commit(ctx); err != nil {
 		return false, err
 	}
-	_ = observability.ProcessMetrics.RecordCommand(transition.NextState)
+	observability.ProcessMetrics.RecordCommand(nextState)
 	return true, nil
 }
 

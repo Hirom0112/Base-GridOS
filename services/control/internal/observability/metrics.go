@@ -98,14 +98,8 @@ func (m *Metrics) Handler() http.Handler {
 	return promhttp.HandlerFor(m.registry, promhttp.HandlerOpts{})
 }
 
-func (m *Metrics) RecordCommand(state string) error {
-	switch state {
-	case "PERSISTED", "PENDING", "SENT", "ACKNOWLEDGED", "UNCERTAIN", "EXECUTING", "COMPLETED", "DELIVERED", "EXPIRED", "REJECTED", "CANCELLED":
-		m.commands.WithLabelValues(state).Inc()
-		return nil
-	default:
-		return errors.New("unknown command state")
-	}
+func (m *Metrics) RecordCommand(state CommandState) {
+	m.commands.WithLabelValues(state.String()).Inc()
 }
 
 func (m *Metrics) ObserveAckLatency(duration time.Duration) error {

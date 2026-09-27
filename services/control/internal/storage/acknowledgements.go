@@ -45,9 +45,9 @@ type FeasiblePowerInterval struct {
 }
 
 func RecordAcknowledgement(ctx context.Context, pool *pgxpool.Pool, acknowledgement Acknowledgement) error {
-	nextState := "ACKNOWLEDGED"
+	nextState := observability.CommandAcknowledged
 	if acknowledgement.ReceiptStatus == "REJECTED" {
-		nextState = "REJECTED"
+		nextState = observability.CommandRejected
 	} else if acknowledgement.ReceiptStatus != "ACCEPTED" {
 		return ErrInvalidReceiptStatus
 	}
@@ -87,7 +87,7 @@ func RecordAcknowledgement(ctx context.Context, pool *pgxpool.Pool, acknowledgem
 	if err != nil {
 		return err
 	}
-	changed, err := appendCommandTransition(ctx, tx, acknowledgement.CommandID, []string{currentState}, nextState, time.Now().UTC(), acknowledgement.CorrelationID)
+	changed, err := appendCommandTransition(ctx, tx, acknowledgement.CommandID, []string{currentState}, nextState.String(), time.Now().UTC(), acknowledgement.CorrelationID)
 	if err != nil {
 		return err
 	}
@@ -97,7 +97,7 @@ func RecordAcknowledgement(ctx context.Context, pool *pgxpool.Pool, acknowledgem
 	if err = tx.Commit(ctx); err != nil {
 		return err
 	}
-	_ = observability.ProcessMetrics.RecordCommand(nextState)
+	observability.ProcessMetrics.RecordCommand(nextState)
 	return nil
 }
 
@@ -144,7 +144,7 @@ func MarkAcknowledgementUncertain(ctx context.Context, pool *pgxpool.Pool, deadl
 	if err = tx.Commit(ctx); err != nil {
 		return false, err
 	}
-	_ = observability.ProcessMetrics.RecordCommand("UNCERTAIN")
+	observability.ProcessMetrics.RecordCommand(observability.CommandUncertain)
 	return true, nil
 }
 

@@ -10,9 +10,7 @@ import (
 func TestMetricsExposeDashboardNames(t *testing.T) {
 	t.Parallel()
 	metrics := NewMetrics()
-	if err := metrics.RecordCommand("SENT"); err != nil {
-		t.Fatal(err)
-	}
+	metrics.RecordCommand(CommandSent)
 	if err := metrics.ObserveAckLatency(120 * time.Millisecond); err != nil {
 		t.Fatal(err)
 	}
@@ -51,47 +49,35 @@ func TestMetricsExposeDashboardNames(t *testing.T) {
 	}
 }
 
-func TestMetricsRejectPrivateLabelsAndInvalidPopulation(t *testing.T) {
+func TestMetricsRejectInvalidPopulation(t *testing.T) {
 	t.Parallel()
 	metrics := NewMetrics()
-	if err := metrics.RecordCommand("site-private-123"); err == nil {
-		t.Fatal("private command label accepted")
-	}
 	if err := metrics.SetTelemetryPopulation(4, 5); err == nil {
 		t.Fatal("stale count above total accepted")
 	}
-	if err := metrics.RecordCommand("SENT"); err != nil {
+	if err := metrics.SetTelemetryPopulation(5, 4); err != nil {
 		t.Fatal(err)
-	}
-	response := httptest.NewRecorder()
-	metrics.Handler().ServeHTTP(response, httptest.NewRequest("GET", "/metrics", nil))
-	if strings.Contains(response.Body.String(), "site-private-123") {
-		t.Fatalf("private label exported: %s", response.Body.String())
 	}
 }
 
-func TestMetricsAcceptDurableCommandStates(t *testing.T) {
+func TestRecordCommandAcceptsEveryCommandState(t *testing.T) {
 	t.Parallel()
 	metrics := NewMetrics()
-	for _, state := range []string{"PERSISTED", "COMPLETED"} {
-		if err := metrics.RecordCommand(state); err != nil {
-			t.Fatalf("record %s: %v", state, err)
-		}
+	for state := CommandPersisted; state < commandStateCount; state++ {
+		metrics.RecordCommand(state)
 	}
 	response := httptest.NewRecorder()
 	metrics.Handler().ServeHTTP(response, httptest.NewRequest("GET", "/metrics", nil))
-	for _, state := range []string{"PERSISTED", "COMPLETED"} {
-		if !strings.Contains(response.Body.String(), `gridos_commands_total{state="`+state+`"} 1`) {
-			t.Fatalf("missing committed state %s: %s", state, response.Body.String())
+	for _, label := range []string{"PERSISTED", "SENT", "ACKNOWLEDGED", "UNCERTAIN", "EXECUTING", "COMPLETED", "EXPIRED", "REJECTED", "CANCELLED"} {
+		if !strings.Contains(response.Body.String(), `gridos_commands_total{state="`+label+`"} 1`) {
+			t.Fatalf("missing command state %s: %s", label, response.Body.String())
 		}
 	}
 }
 
 func TestEventMetricsOmitDatabaseStateGauges(t *testing.T) {
 	metrics := NewEventMetrics()
-	if err := metrics.RecordCommand("SENT"); err != nil {
-		t.Fatal(err)
-	}
+	metrics.RecordCommand(CommandSent)
 	response := httptest.NewRecorder()
 	metrics.Handler().ServeHTTP(response, httptest.NewRequest("GET", "/metrics", nil))
 	if !strings.Contains(response.Body.String(), "gridos_commands_total") {
