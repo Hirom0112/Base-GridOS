@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { lazy, Suspense, useState, type FormEvent } from "react";
 import { useHydrated } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { z } from "zod";
@@ -7,6 +7,8 @@ import { AnomalyAlerts } from "./anomaly-alert";
 import { MemberStatus } from "./member-status";
 import "../events/report.css";
 import "./member.css";
+
+const MemberOffers = lazy(() => import("./offers"));
 
 const householdSchema = z.object({
   memberId: z.string().trim().min(1).max(200),
@@ -93,6 +95,17 @@ export function MemberHome() {
             memberId={household.memberId}
           />
         )}
+        {household &&
+          query.data?.memberId === household.memberId &&
+          query.data.siteId === household.siteId && (
+            <Suspense fallback={<p role="status">Loading member plans…</p>}>
+              <MemberOffers
+                key={household.memberId}
+                memberId={household.memberId}
+                currentPlan={query.data.currentPlan}
+              />
+            </Suspense>
+          )}
       </main>
     </div>
   );
