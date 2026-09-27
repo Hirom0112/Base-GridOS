@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/Hirom0112/Base-GridOS/services/control/internal/observability"
 	storagegen "github.com/Hirom0112/Base-GridOS/services/control/internal/storage/gen"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -71,7 +72,11 @@ func InsertCommand(ctx context.Context, pool *pgxpool.Pool, command CommandInten
 	if err != nil {
 		return err
 	}
-	return tx.Commit(ctx)
+	if err = tx.Commit(ctx); err != nil {
+		return err
+	}
+	_ = observability.ProcessMetrics.RecordCommand("PERSISTED")
+	return nil
 }
 
 func InsertZeroCommand(ctx context.Context, pool *pgxpool.Pool, command CommandIntent) error {
@@ -110,7 +115,11 @@ func InsertZeroCommand(ctx context.Context, pool *pgxpool.Pool, command CommandI
 	if _, err = tx.Exec(ctx, `INSERT INTO command_states (command_id, state, recorded_at, correlation_id) VALUES ($1, 'PERSISTED', clock_timestamp(), $2)`, command.CommandID, command.CorrelationID); err != nil {
 		return err
 	}
-	return tx.Commit(ctx)
+	if err = tx.Commit(ctx); err != nil {
+		return err
+	}
+	_ = observability.ProcessMetrics.RecordCommand("PERSISTED")
+	return nil
 }
 
 func ClaimOutbox(ctx context.Context, pool *pgxpool.Pool, claim OutboxClaim) ([]ClaimedCommand, error) {
