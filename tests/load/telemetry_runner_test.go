@@ -40,7 +40,7 @@ func runTelemetryIngest(t *testing.T, deviceCount int, cadence, duration time.Du
 			time.Sleep(wait)
 		}
 		ctx, cancel := context.WithDeadline(context.Background(), at.Add(cadence))
-		err := publishLoadTick(ctx, client, devices, uint64(tick), at)
+		err := publishLoadTick(ctx, client, devices, uint64(tick), at, 74)
 		cancel()
 		if err != nil {
 			t.Fatalf("tick %d at %s: %v", tick, at.Format(time.RFC3339Nano), err)
@@ -68,7 +68,7 @@ func runTelemetryIngest(t *testing.T, deviceCount int, cadence, duration time.Du
 	return result
 }
 
-func publishLoadTick(ctx context.Context, client gridosv1connect.TelemetryServiceClient, devices []string, sequence uint64, at time.Time) error {
+func publishLoadTick(ctx context.Context, client gridosv1connect.TelemetryServiceClient, devices []string, sequence uint64, at time.Time, energyPercent float64) error {
 	const batchSize = 250
 	const workers = 4
 	jobs := make(chan int)
@@ -80,7 +80,7 @@ func publishLoadTick(ctx context.Context, client gridosv1connect.TelemetryServic
 			defer group.Done()
 			for start := range jobs {
 				end := min(start+batchSize, len(devices))
-				if err := publishLoadBatch(ctx, client, devices[start:end], sequence, at); err != nil {
+				if err := publishLoadBatch(ctx, client, devices[start:end], sequence, at, energyPercent); err != nil {
 					errors <- err
 					return
 				}
@@ -99,13 +99,13 @@ func publishLoadTick(ctx context.Context, client gridosv1connect.TelemetryServic
 	return nil
 }
 
-func publishLoadBatch(ctx context.Context, client gridosv1connect.TelemetryServiceClient, devices []string, sequence uint64, at time.Time) error {
+func publishLoadBatch(ctx context.Context, client gridosv1connect.TelemetryServiceClient, devices []string, sequence uint64, at time.Time, energyPercent float64) error {
 	observations := make([]*gridosv1.TelemetryObservation, 0, len(devices))
 	for _, device := range devices {
 		observations = append(observations, &gridosv1.TelemetryObservation{
 			ObservationId: fmt.Sprintf("load-%s-%d", device, sequence), DeviceId: device,
 			Sequence: sequence, ObservationTime: timestamppb.New(at), ValueState: gridosv1.ValueState_VALUE_STATE_PRESENT,
-			StateOfEnergyPercent: 74,
+			StateOfEnergyPercent: energyPercent,
 			OperatingState:       &gridosv1.TelemetryObservation_OnGrid{OnGrid: &gridosv1.OnGrid{ObservedAt: timestamppb.New(at), EstimatedBackupHoursAtCurrentUsage: 4}},
 		})
 	}
