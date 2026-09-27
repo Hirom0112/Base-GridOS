@@ -13,6 +13,7 @@ import (
 	"connectrpc.com/connect"
 	"github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1/gridosv1connect"
 	controlapi "github.com/Hirom0112/Base-GridOS/services/control/internal/api"
+	apicontext "github.com/Hirom0112/Base-GridOS/services/control/internal/api/context"
 	apievents "github.com/Hirom0112/Base-GridOS/services/control/internal/api/events"
 	apigeo "github.com/Hirom0112/Base-GridOS/services/control/internal/api/geo"
 	apireplay "github.com/Hirom0112/Base-GridOS/services/control/internal/api/replay"
@@ -84,6 +85,7 @@ func main() {
 	transport.Protocols = protocols
 	decisionClient := gridosv1connect.NewOptimizationServiceClient(&http.Client{Transport: transport, Timeout: 20 * time.Second}, environment("GRIDOS_DECISION_ADDR", "http://localhost:50061"), connect.WithGRPC())
 	mux := http.NewServeMux()
+	mux.Handle(gridosv1connect.NewContextServiceHandler(apicontext.NewService(environment("GRIDOS_PUBLIC_CONTEXT_DIR", "testdata/fixtures/public"), time.Now)))
 	replayPath, replayHandler := gridosv1connect.NewReplayServiceHandler(apireplay.NewService(environment("GRIDOS_REPLAY_DIR", ".local/replay"), replay.PostgresSource{Pool: pool}, eventSource, controlapi.NewConnectOptimizer(decisionClient)))
 	mux.Handle(replayPath, replayHandler)
 	geoAssets, err := apigeo.AssetHandler(os.DirFS("testdata/fixtures/geo"))

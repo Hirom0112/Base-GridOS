@@ -9,6 +9,7 @@ import (
 
 	"connectrpc.com/connect"
 	gridosv1 "github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -62,9 +63,9 @@ func TestContextServiceRejectsInvalidWindows(t *testing.T) {
 	if _, err := service.ListDispatchWindows(context.Background(), connect.NewRequest(&gridosv1.ListDispatchWindowsRequest{Candidates: []*gridosv1.ContextWindowCandidate{valid}})); err != nil {
 		t.Fatalf("positive control window rejected: %v", err)
 	}
-	invalid := *valid
+	invalid := proto.Clone(valid).(*gridosv1.ContextWindowCandidate)
 	invalid.PriceUsdPerMwh = math.NaN()
-	if _, err := service.ListDispatchWindows(context.Background(), connect.NewRequest(&gridosv1.ListDispatchWindowsRequest{Candidates: []*gridosv1.ContextWindowCandidate{&invalid}})); err == nil {
+	if _, err := service.ListDispatchWindows(context.Background(), connect.NewRequest(&gridosv1.ListDispatchWindowsRequest{Candidates: []*gridosv1.ContextWindowCandidate{invalid}})); err == nil {
 		t.Fatal("non-finite candidate accepted")
 	}
 }
