@@ -163,3 +163,37 @@ test("response latency requires an observed response count", () => {
     ).toHaveTextContent("Unavailable");
   }
 });
+
+test("partner delivery requires coverage and preserves measured zero", () => {
+  const report = z
+    .record(z.string(), z.unknown())
+    .parse(JSON.parse(fixture(".partner")));
+  const json = (coverage: number | undefined) =>
+    JSON.stringify({
+      ...report,
+      delivery_coverage: coverage,
+      delivered_mw: 0,
+      delivered_mwh: 0,
+    });
+  const { rerender } = render(
+    <ReportEvidence eventId="event-report-a" role="partner" json={json(1)} />,
+  );
+  expect(screen.getByText("Delivered power").parentElement).toHaveTextContent(
+    "0.000 MW",
+  );
+  for (const coverage of [0, undefined]) {
+    rerender(
+      <ReportEvidence
+        eventId="event-report-a"
+        role="partner"
+        json={json(coverage)}
+      />,
+    );
+    expect(screen.getByText("Delivered power").parentElement).toHaveTextContent(
+      "Unavailable",
+    );
+    expect(
+      screen.getByText("Delivered energy").parentElement,
+    ).toHaveTextContent("Unavailable");
+  }
+});
