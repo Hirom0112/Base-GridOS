@@ -1,0 +1,139 @@
+{
+  "viewport": {
+    "width": 390,
+    "height": 1000
+  },
+  "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.8010.12 Safari/537.36",
+  "fixture": "recorded 320 H3 cells",
+  "profile": "production local-identity build, headless Chromium, device scale 2, no CPU throttle, theme and measure interaction",
+  "criticalBytes": 212766,
+  "spatialBytes": 202642,
+  "fps": 59.169132047168624,
+  "cls": 0.002854539903846154,
+  "shifts": [
+    {
+      "value": 0.002817,
+      "at": 92.19999998807907,
+      "nodes": [
+        "{\"html\":\"<div class=\\\"console\\\" data-theme=\\\"dark\\\"><a class=\\\"skip-link\\\" href=\\\"#fleet-overview\\\">Skip to fleet overview</a><header class=\\\"topbar\\\"><div class=\\\"brand\\\"\",\"previousRect\":{\"x\":0,\"y\":61,\"width\":390,\"height\":939,\"top\":61,\"right\":390,\"bottom\":1000,\"left\":0},\"currentRect\":{\"x\":0,\"y\":64,\"width\":390,\"height\":936,\"top\":64,\"right\":390,\"bottom\":1000,\"left\":0}}"
+      ]
+    }
+  ],
+  "peakDraws": 3,
+  "totalDraws": 25,
+  "interactionLongTasks": [],
+  "assets": [
+    {
+      "file": "index-ea-e0ZIw.js",
+      "gzipBytes": 100828
+    },
+    {
+      "file": "rolldown-runtime-hePW80VL.js",
+      "gzipBytes": 430
+    },
+    {
+      "file": "lazyRouteComponent-DfpszfaD.js",
+      "gzipBytes": 1484
+    },
+    {
+      "file": "react-Cvdyeg_0.js",
+      "gzipBytes": 3025
+    },
+    {
+      "file": "useParams-D2FdU_jB.js",
+      "gzipBytes": 1874
+    },
+    {
+      "file": "link-BPZgVC5a.js",
+      "gzipBytes": 2949
+    },
+    {
+      "file": "root-DLTE-HSj.js",
+      "gzipBytes": 52
+    },
+    {
+      "file": "jsx-runtime-NZYk81nU.js",
+      "gzipBytes": 303
+    },
+    {
+      "file": "ClientOnly-DUmYxm2s.js",
+      "gzipBytes": 263
+    },
+    {
+      "file": "useRouter-DPtb9C5m.js",
+      "gzipBytes": 161
+    },
+    {
+      "file": "useSelector-DPljQfN1.js",
+      "gzipBytes": 872
+    },
+    {
+      "file": "preload-helper-BZ1Pz5am.js",
+      "gzipBytes": 691
+    },
+    {
+      "file": "useLocation-BDQdUsyU.js",
+      "gzipBytes": 164
+    },
+    {
+      "file": "useQuery-Bf_hImkF.js",
+      "gzipBytes": 949
+    },
+    {
+      "file": "_console-BrPhUckP.js",
+      "gzipBytes": 8491
+    },
+    {
+      "file": "timestamp-kKY_2scE.js",
+      "gzipBytes": 223
+    },
+    {
+      "file": "Provenance-D7oQjU07.js",
+      "gzipBytes": 896
+    },
+    {
+      "file": "auth-BycEbaVF.js",
+      "gzipBytes": 82514
+    },
+    {
+      "file": "replay-clock-B2EmrGWY.js",
+      "gzipBytes": 536
+    },
+    {
+      "file": "fleet-BfPpDDb0.js",
+      "gzipBytes": 1165
+    },
+    {
+      "file": "_console.fleet-DJytpVyR.js",
+      "gzipBytes": 2401
+    },
+    {
+      "file": "useNavigate-oF_8YPWA.js",
+      "gzipBytes": 213
+    },
+    {
+      "file": "queryObserver-CFJ4oxVz.js",
+      "gzipBytes": 2282
+    },
+    {
+      "file": "geographic-field-9LrQW1Fq.js",
+      "gzipBytes": 3313
+    },
+    {
+      "file": "events-live-H9JTjG6C.js",
+      "gzipBytes": 2867
+    },
+    {
+      "file": "h3-h6KzNXDG.js",
+      "gzipBytes": 62624
+    },
+    {
+      "file": "geographic-time-DCmlIuYw.js",
+      "gzipBytes": 445
+    },
+    {
+      "file": "renderer-CDtViubb.js",
+      "gzipBytes": 133393
+    }
+  ]
+}

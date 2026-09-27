@@ -1,0 +1,78 @@
+{
+  "console_commit": "119d5b3",
+  "build_command": "GRIDOS_AUTH_MODE=local pnpm --dir apps/console build",
+  "build_exit": 0,
+  "build_last_line": "built in 355ms",
+  "verify_command": "pnpm --dir apps/console playwright test --config playwright.performance.config.ts --output /tmp/gridos-final-performance-proof",
+  "verify_last_line": "4 passed (30.8s)",
+  "profile": "Production preview, local identity, headless Chromium 153, device scale factor 2, no CPU throttle",
+  "limitations": [
+    "Not a physical mobile hardware profile or a production Clerk session",
+    "Streamed response uses explicitly SIMULATED 320-cell telemetry, ten updates over seven seconds",
+    "Each streamed profile had one long task: 236ms at390 and275ms at1440; budget is fewer than two tasks over50ms",
+    "Layout shift is the sum of non-input shifts during the short measured session",
+    "Critical JavaScript follows static imports from the requested fleet route entry chunks; deferred bytes are the remaining requested JavaScript"
+  ],
+  "artifacts": [
+    {
+      "file": "fleet-390-performance.json",
+      "sha256": "bd8292b28c62aa982c3c73d14cdf3d157f90408d50d953d85c03261877a9b2d0",
+      "bytes": 3257
+    },
+    {
+      "file": "fleet-390-production-390.png",
+      "sha256": "c6c3f3dacca9e4cd5309f34256cfc5bfd504d712bbc8a6e007d662c1707ee96c",
+      "bytes": 937555
+    },
+    {
+      "file": "fleet-390-trace.zip",
+      "sha256": "520dabece9e59b6f5faa5a020fd4662c3423b2d91e95a59a5a406f1bfb1e62d3",
+      "bytes": 1064006
+    },
+    {
+      "file": "fleet-1440-performance.json",
+      "sha256": "bda0e499e6c07038e238486511fd6d95a043b4233032e6b78446c8ef477a3b0b",
+      "bytes": 6341
+    },
+    {
+      "file": "fleet-1440-production-1440.png",
+      "sha256": "be88733b92f4c23e8567d424165a8bfdeb95e005b1d00ff2cec149a1aca1d1ac",
+      "bytes": 1073219
+    },
+    {
+      "file": "fleet-1440-trace.zip",
+      "sha256": "d44303241a96e21d08d3ee0e07b87fcaf2302e07a2e73324da1ad5778e4b4450",
+      "bytes": 1466935
+    },
+    {
+      "file": "streamed-response-390-stream-performance.json",
+      "sha256": "3c8b3065dee0f3126610a0bf5f85240e1da2f41e535ec065d56a4a9b1593ee5b",
+      "bytes": 354
+    },
+    {
+      "file": "streamed-response-390-streamed-field.png",
+      "sha256": "acb6c1400b62f7580b7367f1b6a501f28bae1b05cea9bea0dee5905c67e1ae9e",
+      "bytes": 357683
+    },
+    {
+      "file": "streamed-response-390-trace.zip",
+      "sha256": "4c7b398c61904326f21aded719c4a4f7095bf280220d999b1f11502f8dafa412",
+      "bytes": 5566665
+    },
+    {
+      "file": "streamed-response-1440-stream-performance.json",
+      "sha256": "e6765f44b51150d07d014f6484d324f5becc3d41ebfb0a9d9c0c3335ad9a2eff",
+      "bytes": 373
+    },
+    {
+      "file": "streamed-response-1440-streamed-field.png",
+      "sha256": "d42be551667b702ea4c8508f5d03c947e75342d829640cec5f223b8f3e7078b0",
+      "bytes": 496468
+    },
+    {
+      "file": "streamed-response-1440-trace.zip",
+      "sha256": "0fa2e061a11d92b56ed70bc23ca8a9d0fccdefee33b1f568e47e5c94944d9e54",
+      "bytes": 7360261
+    }
+  ]
+}

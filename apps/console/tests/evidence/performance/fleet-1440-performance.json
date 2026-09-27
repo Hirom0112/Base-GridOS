@@ -1,0 +1,152 @@
+{
+  "viewport": {
+    "width": 1440,
+    "height": 1000
+  },
+  "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.8010.12 Safari/537.36",
+  "fixture": "recorded 320 H3 cells",
+  "profile": "production local-identity build, headless Chromium, device scale 2, no CPU throttle, theme and measure interaction",
+  "criticalBytes": 212766,
+  "spatialBytes": 202642,
+  "fps": 58.33576399016624,
+  "cls": 0.0036977825701678246,
+  "shifts": [
+    {
+      "value": 0.0035566379123263894,
+      "at": 199.29999999701977,
+      "nodes": [
+        "{\"html\":\"<section class=\\\"evidence-card\\\"><p class=\\\"eyebrow\\\">Reading the field</p><p>Position: H3 location<br>Footprint: site count<br>Height: selected power in \",\"previousRect\":{\"x\":1103,\"y\":599.1875,\"width\":315,\"height\":194.78125,\"top\":599.1875,\"right\":1418,\"bottom\":793.96875,\"left\":1103},\"currentRect\":{\"x\":1103,\"y\":638.609375,\"width\":315,\"height\":194.78125,\"top\":638.609375,\"right\":1418,\"bottom\":833.390625,\"left\":1103}}",
+        "{\"html\":\"<section class=\\\"evidence-card\\\"><p class=\\\"eyebrow\\\">Operator focus</p><h3>Greater Austin</h3><p>Select a region in the grid or its table to inspect the \",\"previousRect\":{\"x\":1103,\"y\":304,\"width\":315,\"height\":147.59375,\"top\":304,\"right\":1418,\"bottom\":451.59375,\"left\":1103},\"currentRect\":{\"x\":1103,\"y\":343.421875,\"width\":315,\"height\":147.59375,\"top\":343.421875,\"right\":1418,\"bottom\":491.015625,\"left\":1103}}",
+        "{\"html\":\"<section class=\\\"evidence-card reserve-card\\\"><p class=\\\"eyebrow\\\">Protected by design</p><h3>Reserve comes first.</h3><p>The server validates household b\",\"previousRect\":{\"x\":1103,\"y\":451.59375,\"width\":315,\"height\":147.59375,\"top\":451.59375,\"right\":1418,\"bottom\":599.1875,\"left\":1103},\"currentRect\":{\"x\":1103,\"y\":491.015625,\"width\":315,\"height\":147.59375,\"top\":491.015625,\"right\":1418,\"bottom\":638.609375,\"left\":1103}}",
+        "{\"html\":\"<div class=\\\"headline-quantities\\\"><div class=\\\"quantity\\\"><span class=\\\"quantity-label\\\">Installed power</span><p class=\\\"quantity-value mono\\\">42.630 <small\",\"previousRect\":{\"x\":240,\"y\":979.1875,\"width\":840,\"height\":20.8125,\"top\":979.1875,\"right\":1080,\"bottom\":1000,\"left\":240},\"currentRect\":{\"x\":240,\"y\":992.1875,\"width\":840,\"height\":7.8125,\"top\":992.1875,\"right\":1080,\"bottom\":1000,\"left\":240}}",
+        "{\"html\":\"<span class=\\\"scenario mono\\\">2026-09-26T20:56:45.691Z</span>\",\"previousRect\":{\"x\":977.1875,\"y\":63.25,\"width\":165,\"height\":16.5,\"top\":63.25,\"right\":1142.1875,\"bottom\":79.75,\"left\":977.1875},\"currentRect\":{\"x\":983.78125,\"y\":63.25,\"width\":158.40625,\"height\":16.5,\"top\":63.25,\"right\":1142.1875,\"bottom\":79.75,\"left\":983.78125}}"
+      ]
+    },
+    {
+      "value": 0.0001411446578414352,
+      "at": 322.70000000298023,
+      "nodes": [
+        "{\"html\":\"<span class=\\\"mono\\\">320 cells ↓</span>\",\"previousRect\":{\"x\":982.390625,\"y\":954.1875,\"width\":75.609375,\"height\":21,\"top\":954.1875,\"right\":1058,\"bottom\":975.1875,\"left\":982.390625},\"currentRect\":{\"x\":965.59375,\"y\":954.1875,\"width\":92.40625,\"height\":21,\"top\":954.1875,\"right\":1058,\"bottom\":975.1875,\"left\":965.59375}}",
+        "{\"html\":\"<span class=\\\"mono\\\">320 H3 cells · LZ_AEN</span>\",\"previousRect\":{\"x\":944,\"y\":240.1875,\"width\":114,\"height\":15,\"top\":240.1875,\"right\":1058,\"bottom\":255.1875,\"left\":944},\"currentRect\":{\"x\":932,\"y\":240.1875,\"width\":126,\"height\":15,\"top\":240.1875,\"right\":1058,\"bottom\":255.1875,\"left\":932}}",
+        "{\"html\":\"<span>SIMULATED</span>\",\"previousRect\":{\"x\":949.90625,\"y\":909.1875,\"width\":108.09375,\"height\":15,\"top\":909.1875,\"right\":1058,\"bottom\":924.1875,\"left\":949.90625},\"currentRect\":{\"x\":1003.6875,\"y\":909.1875,\"width\":54.3125,\"height\":15,\"top\":909.1875,\"right\":1058,\"bottom\":924.1875,\"left\":1003.6875}}"
+      ]
+    }
+  ],
+  "peakDraws": 3,
+  "totalDraws": 25,
+  "interactionLongTasks": [],
+  "assets": [
+    {
+      "file": "rolldown-runtime-hePW80VL.js",
+      "gzipBytes": 430
+    },
+    {
+      "file": "index-ea-e0ZIw.js",
+      "gzipBytes": 100828
+    },
+    {
+      "file": "react-Cvdyeg_0.js",
+      "gzipBytes": 3025
+    },
+    {
+      "file": "lazyRouteComponent-DfpszfaD.js",
+      "gzipBytes": 1484
+    },
+    {
+      "file": "useParams-D2FdU_jB.js",
+      "gzipBytes": 1874
+    },
+    {
+      "file": "root-DLTE-HSj.js",
+      "gzipBytes": 52
+    },
+    {
+      "file": "jsx-runtime-NZYk81nU.js",
+      "gzipBytes": 303
+    },
+    {
+      "file": "link-BPZgVC5a.js",
+      "gzipBytes": 2949
+    },
+    {
+      "file": "ClientOnly-DUmYxm2s.js",
+      "gzipBytes": 263
+    },
+    {
+      "file": "useRouter-DPtb9C5m.js",
+      "gzipBytes": 161
+    },
+    {
+      "file": "useSelector-DPljQfN1.js",
+      "gzipBytes": 872
+    },
+    {
+      "file": "preload-helper-BZ1Pz5am.js",
+      "gzipBytes": 691
+    },
+    {
+      "file": "_console-BrPhUckP.js",
+      "gzipBytes": 8491
+    },
+    {
+      "file": "useLocation-BDQdUsyU.js",
+      "gzipBytes": 164
+    },
+    {
+      "file": "auth-BycEbaVF.js",
+      "gzipBytes": 82514
+    },
+    {
+      "file": "timestamp-kKY_2scE.js",
+      "gzipBytes": 223
+    },
+    {
+      "file": "useQuery-Bf_hImkF.js",
+      "gzipBytes": 949
+    },
+    {
+      "file": "Provenance-D7oQjU07.js",
+      "gzipBytes": 896
+    },
+    {
+      "file": "replay-clock-B2EmrGWY.js",
+      "gzipBytes": 536
+    },
+    {
+      "file": "fleet-BfPpDDb0.js",
+      "gzipBytes": 1165
+    },
+    {
+      "file": "_console.fleet-DJytpVyR.js",
+      "gzipBytes": 2401
+    },
+    {
+      "file": "useNavigate-oF_8YPWA.js",
+      "gzipBytes": 213
+    },
+    {
+      "file": "queryObserver-CFJ4oxVz.js",
+      "gzipBytes": 2282
+    },
+    {
+      "file": "geographic-field-9LrQW1Fq.js",
+      "gzipBytes": 3313
+    },
+    {
+      "file": "events-live-H9JTjG6C.js",
+      "gzipBytes": 2867
+    },
+    {
+      "file": "geographic-time-DCmlIuYw.js",
+      "gzipBytes": 445
+    },
+    {
+      "file": "h3-h6KzNXDG.js",
+      "gzipBytes": 62624
+    },
+    {
+      "file": "renderer-CDtViubb.js",
+      "gzipBytes": 133393
+    }
+  ]
+}

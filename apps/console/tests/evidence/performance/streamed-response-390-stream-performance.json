@@ -1,0 +1,17 @@
+{
+  "viewport": {
+    "width": 390,
+    "height": 1000
+  },
+  "profile": "production local-identity build, headless Chromium, device scale 2, unthrottled synthetic SIMULATED telemetry",
+  "cells": 320,
+  "updates": 10,
+  "durationMs": 7000,
+  "fps": 56.0530975706078,
+  "density": 1,
+  "peakDraws": 6,
+  "totalDraws": 1191,
+  "longTasks": [
+    236
+  ]
+}
