@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"math"
 	"time"
+
+	"github.com/Hirom0112/Base-GridOS/services/control/internal/observability"
 )
 
 type MeasurementBoundary string
@@ -145,6 +147,7 @@ func Validate(plan Plan, canonical CanonicalState) (Approval, []Violation) {
 		}
 	}
 	if len(violations) != 0 {
+		observability.ProcessMetrics.RecordSafetyRejection()
 		return Approval{}, violations
 	}
 	canonical.Now = time.Time{}
@@ -153,6 +156,7 @@ func Validate(plan Plan, canonical CanonicalState) (Approval, []Violation) {
 		Canonical CanonicalState
 	}{plan, canonical})
 	if err != nil {
+		observability.ProcessMetrics.RecordSafetyRejection()
 		return Approval{}, []Violation{{Code: ContradictoryInput}}
 	}
 	return Approval{Approved: true, InputDigest: sha256.Sum256(encoded)}, nil
