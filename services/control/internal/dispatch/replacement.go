@@ -176,7 +176,9 @@ func mergeReplacementPlan(approved, replacement *gridosv1.DispatchPlan, dropped 
 }
 
 func (activities *Activities) publishCommands(ctx context.Context, commands []storage.CommandIntent) error {
+	ids := make([]string, 0, len(commands))
 	for _, command := range commands {
+		ids = append(ids, command.CommandID)
 		var planVersion int64
 		var setpoint float64
 		var deviceID, eventID, key string
@@ -194,7 +196,27 @@ func (activities *Activities) publishCommands(ctx context.Context, commands []st
 			return err
 		}
 	}
-	return activities.Dispatcher.Publish(ctx, nil)
+	previous := len(ids) + 1
+	for {
+		var pending int
+		err := activities.Pool.QueryRow(ctx, `SELECT count(*) FROM command_intents AS intent
+			WHERE intent.command_id = ANY($1::text[]) AND NOT EXISTS (
+				SELECT 1 FROM command_states AS state WHERE state.command_id = intent.command_id
+				AND state.state IN ('SENT', 'ACKNOWLEDGED', 'UNCERTAIN', 'REJECTED'))`, ids).Scan(&pending)
+		if err != nil {
+			return err
+		}
+		if pending == 0 {
+			return nil
+		}
+		if pending >= previous {
+			return fmt.Errorf("%d replacement commands remain unpublished", pending)
+		}
+		previous = pending
+		if err = activities.Dispatcher.Publish(ctx, nil); err != nil {
+			return err
+		}
+	}
 }
 
 func (activities *Activities) loadReplacementInputs(ctx context.Context, replacement ReplacementCommand) (*gridosv1.DispatchEvent, *gridosv1.DispatchPlan, controlapi.FrozenSnapshot, error) {
