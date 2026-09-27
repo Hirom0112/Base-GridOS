@@ -28,6 +28,11 @@ func (source *PostgresSource) TimelineExceptions(ctx context.Context, eventID st
 			intent.command_id, intent.command_id AS evidence_id, 'acknowledgement deadline elapsed' AS detail
 		FROM command_states AS state JOIN command_intents AS intent USING (command_id)
 		WHERE intent.event_id = $1 AND state.state = 'UNCERTAIN'
+	), rejected AS (
+		SELECT 'REJECTED_COMMAND' AS kind, state.recorded_at AS occurred_at, intent.device_id,
+			intent.command_id, intent.command_id AS evidence_id, 'gateway rejected command' AS detail
+		FROM command_states AS state JOIN command_intents AS intent USING (command_id)
+		WHERE intent.event_id = $1 AND state.state = 'REJECTED'
 	), late AS (
 		SELECT 'LATE_ACCEPTANCE' AS kind, ack.received_at AS occurred_at, intent.device_id,
 			intent.command_id, ack.acknowledgement_id AS evidence_id, 'accepted after uncertain transition' AS detail
@@ -72,6 +77,7 @@ func (source *PostgresSource) TimelineExceptions(ctx context.Context, eventID st
 	)
 	SELECT kind, occurred_at, device_id, command_id, evidence_id, detail FROM missing
 	UNION ALL SELECT kind, occurred_at, device_id, command_id, evidence_id, detail FROM uncertain
+	UNION ALL SELECT kind, occurred_at, device_id, command_id, evidence_id, detail FROM rejected
 	UNION ALL SELECT kind, occurred_at, device_id, command_id, evidence_id, detail FROM late
 	UNION ALL SELECT kind, occurred_at, device_id, command_id, evidence_id, detail FROM retry
 	UNION ALL SELECT kind, occurred_at, device_id, command_id, evidence_id, detail FROM recovery
