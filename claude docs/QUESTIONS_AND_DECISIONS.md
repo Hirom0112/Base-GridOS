@@ -1976,3 +1976,19 @@ pass here (cmd 0.323s, telemetry 0.311s, gateway ok, ingest 0.280s) and
 TestGatewayMetricsExposeBufferedRowsAndPublishFailures covers the two new
 metrics. Marked done, with the process slip recorded: root is reminded
 that RED and GREEN are separate commits, no exceptions for urgency.
+
+## 2026-09-27 08:32Z — Demo rebuilt on 133fce2; 4B.9 reward mismatch found by the console
+
+The rebuild carries the gateway publish-failure metrics and the bounded
+historical geo query: telemetry lag 2 s, `gridos_gateway_publish_failures_total 0`,
+`gridos_gateway_buffered_rows 0`, ListCells with as_of answers in 0.26 s,
+enforcement denied without an assertion, worker log clean. The console's
+live member proof then failed honestly: ListMemberOffers served the
+Balanced Travel Flex offer with no flexibility reward and a 500-cent fixed
+credit, while PresentOffer with those exact terms returned a 500-cent
+flexibility reward as well. Decision: the served terms and the presented
+offer must be byte-equal for every offer kind; root finds which value is
+authoritative (the plan's flexibility reward versus the Travel Flex fixed
+credit) and makes both RPCs emit the same numbers, with a RED that
+compares the two responses for each kind. The console keeps rejecting any
+changed charge or reward.
