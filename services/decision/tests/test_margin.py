@@ -3,7 +3,13 @@ from dataclasses import replace
 from decimal import Decimal
 
 import pytest
-from gridos.economics.margin import MarginComponents, MoneyRange, estimate_margin
+from gridos.economics.margin import (
+    MarginComponents,
+    MarginEstimate,
+    MoneyRange,
+    eligible_additional_capacity,
+    estimate_margin,
+)
 from gridos.fallback.planner import DeviceState, PlanningInterval, plan_fallback
 from gridos.server import OptimizationServer
 from gridos.v1 import optimization_pb2, optimization_pb2_grpc
@@ -123,3 +129,21 @@ def test_margin_formula_uses_every_term_and_conservative_bounds() -> None:
 
     assert estimate.conservative == Decimal("79")
     assert estimate.optimistic == Decimal("132")
+
+
+def test_margin_hurdle_blocks_negative_and_uncertain_capacity() -> None:
+    capacity = Decimal("5")
+    hurdle = Decimal("10")
+
+    assert eligible_additional_capacity(
+        capacity, MarginEstimate(Decimal("-1"), Decimal("100")), hurdle
+    ) == Decimal(0)
+    assert eligible_additional_capacity(
+        capacity, MarginEstimate(hurdle, Decimal("100")), hurdle
+    ) == Decimal(0)
+    assert (
+        eligible_additional_capacity(
+            capacity, MarginEstimate(Decimal("11"), Decimal("100")), hurdle
+        )
+        == capacity
+    )
