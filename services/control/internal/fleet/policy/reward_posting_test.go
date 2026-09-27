@@ -122,6 +122,34 @@ func TestRewardPostingCatchesLateAcceptedReportedEventWithinDayOnce(t *testing.T
 	require.Equal(t, reportBytes, storedReport)
 }
 
+func TestRewardPostingCatchesAcceptanceBetweenPostingAndPublication(t *testing.T) {
+	pool := policyDatabase(t)
+	ctx := context.Background()
+	begin := time.Now().UTC().Truncate(time.Second).Add(-2 * time.Hour)
+	end := begin.Add(30 * time.Minute)
+	seedRewardPostingEvent(t, pool, begin, end)
+	store := New(pool)
+	_, err := selectWithOffer(t, store, Selection{ID: "reward-selection-one",
+		MemberID: "member-one", Market: "TX", CatalogVersion: "catalog-v1",
+		MemberPlanID: "plan-cedar", PolicyVersion: "policy-v1", ConsentText: "I consent",
+		ConsentVersion: "v1", ExplanationShown: "Backup reserve", EffectiveAt: begin.Add(-time.Minute),
+		CorrelationID: "reward-event"})
+	require.NoError(t, err)
+	posted, err := store.PostEventRewards(ctx, "reward-event", end)
+	require.NoError(t, err)
+	require.Zero(t, posted)
+	reportedAt := end.Add(time.Minute)
+	_, err = pool.Exec(ctx, `INSERT INTO command_acknowledgements
+		(acknowledgement_id,command_id,idempotency_key,receipt_status,received_at,gateway_id,correlation_id)
+		VALUES ('late-ack','live-command','late-ack','ACCEPTED',$1,'gateway','reward-event')`, reportedAt.Add(-time.Second))
+	require.NoError(t, err)
+	_, err = pool.Exec(ctx, `UPDATE dispatch_events SET state = 'REPORTED', updated_at = $1 WHERE event_id = 'reward-event'`, reportedAt)
+	require.NoError(t, err)
+	posted, err = store.PostLateEventRewards(ctx, reportedAt.Add(time.Minute))
+	require.NoError(t, err)
+	require.Equal(t, 1, posted)
+}
+
 func TestRewardPostingAddsFixedEventTravelCreditOnlyForFullWindow(t *testing.T) {
 	pool := policyDatabase(t)
 	ctx := context.Background()
