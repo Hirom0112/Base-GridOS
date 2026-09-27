@@ -262,7 +262,6 @@ message EventTimelineEntry {
 message GetEventTimelineRequest {
   string event_id = 1;
 }
-
 message GetEventTimelineResponse {
   repeated EventTimelineEntry entries = 1;
   repeated EventException exceptions = 2;
@@ -479,6 +478,7 @@ service TelemetryService {
 
 service EventsService {
   rpc GetEventTimeline(GetEventTimelineRequest) returns (GetEventTimelineResponse);
+  rpc ListEventCommands(ListEventCommandsRequest) returns (ListEventCommandsResponse);
   rpc EmergencyStop(EmergencyStopRequest) returns (EmergencyStopResponse);
   rpc WatchEvent(WatchEventRequest) returns (stream WatchEventResponse);
 }

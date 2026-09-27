@@ -16,6 +16,7 @@ type Source interface {
 	Snapshot(context.Context, string) (*gridosv1.WatchEventResponse, error)
 	Timeline(context.Context, string) ([]*gridosv1.EventTimelineEntry, error)
 	TimelineExceptions(context.Context, string) ([]*gridosv1.EventException, error)
+	Commands(context.Context, string) (*gridosv1.ListEventCommandsResponse, error)
 	RequestStop(context.Context, *gridosv1.EmergencyStopRequest) (*gridosv1.EmergencyStopResponse, error)
 }
 

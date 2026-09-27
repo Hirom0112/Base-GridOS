@@ -38,6 +38,10 @@ func (source *changingSource) TimelineExceptions(context.Context, string) ([]*gr
 	return nil, nil
 }
 
+func (source *changingSource) Commands(context.Context, string) (*gridosv1.ListEventCommandsResponse, error) {
+	return &gridosv1.ListEventCommandsResponse{}, nil
+}
+
 func (source *changingSource) RequestStop(_ context.Context, request *gridosv1.EmergencyStopRequest) (*gridosv1.EmergencyStopResponse, error) {
 	source.mu.Lock()
 	defer source.mu.Unlock()

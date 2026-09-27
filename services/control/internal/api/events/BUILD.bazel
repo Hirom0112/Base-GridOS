@@ -3,6 +3,7 @@ load("@rules_go//go:def.bzl", "go_library", "go_test")
 go_library(
     name = "events",
     srcs = [
+        "commands.go",
         "exceptions.go",
         "postgres.go",
         "service.go",
@@ -30,6 +31,7 @@ go_test(
     srcs = [
         "events_test.go",
         "exceptions_test.go",
+        "commands_test.go",
     ],
     data = ["//database:migrations"],
     embed = [":events"],

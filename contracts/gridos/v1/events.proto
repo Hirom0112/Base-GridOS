@@ -3,6 +3,7 @@ syntax = "proto3";
 package gridos.v1;
 
 import "google/protobuf/timestamp.proto";
+import "gridos/v1/dispatch.proto";
 
 option go_package = "github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1;gridosv1";
 
@@ -28,4 +29,33 @@ message EventException {
   string command_id = 5;
   string evidence_id = 6;
   string detail = 7;
+}
+
+message ListEventCommandsRequest {
+  string event_id = 1;
+}
+
+message EventCommand {
+  CommandIntent intent = 1;
+  string state = 2;
+  google.protobuf.Timestamp state_recorded_at = 3;
+  CommandAcknowledgement receipt = 4;
+}
+
+message EventIntervalVerification {
+  google.protobuf.Timestamp begin_time = 1;
+  google.protobuf.Timestamp end_time = 2;
+  double requested_kw = 3;
+  double commanded_kw = 4;
+  double delivered_kw = 5;
+  double tracking_error_kw = 6;
+  double confidence = 7;
+  string baseline_method = 8;
+  string measurement_boundary = 9;
+  string value_kind = 10;
+}
+
+message ListEventCommandsResponse {
+  repeated EventCommand commands = 1;
+  repeated EventIntervalVerification verification_intervals = 2;
 }
