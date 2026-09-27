@@ -31,6 +31,11 @@ type BufferedObservation struct {
 	Payload       []byte
 }
 
+type ObservationDraft struct {
+	DeviceID string
+	Build    func(uint64) (BufferedObservation, error)
+}
+
 type Store struct {
 	db *sql.DB
 }
@@ -241,6 +246,46 @@ func (store *Store) BufferObservation(ctx context.Context, observationID string,
 	return err
 }
 
+func (store *Store) BufferObservationBatch(ctx context.Context, drafts []ObservationDraft) (err error) {
+	if len(drafts) == 0 {
+		return nil
+	}
+	tx, err := store.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err != nil {
+			err = errors.Join(err, tx.Rollback())
+		}
+	}()
+	for _, draft := range drafts {
+		if draft.DeviceID == "" || draft.Build == nil {
+			return errors.New("observation draft requires device and builder")
+		}
+		var sequence uint64
+		err = tx.QueryRowContext(ctx, `INSERT INTO telemetry_sequences (device_id, sequence) VALUES (?, 1)
+ON CONFLICT(device_id) DO UPDATE SET sequence = sequence + 1
+RETURNING sequence`, draft.DeviceID).Scan(&sequence)
+		if err != nil {
+			return err
+		}
+		var observation BufferedObservation
+		observation, err = draft.Build(sequence)
+		if err != nil {
+			return err
+		}
+		if observation.ObservationID == "" || len(observation.Payload) == 0 {
+			return errors.New("observation identifier and payload are required")
+		}
+		_, err = tx.ExecContext(ctx, `INSERT INTO telemetry_buffer (observation_id, payload) VALUES (?, ?)`, observation.ObservationID, observation.Payload)
+		if err != nil {
+			return err
+		}
+	}
+	return tx.Commit()
+}
+
 func (store *Store) NextTelemetrySequence(ctx context.Context, deviceID string) (uint64, error) {
 	if deviceID == "" {
 		return 0, errors.New("device identifier is required")
@@ -283,4 +328,35 @@ func (store *Store) ConfirmObservation(ctx context.Context, observationID string
 		return fmt.Errorf("observation %q is not buffered", observationID)
 	}
 	return nil
+}
+
+func (store *Store) ConfirmObservations(ctx context.Context, observationIDs []string) (err error) {
+	if len(observationIDs) == 0 {
+		return nil
+	}
+	tx, err := store.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err != nil {
+			err = errors.Join(err, tx.Rollback())
+		}
+	}()
+	for _, observationID := range observationIDs {
+		var result sql.Result
+		result, err = tx.ExecContext(ctx, `DELETE FROM telemetry_buffer WHERE observation_id = ?`, observationID)
+		if err != nil {
+			return err
+		}
+		var deleted int64
+		deleted, err = result.RowsAffected()
+		if err != nil {
+			return err
+		}
+		if deleted != 1 {
+			return fmt.Errorf("observation %q is not buffered", observationID)
+		}
+	}
+	return tx.Commit()
 }

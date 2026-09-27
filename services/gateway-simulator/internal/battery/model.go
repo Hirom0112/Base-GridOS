@@ -117,6 +117,10 @@ func New(parameters Parameters, energyKWh float64, state OperatingState) (*Model
 	return &Model{parameters: parameters, energyKWh: energyKWh, state: state}, nil
 }
 
+func (model *Model) EnergyKWh() float64 {
+	return model.energyKWh
+}
+
 func validateParameters(parameters Parameters, energyKWh float64) error {
 	values := []float64{parameters.UsableEnergyKWh, parameters.HardwareFloorKWh, parameters.MaxChargeKW, parameters.MaxDischargeKW, parameters.ChargeEfficiency, parameters.DischargeEfficiency, parameters.RampLimitKWPerHour, parameters.OvercurrentLimitKW, energyKWh}
 	for _, value := range values {
@@ -175,7 +179,7 @@ func (model *Model) validateInput(input Input) error {
 		return errors.New("power bound exceeded")
 	}
 	nextPower := input.DischargeKW - input.ChargeKW
-	if math.Abs(nextPower-model.lastPower) > model.parameters.RampLimitKWPerHour*input.Duration.Hours() {
+	if model.parameters.RampLimitKWPerHour > 0 && math.Abs(nextPower-model.lastPower) > model.parameters.RampLimitKWPerHour*input.Duration.Hours() {
 		return errors.New("ramp limit exceeded")
 	}
 	return nil

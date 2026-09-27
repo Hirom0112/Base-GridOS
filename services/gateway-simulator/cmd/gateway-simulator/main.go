@@ -8,14 +8,17 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math"
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 
 	"github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1/gridosv1connect"
 	scenariorunner "github.com/Hirom0112/Base-GridOS/services/gateway-simulator/cmd/scenario"
+	"github.com/Hirom0112/Base-GridOS/services/gateway-simulator/internal/battery"
 	"github.com/Hirom0112/Base-GridOS/services/gateway-simulator/internal/failures"
 	"github.com/Hirom0112/Base-GridOS/services/gateway-simulator/internal/gateway"
 	"github.com/Hirom0112/Base-GridOS/services/gateway-simulator/internal/protocol"
@@ -35,8 +38,25 @@ type config struct {
 }
 
 type fleetDevice struct {
-	DeviceID string `json:"device_id"`
-	LoadZone string `json:"load_zone"`
+	DeviceID                 string   `json:"device_id"`
+	SiteID                   string   `json:"site_id"`
+	LoadZone                 string   `json:"load_zone"`
+	WeatherZone              string   `json:"weather_zone"`
+	H3Cell                   string   `json:"h3_cell"`
+	LoadProfileType          string   `json:"load_profile_type"`
+	ReliabilityTrait         string   `json:"reliability_trait"`
+	ResiliencePlan           string   `json:"resilience_plan"`
+	Provenance               string   `json:"provenance"`
+	Cohorts                  []string `json:"cohorts"`
+	HasSolar                 bool     `json:"has_solar"`
+	HasAutomaticBackup       bool     `json:"has_automatic_backup"`
+	UsableEnergyKWh          *float64 `json:"usable_energy_kwh"`
+	MaxChargeKW              *float64 `json:"max_charge_kw"`
+	MaxDischargeKW           *float64 `json:"max_discharge_kw"`
+	ChargeEfficiency         *float64 `json:"charge_efficiency"`
+	DischargeEfficiency      *float64 `json:"discharge_efficiency"`
+	ReservePreferencePercent *float64 `json:"reserve_preference_percent"`
+	SimulationSeed           *int64   `json:"simulation_seed"`
 }
 
 func main() {
@@ -147,16 +167,28 @@ func startTelemetry(ctx context.Context, configuration config, devices []fleetDe
 	if configuration.controlAddress == "" {
 		return nil
 	}
-	deviceIDs := make([]string, 0, len(devices))
+	profiles, err := telemetry.ReadProfiles(filepath.Join("testdata", "fixtures", "public", "load-profiles", "residential-week.csv"))
+	if err != nil {
+		return err
+	}
+	physicalDevices := make([]telemetry.Device, 0, len(devices))
 	for _, device := range devices {
-		deviceIDs = append(deviceIDs, device.DeviceID)
+		reserve := max(10, *device.ReservePreferencePercent)
+		physicalDevices = append(physicalDevices, telemetry.Device{
+			DeviceID: device.DeviceID, LoadProfileType: device.LoadProfileType, SimulationSeed: *device.SimulationSeed,
+			Parameters: battery.Parameters{
+				UsableEnergyKWh: *device.UsableEnergyKWh, HardwareFloorKWh: *device.UsableEnergyKWh * reserve / 100,
+				ReservePercent: reserve, MaxChargeKW: *device.MaxChargeKW, MaxDischargeKW: *device.MaxDischargeKW,
+				ChargeEfficiency: *device.ChargeEfficiency, DischargeEfficiency: *device.DischargeEfficiency,
+			},
+		})
 	}
 	publisher := telemetry.NewConnectPublisher(gridosv1connect.NewTelemetryServiceClient(http.DefaultClient, configuration.controlAddress), configuration.gatewayID, authorizationToken)
 	network, err := failures.NewNetwork(publisher)
 	if err != nil {
 		return err
 	}
-	fleet, err := telemetry.NewFleet(store, deviceIDs, configuration.telemetryCadence, network)
+	fleet, err := telemetry.NewFleet(store, physicalDevices, profiles, configuration.telemetryCadence, network)
 	if err != nil {
 		return err
 	}
@@ -252,6 +284,7 @@ func loadFleet(path string) ([]fleetDevice, error) {
 		}
 	}()
 	decoder := json.NewDecoder(file)
+	decoder.DisallowUnknownFields()
 	seen := make(map[string]struct{})
 	var devices []fleetDevice
 	for {
@@ -263,8 +296,8 @@ func loadFleet(path string) ([]fleetDevice, error) {
 		if err != nil {
 			return nil, err
 		}
-		if device.DeviceID == "" {
-			return nil, errors.New("fleet device identifier is required")
+		if err := validateFleetDevice(device); err != nil {
+			return nil, err
 		}
 		if _, exists := seen[device.DeviceID]; exists {
 			return nil, fmt.Errorf("duplicate fleet device %q", device.DeviceID)
@@ -276,4 +309,38 @@ func loadFleet(path string) ([]fleetDevice, error) {
 		return nil, errors.New("fleet is empty")
 	}
 	return devices, nil
+}
+
+func validateFleetDevice(device fleetDevice) error {
+	for _, value := range []string{device.DeviceID, device.SiteID, device.LoadZone, device.LoadProfileType, device.H3Cell} {
+		if value == "" {
+			return errors.New("fleet device identity is required")
+		}
+	}
+	if device.Provenance != "SIMULATED" || device.SimulationSeed == nil {
+		return errors.New("fleet provenance and simulation seed are required")
+	}
+	values := []*float64{device.UsableEnergyKWh, device.MaxChargeKW, device.MaxDischargeKW, device.ChargeEfficiency, device.DischargeEfficiency, device.ReservePreferencePercent}
+	for _, value := range values {
+		if value == nil || math.IsNaN(*value) || math.IsInf(*value, 0) {
+			return errors.New("fleet numeric fields must be present and finite")
+		}
+	}
+	if *device.UsableEnergyKWh <= 0 {
+		return errors.New("fleet energy is invalid")
+	}
+	for _, power := range []*float64{device.MaxChargeKW, device.MaxDischargeKW} {
+		if *power < 0 || *power > *device.UsableEnergyKWh {
+			return errors.New("fleet power is invalid")
+		}
+	}
+	for _, efficiency := range []*float64{device.ChargeEfficiency, device.DischargeEfficiency} {
+		if *efficiency <= 0 || *efficiency > 1 {
+			return errors.New("fleet efficiency is invalid")
+		}
+	}
+	if *device.ReservePreferencePercent < 0 || *device.ReservePreferencePercent > 100 {
+		return errors.New("fleet reserve preference is invalid")
+	}
+	return nil
 }

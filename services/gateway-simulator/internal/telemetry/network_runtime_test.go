@@ -7,6 +7,7 @@ import (
 	"time"
 
 	gridosv1 "github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1"
+	"github.com/Hirom0112/Base-GridOS/services/gateway-simulator/internal/battery"
 )
 
 func TestNetworkFailureBuffersAndReplaysOnNextCadence(t *testing.T) {
@@ -15,7 +16,7 @@ func TestNetworkFailureBuffersAndReplaysOnNextCadence(t *testing.T) {
 	store := openStore(t, ctx)
 	start := time.Date(2026, 8, 12, 18, 0, 0, 0, time.UTC)
 	publisher := &recoveringBatchPublisher{failFirst: true, recovered: make(chan struct{}, 1)}
-	fleet, err := NewFleet(store, []string{"device-1"}, time.Millisecond, publisher)
+	fleet, err := NewFleet(store, []Device{testPhysicalDevice("device-1")}, Profiles{"home": {}}, time.Millisecond, publisher)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -56,7 +57,7 @@ func TestRuntimeEffectsApplyOnlyToSelectedDevice(t *testing.T) {
 	store := openStore(t, ctx)
 	now := time.Date(2026, 8, 12, 18, 0, 0, 0, time.UTC)
 	publisher := &recoveringBatchPublisher{}
-	fleet, err := NewFleet(store, []string{"selected", "healthy"}, time.Second, publisher)
+	fleet, err := NewFleet(store, []Device{testPhysicalDevice("selected"), testPhysicalDevice("healthy")}, Profiles{"home": {}}, time.Second, publisher)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -96,6 +97,12 @@ func (publisher *recoveringBatchPublisher) PublishBatch(_ context.Context, obser
 type fixedEffects struct {
 	kind     string
 	deviceID string
+}
+
+func testPhysicalDevice(id string) Device {
+	return Device{DeviceID: id, LoadProfileType: "home", SimulationSeed: 1, Parameters: battery.Parameters{
+		UsableEnergyKWh: 10, MaxChargeKW: 2, MaxDischargeKW: 2, ChargeEfficiency: 1, DischargeEfficiency: 1,
+	}}
 }
 
 func (fixedEffects) Advance(time.Time) {

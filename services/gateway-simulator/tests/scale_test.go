@@ -12,6 +12,7 @@ import (
 	"time"
 
 	gridosv1 "github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1"
+	"github.com/Hirom0112/Base-GridOS/services/gateway-simulator/internal/battery"
 	"github.com/Hirom0112/Base-GridOS/services/gateway-simulator/internal/gateway"
 	"github.com/Hirom0112/Base-GridOS/services/gateway-simulator/internal/telemetry"
 )
@@ -35,9 +36,21 @@ func (recorder *scaleRecorder) Publish(_ context.Context, observation *gridosv1.
 	return nil
 }
 
+func (recorder *scaleRecorder) PublishBatch(ctx context.Context, observations []*gridosv1.TelemetryObservation) error {
+	for _, observation := range observations {
+		if err := recorder.Publish(ctx, observation); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func TestScale5000(t *testing.T) {
 	ctx := context.Background()
 	deviceIDs := scaleDeviceIDs(t)
+	if testing.Short() {
+		deviceIDs = deviceIDs[:500]
+	}
 	store, err := gateway.Open(ctx, filepath.Join(t.TempDir(), "gateway.db"))
 	if err != nil {
 		t.Fatal(err)
@@ -48,7 +61,13 @@ func TestScale5000(t *testing.T) {
 		}
 	})
 	recorder := &scaleRecorder{sequences: make(map[string]uint64, len(deviceIDs))}
-	fleet, err := telemetry.NewFleet(store, deviceIDs, 5*time.Second, recorder)
+	devices := make([]telemetry.Device, 0, len(deviceIDs))
+	for _, id := range deviceIDs {
+		devices = append(devices, telemetry.Device{DeviceID: id, LoadProfileType: "home", SimulationSeed: 1, Parameters: battery.Parameters{
+			UsableEnergyKWh: 10, MaxChargeKW: 2, MaxDischargeKW: 2, ChargeEfficiency: 1, DischargeEfficiency: 1,
+		}})
+	}
+	fleet, err := telemetry.NewFleet(store, devices, telemetry.Profiles{"home": {}}, 5*time.Second, recorder)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -58,7 +77,7 @@ func TestScale5000(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	if recorder.count != 600000 || len(recorder.sequences) != 5000 {
+	if recorder.count != len(deviceIDs)*120 || len(recorder.sequences) != len(deviceIDs) {
 		t.Fatalf("observations=%d devices=%d", recorder.count, len(recorder.sequences))
 	}
 	for deviceID, sequence := range recorder.sequences {

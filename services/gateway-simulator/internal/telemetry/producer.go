@@ -52,11 +52,22 @@ func NewProducer(store *gateway.Store, deviceID string, boundary gridosv1.Measur
 }
 
 func (producer *Producer) Observe(ctx context.Context, sample Sample) (*gridosv1.TelemetryObservation, error) {
-	if err := validateSample(sample); err != nil {
-		return nil, err
-	}
 	sequence, err := producer.store.NextTelemetrySequence(ctx, producer.deviceID)
 	if err != nil {
+		return nil, err
+	}
+	observation, err := producer.sampleObservation(sequence, sample)
+	if err != nil {
+		return nil, err
+	}
+	if err := producer.buffer(ctx, observation); err != nil {
+		return nil, err
+	}
+	return observation, nil
+}
+
+func (producer *Producer) sampleObservation(sequence uint64, sample Sample) (*gridosv1.TelemetryObservation, error) {
+	if err := validateSample(sample); err != nil {
 		return nil, err
 	}
 	observation := producer.baseObservation(sequence, sample.SourceTime, sample.ObservationTime)
@@ -73,9 +84,6 @@ func (producer *Producer) Observe(ctx context.Context, sample Sample) (*gridosv1
 	if err := setOperatingState(observation, sample); err != nil {
 		return nil, err
 	}
-	if err := producer.buffer(ctx, observation); err != nil {
-		return nil, err
-	}
 	return observation, nil
 }
 
@@ -84,15 +92,20 @@ func (producer *Producer) Gap(ctx context.Context, observationTime time.Time) (*
 	if err != nil {
 		return nil, err
 	}
+	observation := producer.gapObservation(sequence, observationTime)
+	if err := producer.buffer(ctx, observation); err != nil {
+		return nil, err
+	}
+	return observation, nil
+}
+
+func (producer *Producer) gapObservation(sequence uint64, observationTime time.Time) *gridosv1.TelemetryObservation {
 	observation := producer.baseObservation(sequence, observationTime, observationTime)
 	observation.ValueState = gridosv1.ValueState_VALUE_STATE_MISSING
 	observation.OperatingState = &gridosv1.TelemetryObservation_TelemetryUnavailable{
 		TelemetryUnavailable: &gridosv1.TelemetryUnavailable{ObservedAt: timestamppb.New(observationTime)},
 	}
-	if err := producer.buffer(ctx, observation); err != nil {
-		return nil, err
-	}
-	return observation, nil
+	return observation
 }
 
 func (producer *Producer) baseObservation(sequence uint64, sourceTime, observationTime time.Time) *gridosv1.TelemetryObservation {
