@@ -41,6 +41,7 @@ go_test(
         "replacement_test.go",
         "reports_test.go",
         "telemetry_retention_test.go",
+        "telemetry_gateway_lock_test.go",
     ],
     data = glob(["testdata/**"]) + ["//database:migrations"],
     embed = [":storage"],

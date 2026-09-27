@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"math"
-	"slices"
 	"time"
 
 	gridosv1 "github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1"
@@ -39,7 +38,7 @@ func (store *TelemetryStore) Write(ctx context.Context, gatewayID string, observ
 	if gatewayID == "" {
 		return nil, errors.New("gateway identifier required")
 	}
-	rows, keys, err := telemetryRows(observations)
+	rows, err := telemetryRows(observations)
 	if err != nil || len(rows) == 0 {
 		return nil, err
 	}
@@ -48,7 +47,7 @@ func (store *TelemetryStore) Write(ctx context.Context, gatewayID string, observ
 		return nil, err
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
-	if _, err = tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtextextended('telemetry:' || key, 0)) FROM (SELECT unnest($1::text[]) AS key ORDER BY key) AS ordered`, keys); err != nil {
+	if _, err = tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtextextended($1, 0))`, "telemetry:gateway:"+gatewayID); err != nil {
 		return nil, err
 	}
 	receivedAt := store.now()
@@ -142,13 +141,12 @@ func recordGatewayPublication(ctx context.Context, tx pgx.Tx, gatewayID string, 
 	return nil
 }
 
-func telemetryRows(observations []*gridosv1.TelemetryObservation) ([]telemetryRow, []string, error) {
+func telemetryRows(observations []*gridosv1.TelemetryObservation) ([]telemetryRow, error) {
 	rows := make([]telemetryRow, 0, len(observations))
-	keys := make([]string, 0, len(observations))
 	seen := make(map[string]struct{}, len(observations))
 	for _, observation := range observations {
 		if observation == nil || observation.GetObservationTime() == nil || !observation.GetObservationTime().IsValid() || observation.GetDeviceId() == "" || observation.GetSequence() == 0 || observation.GetSequence() > math.MaxInt64 {
-			return nil, nil, errors.New("invalid telemetry observation")
+			return nil, errors.New("invalid telemetry observation")
 		}
 		key := fmt.Sprintf("%s:%d", observation.GetDeviceId(), observation.GetSequence())
 		if _, exists := seen[key]; exists {
@@ -156,14 +154,12 @@ func telemetryRows(observations []*gridosv1.TelemetryObservation) ([]telemetryRo
 		}
 		values, err := protojson.Marshal(observation)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 		seen[key] = struct{}{}
-		keys = append(keys, key)
 		rows = append(rows, telemetryRow{observation: observation, key: key, values: values})
 	}
-	slices.Sort(keys)
-	return rows, keys, nil
+	return rows, nil
 }
 
 func rejectExpired(ctx context.Context, tx pgx.Tx, row telemetryRow) error {
