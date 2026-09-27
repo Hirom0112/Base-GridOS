@@ -1,6 +1,7 @@
 package replay
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"testing"
@@ -70,6 +71,12 @@ func TestManifestRecordsAbsentScenarioAndRequiresSeed(t *testing.T) {
 	}
 	manifest, err := Create(directory, input)
 	require.NoError(t, err)
+	content, err := os.ReadFile(filepath.Join(directory, input.EventID+".json"))
+	require.NoError(t, err)
+	var encoded map[string]json.RawMessage
+	require.NoError(t, json.Unmarshal(content, &encoded))
+	require.NotContains(t, encoded, "scenario_file")
+	require.NotContains(t, encoded, "scenario_sha256")
 	require.Empty(t, manifest.ScenarioFile)
 	require.Empty(t, manifest.ScenarioSHA256)
 	stored, err := Load(directory, input.EventID)
@@ -79,4 +86,9 @@ func TestManifestRecordsAbsentScenarioAndRequiresSeed(t *testing.T) {
 	input.Seed = 0
 	_, err = Create(directory, input)
 	require.ErrorContains(t, err, "seed")
+	input.EventID = "unknown-build"
+	input.Seed = 42
+	input.CodeVersion = "(devel)"
+	_, err = Create(directory, input)
+	require.ErrorContains(t, err, "code version")
 }
