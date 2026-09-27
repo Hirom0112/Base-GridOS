@@ -1472,3 +1472,30 @@ The broad Bazel run is down to one failing case, a retry expiry test that
 compares a UTC instant against a local-zone instant; the sandbox runs with no
 TZ. Decision: root normalizes the comparison in the test to instants (`.UTC()`
 or `Equal`), no production change. The broad rerun is still the gate.
+
+## 2026-09-27 05:00Z — 5F.3 will run the docs-align skill under the repo rules
+
+The `docs-align` skill at `~/.claude/skills/docs-align` asks for a
+`docs/align-<date>` branch, conventional commit prefixes, and a TODO.md for
+code gaps. AGENTS.md wins on all three: shared tree direct to `main`,
+unprefixed imperative subjects enforced by the commit-msg hook, and no
+planning files. Decision: 5F.3 runs the skill's verification phases
+(execute every README and AGENTS command, check every path and link, match
+versions to the toolchain line) and its polish phase, but commits directly
+to `main` by exact path with unprefixed subjects, and files any code gap as
+a plan item in `claude docs/BUILD_ORDER.md` instead of TODO.md. The README
+still says the repository is in the specification stage; that sentence is
+the first fix.
+
+## 2026-09-27 05:00Z — Gate 5 stub condition
+
+Gate 5 requires STUBS.md to hold only `PENDING-LIVE` connector rows. Four
+`STUBBED` rows remain: the mock API's local identities and local step-up,
+the control binary's default local gateway bearer token, and its unset
+step-up key. All four stand in for external providers with no live
+counterpart in this build (an identity provider and a secret store). The
+decision is deferred to 5F.4 with evidence: each row is either retired by
+enabling the real path on the demo (the step-up key can be set once the
+console sends assertions) or reclassified `PENDING-LIVE` with the provider
+it waits for, and the marker text in code changes with it so STUBS.md keeps
+matching the tree.
