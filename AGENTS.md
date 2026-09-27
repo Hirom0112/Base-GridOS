@@ -71,6 +71,6 @@ Before starting every item, read the last 40 `director:` lines in `.local/mailbo
 
 ## Stack
 
-Go 1.23+ for `services/control` and `services/gateway-simulator`. Python 3.12 with `uv` for `services/decision` and `tools/`. TypeScript with `pnpm` for `apps/console`. Protobuf managed by `buf` in `contracts/`. PostgreSQL 16 and Temporal via `infrastructure/local/compose.yaml`. Product behavior is `FULL_SPEC.md`; architecture and layout are `TECHSTACK.md`; data provenance is `DATASETS.md`. Commands live in the root `Makefile` once it exists.
+Go 1.23+ for `services/control` and `services/gateway-simulator`. Python 3.12 with `uv` for `services/decision` and `tools/`. TypeScript with `pnpm` for `apps/console`. Protobuf managed by `buf` in `contracts/`. PostgreSQL 16 and Temporal via `infrastructure/local/compose.yaml`. Product behavior is `FULL_SPEC.md`; architecture and layout are `TECHSTACK.md`; data provenance is `DATASETS.md`. Commands live in the root `Makefile`.
 
 Installed toolchain: Go 1.27.1, buf 1.73.0, Bazelisk 1.29.0 with Bazel 9.2.0, Temporal CLI 1.9.1, uv 0.11.7 with CPython 3.12.13, sqlc 1.31.1.
