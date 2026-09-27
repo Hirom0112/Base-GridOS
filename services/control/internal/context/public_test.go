@@ -1,6 +1,7 @@
 package context
 
 import (
+	"encoding/json"
 	"math"
 	"path/filepath"
 	"testing"
@@ -44,6 +45,37 @@ func TestLoadPublicContextProvenanceFreshness(t *testing.T) {
 	if alert.City != "dallas" || alert.Event == "" {
 		t.Fatalf("weather alert = %#v", alert)
 	}
+}
+
+func TestWeatherAlertCarriesNWSAreaEvidence(t *testing.T) {
+	now := time.Date(2026, 9, 26, 18, 0, 0, 0, time.UTC)
+	root := filepath.Join("..", "..", "..", "..", "testdata", "fixtures", "public")
+	snapshot, err := LoadPublic(root, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, alert := range snapshot.Alerts {
+		if alert.City == "houston" {
+			encoded, err := json.Marshal(alert)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var evidence struct {
+				ID              string
+				AreaDescription string
+				UGC             []string
+				SAME            []string
+			}
+			if err := json.Unmarshal(encoded, &evidence); err != nil {
+				t.Fatal(err)
+			}
+			if evidence.ID == "" || evidence.AreaDescription == "" || len(evidence.UGC) == 0 || len(evidence.SAME) == 0 {
+				t.Fatalf("NWS area evidence missing: %+v", alert)
+			}
+			return
+		}
+	}
+	t.Fatal("Houston alert fixture missing")
 }
 
 func assertSource(t *testing.T, actual Source, provenance string) {
