@@ -1005,3 +1005,7 @@ assumptions reported by workers land here too.
   both isolated runs with exact commands and last lines; the director's own
   runs (600,000 persisted, none dropped; 5,000 intents before any send,
   read p95 3.1 ms) agree with it.
+- **4F.4 (lane 4F), verified:** full, partner, comparison-peer, and
+  comparison fixtures recorded from an isolated control through the real
+  report RPCs; the partner fixture carries aggregates only and no site or
+  device identifiers. Director: fixture validator ok; contents inspected.

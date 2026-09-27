@@ -1497,7 +1497,7 @@ Owns: `tests/integration/`, `testdata/scenarios/`, `tests/end-to-end/`,
 - `[x]` 4F.3 `[after 4D.3, 4C.2]` Record context and geo fixtures: market,
   weather, outage risk, dispatch windows, H3 cells at each resolution, one
   drill-down path. Verify: fixtures test passes.
-- `[ ]` 4F.4 `[after 4E.4]` Record report, comparison, and partner-view
+- `[x]` 4F.4 `[after 4E.4]` Record report, comparison, and partner-view
   fixtures. Verify: fixtures test passes and the partner fixture has no `site_id`.
 - `[ ]` 4F.5 `[after 4F.1]` Run the full 17-step `demo-path` spec from the UI
   track at the gate and assemble the FULL_SPEC §10 acceptance table with the
