@@ -56,6 +56,24 @@ for (const width of [390, 1440]) {
         body: toJsonString(ListEventCommandsResponseSchema, response),
       }),
     );
+    await page.route("**/gridos.v1.ReportService/GetEventReport", (route) =>
+      route.fulfill({
+        json: {
+          reportJson: JSON.stringify({
+            EventID: "event_austin_wave2_live_0002",
+            ReserveCompliance: {
+              DevicesExpected: 100,
+              DevicesObserved: 99,
+              MinimumMarginKWh: -0.25,
+              DevicesTouchedFloor: 1,
+              ObservationGaps: 1,
+              ValueKind: "MEASURED",
+              Provenance: ["SIMULATED", "FROZEN_EFFECTIVE_RESERVE"],
+            },
+          }),
+        },
+      }),
+    );
     await page.setViewportSize({ width, height: 900 });
     await page.goto("/events/event_austin_wave2_live_0002");
     const commands = page.getByRole("region", { name: "Command fan-out" });
@@ -80,8 +98,11 @@ for (const width of [390, 1440]) {
           .analyze()
       ).violations,
     ).toEqual([]);
-    await page
-      .locator(".event-report")
+    await expect(
+      page.getByRole("region", { name: "Reserve protection evidence" }),
+    ).toContainText("-0.250 kWh");
+    await commands
+      .locator("..")
       .screenshot({ path: testInfo.outputPath(`commands-${width}.png`) });
   });
 }
