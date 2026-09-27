@@ -2015,3 +2015,16 @@ selection supersede the current one with an audit row, treats selecting the
 already-current plan with a new idempotency key as a no-op that returns the
 current plan, and maps rejections to domain reasons. Root, RED/GREEN in
 separate commits, migration with rollback.
+
+## 2026-09-27 08:52Z — 4B.10 verified
+
+RED 1f46cda (test only, fails on the unique-key violation when returning
+to a former plan) then GREEN 0af212a: migration 0019 with rollback
+replaces the `(member_id, policy_version)` key with one open current row
+per member and backfills history; selection supersedes the prior interval
+with a RESILIENCE_PLAN_SUPERSEDED audit row, returning to a former policy
+works, a redundant choice with a new key returns the current selection,
+and raw database errors no longer reach the API. `go test
+./services/control/internal/fleet/policy -run 'Reselect|Migration'` here:
+all eleven PASS (ok 2.570s). Marked done; the demo is rebuilt so migration
+0019 applies and the console reruns its member proof.

@@ -1481,7 +1481,7 @@ Owns: `services/control/internal/fleet/geo/`,
   scheduled Travel Flex and away windows; `PresentOffer` and the console use
   those terms instead of caller-supplied ones. Verify: `go test
   ./services/control/internal/api/member/ -run Offers` passes.
-- `[ ]` 4B.10 `[after 4B.9]` Plan re-selection. A member may select a plan they
+- `[x]` 4B.10 `[after 4B.9]` Plan re-selection. A member may select a plan they
   held before: `SelectResiliencePlan` supersedes the current plan with an
   effective-dated row and an audit entry, selecting the plan that is already
   current with a new idempotency key returns that plan without error, and
