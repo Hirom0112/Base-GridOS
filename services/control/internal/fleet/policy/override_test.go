@@ -34,6 +34,9 @@ func TestOverrideRaisesReserveImmediatelyAndExpires(t *testing.T) {
 	require.Equal(t, 1, audits)
 	command.FloorPercent = 90
 	require.Error(t, store.ApplyOverride(ctx, command))
+	command.FloorPercent = 85
+	command.EvidenceID = "different-alert"
+	require.Error(t, store.ApplyOverride(ctx, command))
 }
 
 func TestOverrideRequiresRaisedReserveAndSupportedSignal(t *testing.T) {
