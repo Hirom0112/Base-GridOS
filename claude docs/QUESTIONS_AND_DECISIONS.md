@@ -1952,3 +1952,15 @@ unchanged. `go test ./services/control/internal/storage -run Telemetry
 gateway was stopped, because the failing 5,000-lock retries were the lock
 pressure. Marked done; the demo is rebuilt on d89e865 and telemetry flow is
 the readiness check.
+
+## 2026-09-27 08:28Z — Demo telemetry restored on the lock fix
+
+Rebuilt on f183724 (includes d89e865). The gateway replayed its buffer in
+order (320,000 rows drained to zero within two minutes), the heartbeat
+advanced, no lock failures recurred, and observation lag returned to the
+cadence. Enforcement probe still denied without an assertion; worker log
+clean. Root also replaced the historical geo query's unbounded sort with an
+indexed per-device lookup under a 5 s timeout (3223696, AsOf tests ok
+here); it ships in the rebuild that carries 2A.12. Stale "database does not
+exist" connection attempts in the PostgreSQL log are leftovers from the
+dropped orphan test databases and stop on their own.
