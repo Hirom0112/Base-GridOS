@@ -49,6 +49,8 @@ func (source *PostgresSource) TimelineExceptions(ctx context.Context, eventID st
 		SELECT 'STALE_CAPACITY_REMOVED' AS kind, audit.occurred_at, prior.schedule->>'deviceId' AS device_id,
 			''::text AS command_id, audit.sequence::text AS evidence_id, 'removed from replacement plan' AS detail
 		FROM audit_journal AS audit
+		JOIN dispatch_events AS event ON event.event_id = audit.resource_id
+		JOIN dispatch_requests AS request USING (request_id)
 		JOIN plan_versions AS current ON current.event_id = audit.resource_id
 			AND current.version = (audit.new_values->>'plan_version')::bigint
 		JOIN plan_versions AS previous ON previous.event_id = audit.resource_id AND previous.version = current.version - 1
@@ -56,6 +58,11 @@ func (source *PostgresSource) TimelineExceptions(ctx context.Context, eventID st
 		WHERE audit.resource_id = $1 AND audit.action = 'REPLACEMENT_PLANNED'
 		AND NOT EXISTS (SELECT 1 FROM jsonb_array_elements(COALESCE(current.plan->'deviceSchedules', '[]'::jsonb)) AS next(schedule)
 			WHERE next.schedule->>'deviceId' = prior.schedule->>'deviceId')
+		AND EXISTS (SELECT 1 FROM telemetry_observations AS observation
+			WHERE observation.device_id = prior.schedule->>'deviceId'
+			AND observation.payload->>'valueState' = 'VALUE_STATE_MISSING'
+			AND observation.observed_at >= request.begin_time AND observation.observed_at < request.end_time
+			AND observation.observed_at <= audit.occurred_at)
 	), rebalanced AS (
 		SELECT 'REBALANCED_COMMAND' AS kind, intent.issued_at AS occurred_at, intent.device_id,
 			intent.command_id, intent.command_id AS evidence_id, 'replacement command issued' AS detail
