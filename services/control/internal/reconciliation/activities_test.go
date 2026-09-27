@@ -98,6 +98,16 @@ func TestVerifyDeliveryTracksEventWindow(t *testing.T) {
 	if state := harness.eventState(t); state != "VERIFIED" {
 		t.Fatalf("at end state = %s, want VERIFIED", state)
 	}
+	var decisions int
+	var intervalSeconds int
+	err := harness.pool.QueryRow(context.Background(), `SELECT count(*), COALESCE(max((new_values->>'interval_seconds')::int), 0)
+		FROM audit_journal WHERE resource_id = 'event-1' AND action = 'VERIFICATION_CADENCE_SELECTED'`).Scan(&decisions, &intervalSeconds)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if decisions != 1 || intervalSeconds != 300 {
+		t.Fatalf("cadence decisions = %d, interval seconds = %d", decisions, intervalSeconds)
+	}
 }
 
 func TestReconcileLateMessagesActivityAbsorbsLateTelemetry(t *testing.T) {
