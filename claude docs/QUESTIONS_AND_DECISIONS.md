@@ -1266,3 +1266,10 @@ assumptions reported by workers land here too.
   library targets depend on those outputs, so a fresh checkout runs the
   Bazel tests with no host step, matching the container boundary;
   `make generate` remains the host workflow.
+- **Recovery trigger gap (2026-09-27):** the replacement signal is only
+  ever sent by tests, so the canonical scenario's required recovery
+  actions were parsed and never asserted. Item 2B.10 makes recovery a
+  workflow policy at each verification interval: dropped devices are
+  removed and rebalanced through the safety gate once per device per
+  event, or a quantified shortfall is recorded, and the scenario asserts
+  the actions. It follows 2B.9 because a rebalance issues new commands.

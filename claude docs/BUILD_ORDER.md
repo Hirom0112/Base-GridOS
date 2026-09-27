@@ -930,6 +930,17 @@ Owns: `services/control/internal/dispatch/`, `services/control/cmd/worker`,
   physical intent (FULL_SPEC §10 "Resume an in-flight event"). Verify: `go test ./services/control/tests -run WorkerRestart` passes.
 - `[x]` 2B.7 `[after 2B.6]` Remove the Wave 1 straight-line dispatcher from
   `internal/api` and report the stub as retired. Verify: `grep -rn REPLACED-IN-WAVE-2 services` prints nothing.
+- `[ ]` 2B.10 `[after 2B.9]` Automatic recovery inside the envelope.
+  Nothing in production ever sends the replacement signal; recovery
+  exists only in tests. At each VerifyDelivery interval during EXECUTING
+  the workflow identifies dropped devices (telemetry MISSING past the
+  freshness limit, commands UNCERTAIN past the deadline or REJECTED) and,
+  once per device per event, runs the 3D.6 replacement path: remove the
+  stale capacity from the plan and rebalance onto eligible devices through
+  the safety gate, or record a quantified shortfall when none are eligible;
+  every action is audited and appears as a typed exception. The
+  heat-event-canonical assertion reads `required_recovery_actions` from the
+  scenario and checks each appears. Verify: `go test ./services/control/internal/dispatch/ -run Recovery` passes and `TestHeatEventCanonical` asserts RETRY, REMOVE_STALE_CAPACITY, and REBALANCE entries.
 - `[ ]` 2B.9 `[P]` Per-device generation across events. Control numbers
   command generations per event (0, then 1 for replacements and stops)
   while the gateway enforces monotonic generations per device, so on a
