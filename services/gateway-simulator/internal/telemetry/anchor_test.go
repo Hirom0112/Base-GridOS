@@ -1,7 +1,10 @@
 package telemetry
 
 import (
+	"bytes"
 	"context"
+	"log"
+	"strings"
 	"testing"
 	"time"
 
@@ -77,5 +80,29 @@ func TestRepeatedSlotPublishesOnceWithoutError(t *testing.T) {
 	}
 	if len(publisher.batches) != 1 {
 		t.Fatalf("published batches = %d, want 1", len(publisher.batches))
+	}
+}
+
+func TestRepeatedSlotKeepsFleetRunningAfterDeviceRejection(t *testing.T) {
+	ctx := context.Background()
+	store := openStore(t, ctx)
+	publisher := &recoveringBatchPublisher{}
+	devices := []Device{testPhysicalDevice("device-good"), testPhysicalDevice("device-bad")}
+	devices[1].LoadProfileType = "bad"
+	fleet, err := NewFleet(store, devices, Profiles{"home": {}, "bad": {}}, time.Minute, publisher)
+	if err != nil {
+		t.Fatal(err)
+	}
+	delete(fleet.profiles, "bad")
+	var logs bytes.Buffer
+	previous := log.Writer()
+	log.SetOutput(&logs)
+	t.Cleanup(func() { log.SetOutput(previous) })
+	slot := time.Date(2026, 9, 26, 12, 0, 0, 0, time.UTC)
+	if err := fleet.Emit(ctx, slot); err != nil {
+		t.Fatalf("one device rejection stopped fleet: %v", err)
+	}
+	if !strings.Contains(logs.String(), "telemetry producer rejections=1") || len(publisher.batches) != 1 || len(publisher.batches[0]) != 1 {
+		t.Fatalf("logs=%q batches=%d", logs.String(), len(publisher.batches))
 	}
 }
