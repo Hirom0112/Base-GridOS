@@ -27,4 +27,8 @@ func TestEmptyPlanShortfall(t *testing.T) {
 	if err := (IndependentSafetyGate{}).Validate(plan, canonical); err == nil {
 		t.Fatal("underdeclared shortfall approved")
 	}
+	plan.Shortfalls = nil
+	if err := (IndependentSafetyGate{}).Validate(plan, canonical); err == nil {
+		t.Fatal("unquantified empty plan approved")
+	}
 }
