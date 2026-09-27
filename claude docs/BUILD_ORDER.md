@@ -1399,7 +1399,7 @@ Owns: `services/control/internal/fleet/geo/`,
 
 Owns: `services/control/internal/context/`, `services/control/internal/api/context/`.
 
-- `[ ]` 4D.1 `[P]` RED then GREEN: reference loaders for normalized ERCOT
+- `[x]` 4D.1 `[P]` RED then GREEN: reference loaders for normalized ERCOT
   prices, system load, outage rates, and NWS forecasts and alerts from
   `testdata/fixtures/public` (offline default) with provenance and freshness
   on every response. Verify: `go test ./services/control/internal/context/` passes.

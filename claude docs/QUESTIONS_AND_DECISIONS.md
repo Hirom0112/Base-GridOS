@@ -798,3 +798,9 @@ assumptions reported by workers land here too.
   store's injected clock. Director runs: storage, ingest, reconciliation
   selectors ok; IngestScale ok against the rebuilt demo; Houston, outage
   replay, and measurement gap scenarios pass (314 s).
+- **4D.1 (lane 4D), verified:** offline loaders for ERCOT day-ahead and
+  real-time prices, system load, derived county outage rates, and NWS
+  forecasts and alerts stamp every record with its provenance class
+  (CONFIRMED_PUBLIC from the file, DERIVED from the outage row itself),
+  source as-of time, and age, and reject missing or future-dated sources.
+  Director: context package tests pass.
