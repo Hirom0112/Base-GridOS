@@ -1773,3 +1773,14 @@ live approval proof passed (1 passed 8.3s), telemetry lag 13 s. A first
 mock-signer restart raced the make target's PID sweep and lost the port
 (bind: address already in use); the second start after `demo ready`
 holds :8080. Rule kept: start the signer only after `demo ready`.
+
+## 2026-09-27 08:02Z — 4C.6 verified
+
+`go test ./services/control/internal/api/ -run Explanation` ok (0.615s) and
+`go test ./tools/development/mockapi/ -run Fixtures` ok (0.702s) here. RED
+5874b71 and fixture RED 4777fb6 stage tests only; GREEN 43fe91d adds the
+evidence message; fixture GREEN 42fc3aa records it from the rebuilt demo
+(5,000 modeled site load intervals with provenance and issue time, kWh
+units, one stored schedule). Fallback fields are absent from the recorded
+fixture because the demo plan did not fall back and protojson omits false
+and empty values. Marked done.

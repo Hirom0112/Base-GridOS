@@ -1495,7 +1495,7 @@ Owns: `services/control/internal/fleet/geo/`,
 
 Owns: `services/control/internal/context/`, `services/control/internal/api/context/`.
 
-- `[ ]` 4C.6 `[after 4C.2]` Plan evidence in the explanation. `GetPlanExplanation`
+- `[x]` 4C.6 `[after 4C.2]` Plan evidence in the explanation. `GetPlanExplanation`
   returns the forecast intervals the plan was built from, read from the
   frozen input snapshot per site, each with provenance, source time, units,
   and `MODELED` value kind, plus the stored plan's `fallback_used`,
