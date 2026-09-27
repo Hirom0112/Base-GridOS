@@ -1368,7 +1368,7 @@ Owns: `services/decision/` (whole package this wave, including
   company margin over a backtest window from normalized public prices and
   profiles, every output labelled `SIMULATED` or `DERIVED` (DATASETS §15).
   Verify: `-k bill_simulator` passes.
-- `[ ]` 4B.6 `[after 4A.2]` Optimizer consumes Travel Flex capacity only when
+- `[x]` 4B.6 `[after 4A.2]` Optimizer consumes Travel Flex capacity only when
   the policy engine reports it active and 4B.3 clears. Verify: `-k travel_flex_capacity` passes.
 
 ### Lane 4C — geographic and electrical map data

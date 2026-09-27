@@ -822,3 +822,11 @@ assumptions reported by workers land here too.
   feasible MW times hours, labelled modeled_estimate; non-finite inputs are
   rejected. Weights are a recorded assumption to revisit when a market
   contract exists. Director: context package tests pass.
+- **4B.6 (lane 4B), verified:** `OptimizationRequest` gains additive
+  per-device `base_reserve_kwh` and optional `travel_flex_reserve_kwh`
+  plus request-level `conservative_margin` and `margin_hurdle`; the
+  optimizer uses the reserve increment only when a verified flex window is
+  present and the conservative margin clears the hurdle, otherwise it plans
+  against the base reserve. Director: contracts lint and breaking clean,
+  77 decision tests, mypy clean, control builds against the regenerated
+  contracts. Control-side population of the fields is 4A.3.
