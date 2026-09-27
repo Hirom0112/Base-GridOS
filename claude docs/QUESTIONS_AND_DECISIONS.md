@@ -1009,3 +1009,12 @@ assumptions reported by workers land here too.
   comparison fixtures recorded from an isolated control through the real
   report RPCs; the partner fixture carries aggregates only and no site or
   device identifiers. Director: fixture validator ok; contents inspected.
+- **GetEvent regression fixed (lane 4E), verified on the demo:** a
+  freshly created event now returns immediately with its report withheld
+  until a plan exists, and the live full report lists plan_unavailable.
+- **Observability port clash (2026-09-27):** lane 5C's provisioning in the
+  shared compose file collided with its own isolated project on 9090 and
+  33000 and stopped `make demo`; the director removed the isolated project
+  and Prometheus and Grafana now start only under the observability
+  profile. Rule recorded: the shared compose file's default profile is the
+  demo's, and anything else is opt-in.
