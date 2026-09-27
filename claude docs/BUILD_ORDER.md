@@ -1550,7 +1550,7 @@ Owns: `tests/load/`.
 - `[x]` 5B.1 `[P]` Telemetry ingest load test at 5,000 devices reporting every
   5 seconds for 10 minutes; no dropped observations, sequence gaps reported.
   Verify: `go test ./tests/load/ -run TelemetryIngest -timeout 20m` passes.
-- `[ ]` 5B.2 `[P]` Dispatch path load test: 5,000 command intents persisted
+- `[x]` 5B.2 `[P]` Dispatch path load test: 5,000 command intents persisted
   before any network send, p95 read endpoint latency under 500 ms during the
   run (FULL_SPEC §10). Verify: `-run DispatchPath` prints p95 under 500 ms.
 - `[ ]` 5B.3 `[after 5B.2]` Results written to `claude docs/gate-reports/load.md`
@@ -1572,7 +1572,7 @@ the init call, `services/control/go.mod` (Wave 5 owner).
   Verify: `curl localhost:9464/metrics | grep gridos_` lists each metric.
 - `[x]` 5C.2 `[P]` Grafana dashboards provisioned in compose for fleet,
   dispatch, and failure recovery. Verify: `curl localhost:33000/api/dashboards/uid/gridos-dispatch` returns 200 (Grafana on 33000; the console owns 3000).
-- `[ ]` 5C.3 `[P]` RED then GREEN: log, trace, and analytics scrubbers; a test
+- `[x]` 5C.3 `[P]` RED then GREEN: log, trace, and analytics scrubbers; a test
   emits a record containing a site ID, command credential, and travel window
   and asserts none reach the exporter (FULL_SPEC §11). Verify: `go test ./services/control/... -run Scrub` passes.
 - `[x]` 5C.4 `[P]` Grafana alert rules for safety rejections, fallback rate,

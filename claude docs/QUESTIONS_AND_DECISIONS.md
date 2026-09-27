@@ -991,3 +991,13 @@ assumptions reported by workers land here too.
 - **5B.1 (lane 5B), verified:** on an isolated stack, 5,000 devices at a
   five-second cadence for ten minutes persisted 600,000 observations with
   zero dropped and zero sequence gaps (director run, 605 s).
+- **5B.2 (lane 5B), verified; lane 5B has only the report left:** on an
+  isolated stack 5,000 intents persisted before any send, none sent before
+  persistence, and 100 fleet reads during dispatch had a p95 of 3.1 ms
+  against the 500 ms ceiling (director run, 32 s).
+- **5C.3 (lane 5C), verified with a condition:** the log handler, span
+  exporter, and analytics sink scrubbers strip site ids, command
+  credentials, and Travel Flex windows, proven by a test that plants each
+  and asserts none reach the exporter. Nothing in `cmd/control` or
+  `cmd/worker` constructs them yet; 5C.1 must route every logger, tracer,
+  and analytics sink through them or the scrubbers protect nothing.
