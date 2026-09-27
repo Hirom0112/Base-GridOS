@@ -10,6 +10,8 @@ import (
 	gridosv1 "github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1"
 	"github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1/gridosv1connect"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/observability"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 )
 
 type traceOptimizationHandler struct {
@@ -33,6 +35,14 @@ func (handler *traceOptimizationHandler) Replace(_ context.Context, request *con
 }
 
 func TestConnectOptimizerForwardsTraceIdentityOnEveryRPC(t *testing.T) {
+	exporter := tracetest.NewInMemoryExporter()
+	provider := observability.NewTracerProvider(exporter)
+	previous := otel.GetTracerProvider()
+	otel.SetTracerProvider(provider)
+	t.Cleanup(func() {
+		_ = provider.Shutdown(context.Background())
+		otel.SetTracerProvider(previous)
+	})
 	handler := &traceOptimizationHandler{headers: make(map[string]http.Header)}
 	path, service := gridosv1connect.NewOptimizationServiceHandler(handler)
 	mux := http.NewServeMux()
@@ -57,6 +67,22 @@ func TestConnectOptimizerForwardsTraceIdentityOnEveryRPC(t *testing.T) {
 		headers := handler.headers[method]
 		if headers.Get("X-Correlation-Id") != "correlation-7" || headers.Get("X-Workflow-Id") != "workflow-7" {
 			t.Fatalf("%s trace headers = %v", method, headers)
+		}
+	}
+	if err := provider.ForceFlush(ctx); err != nil {
+		t.Fatal(err)
+	}
+	spans := exporter.GetSpans()
+	if len(spans) != 3 {
+		t.Fatalf("decision RPC spans = %d, want 3", len(spans))
+	}
+	for _, span := range spans {
+		values := map[string]string{}
+		for _, item := range span.Attributes {
+			values[string(item.Key)] = item.Value.AsString()
+		}
+		if values["correlation_id"] != "correlation-7" || values["workflow_id"] != "workflow-7" {
+			t.Fatalf("span trace identity = %v", values)
 		}
 	}
 }
