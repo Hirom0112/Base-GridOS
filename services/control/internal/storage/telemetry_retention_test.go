@@ -2,11 +2,13 @@ package storage
 
 import (
 	"context"
+	"os"
 	"testing"
 	"time"
 
 	gridosv1 "github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -52,12 +54,34 @@ func TestRetentionRejectsExpiredObservationWithAudit(t *testing.T) {
 func TestRetentionPrunesOneExpiredPartition(t *testing.T) {
 	pool := testDatabase(t)
 	store := NewTelemetryStore(pool)
-	_, err := pool.Exec(context.Background(), `CREATE TABLE telemetry_observations_old PARTITION OF telemetry_observations FOR VALUES FROM ('2000-01-01 00:00:00+00') TO ('2000-01-02 00:00:00+00')`)
+	_, err := pool.Exec(context.Background(), `CREATE TABLE telemetry_observations_20000101 PARTITION OF telemetry_observations FOR VALUES FROM ('2000-01-01 00:00:00+00') TO ('2000-01-02 00:00:00+00')`)
 	require.NoError(t, err)
 	pruned, err := store.Prune(context.Background(), time.Now().UTC())
 	require.NoError(t, err)
 	require.True(t, pruned)
 	var exists bool
-	require.NoError(t, pool.QueryRow(context.Background(), `SELECT to_regclass('telemetry_observations_old') IS NOT NULL`).Scan(&exists))
+	require.NoError(t, pool.QueryRow(context.Background(), `SELECT to_regclass('telemetry_observations_20000101') IS NOT NULL`).Scan(&exists))
 	require.False(t, exists)
+}
+
+func TestRetentionBackfillRemainsReadableOnDailyPartitionCreation(t *testing.T) {
+	pool := testDatabase(t)
+	store := NewTelemetryStore(pool)
+	now := time.Now().UTC().Truncate(time.Second)
+	observation := &gridosv1.TelemetryObservation{ObservationId: "legacy-retention", DeviceId: "legacy-device", Sequence: 1, ObservationTime: timestamppb.New(now), ValueState: gridosv1.ValueState_VALUE_STATE_PRESENT}
+	values, err := protojson.Marshal(observation)
+	require.NoError(t, err)
+	_, err = pool.Exec(context.Background(), `INSERT INTO audit_journal (occurred_at, actor_id, action, resource_type, resource_id, new_values, correlation_id)
+		VALUES ($1, 'legacy-device', 'TELEMETRY_RECEIVED', 'dispatch_event', 'legacy-device:1', $2, 'legacy-retention')`, now, values)
+	require.NoError(t, err)
+	migration, err := os.ReadFile("../../../../database/migrations/0006_telemetry_retention.sql")
+	require.NoError(t, err)
+	_, err = pool.Exec(context.Background(), string(migration))
+	require.NoError(t, err)
+	inserted, err := store.Write(context.Background(), []*gridosv1.TelemetryObservation{observation})
+	require.NoError(t, err)
+	require.Empty(t, inserted)
+	latest, err := store.Latest(context.Background(), []string{"legacy-device"}, now.Add(-time.Minute))
+	require.NoError(t, err)
+	require.Len(t, latest, 1)
 }
