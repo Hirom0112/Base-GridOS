@@ -4,6 +4,7 @@ import { useSession } from "../api/auth";
 import type { Role } from "../api/client";
 import "./report.css";
 import { ReserveEvidence } from "./reserve";
+import { PlannedShortfall, DeliveryShortfall } from "./report-shortfall";
 
 const number = z.number().finite();
 const reportSchema = z.object({
@@ -35,6 +36,8 @@ const reportSchema = z.object({
     })
     .nullable(),
   ReserveCompliance: z.unknown().optional(),
+  planned_shortfall: z.unknown().optional(),
+  delivery_shortfall: z.unknown().optional(),
   ReserveViolationsPrevented: z.number().int().nonnegative(),
   MemberRewardsCents: z.number().int().safe().nullable(),
   Margin: z
@@ -76,6 +79,7 @@ const partnerSchema = z.object({
   acknowledged_mw: number,
   delivered_mw: number.optional(),
   delivered_mwh: number.optional(),
+  delivery_coverage: number.min(0).max(1).optional(),
   modeled_net_value_usd: number.optional(),
   value_kind: z.literal("modeled_estimate").optional(),
 });
@@ -160,10 +164,9 @@ function DetailedReport({ report }: { report: z.infer<typeof reportSchema> }) {
         ]}
       />
       <DeliveryMeasurements report={report} />
-      <p>
-        Planned shortfall and delivery shortfall are pending server evidence.
-        Tracking error compares measured delivery with commanded power.
-      </p>
+      <p>Tracking error compares measured delivery with commanded power.</p>
+      <PlannedShortfall evidence={report.planned_shortfall} />
+      <DeliveryShortfall evidence={report.delivery_shortfall} />
       <ReserveEvidence evidence={report.ReserveCompliance} />
       <ReportEconomics report={report} />
       <ReportLineage report={report} />
@@ -320,8 +323,23 @@ export function ReportEvidence({
             ["Approved power", report.approved_mw, "MW"],
             ["Commanded power", report.commanded_mw, "MW"],
             ["Acknowledged power", report.acknowledged_mw, "MW"],
-            ["Delivered power", report.delivered_mw, "MW"],
-            ["Delivered energy", report.delivered_mwh, "MWh"],
+            [
+              "Delivered power",
+              report.delivery_coverage ? report.delivered_mw : null,
+              "MW",
+            ],
+            [
+              "Delivered energy",
+              report.delivery_coverage ? report.delivered_mwh : null,
+              "MWh",
+            ],
+            [
+              "Measurement completeness",
+              report.delivery_coverage == null
+                ? null
+                : report.delivery_coverage * 100,
+              "%",
+            ],
             [
               "Modeled net value",
               report.value_kind === "modeled_estimate"
