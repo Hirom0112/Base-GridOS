@@ -56,7 +56,10 @@ func (activities *Activities) IssueReplacement(ctx context.Context, replacement 
 	if err != nil {
 		return err
 	}
-	mergedPlan := mergeReplacementPlan(approved, plan, replacement.DroppedDeviceIDs)
+	mergedPlan, err := mergeReplacementPlan(approved, plan, replacement.DroppedDeviceIDs)
+	if err != nil {
+		return err
+	}
 	if err = storage.NewPostgresEventStore(activities.Pool).StoreReplacement(ctx, replacement.EventID, event.GetPlanVersion(), current, mergedPlan, key, now); err != nil {
 		return err
 	}
@@ -141,7 +144,10 @@ func (activities *Activities) publishReplacement(ctx context.Context, replacemen
 	return activities.publishCommands(ctx, commands)
 }
 
-func mergeReplacementPlan(approved, replacement *gridosv1.DispatchPlan, dropped []string) *gridosv1.DispatchPlan {
+func mergeReplacementPlan(approved, replacement *gridosv1.DispatchPlan, dropped []string) (*gridosv1.DispatchPlan, error) {
+	if len(approved.GetShortfalls()) > 0 && len(approved.GetShortfalls()) != len(replacement.GetShortfalls()) {
+		return nil, errors.New("replacement shortfall interval count changed")
+	}
 	merged := proto.Clone(replacement).(*gridosv1.DispatchPlan)
 	droppedIDs := make(map[string]bool, len(dropped))
 	for _, id := range dropped {
@@ -156,10 +162,13 @@ func mergeReplacementPlan(approved, replacement *gridosv1.DispatchPlan, dropped 
 	merged.DeviceSchedules = append(merged.DeviceSchedules, replacement.GetDeviceSchedules()...)
 	if len(approved.GetShortfalls()) == len(merged.GetShortfalls()) {
 		for index, previous := range approved.GetShortfalls() {
+			merged.Shortfalls[index].RequestedKw = previous.GetRequestedKw()
 			merged.Shortfalls[index].ShortfallKw += previous.GetShortfallKw()
+			merged.Shortfalls[index].FeasibleKw = max(0, merged.Shortfalls[index].RequestedKw-merged.Shortfalls[index].ShortfallKw)
+			merged.Shortfalls[index].Reasons = append(merged.Shortfalls[index].Reasons, previous.GetReasons()...)
 		}
 	}
-	return merged
+	return merged, nil
 }
 
 func (activities *Activities) publishCommands(ctx context.Context, commands []storage.CommandIntent) error {
