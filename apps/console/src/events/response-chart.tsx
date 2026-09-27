@@ -11,25 +11,25 @@ export function ResponseChart({ samples }: { samples: EventSample[] }) {
   const low = Math.min(0, ...values);
   const high = Math.max(0.001, ...values);
   const x = (time: number) =>
-    48 + (end === begin ? 0.5 : (time - begin) / (end - begin)) * 544;
+    72 + (end === begin ? 0.5 : (time - begin) / (end - begin)) * 520;
   const y = (value: number) => 180 - ((value - low) / (high - low)) * 150;
   return (
     <svg className="response-chart" viewBox="0 0 640 220" aria-hidden="true">
       {[low, (high + low) / 2, high].map((value, index) => (
         <g key={index}>
           <line
-            x1="48"
+            x1="72"
             x2="592"
             y1={y(value)}
             y2={y(value)}
             className="chart-grid"
           />
-          <text x="40" y={y(value) + 4} textAnchor="end">
+          <text x="64" y={y(value) + 4} textAnchor="end">
             {value.toFixed(3)}
           </text>
         </g>
       ))}
-      <text x="48" y="210">
+      <text x="72" y="210">
         {new Date(begin).toISOString().slice(11, 19)} UTC
       </text>
       <text x="592" y="210" textAnchor="end">

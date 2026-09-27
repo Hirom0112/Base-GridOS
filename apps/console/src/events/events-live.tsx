@@ -30,6 +30,11 @@ const updateSchema = z.object({
           (interval) =>
             interval.signedFeasiblePowerLowerKw <=
             interval.signedFeasiblePowerUpperKw,
+        )
+        .refine(
+          ({ intervalBeginTime: begin, intervalEndTime: end }) =>
+            begin.seconds < end.seconds ||
+            (begin.seconds === end.seconds && begin.nanos < end.nanos),
         ),
     ),
   }),
@@ -226,12 +231,14 @@ export function EventResponse({ samples }: { samples: EventSample[] }) {
                   <tr key={index}>
                     <td>
                       {new Date(
-                        Number(interval.intervalBeginTime.seconds) * 1000,
+                        Number(interval.intervalBeginTime.seconds) * 1000 +
+                          interval.intervalBeginTime.nanos / 1000000,
                       ).toISOString()}
                     </td>
                     <td>
                       {new Date(
-                        Number(interval.intervalEndTime.seconds) * 1000,
+                        Number(interval.intervalEndTime.seconds) * 1000 +
+                          interval.intervalEndTime.nanos / 1000000,
                       ).toISOString()}
                     </td>
                     <td>{interval.signedFeasiblePowerLowerKw}</td>
