@@ -21,6 +21,8 @@ type RiskPolicy struct {
 	StaleFloor                 float64
 	AlarmFloor                 float64
 	CommunicationsFloor        float64
+	HealthFloor                float64
+	Provenance                 string
 }
 
 type RiskWeather struct {
@@ -66,11 +68,12 @@ func (store *Store) RiskPolicyAt(ctx context.Context, at time.Time) (RiskPolicy,
 	var freshness, cadence float64
 	err := store.pool.QueryRow(ctx, `SELECT version,effective_at,expires_at,outage_probability_threshold,
 		telemetry_freshness_seconds,gateway_cadence_seconds,weather_floor_percent,outage_floor_percent,
-		stale_floor_percent,alarm_floor_percent,communications_floor_percent
+		stale_floor_percent,alarm_floor_percent,communications_floor_percent,
+		health_floor_percent,provenance->>'provenance'
 		FROM risk_policy WHERE effective_at <= $1 AND expires_at > $1`, at).Scan(
 		&value.Version, &value.EffectiveAt, &value.ExpiresAt, &value.OutageProbabilityThreshold,
 		&freshness, &cadence, &value.WeatherFloor, &value.OutageFloor, &value.StaleFloor,
-		&value.AlarmFloor, &value.CommunicationsFloor)
+		&value.AlarmFloor, &value.CommunicationsFloor, &value.HealthFloor, &value.Provenance)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return RiskPolicy{}, errors.New("risk policy is not effective")
 	}

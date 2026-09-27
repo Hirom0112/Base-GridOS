@@ -16,8 +16,8 @@ func TestRiskBridgeUsesVersionedThresholdsAndEvidence(t *testing.T) {
 	_, err := pool.Exec(ctx, `INSERT INTO risk_policy
 		(version,effective_at,expires_at,outage_probability_threshold,telemetry_freshness_seconds,
 		gateway_cadence_seconds,weather_floor_percent,outage_floor_percent,stale_floor_percent,
-		alarm_floor_percent,communications_floor_percent)
-		VALUES ('risk-v1',$1,$2,0.01,30,5,85,82,80,95,88)`, now.Add(-time.Hour), now.Add(time.Hour))
+		alarm_floor_percent,communications_floor_percent,health_floor_percent,provenance)
+		VALUES ('risk-v1',$1,$2,0.01,30,5,85,82,80,95,88,100,'{"provenance":"SIMULATED"}')`, now.Add(-time.Hour), now.Add(time.Hour))
 	require.NoError(t, err)
 	selected, err := New(pool).RiskPolicyAt(ctx, now)
 	require.NoError(t, err)

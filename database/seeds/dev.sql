@@ -50,4 +50,14 @@ SET weather_zone = EXCLUDED.weather_zone,
     simulation_seed = EXCLUDED.simulation_seed,
     correlation_id = EXCLUDED.correlation_id;
 
+INSERT INTO risk_policy (
+    version, effective_at, expires_at, outage_probability_threshold,
+    telemetry_freshness_seconds, gateway_cadence_seconds, weather_floor_percent,
+    outage_floor_percent, stale_floor_percent, alarm_floor_percent,
+    communications_floor_percent, health_floor_percent, provenance
+) VALUES (
+    'risk-policy-sim-1', '2020-01-01T00:00:00Z', '2100-01-01T00:00:00Z', 0.01,
+    30, 15, 60, 60, 40, 100, 40, 100, '{"provenance":"SIMULATED"}'
+) ON CONFLICT (version) DO NOTHING;
+
 COMMIT;
