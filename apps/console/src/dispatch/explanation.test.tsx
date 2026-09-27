@@ -233,3 +233,16 @@ test("frozen regional forecasts preserve price signs, probabilities, and missing
     screen.getByRole("region", { name: "Unavailable forecast sources" }),
   ).toHaveTextContent("regional_price:LZ_OTHER");
 });
+
+test("window ranking explains missing interval-matched inputs", () => {
+  render(<ExplanationEvidence explanation={fixture()} />);
+  expect(
+    screen.getByRole("region", { name: "Dispatch window ranking" }),
+  ).toHaveTextContent("Interval-matched regional load is not supplied");
+  expect(
+    screen.getByRole("region", { name: "Dispatch window ranking" }),
+  ).toHaveTextContent("Frozen regional prices unavailable");
+  expect(
+    screen.getByRole("region", { name: "Dispatch window ranking" }),
+  ).toHaveTextContent("Frozen outage probabilities unavailable");
+});
