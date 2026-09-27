@@ -183,7 +183,7 @@ func ClaimOutbox(ctx context.Context, pool *pgxpool.Pool, claim OutboxClaim) ([]
             AND (SELECT state FROM command_states WHERE command_id = prior.command_id ORDER BY recorded_at DESC LIMIT 1)
                 NOT IN ('UNCERTAIN', 'EXPIRED', 'CANCELLED', 'REJECTED', 'COMPLETED')
         ))
-        ORDER BY outbox.next_attempt_at, intent.device_id, intent.generation, outbox.command_id
+        ORDER BY (intent.setpoint_kw <> 0), outbox.next_attempt_at, intent.device_id, intent.generation, outbox.command_id
         FOR UPDATE OF outbox SKIP LOCKED
         LIMIT $2
     ), claimed AS (
@@ -199,7 +199,7 @@ func ClaimOutbox(ctx context.Context, pool *pgxpool.Pool, claim OutboxClaim) ([]
            intent.expires_at, intent.policy_version, intent.correlation_id,
            claimed.attempts
     FROM claimed JOIN command_intents AS intent USING (command_id)
-    ORDER BY intent.device_id, intent.generation, intent.command_id`, claim.AvailableAt, claim.BatchSize, claim.LeaseUntil)
+    ORDER BY (intent.setpoint_kw <> 0), intent.device_id, intent.generation, intent.command_id`, claim.AvailableAt, claim.BatchSize, claim.LeaseUntil)
 	if err != nil {
 		return nil, err
 	}

@@ -396,7 +396,7 @@ func (activities *Activities) EndEvent(ctx context.Context, input Input) error {
 			return err
 		}
 	}
-	return activities.Dispatcher.Publish(ctx, nil)
+	return activities.publishZeroCommands(ctx, input.EventID)
 }
 
 func (activities *Activities) ProduceReport(ctx context.Context, input Input) error {
@@ -457,5 +457,33 @@ func (activities *Activities) insertZeroCommand(ctx context.Context, eventID, re
 			return err
 		}
 	}
-	return activities.Dispatcher.Publish(ctx, nil)
+	return activities.publishZeroCommands(ctx, eventID)
+}
+
+func (activities *Activities) publishZeroCommands(ctx context.Context, eventID string) error {
+	for {
+		pending, err := activities.unpublishedZeroCount(ctx, eventID)
+		if err != nil || pending == 0 {
+			return err
+		}
+		if err := activities.Dispatcher.Publish(ctx, nil); err != nil {
+			return err
+		}
+		remaining, err := activities.unpublishedZeroCount(ctx, eventID)
+		if err != nil {
+			return err
+		}
+		if remaining >= pending {
+			return fmt.Errorf("%d zero commands remain unpublished for event %s", remaining, eventID)
+		}
+	}
+}
+
+func (activities *Activities) unpublishedZeroCount(ctx context.Context, eventID string) (int, error) {
+	var pending int
+	err := activities.Pool.QueryRow(ctx, `SELECT count(*) FROM command_intents AS intent
+		WHERE intent.event_id = $1 AND intent.setpoint_kw = 0 AND NOT EXISTS (
+			SELECT 1 FROM command_states AS state WHERE state.command_id = intent.command_id
+			AND state.state IN ('SENT', 'ACKNOWLEDGED', 'UNCERTAIN', 'REJECTED'))`, eventID).Scan(&pending)
+	return pending, err
 }

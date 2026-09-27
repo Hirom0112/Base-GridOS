@@ -193,6 +193,7 @@ func TestTrackAcknowledgementsActivity(t *testing.T) {
 func TestEndEventActivity(t *testing.T) {
 	harness := newActivityHarness(t)
 	harness.persist(t)
+	harness.liveClock()
 	require.NoError(t, harness.activities.EndEvent(context.Background(), harness.input))
 	require.Equal(t, 2, harness.count(t, "command_intents"))
 	var setpoint float64
@@ -203,6 +204,7 @@ func TestEndEventActivity(t *testing.T) {
 func TestEndEventRetryDoesNotDuplicateZeroCommands(t *testing.T) {
 	harness := newActivityHarness(t)
 	harness.persist(t)
+	harness.liveClock()
 	require.NoError(t, harness.activities.EndEvent(context.Background(), harness.input))
 	require.NoError(t, harness.activities.EndEvent(context.Background(), harness.input))
 	require.Equal(t, 2, harness.count(t, "command_intents"))
@@ -211,7 +213,7 @@ func TestEndEventRetryDoesNotDuplicateZeroCommands(t *testing.T) {
 func TestEndEventAfterDispatchWindow(t *testing.T) {
 	harness := newActivityHarness(t)
 	harness.persist(t)
-	harness.activities.Now = func() time.Time { return harness.input.Request.GetEndTime().AsTime() }
+	harness.liveClock()
 	require.NoError(t, harness.activities.EndEvent(context.Background(), harness.input))
 	require.Equal(t, 2, harness.count(t, "command_intents"))
 }
@@ -219,6 +221,7 @@ func TestEndEventAfterDispatchWindow(t *testing.T) {
 func TestEmergencyStopIssuesPerDeviceZeroSetpoints(t *testing.T) {
 	harness := newActivityHarness(t)
 	harness.persist(t)
+	harness.liveClock()
 	require.NoError(t, harness.activities.IssueEmergencyStop(context.Background(), EmergencyCommand{EventID: harness.input.EventID, Generation: 2}))
 	var deviceID string
 	var setpoint float64
@@ -230,8 +233,7 @@ func TestEmergencyStopIssuesPerDeviceZeroSetpoints(t *testing.T) {
 func TestEmergencyStopDrainsAllZeroCommands(t *testing.T) {
 	harness := newActivityHarness(t)
 	harness.plan(t)
-	harness.activities.Now = time.Now
-	harness.activities.Dispatcher.Commands = controlapi.NewCommandPipeline(harness.pool, &activityPublisher{pool: harness.pool, now: time.Now})
+	harness.liveClock()
 	ctx := context.Background()
 	now := harness.activities.Now()
 	for index := range 166 {
@@ -277,6 +279,11 @@ func TestIssueReplacementActivity(t *testing.T) {
 	harness.persist(t)
 	require.Error(t, harness.activities.IssueReplacement(context.Background(), ReplacementCommand{EventID: "event-1", Request: harness.input.Request, DroppedDeviceIDs: []string{"device-1"}, EnvelopeDeviceIDs: []string{"device-1", "device-2"}, Generation: 2}))
 	require.Equal(t, 1, harness.count(t, "command_intents"))
+}
+
+func (harness *activityHarness) liveClock() {
+	harness.activities.Now = time.Now
+	harness.activities.Dispatcher.Commands = controlapi.NewCommandPipeline(harness.pool, &activityPublisher{pool: harness.pool, now: time.Now})
 }
 
 func newActivityHarness(t *testing.T) *activityHarness {
