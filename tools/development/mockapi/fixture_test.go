@@ -119,6 +119,19 @@ func TestFixturesCaptureReserveBasisAndTravelFlexBinding(t *testing.T) {
 	}
 }
 
+func TestFixturesCaptureFrozenPlanManifest(t *testing.T) {
+	root := filepath.Join(repositoryRoot(t), "testdata", "fixtures", "api")
+	explanation := new(gridosv1.GetPlanExplanationResponse)
+	readPlanningFixture(t, root, "DispatchService/GetPlanExplanation.json", explanation)
+	if explanation.GetObjectiveBreakdown() == nil {
+		t.Fatal("recorded plan control missing")
+	}
+	manifest := explanation.GetManifest()
+	if manifest.GetInputSnapshotId() == "" || manifest.GetEligibilitySnapshotId() == "" || manifest.GetPolicyVersion() == "" || manifest.GetSolverVersion() == "" || manifest.GetModelVersion() == "" || manifest.GetCodeVersion() == "" {
+		t.Fatal("recorded plan lacks its frozen manifest")
+	}
+}
+
 func TestFixturesCaptureContext(t *testing.T) {
 	root := filepath.Join(repositoryRoot(t), "testdata", "fixtures", "api")
 	market := new(gridosv1.GetMarketContextResponse)
