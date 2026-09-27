@@ -190,16 +190,16 @@ func requireInfrastructure(t *testing.T, root string) {
 	compose := exec.CommandContext(ctx, "docker", "compose", "-f", "infrastructure/local/compose.yaml", "up", "-d", "--wait")
 	compose.Dir = root
 	if output, err := compose.CombinedOutput(); err != nil {
-		t.Skipf("Docker compose is unavailable, skipping the integration stack: %v: %s", err, tail(output))
+		t.Fatalf("integration stack prerequisite: Docker compose: %v: %s", err, tail(output))
 	}
 	admin, err := pgx.Connect(ctx, adminDatabaseURL())
 	if err != nil {
-		t.Skipf("PostgreSQL is unreachable at %s, skipping the integration stack: %v", adminDatabaseURL(), err)
+		t.Fatalf("integration stack prerequisite: PostgreSQL at %s: %v", adminDatabaseURL(), err)
 	}
 	_ = admin.Close(ctx)
 	connection, err := net.DialTimeout("tcp", temporalAddress, time.Second)
 	if err != nil {
-		t.Skipf("Temporal is unreachable at %s, skipping the integration stack: %v", temporalAddress, err)
+		t.Fatalf("integration stack prerequisite: Temporal at %s: %v", temporalAddress, err)
 	}
 	_ = connection.Close()
 }

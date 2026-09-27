@@ -1,4 +1,4 @@
-.PHONY: up down generate test-go test-e2e test-py test-web test-all hooks ui-mock plugins decision demo demo-public
+.PHONY: up down generate test-go test-load test-e2e test-py test-web test-all hooks ui-mock plugins decision demo demo-public
 
 GRIDOS_DEMO_CONTROL_PORT ?= 28080
 GRIDOS_DEMO_DECISION_PORT ?= 25061
@@ -20,7 +20,10 @@ generate:
 	sqlc generate
 
 test-go:
-	go test -timeout 40m $$(go list -m -f '{{if and .Main (ne .Path "github.com/Hirom0112/Base-GridOS/tests/end-to-end")}}{{.Path}}/...{{end}}' all)
+	go test -timeout 40m $$(go list -m -f '{{if and .Main (ne .Path "github.com/Hirom0112/Base-GridOS/tests/end-to-end") (ne .Path "github.com/Hirom0112/Base-GridOS/tests/load")}}{{.Path}}/...{{end}}' all)
+
+test-load:
+	go test -count=1 -timeout 40m ./tests/load/
 
 test-e2e:
 	@set -e; \
