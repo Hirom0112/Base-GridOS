@@ -143,6 +143,9 @@ func (service *Service) Drilldown(ctx context.Context, request *connect.Request[
 	if err := authorize(request.Header()); err != nil {
 		return nil, err
 	}
+	if len(service.sites) == 0 {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("no authorized sites for drilldown"))
+	}
 	now := service.now()
 	states, _, err := service.snapshot(ctx, now)
 	if err != nil {
