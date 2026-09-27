@@ -69,3 +69,20 @@ func TestMetricsRejectPrivateLabelsAndInvalidPopulation(t *testing.T) {
 		t.Fatalf("private label exported: %s", response.Body.String())
 	}
 }
+
+func TestMetricsAcceptDurableCommandStates(t *testing.T) {
+	t.Parallel()
+	metrics := NewMetrics()
+	for _, state := range []string{"PERSISTED", "COMPLETED"} {
+		if err := metrics.RecordCommand(state); err != nil {
+			t.Fatalf("record %s: %v", state, err)
+		}
+	}
+	response := httptest.NewRecorder()
+	metrics.Handler().ServeHTTP(response, httptest.NewRequest("GET", "/metrics", nil))
+	for _, state := range []string{"PERSISTED", "COMPLETED"} {
+		if !strings.Contains(response.Body.String(), `gridos_commands_total{state="`+state+`"} 1`) {
+			t.Fatalf("missing committed state %s: %s", state, response.Body.String())
+		}
+	}
+}
