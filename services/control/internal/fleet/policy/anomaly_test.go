@@ -44,6 +44,16 @@ func TestAnomalyNeedsOptInAwayAndMeasuredLoadAboveConsentedBound(t *testing.T) {
 	require.NoError(t, pool.QueryRow(ctx, `SELECT count(*) FROM audit_journal WHERE action = 'ENERGY_ANOMALY_SIGNAL' AND resource_id = $1`, alert.ID).Scan(&audits))
 	require.Equal(t, 1, alerts)
 	require.Equal(t, 1, audits)
+	updated := preference
+	updated.ID = "preference-anomaly-updated"
+	updated.EffectiveAt = reading.ObservedAt
+	updated.CorrelationID = updated.ID
+	require.NoError(t, store.SetAnomalyPreference(ctx, updated))
+	newAlert, err := store.EvaluateAnomaly(ctx, reading)
+	require.NoError(t, err)
+	require.NotNil(t, newAlert)
+	require.NotEqual(t, alert.ID, newAlert.ID)
+	require.Equal(t, updated.ID, newAlert.PreferenceID)
 	var deliveries int
 	require.NoError(t, pool.QueryRow(ctx, `SELECT count(*) FROM member_alert_deliveries WHERE alert_id = $1`, alert.ID).Scan(&deliveries))
 	require.Zero(t, deliveries)
