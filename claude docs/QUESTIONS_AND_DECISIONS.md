@@ -1575,3 +1575,10 @@ tree". Root owns the marker rename in services and tools; the console lane
 renames its identity badge. Verify: `grep -rn STUBBED services tools apps
 --include='*.go' --include='*.py' --include='*.ts' --include='*.tsx'`
 prints nothing and `grep -c STUBBED STUBS.md` prints 0.
+
+## 2026-09-27 05:18Z — STUBS reclassification verified
+
+On 3a99409 the STUBBED grep over services and tools prints nothing, STUBS.md
+holds zero STUBBED rows and sixteen PENDING-LIVE rows naming Clerk or the
+gateway identity and secret provider, and vet is clean on both mains. The
+console badge rename is with the console lane.
