@@ -1208,3 +1208,11 @@ assumptions reported by workers land here too.
   federation reads rotating ECS task-role credentials from the container
   credential endpoint, since the pinned OAuth library only reads instance
   metadata; no static Google key exists anywhere.
+- **5D.1 (lane 5D), verified:** Terraform for staging ECS services
+  (control, worker, decision, gateway simulator), ALB, private service
+  discovery, RDS PostgreSQL with a managed master password, a managed or
+  external Temporal endpoint behind a variable, and Secrets Manager
+  configuration. Director: init and validate succeed with Terraform
+  v1.16.4 (binary at /tmp/gridos-terraform-bin, downloaded from the
+  official release with a matching checksum; not part of the pinned
+  toolchain yet, which 5F records); no apply was run and no account exists.

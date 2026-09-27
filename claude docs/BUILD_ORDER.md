@@ -1604,7 +1604,7 @@ the init call, `services/control/go.mod` (Wave 5 owner).
 
 Owns: `infrastructure/aws/`.
 
-- `[ ]` 5D.1 `[P]` Terraform for ECS services (control, worker, decision,
+- `[x]` 5D.1 `[P]` Terraform for ECS services (control, worker, decision,
   gateway simulator for staging), RDS PostgreSQL, Temporal (managed or
   self-hosted behind a variable), ALB, secrets in AWS Secrets Manager.
   Verify: `terraform -chdir=infrastructure/aws init -backend=false && terraform -chdir=infrastructure/aws validate`.
