@@ -127,6 +127,32 @@ func TestPublisherRetriesSameCommandID(t *testing.T) {
 	assertPublisherState(t, pool, command.CommandID, "ACKNOWLEDGED", "PUBLISHED")
 }
 
+func TestPublisherBatchContinuesPastUnavailableCommand(t *testing.T) {
+	pool := publisherDatabase(t)
+	now := time.Now().UTC()
+	unavailable := publisherCommand("batch-unavailable", now)
+	available := publisherCommand("batch-available", now)
+	available.DeviceID = "device-2"
+	seedPublisherCommand(t, pool, unavailable)
+	if err := storage.InsertCommand(context.Background(), pool, available); err != nil {
+		t.Fatal(err)
+	}
+	service := &recordingCommandService{unavailableCommandID: unavailable.CommandID, now: now}
+	server := commandServer(t, service)
+	publisher := New(Config{Pool: pool, Client: gridosv1connect.NewCommandServiceClient(server.Client(), server.URL, connect.WithGRPC()),
+		AuthorizationToken: "Bearer publisher-test", BatchSize: 2, LeaseDuration: time.Second,
+		AcknowledgementTimeout: time.Second, Now: func() time.Time { return now }, Interval: intervalFor})
+	if err := publisher.PublishBatch(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	assertPublisherState(t, pool, unavailable.CommandID, "UNCERTAIN", "PUBLISHING")
+	assertPublisherState(t, pool, available.CommandID, "ACKNOWLEDGED", "PUBLISHED")
+	var attempts int
+	if err := pool.QueryRow(context.Background(), `SELECT attempts FROM command_outbox WHERE command_id = $1`, unavailable.CommandID).Scan(&attempts); err != nil || attempts != 3 {
+		t.Fatalf("unavailable attempts = %d, error = %v", attempts, err)
+	}
+}
+
 func acknowledgementSamples(t *testing.T) float64 {
 	t.Helper()
 	response := httptest.NewRecorder()
@@ -177,11 +203,12 @@ func TestPublisherMarksDeadlineUncertain(t *testing.T) {
 }
 
 type recordingCommandService struct {
-	mu                sync.Mutex
-	commandIDs        []string
-	failFirst         bool
-	deadlineCommandID string
-	now               time.Time
+	mu                   sync.Mutex
+	commandIDs           []string
+	failFirst            bool
+	deadlineCommandID    string
+	unavailableCommandID string
+	now                  time.Time
 }
 
 func (service *recordingCommandService) SubmitCommand(ctx context.Context, request *connect.Request[gridosv1.SubmitCommandRequest]) (*connect.Response[gridosv1.SubmitCommandResponse], error) {
@@ -192,6 +219,9 @@ func (service *recordingCommandService) SubmitCommand(ctx context.Context, reque
 	if request.Msg.GetCommandIntent().GetCommandId() == service.deadlineCommandID {
 		<-ctx.Done()
 		return nil, ctx.Err()
+	}
+	if request.Msg.GetCommandIntent().GetCommandId() == service.unavailableCommandID {
+		return nil, connect.NewError(connect.CodeUnavailable, errors.New("unavailable"))
 	}
 	if service.failFirst && attempt == 1 {
 		return nil, connect.NewError(connect.CodeUnavailable, errors.New("unavailable"))
