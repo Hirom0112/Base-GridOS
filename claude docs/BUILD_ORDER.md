@@ -930,6 +930,20 @@ Owns: `services/control/internal/dispatch/`, `services/control/cmd/worker`,
   physical intent (FULL_SPEC §10 "Resume an in-flight event"). Verify: `go test ./services/control/tests -run WorkerRestart` passes.
 - `[x]` 2B.7 `[after 2B.6]` Remove the Wave 1 straight-line dispatcher from
   `internal/api` and report the stub as retired. Verify: `grep -rn REPLACED-IN-WAVE-2 services` prints nothing.
+- `[ ]` 2B.9 `[P]` Per-device generation across events. Control numbers
+  command generations per event (0, then 1 for replacements and stops)
+  while the gateway enforces monotonic generations per device, so on a
+  fleet that has already run events a fresh event's commands and even its
+  emergency stop are rejected as OBSOLETE_GENERATION (found on the
+  standing demo by the emergency-stop runbook rehearsal: both generation 0
+  and the stop generation 1 rejected on a device that had seen higher
+  generations). RED: two consecutive events on one device in the
+  integration harness, the second must be accepted and its stop must land.
+  GREEN: when persisting intents, control assigns each device the next
+  generation after that device's last durable generation (a per-device
+  counter in storage, read in the same transaction), replacements and
+  stops continue from it, and the frozen plan records the generation used.
+  Verify: `go test ./services/control/internal/storage/ -run DeviceGeneration` and `go test ./tests/integration/ -run ConsecutiveEvents` pass, and the emergency-stop runbook rehearsal on the demo shows the stop ACCEPTED.
 
 ### Lane 2C — reconciliation: acknowledgement versus delivery
 

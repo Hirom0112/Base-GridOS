@@ -1253,3 +1253,11 @@ assumptions reported by workers land here too.
   with no apply and no cloud credentials, and the recorded plan lives in
   `claude docs/gate-reports/terraform-plan.md` with no key material.
   Director: the test passes with the same binary.
+- **Generation defect (2026-09-27, found by the emergency-stop runbook):**
+  control numbers generations per event while the gateway enforces them
+  per device, so after earlier events a fresh event's commands and its
+  emergency stop are rejected as obsolete on the standing demo. No
+  physical stop can be claimed until item 2B.9 gives each device a
+  monotonic generation across events. This is a Gate 4 blocker: the
+  canonical demo path approves, launches, and stops on a fleet that has
+  run before.
