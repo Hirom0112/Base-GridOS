@@ -1553,7 +1553,7 @@ Owns: `tests/load/`.
 - `[x]` 5B.2 `[P]` Dispatch path load test: 5,000 command intents persisted
   before any network send, p95 read endpoint latency under 500 ms during the
   run (FULL_SPEC §10). Verify: `-run DispatchPath` prints p95 under 500 ms.
-- `[ ]` 5B.3 `[after 5B.2]` Results written to `claude docs/gate-reports/load.md`
+- `[x]` 5B.3 `[after 5B.2]` Results written to `claude docs/gate-reports/load.md`
   with the raw output of both runs. Verify: `grep -E "p95|dropped" "claude docs/gate-reports/load.md"` shows the p95 figure and a zero dropped count.
 
 ### Lane 5C — observability

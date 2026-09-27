@@ -1001,3 +1001,7 @@ assumptions reported by workers land here too.
   and asserts none reach the exporter. Nothing in `cmd/control` or
   `cmd/worker` constructs them yet; 5C.1 must route every logger, tracer,
   and analytics sink through them or the scrubbers protect nothing.
+- **5B.3 (lane 5B), verified; lane 5B complete:** the load report records
+  both isolated runs with exact commands and last lines; the director's own
+  runs (600,000 persisted, none dropped; 5,000 intents before any send,
+  read p95 3.1 ms) agree with it.
