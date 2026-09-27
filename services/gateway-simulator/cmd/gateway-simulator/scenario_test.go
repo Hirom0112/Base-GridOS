@@ -212,13 +212,14 @@ func TestRuntimeNextCommandScopeDelaysOnlyFirstEventCommand(t *testing.T) {
 	t.Cleanup(func() { _ = store.Close() })
 	now := time.Now().UTC()
 	scenario := failures.Scenario{Seed: 2, Start: now, Tick: time.Second, Injections: []failures.Injection{{At: now, Kind: failures.DelayedGateway, Scope: "next_command"}}}
+	commandAt := now.Add(2 * time.Second)
 	engine, err := failures.NewEngine(scenario, []failures.Device{{ID: "first", Region: "LZ_AEN"}, {ID: "second", Region: "LZ_AEN"}})
 	if err != nil {
 		t.Fatal(err)
 	}
-	handler := newRuntimeCommandHandler(protocol.NewCommandHandler(store, "gateway", "token", func() time.Time { return now }), failures.NewRuntime(engine), func() time.Time { return now })
+	handler := newRuntimeCommandHandler(protocol.NewCommandHandler(store, "gateway", "token", func() time.Time { return commandAt }), failures.NewRuntime(engine), func() time.Time { return commandAt })
 	for index, deviceID := range []string{"first", "second"} {
-		request := connect.NewRequest(commandRequest(deviceID, now))
+		request := connect.NewRequest(commandRequest(deviceID, commandAt))
 		request.Msg.CommandIntent.EventId = "event"
 		request.Header().Set("Authorization", "token")
 		_, err := handler.SubmitCommand(ctx, request)
