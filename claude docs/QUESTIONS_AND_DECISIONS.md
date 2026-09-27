@@ -1334,3 +1334,7 @@ assumptions reported by workers land here too.
   uses the event id when it passes the privacy validator and a stable
   derived value otherwise, marked as derived on scrubbed spans; the
   activity never fails. Gate window resumed for the reruns.
+- **Gate 4 reruns (2026-09-27):** after the scope, cadence, and trace
+  identity fixes the canonical heat event passes with its MISSING
+  exception asserted (112 s) and Travel Flex passes (105 s) on the
+  director's machine.
