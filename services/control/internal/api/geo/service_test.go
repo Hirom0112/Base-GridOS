@@ -22,6 +22,7 @@ func TestGeoServicePrivacyAndDrilldown(t *testing.T) {
 		sites = append(sites, &gridosv1.AuthorizedSite{Site: &gridosv1.Site{SiteId: id, LoadZone: "LZ_AEN", H3Cell: "8726cb9a5ffffff"}, Devices: []*gridosv1.Device{{BatteryParameters: &gridosv1.BatteryParameters{UsableEnergyKwh: 10, MaxDischargeKw: 5}}}})
 		states = append(states, fleet.SiteState{SiteID: id, EnergyKWh: 8, Availability: fleet.Online, OperatingState: fleet.OnGrid, ObservedAt: now, DispatchableKW: 5})
 	}
+	sites[0].Devices = append(sites[0].Devices, &gridosv1.Device{BatteryParameters: &gridosv1.BatteryParameters{UsableEnergyKwh: 10, MaxDischargeKw: 5}})
 	service := NewService(sites, func(context.Context, time.Time) ([]fleet.SiteState, map[string]bool, error) {
 		return states, map[string]bool{"site-0": true}, nil
 	}, func() time.Time { return now })
@@ -37,6 +38,9 @@ func TestGeoServicePrivacyAndDrilldown(t *testing.T) {
 	}
 	if len(cells.Msg.GetCells()) != 1 || cells.Msg.GetCells()[0].GetSiteCount() != 6 || cells.Msg.GetCells()[0].GetActiveDispatchCount() != 1 || cells.Msg.GetCells()[0].GetProvenance() != gridosv1.DataProvenance_DATA_PROVENANCE_SIMULATED {
 		t.Fatalf("unsafe or incomplete aggregate: %+v", cells.Msg.GetCells())
+	}
+	if len(cells.Msg.GetCells()[0].GetOperatingStateCounts()) != 1 || cells.Msg.GetCells()[0].GetOperatingStateCounts()[0].GetAggregate().GetDeviceCount() != 7 {
+		t.Fatalf("operating state must count devices: %+v", cells.Msg.GetCells()[0].GetOperatingStateCounts())
 	}
 	parent := ""
 	for range 5 {
