@@ -1403,7 +1403,7 @@ Owns: `services/control/internal/context/`, `services/control/internal/api/conte
   prices, system load, outage rates, and NWS forecasts and alerts from
   `testdata/fixtures/public` (offline default) with provenance and freshness
   on every response. Verify: `go test ./services/control/internal/context/` passes.
-- `[ ]` 4D.2 `[P]` RED then GREEN: dispatch-window identification. Ranks
+- `[x]` 4D.2 `[P]` RED then GREEN: dispatch-window identification. Ranks
   candidate windows by price, regional load, and outage risk and returns the
   forecast grid value with `value_kind=modeled_estimate` (FULL_SPEC §3 "Grid
   and market operations"). Verify: `-run Windows` passes.

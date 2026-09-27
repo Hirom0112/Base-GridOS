@@ -816,3 +816,9 @@ assumptions reported by workers land here too.
   replay with different consent or plan; an inactive catalog is refused.
   Migration 0008 applies twice and survives rollback and re-apply.
   Director: policy package tests pass.
+- **4D.2 (lane 4D), verified:** candidate dispatch windows rank by
+  equal-weight min-max normalized price, regional load, and outage risk
+  with earlier start as the tie-break; gross grid value is price times
+  feasible MW times hours, labelled modeled_estimate; non-finite inputs are
+  rejected. Weights are a recorded assumption to revisit when a market
+  contract exists. Director: context package tests pass.
