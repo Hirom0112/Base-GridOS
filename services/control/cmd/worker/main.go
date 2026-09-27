@@ -21,6 +21,8 @@ import (
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/storage"
 	storagepublisher "github.com/Hirom0112/Base-GridOS/services/control/internal/storage/publisher"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"go.temporal.io/api/enums/v1"
+	"go.temporal.io/api/serviceerror"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/worker"
 )
@@ -69,10 +71,23 @@ func main() {
 		log.Fatal(err)
 	}
 	defer temporalClient.Close()
-	dispatchWorker := worker.New(temporalClient, environment("GRIDOS_TASK_QUEUE", dispatch.TaskQueue), worker.Options{})
+	taskQueue := environment("GRIDOS_TASK_QUEUE", dispatch.TaskQueue)
+	dispatchWorker := worker.New(temporalClient, taskQueue, worker.Options{})
 	dispatchWorker.RegisterWorkflow(dispatch.Workflow)
+	dispatchWorker.RegisterWorkflow(dispatch.TelemetryMaintenance)
 	dispatchWorker.RegisterActivity(activities)
+	dispatchWorker.RegisterActivity(&dispatch.TelemetryMaintenanceActivities{Store: storage.NewTelemetryStore(pool), Now: time.Now})
 	dispatchWorker.RegisterActivity(&reconciliation.Activities{Pool: pool, Events: storage.NewPostgresEventStore(pool), Now: time.Now, MaxGap: 30 * time.Second})
+	startCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	_, err = temporalClient.ExecuteWorkflow(startCtx, client.StartWorkflowOptions{
+		ID: taskQueue + "-telemetry-maintenance", TaskQueue: taskQueue, CronSchedule: "0 * * * *",
+		WorkflowIDReusePolicy: enums.WORKFLOW_ID_REUSE_POLICY_REJECT_DUPLICATE,
+	}, dispatch.TelemetryMaintenance)
+	cancel()
+	var alreadyStarted *serviceerror.WorkflowExecutionAlreadyStarted
+	if err != nil && !errors.As(err, &alreadyStarted) {
+		log.Fatal(err)
+	}
 	if err = dispatchWorker.Run(worker.InterruptCh()); err != nil {
 		log.Fatal(err)
 	}
