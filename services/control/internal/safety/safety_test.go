@@ -296,3 +296,24 @@ func withEnergy(device DeviceState, energy float64) DeviceState {
 	device.EnergyKWh = &energy
 	return device
 }
+
+func homeLoadPlan(energy, homeLoadKW float64) (Plan, CanonicalState) {
+	plan, state := validInputs()
+	device := withEnergy(state.Devices["device-1"], energy)
+	device.HomeLoadKW = homeLoadKW
+	state.Devices["device-1"] = device
+	plan.Devices[0].EnergyKWh = []float64{energy, energy - (2.0+homeLoadKW)/0.95/12}
+	return plan, state
+}
+
+func TestValidateReservesHomeLoadDrawnWithExport(t *testing.T) {
+	plan, state := homeLoadPlan(8.2, 3)
+	_, violations := Validate(plan, state)
+	if !violationCodes(violations)[EnergyBelowReserve] {
+		t.Fatalf("expected %s for export plus home load below reserve, got %#v", EnergyBelowReserve, violations)
+	}
+	plan, state = homeLoadPlan(20, 3)
+	if approval, violations := Validate(plan, state); !approval.Approved {
+		t.Fatalf("expected approval with ample energy for export plus home load, got %#v", violations)
+	}
+}
