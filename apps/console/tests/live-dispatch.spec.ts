@@ -1,4 +1,6 @@
 import { expect, test } from "@playwright/test";
+import { fromJsonString } from "@bufbuild/protobuf";
+import { GetPlanExplanationResponseSchema } from "../src/api/gen/gridos/v1/api_pb";
 import { z } from "zod";
 
 const assertionSchema = z.object({ assertion: z.string().min(1) });
@@ -385,4 +387,59 @@ test("live member selects stored terms, schedules Travel Flex and returns early"
     fullPage: true,
   });
   console.log(`LIVE MEMBER WINDOW ${receipt.windowId}`);
+});
+
+test("live frozen reserve and Travel Flex review matches the stored plan", async ({
+  page,
+  request,
+}, testInfo) => {
+  const eventId = process.env.GRIDOS_POLICY_EVENT_ID ?? "event-4c9-1790500277";
+  const response = await request.post(
+    "http://127.0.0.1:28080/gridos.v1.DispatchService/GetPlanExplanation",
+    {
+      headers: { "X-GridOS-Role": "operator" },
+      data: { eventId, planVersion: "1" },
+    },
+  );
+  expect(response.ok(), await response.text()).toBe(true);
+  const { evidence } = fromJsonString(
+    GetPlanExplanationResponseSchema,
+    await response.text(),
+  );
+  expect(evidence?.reserveBases.length).toBe(5000);
+  const override = evidence?.reserveBases.find(
+    (basis) => basis.overrideFloorKwh !== undefined,
+  );
+  const binding = evidence?.travelFlexBindings[0];
+  if (!override || !binding)
+    throw new Error("Seeded frozen policy evidence missing");
+  await page.goto(`/dispatch/${eventId}`);
+  const reserve = page.getByRole("region", { name: "Household reserve basis" });
+  await expect(reserve).toContainText("5,000 devices");
+  await page.getByLabel("Find reserve device").fill(override.deviceId);
+  await expect(reserve).toContainText("COMMUNICATIONS");
+  await expect(reserve).toContainText(override.overrideSourceId);
+  await expect(reserve).toContainText(override.overridePolicyVersion);
+  await expect(reserve).toContainText(
+    `${override.overrideFloorKwh!.toFixed(3)} kWh`,
+  );
+  await expect(reserve).toContainText(
+    `${override.effectiveReserveKwh.toFixed(3)} kWh`,
+  );
+  const travel = page.getByRole("region", { name: "Travel Flex eligibility" });
+  await expect(travel).toContainText(binding.windowId);
+  await expect(travel).toContainText(
+    `${binding.creditCents} cents · Fixed daily credit`,
+  );
+  await expect(travel).toContainText(binding.consentVersion);
+  await expect(travel).toContainText(binding.policyVersion);
+  await reserve.screenshot({
+    path: testInfo.outputPath("live-frozen-reserve.png"),
+  });
+  await travel.screenshot({
+    path: testInfo.outputPath("live-frozen-travel-flex.png"),
+  });
+  console.log(
+    `LIVE FROZEN POLICY ${eventId}, ${evidence!.reserveBases.length} bases, ${evidence!.travelFlexBindings.length} bindings`,
+  );
 });
