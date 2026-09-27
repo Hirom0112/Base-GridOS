@@ -3,7 +3,10 @@ import { useQuery } from "@tanstack/react-query";
 import { z } from "zod";
 import { useSession } from "../api/auth";
 import { evidenceSchema } from "../api/Provenance";
-import type { ListEventCommandsResponse } from "../api/gen/gridos/v1/events_pb";
+import {
+  CommandLifecycleState,
+  type ListEventCommandsResponse,
+} from "../api/gen/gridos/v1/events_pb";
 import "./report.css";
 
 const timeSchema = evidenceSchema.shape.timestamp;
@@ -20,7 +23,9 @@ const commandSchema = z
       effectiveAt: timeSchema,
       expiresAt: timeSchema,
     }),
-    state: z.string().min(1),
+    lifecycleState: z
+      .enum(CommandLifecycleState)
+      .refine((state) => state !== CommandLifecycleState.UNSPECIFIED),
     stateRecordedAt: timeSchema,
     receipt: z
       .object({
@@ -166,7 +171,7 @@ export function CommandEvidence({
                           Issued <CommandTime value={row.intent.issuedAt} />
                         </td>
                         <td>
-                          {row.state}
+                          {CommandLifecycleState[row.lifecycleState]}
                           <br />
                           <CommandTime value={row.stateRecordedAt} />
                         </td>

@@ -126,7 +126,9 @@ for (const { width, mode } of [
       await page.locator(".live-response").screenshot({
         path: testInfo.outputPath(`live-response-${width}-${mode}.png`),
       });
-      await page.getByLabel("Geographic measure").selectOption("delivered");
+      await page
+        .getByRole("combobox", { name: /Geographic measure/ })
+        .selectOption("delivered");
       await page.getByText("Inspect the geographic data").click();
       const row = page.getByRole("row").filter({ hasText: "874898431ffffff" });
       await expect(row).toContainText("0.065");
