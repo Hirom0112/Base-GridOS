@@ -1,0 +1,69 @@
+syntax = "proto3";
+
+package gridos.v1;
+
+import "google/protobuf/duration.proto";
+import "gridos/v1/api.proto";
+import "gridos/v1/device.proto";
+
+option go_package = "github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1;gridosv1";
+
+message ListCellsRequest {
+  uint32 resolution = 1;
+  repeated string load_zones = 2;
+}
+
+message GeoCell {
+  string h3_cell = 1;
+  uint64 site_count = 2;
+  double installed_mw = 3;
+  double installed_mwh = 4;
+  double dispatchable_mw = 5;
+  double reserved_mwh = 6;
+  uint64 soc_low_count = 7;
+  uint64 soc_medium_count = 8;
+  uint64 soc_high_count = 9;
+  uint64 soc_unknown_count = 10;
+  uint64 connected_count = 11;
+  uint64 active_dispatch_count = 12;
+  google.protobuf.Duration freshness = 13;
+  DataProvenance provenance = 14;
+  repeated OperatingStateDeviceCount operating_state_counts = 15;
+  repeated AvailabilityStateDeviceCount availability_state_counts = 16;
+}
+
+message ListCellsResponse {
+  repeated GeoCell cells = 1;
+}
+
+enum GeoLevel {
+  GEO_LEVEL_UNSPECIFIED = 0;
+  GEO_LEVEL_MARKET = 1;
+  GEO_LEVEL_LOAD_ZONE = 2;
+  GEO_LEVEL_UTILITY = 3;
+  GEO_LEVEL_SUBSTATION = 4;
+  GEO_LEVEL_FEEDER = 5;
+}
+
+message GeoNode {
+  string id = 1;
+  string parent_id = 2;
+  GeoLevel level = 3;
+  string label = 4;
+  uint64 site_count = 5;
+  DataProvenance provenance = 6;
+}
+
+message DrilldownRequest {
+  string parent_id = 1;
+}
+
+message DrilldownResponse {
+  repeated GeoNode nodes = 1;
+  repeated AuthorizedSite sites = 2;
+}
+
+service GeoService {
+  rpc ListCells(ListCellsRequest) returns (ListCellsResponse);
+  rpc Drilldown(DrilldownRequest) returns (DrilldownResponse);
+}
