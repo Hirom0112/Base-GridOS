@@ -2163,3 +2163,16 @@ director's own isolated rerun printed `--- PASS: TestHeatEventCanonical
 (116.20s)`, `ok ... 116.612s`. The item stays dispatched until the last
 verify clause, all five exception kinds on the standing demo within
 fifteen minutes, is observed on live-proof-1790501468.
+
+## 2026-09-27 09:36Z — 5F.5 accepted at the assembly level
+
+RED 715078c (check script only) then GREEN 59d2c03: `make demo` with a
+scenario assembles the demo public directory from the public fixtures
+with the weather subdirectory replaced by `testdata/scenarios/weather/`
+(one synthetic Severe Thunderstorm Warning for TXZ192 expiring in 2100,
+provenance note SIMULATED, forecast files copied unchanged) and passes
+GRIDOS_PUBLIC_CONTEXT_DIR to control and worker. `sh
+testdata/scenarios/check-demo-public.sh` prints PASS and the context
+weather loader test is ok here. The live clause (a WEATHER override row on
+the demo) is checked at the rebuild that follows the running steps 11/12
+proof.
