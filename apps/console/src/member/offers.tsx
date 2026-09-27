@@ -60,12 +60,14 @@ export default function MemberOffers({
             memberId={memberId}
             terms={selected}
             onConfirmed={confirmed}
+            onDismiss={() => setSelected(null)}
             travel={(offerId) => (
               <TravelSchedule
                 memberId={memberId}
                 terms={selected}
                 offerId={offerId}
                 onConfirmed={confirmed}
+                onDismiss={() => setSelected(null)}
               />
             )}
           />

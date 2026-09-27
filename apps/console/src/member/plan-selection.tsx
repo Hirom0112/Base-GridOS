@@ -14,11 +14,13 @@ export function PlanSelection({
   memberId,
   offerId,
   onConfirmed,
+  onDismiss,
 }: {
   terms: MemberOfferTerms;
   memberId: string;
   offerId: string;
   onConfirmed: () => void;
+  onDismiss?: () => void;
 }) {
   const { client } = useSession();
   const [consent, setConsent] = useState(false);
@@ -99,6 +101,11 @@ export function PlanSelection({
         />
         I agree to the displayed plan terms.
       </label>
+      {state === "ready" && onDismiss && (
+        <button type="button" onClick={onDismiss}>
+          Cancel review
+        </button>
+      )}
       {error && <p role="alert">{error}</p>}
       {state === "confirmed" ? (
         <p role="status">

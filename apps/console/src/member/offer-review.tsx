@@ -14,11 +14,13 @@ export function OfferReview({
   memberId,
   terms,
   onConfirmed,
+  onDismiss,
   travel,
 }: {
   memberId: string;
   terms: MemberOfferTerms;
   onConfirmed: () => void;
+  onDismiss?: () => void;
   travel?: (offerId: string) => ReactNode;
 }) {
   const { client } = useSession();
@@ -107,6 +109,11 @@ export function OfferReview({
           Complete, bounded offer terms are unavailable. Selection is blocked.
         </p>
       )}
+      {state.kind === "ready" && onDismiss && (
+        <button type="button" onClick={onDismiss}>
+          Cancel review
+        </button>
+      )}
       {state.kind === "unknown" && (
         <p role="alert">Offer review is not confirmed. {state.error}</p>
       )}
@@ -126,6 +133,7 @@ export function OfferReview({
             terms={terms}
             offerId={state.offerId}
             onConfirmed={onConfirmed}
+            onDismiss={onDismiss}
           />
         ) : (
           travel?.(state.offerId)

@@ -22,6 +22,22 @@
 }
 .member-home button {
   min-height: 44px;
+  border: 1px solid color-mix(in srgb, var(--paper-2) 35%, transparent);
+  border-radius: var(--radius-sm);
+  background: var(--ink-2);
+  color: var(--paper-0);
+  padding: 8px 14px;
+}
+.member-home button:disabled {
+  opacity: 0.55;
+}
+.member-consent input[type="checkbox"] {
+  appearance: auto;
+  width: 20px;
+  height: 20px;
+  margin-inline-end: 10px;
+  vertical-align: middle;
+  accent-color: var(--energy);
 }
 .member-offers {
   display: grid;
