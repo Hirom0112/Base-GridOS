@@ -31,7 +31,7 @@ test("live demo receives event stream evidence without launching commands", asyn
   console.log(`LIVE STREAM ${page.url()}`);
 });
 
-test("live demo creates, validates, approves, and launches a simulated event", async ({
+test("live demo launches and stops a simulated event with enforced step-up", async ({
   page,
   request,
 }, testInfo) => {
@@ -95,6 +95,35 @@ test("live demo creates, validates, approves, and launches a simulated event", a
     path: testInfo.outputPath("live-execution.png"),
     fullPage: true,
   });
+  await page.getByRole("button", { name: "Request emergency stop" }).click();
+  await page
+    .getByLabel("Reason for stopping")
+    .fill("Live console verification complete");
+  await page.getByLabel("Type STOP to confirm").fill("STOP");
+  const issued = page.waitForResponse((response) =>
+    response.url().endsWith("/local/step-up"),
+  );
+  const stopped = page.waitForRequest((request) =>
+    request.url().endsWith("/EmergencyStop"),
+  );
+  const stopResponse = page.waitForResponse((response) =>
+    response.url().endsWith("/EmergencyStop"),
+  );
+  await page.getByRole("button", { name: "Confirm stop request" }).click();
+  const assertionResponse = await issued;
+  expect(assertionResponse.status()).toBe(200);
+  const assertion = assertionSchema.parse(
+    await assertionResponse.json(),
+  ).assertion;
+  expect((await stopped).headers()["x-gridos-step-up"]).toBe(assertion);
+  const stopReceipt = await stopResponse;
+  expect(stopReceipt.ok(), await stopReceipt.text()).toBe(true);
+  await expect(
+    page.getByRole("region", { name: "Emergency stop" }),
+  ).toContainText("STOP REQUESTED");
+  await expect(
+    page.getByRole("region", { name: "Emergency stop" }),
+  ).toContainText("not confirmed stopped");
   await page.getByRole("link", { name: "Report", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "Event evidence" }),
