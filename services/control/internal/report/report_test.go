@@ -2,6 +2,7 @@ package report
 
 import (
 	"context"
+	"math"
 	"reflect"
 	"testing"
 	"time"
@@ -10,6 +11,50 @@ import (
 type storedReportSource struct {
 	eventID string
 	data    StoredEvent
+}
+
+func TestFullEventReportPreservesAccountingAndModeledEconomics(t *testing.T) {
+	begin := time.Date(2026, 9, 26, 12, 0, 0, 0, time.UTC)
+	data := StoredEvent{
+		RequestedMW: 20, ApprovedMW: 18, CommandedMW: 17, AcknowledgedMW: 16,
+		Energy:                     &EnergyTotals{RequestedMWh: 40, ApprovedMWh: 36, CommandedMWh: 34, AcknowledgedMWh: 32, DeliveredMWh: 30},
+		Measurement:                &Measurement{BaselineMW: 4, BaselineMWh: 8, BaselineMethod: "matched-day", DeliveryMethod: "meter-net-export", Availability: 0.92, Confidence: 0.88},
+		Delivered:                  &Delivered{DeliveredMW: 15, DeliveredMWh: 30, TrackingErrorMW: -1, ResponseLatency: 12 * time.Second},
+		ReserveViolationsPrevented: 7,
+		Economics:                  &ModeledEconomics{GrossValueUSD: 100, DegradationCostUSD: 12, PenaltyExposureUSD: 3},
+		DataGaps:                   []DataGap{{Begin: begin, End: begin.Add(5 * time.Minute), Reason: "missing telemetry"}},
+		Assumptions:                []string{"baseline uses matched day"}, Provenance: []string{"SIMULATED", "DERIVED"},
+		Versions: Versions{Policy: "policy-7", Solver: "highs-1", Model: "dispatch-2", Forecast: "load-3", Availability: "reliability-1", Baseline: "matched-day-1", Economics: "value-1"},
+	}
+	source := &storedReportSource{data: data}
+	got, err := Build(context.Background(), source, "event-full")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Energy == nil || *got.Energy != *data.Energy || got.Measurement == nil || *got.Measurement != *data.Measurement {
+		t.Fatalf("energy or measurement missing: %+v", got)
+	}
+	if got.ReserveViolationsPrevented != 7 || got.Economics == nil || got.Economics.GrossValueUSD != 100 || got.Economics.DegradationCostUSD != 12 ||
+		got.Economics.PenaltyExposureUSD != 3 || got.Economics.NetValueUSD != 85 || got.Economics.ValueKind != "modeled_estimate" {
+		t.Fatalf("reserve or economics missing: %+v", got)
+	}
+	if !reflect.DeepEqual(got.DataGaps, data.DataGaps) || !reflect.DeepEqual(got.Assumptions, data.Assumptions) || got.Versions != data.Versions {
+		t.Fatalf("gaps, assumptions, or versions missing: %+v", got)
+	}
+	got.Energy.RequestedMWh = 0
+	got.DataGaps[0].Reason = "changed"
+	got.Assumptions[0] = "changed"
+	if data.Energy.RequestedMWh != 40 || data.DataGaps[0].Reason != "missing telemetry" || data.Assumptions[0] != "baseline uses matched day" {
+		t.Fatal("report aliases stored evidence")
+	}
+}
+
+func TestFullEventReportRejectsNonfiniteFinancialInput(t *testing.T) {
+	source := &storedReportSource{data: StoredEvent{Economics: &ModeledEconomics{GrossValueUSD: math.NaN()}}}
+	_, err := Build(context.Background(), source, "event-invalid")
+	if err == nil {
+		t.Fatal("nonfinite modeled value accepted")
+	}
 }
 
 func (source *storedReportSource) EventReportData(_ context.Context, eventID string) (StoredEvent, error) {
