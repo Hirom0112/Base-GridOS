@@ -35,11 +35,25 @@ message ListEventCommandsRequest {
   string event_id = 1;
 }
 
+enum CommandLifecycleState {
+  COMMAND_LIFECYCLE_STATE_UNSPECIFIED = 0;
+  COMMAND_LIFECYCLE_STATE_PERSISTED = 1;
+  COMMAND_LIFECYCLE_STATE_SENT = 2;
+  COMMAND_LIFECYCLE_STATE_ACKNOWLEDGED = 3;
+  COMMAND_LIFECYCLE_STATE_UNCERTAIN = 4;
+  COMMAND_LIFECYCLE_STATE_EXECUTING = 5;
+  COMMAND_LIFECYCLE_STATE_COMPLETED = 6;
+  COMMAND_LIFECYCLE_STATE_CANCELLED = 7;
+  COMMAND_LIFECYCLE_STATE_EXPIRED = 8;
+  COMMAND_LIFECYCLE_STATE_REJECTED = 9;
+}
+
 message EventCommand {
   CommandIntent intent = 1;
-  string state = 2;
+  string state = 2 [deprecated = true];
   google.protobuf.Timestamp state_recorded_at = 3;
   CommandAcknowledgement receipt = 4;
+  CommandLifecycleState lifecycle_state = 5;
 }
 
 message EventIntervalVerification {

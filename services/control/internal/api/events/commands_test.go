@@ -45,13 +45,13 @@ func TestListEventCommandsFromDurableRows(t *testing.T) {
 	acknowledged := response.Msg.GetCommands()[0]
 	require.Equal(t, "command-ack", acknowledged.GetIntent().GetCommandId())
 	require.Equal(t, uint64(4), acknowledged.GetIntent().GetGeneration())
-	require.Equal(t, "ACKNOWLEDGED", acknowledged.GetState())
+	require.Equal(t, gridosv1.CommandLifecycleState_COMMAND_LIFECYCLE_STATE_ACKNOWLEDGED, acknowledged.GetLifecycleState())
 	require.Equal(t, begin.Add(time.Minute), acknowledged.GetStateRecordedAt().AsTime())
 	require.Equal(t, gridosv1.CommandReceiptStatus_COMMAND_RECEIPT_STATUS_ACCEPTED, acknowledged.GetReceipt().GetReceiptStatus())
 	require.Equal(t, "receipt-ack", acknowledged.GetReceipt().GetAcknowledgementId())
 	require.Equal(t, begin.Add(time.Hour), acknowledged.GetIntent().GetExpiresAt().AsTime())
 	expired := response.Msg.GetCommands()[1]
-	require.Equal(t, "EXPIRED", expired.GetState())
+	require.Equal(t, gridosv1.CommandLifecycleState_COMMAND_LIFECYCLE_STATE_EXPIRED, expired.GetLifecycleState())
 	require.Nil(t, expired.GetReceipt())
 	require.Equal(t, begin.Add(2*time.Minute), expired.GetIntent().GetExpiresAt().AsTime())
 	require.Len(t, response.Msg.GetVerificationIntervals(), 1)

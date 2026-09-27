@@ -101,7 +101,11 @@ func scanEventCommand(rows pgx.Rows) (*gridosv1.EventCommand, error) {
 	}
 	intent.PlanVersion, intent.Generation = uint64(version), uint64(generation)
 	intent.IssuedAt, intent.EffectiveAt, intent.ExpiresAt = timestamppb.New(issued), timestamppb.New(effective), timestamppb.New(expires)
-	command := &gridosv1.EventCommand{Intent: intent, State: state.String, StateRecordedAt: timestamppb.New(stateAt.Time)}
+	lifecycle, found := commandLifecycle[state.String]
+	if !found {
+		return nil, errors.New("stored command state is invalid")
+	}
+	command := &gridosv1.EventCommand{Intent: intent, LifecycleState: lifecycle, StateRecordedAt: timestamppb.New(stateAt.Time)}
 	if !receiptID.Valid {
 		return command, nil
 	}
@@ -121,4 +125,16 @@ func scanEventCommand(rows pgx.Rows) (*gridosv1.EventCommand, error) {
 		IdempotencyKey: receiptKey.String, ReceiptStatus: status, ReceivedAt: timestamppb.New(receivedAt.Time),
 		GatewayId: gatewayID.String, RejectionReason: rejection.String}
 	return command, nil
+}
+
+var commandLifecycle = map[string]gridosv1.CommandLifecycleState{
+	"PERSISTED":    gridosv1.CommandLifecycleState_COMMAND_LIFECYCLE_STATE_PERSISTED,
+	"SENT":         gridosv1.CommandLifecycleState_COMMAND_LIFECYCLE_STATE_SENT,
+	"ACKNOWLEDGED": gridosv1.CommandLifecycleState_COMMAND_LIFECYCLE_STATE_ACKNOWLEDGED,
+	"UNCERTAIN":    gridosv1.CommandLifecycleState_COMMAND_LIFECYCLE_STATE_UNCERTAIN,
+	"EXECUTING":    gridosv1.CommandLifecycleState_COMMAND_LIFECYCLE_STATE_EXECUTING,
+	"COMPLETED":    gridosv1.CommandLifecycleState_COMMAND_LIFECYCLE_STATE_COMPLETED,
+	"CANCELLED":    gridosv1.CommandLifecycleState_COMMAND_LIFECYCLE_STATE_CANCELLED,
+	"EXPIRED":      gridosv1.CommandLifecycleState_COMMAND_LIFECYCLE_STATE_EXPIRED,
+	"REJECTED":     gridosv1.CommandLifecycleState_COMMAND_LIFECYCLE_STATE_REJECTED,
 }
