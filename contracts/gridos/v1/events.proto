@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package gridos.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1;gridosv1";
+
+enum EventExceptionKind {
+  EVENT_EXCEPTION_KIND_UNSPECIFIED = 0;
+  EVENT_EXCEPTION_KIND_MISSING_TELEMETRY = 1;
+  EVENT_EXCEPTION_KIND_UNCERTAIN_COMMAND = 2;
+  EVENT_EXCEPTION_KIND_LATE_ACCEPTANCE = 3;
+  EVENT_EXCEPTION_KIND_COMMAND_RETRY = 4;
+  EVENT_EXCEPTION_KIND_REPLACEMENT_PLANNED = 5;
+  EVENT_EXCEPTION_KIND_REPLACEMENT_SAFETY_REJECTED = 6;
+  EVENT_EXCEPTION_KIND_EMERGENCY_STOP_REQUESTED = 7;
+}
+
+message EventException {
+  EventExceptionKind kind = 1;
+  google.protobuf.Timestamp occurred_at = 2;
+  string event_id = 3;
+  string device_id = 4;
+  string command_id = 5;
+  string evidence_id = 6;
+  string detail = 7;
+}
