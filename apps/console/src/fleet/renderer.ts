@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import type { GridCell } from "./scene";
+import { animateResponse } from "./response-motion";
 
 export function mountGrid(host: HTMLElement, select: (id: string) => void) {
   const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
@@ -9,6 +10,7 @@ export function mountGrid(host: HTMLElement, select: (id: string) => void) {
   host.append(renderer.domElement);
   const scene = new THREE.Scene();
   let cells: GridCell[] = [];
+  let cancelMotion = () => {};
   let span = 12;
   const camera = new THREE.OrthographicCamera(
     -span,
@@ -92,6 +94,15 @@ export function mountGrid(host: HTMLElement, select: (id: string) => void) {
   renderer.domElement.addEventListener("pointerup", pick);
   return {
     update(next: GridCell[], selected: string | null) {
+      cancelMotion();
+      const previous = new Map(cells.map((cell) => [cell.id, cell]));
+      const changed = next.flatMap((cell, index) =>
+        cell.response &&
+        (cell.value !== previous.get(cell.id)?.value ||
+          cell.response !== previous.get(cell.id)?.response)
+          ? [index]
+          : [],
+      );
       cells = next;
       scene.remove(mesh);
       mesh.dispose();
@@ -108,8 +119,10 @@ export function mountGrid(host: HTMLElement, select: (id: string) => void) {
         ) * 1.08;
       grid.scale.setScalar(span * 1.2);
       resizeFrame();
+      cancelMotion = animateResponse(mesh, changed, render, () => visible);
     },
     dispose() {
+      cancelMotion();
       resize.disconnect();
       visibility.disconnect();
       document.removeEventListener("visibilitychange", render);

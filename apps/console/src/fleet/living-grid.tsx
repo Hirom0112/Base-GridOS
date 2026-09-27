@@ -180,13 +180,21 @@ function Relief({ cells }: { cells: GridCell[] }) {
             );
             return (
               <g
-                key={cell.id}
+                key={`${cell.id}:${cell.response}:${cell.value}`}
                 style={
                   {
                     "--cell-color": `#${cell.color.toString(16).padStart(6, "0")}`,
                   } as React.CSSProperties
                 }
               >
+                {cell.response && (
+                  <polygon
+                    className="response-pulse"
+                    points={boundary
+                      .map((point) => transform(point, cell.height).join(","))
+                      .join(" ")}
+                  />
+                )}
                 {boundary.map((point, i) => {
                   const next = boundary[(i + 1) % boundary.length];
                   return (

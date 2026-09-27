@@ -34,6 +34,7 @@ export function projectCells(input: H3SiteAggregate[]) {
   return cells.map((cell, index) => ({
     id: cell.h3Cell,
     color: 0xa6b9ae,
+    response: null as ResponseMeasure | null,
     value: cell.installedMw.value as number | null,
     position: project(positions[index] ?? center),
     boundary: cellToBoundary(cell.h3Cell).map(project),
@@ -71,6 +72,7 @@ export function projectResponse(
     return {
       ...cell,
       value,
+      response: value !== null && value !== 0 ? measure : null,
       height: value === null ? 0 : Math.abs(value) * 18,
       color: value === null ? 0x66736c : colors[measure],
     };
