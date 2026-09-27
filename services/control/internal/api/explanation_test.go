@@ -35,6 +35,7 @@ func TestGetPlanExplanation(t *testing.T) {
 		}},
 		plan: &gridosv1.DispatchPlan{
 			EventId: "event-explain", PlanVersion: 7,
+			MarginExplanation:  &gridosv1.MarginExplanation{ConservativeMargin: -0.1, Terms: []*gridosv1.MarginTerm{{Name: "DISPATCH_VALUE", Low: -0.1, Source: "FROZEN_PUBLIC_PRICE"}, {Name: "MEMBER_REWARD", Unavailable: true}}},
 			ObjectiveBreakdown: &gridosv1.ObjectiveBreakdown{GridValue: 50, DegradationCost: 3},
 			ConstraintMargins:  []*gridosv1.ConstraintMargin{{ConstraintName: "feeder", Margin: 4, Units: "kW"}},
 			Exclusions:         []*gridosv1.DeviceExclusion{{DeviceId: "c", Reason: gridosv1.ExclusionReason_EXCLUSION_REASON_RESERVE}},
@@ -57,6 +58,9 @@ func TestGetPlanExplanation(t *testing.T) {
 	explanation := response.Msg
 	if explanation.GetObjectiveBreakdown().GetGridValue() != 50 || explanation.GetReserveHeldBackKwh() != 20 || explanation.GetConstraintMargins()[0].GetMargin() != 4 || explanation.GetExclusions()[0].GetDeviceId() != "c" || explanation.GetShortfalls()[0].GetShortfallKw() != 10 {
 		t.Fatalf("explanation = %#v", explanation)
+	}
+	if explanation.GetMarginExplanation().GetConservativeMargin() != -0.1 || explanation.GetMarginExplanation().GetTerms()[0].GetSource() != "FROZEN_PUBLIC_PRICE" || !explanation.GetMarginExplanation().GetTerms()[1].GetUnavailable() {
+		t.Fatalf("margin explanation = %#v", explanation.GetMarginExplanation())
 	}
 	request.Header().Set(roleHeader, "member")
 	_, err = client.GetPlanExplanation(context.Background(), request)
