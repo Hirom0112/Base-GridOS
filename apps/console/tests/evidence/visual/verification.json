@@ -1,0 +1,117 @@
+{
+  "command": "pnpm --dir apps/console playwright test golden-review.spec.ts --workers 1 --output /tmp/gridos-golden-composed",
+  "last_line": "8 passed (47.9s)",
+  "mode": "Local identity; recorded, explicitly SIMULATED fleet and context fixtures",
+  "checks": [
+    "Single active renderer",
+    "No horizontal document overflow",
+    "WCAG 2 A/AA axe checks",
+    "Keyboard cell selection and navigation to planning",
+    "Unexpected browser error capture",
+    "Reduced motion has no running animations",
+    "No-WebGL relief and exact geographic values"
+  ],
+  "limitations": [
+    "200% case is a 720x500 CSS-pixel reflow equivalent of a 1440x1000 viewport, not physical browser zoom or assistive-technology testing",
+    "Expected Three.js context-creation error is allowed only in the no-WebGL profile",
+    "These screenshots do not establish live demo-path or production identity readiness"
+  ],
+  "artifacts": [
+    {
+      "profile": "desktop-dark",
+      "state": "fleet",
+      "file": "desktop-dark-fleet.png",
+      "sha256": "ffe9b4b65a6e93407979dcb8e340eb50cf002b4c6a230ca58d19712970993fa6"
+    },
+    {
+      "profile": "desktop-dark",
+      "state": "planning",
+      "file": "desktop-dark-planning.png",
+      "sha256": "aed7cee5bdf00bbc126689e0c1510581f595f58dfb58d39e243e698d06f6f052"
+    },
+    {
+      "profile": "tablet-light",
+      "state": "fleet",
+      "file": "tablet-light-fleet.png",
+      "sha256": "35a3132c1a4836719d566648f99a34f06fc12c77d99ad17a7c0a4c49c54ded7e"
+    },
+    {
+      "profile": "tablet-light",
+      "state": "planning",
+      "file": "tablet-light-planning.png",
+      "sha256": "020505211d2cf1e76d7509364018ad3949e8c82b977023b608eacaae0a719180"
+    },
+    {
+      "profile": "mobile-dark",
+      "state": "fleet",
+      "file": "mobile-dark-fleet.png",
+      "sha256": "a5e4fae442e39a7e4b5643eadc906eb1a26fece076c3335f45784a2e345daed9"
+    },
+    {
+      "profile": "mobile-dark",
+      "state": "planning",
+      "file": "mobile-dark-planning.png",
+      "sha256": "ec352df72e8212a30ff25047c4da79e7184dd018bc034775871882200d2f0de1"
+    },
+    {
+      "profile": "mobile-light",
+      "state": "fleet",
+      "file": "mobile-light-fleet.png",
+      "sha256": "5574fd8fee14765a1c209baf19e367ca9cc30dd2df63c031c41f0bd9fc25d295"
+    },
+    {
+      "profile": "mobile-light",
+      "state": "planning",
+      "file": "mobile-light-planning.png",
+      "sha256": "65b0fcb2f645927863c00005e78e4ec081a1d48ad24dd3102d7c4a4afa0a37e4"
+    },
+    {
+      "profile": "short-screen",
+      "state": "fleet",
+      "file": "short-screen-fleet.png",
+      "sha256": "ae3ec8027763f887b2c5b9ae9a661109ad4c6e7e6841a7c20ff9d59b60e531a3"
+    },
+    {
+      "profile": "short-screen",
+      "state": "planning",
+      "file": "short-screen-planning.png",
+      "sha256": "0633c277e4602ea90b5ce4a44d49ee5febac7fc166e7b4a120edffe931e62380"
+    },
+    {
+      "profile": "zoom-200-reflow",
+      "state": "fleet",
+      "file": "zoom-200-reflow-fleet.png",
+      "sha256": "eb00cc9152309cdbcc4f69315b3ac64f61674d211105d1252cd50e4ee7d21d6c"
+    },
+    {
+      "profile": "zoom-200-reflow",
+      "state": "planning",
+      "file": "zoom-200-reflow-planning.png",
+      "sha256": "9b0b55e6dad4aab3fec18eebb995a6dfbe31139d590e70bcdfdb8c5f293ae879"
+    },
+    {
+      "profile": "no-webgl",
+      "state": "fleet",
+      "file": "no-webgl-fleet.png",
+      "sha256": "52b9d76a5514c7d25f25ab7fab766b5d9434a3f9d91bf67f895e338d10dcb365"
+    },
+    {
+      "profile": "no-webgl",
+      "state": "planning",
+      "file": "no-webgl-planning.png",
+      "sha256": "3048a488a445fb3d7071d8a2a8d23bb22f48f703844b11c2e96c17e011398f36"
+    },
+    {
+      "profile": "reduced-motion",
+      "state": "fleet",
+      "file": "reduced-motion-fleet.png",
+      "sha256": "a5e4fae442e39a7e4b5643eadc906eb1a26fece076c3335f45784a2e345daed9"
+    },
+    {
+      "profile": "reduced-motion",
+      "state": "planning",
+      "file": "reduced-motion-planning.png",
+      "sha256": "ec352df72e8212a30ff25047c4da79e7184dd018bc034775871882200d2f0de1"
+    }
+  ]
+}
