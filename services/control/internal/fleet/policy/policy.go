@@ -73,24 +73,21 @@ func (store *Store) Select(ctx context.Context, choice Selection) (*Plan, error)
 		}
 		return previous, nil
 	}
-	plan, err := catalogPlan(ctx, tx, choice)
+	noOp, supersededID, err := resolveReselection(ctx, tx, choice)
 	if err != nil {
 		return nil, err
 	}
-	if err = requirePlanOffer(ctx, tx, choice, plan); err != nil {
-		return nil, err
+	if noOp != nil {
+		return noOp, nil
 	}
-	var policyFloor float64
-	err = tx.QueryRow(ctx, `SELECT member_plan_floor_percent FROM reserve_policies
-		WHERE policy_version = $1 AND effective_at <= $2 AND (expires_at IS NULL OR expires_at > $2)`, choice.PolicyVersion, choice.EffectiveAt).Scan(&policyFloor)
-	if errors.Is(err, pgx.ErrNoRows) {
-		return nil, errors.New("reserve policy is not effective")
-	}
+	plan, err := qualifiedSelection(ctx, tx, choice)
 	if err != nil {
 		return nil, err
 	}
-	if policyFloor != plan.ReserveFloorPercent {
-		return nil, errors.New("catalog reserve does not match effective reserve policy")
+	if supersededID != "" {
+		if err = supersedeSelection(ctx, tx, supersededID, choice); err != nil {
+			return nil, err
+		}
 	}
 	_, err = tx.Exec(ctx, `INSERT INTO resilience_plans
 		(resilience_plan_id, member_id, market, reserve_floor_percent, consent_text, consent_version,
@@ -122,6 +119,29 @@ func (choice Selection) validate() error {
 		return errors.New("consent text, version, and explanation shown are required")
 	}
 	return nil
+}
+
+func qualifiedSelection(ctx context.Context, tx pgx.Tx, choice Selection) (*Plan, error) {
+	plan, err := catalogPlan(ctx, tx, choice)
+	if err != nil {
+		return nil, err
+	}
+	if err = requirePlanOffer(ctx, tx, choice, plan); err != nil {
+		return nil, err
+	}
+	var policyFloor float64
+	err = tx.QueryRow(ctx, `SELECT member_plan_floor_percent FROM reserve_policies
+		WHERE policy_version = $1 AND effective_at <= $2 AND (expires_at IS NULL OR expires_at > $2)`, choice.PolicyVersion, choice.EffectiveAt).Scan(&policyFloor)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, errors.New("reserve policy is not effective")
+	}
+	if err != nil {
+		return nil, err
+	}
+	if policyFloor != plan.ReserveFloorPercent {
+		return nil, errors.New("catalog reserve does not match effective reserve policy")
+	}
+	return plan, nil
 }
 
 func catalogPlan(ctx context.Context, tx pgx.Tx, choice Selection) (*Plan, error) {

@@ -9,6 +9,7 @@ import (
 	gridosv1 "github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/fleet/policy"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -35,6 +36,10 @@ func timestamp(value *timestamppb.Timestamp) (time.Time, error) {
 func policyError(err error) error {
 	if err == nil {
 		return nil
+	}
+	var databaseError *pgconn.PgError
+	if errors.As(err, &databaseError) {
+		return connect.NewError(connect.CodeInternal, errors.New("member policy storage failed"))
 	}
 	return connect.NewError(connect.CodeFailedPrecondition, err)
 }

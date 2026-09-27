@@ -49,7 +49,7 @@ func TestReselectFormerPlanSupersedesCurrentAndNoOpsCurrent(t *testing.T) {
 		if item.expires == nil {
 			require.Nil(t, expires)
 		} else {
-			require.Equal(t, *item.expires, *expires)
+			require.True(t, item.expires.Equal(*expires))
 		}
 	}
 	same := third
