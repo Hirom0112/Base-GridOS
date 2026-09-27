@@ -12,6 +12,7 @@ import (
 
 const PruneTelemetryActivity = "PruneTelemetry"
 const RiskOverridesActivity = "EvaluateRiskOverrides"
+const RiskAnomaliesActivity = "EvaluateRiskAnomalies"
 
 type TelemetryMaintenanceActivities struct {
 	Store *storage.TelemetryStore
@@ -24,6 +25,10 @@ type RiskOverrideActivities struct {
 
 func (activities *RiskOverrideActivities) EvaluateRiskOverrides(ctx context.Context, at time.Time) error {
 	return activities.Bridge.Evaluate(ctx, at)
+}
+
+func (activities *RiskOverrideActivities) EvaluateRiskAnomalies(ctx context.Context, at time.Time) error {
+	return activities.Bridge.EvaluateAnomalies(ctx, at)
 }
 
 func (activities *TelemetryMaintenanceActivities) PruneTelemetry(ctx context.Context) error {
@@ -53,5 +58,8 @@ func RiskOverrides(ctx workflow.Context) error {
 			MaximumAttempts: 1,
 		},
 	})
-	return workflow.ExecuteActivity(ctx, RiskOverridesActivity, at).Get(ctx, nil)
+	if err := workflow.ExecuteActivity(ctx, RiskOverridesActivity, at).Get(ctx, nil); err != nil {
+		return err
+	}
+	return workflow.ExecuteActivity(ctx, RiskAnomaliesActivity, at).Get(ctx, nil)
 }

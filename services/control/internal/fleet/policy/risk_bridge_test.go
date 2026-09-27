@@ -108,6 +108,35 @@ func TestRiskBridgeWeatherMatchesOnlyMappedFleetAndZone(t *testing.T) {
 	require.Contains(t, evidence.Missing, "weather_no_active_alert")
 }
 
+func TestRiskBridgeAwayAnomalyUsesLatestMeasuredHomeLoad(t *testing.T) {
+	pool := policyDatabase(t)
+	ctx := context.Background()
+	now := time.Now().UTC().Truncate(time.Second)
+	_, err := pool.Exec(ctx, `INSERT INTO member_sites(site_id,member_id,bound_at,source,provenance)
+		VALUES ('away-site','away-member',$1,'SIMULATED','{"provenance":"SIMULATED"}')`, now.Add(-time.Hour))
+	require.NoError(t, err)
+	store := New(pool)
+	require.NoError(t, store.SetAnomalyPreference(ctx, AnomalyPreference{ID: "away-preference", MemberID: "away-member",
+		OptIn: true, ConsentText: "notify on home load", ConsentVersion: "v1", BaselineUpperKW: 1,
+		BaselineBegin: now.Add(-time.Hour), BaselineEnd: now.Add(time.Hour),
+		EffectiveAt: now.Add(-time.Hour), ExpiresAt: now.Add(time.Hour), CorrelationID: "away-preference"}))
+	require.NoError(t, store.ScheduleAway(ctx, AwayPeriod{ID: "away-period", MemberID: "away-member",
+		Start: now.Add(-time.Hour), End: now.Add(time.Hour), ConsentVersion: "v1", CorrelationID: "away-period"}))
+	sites := []*gridosv1.AuthorizedSite{{Site: &gridosv1.Site{SiteId: "away-site"},
+		Devices: []*gridosv1.Device{{DeviceId: "away-device"}}}}
+	telemetry := storage.NewTelemetryStoreAt(pool, func() time.Time { return now })
+	_, err = telemetry.Write(ctx, "away-gateway", []*gridosv1.TelemetryObservation{{ObservationId: "away-observation",
+		DeviceId: "away-device", Sequence: 1, ObservationTime: timestamppb.New(now),
+		ValueState: gridosv1.ValueState_VALUE_STATE_PRESENT, PowerFlow: &gridosv1.PowerFlow{ToHomeKw: 3}}})
+	require.NoError(t, err)
+	bridge := NewRiskBridge(pool, sites, "", "away-fleet.jsonl")
+	require.NoError(t, bridge.EvaluateAnomalies(ctx, now))
+	require.NoError(t, bridge.EvaluateAnomalies(ctx, now))
+	var count int
+	require.NoError(t, pool.QueryRow(ctx, `SELECT count(*) FROM member_alerts WHERE member_id = 'away-member' AND message = 'energy anomaly signal'`).Scan(&count))
+	require.Equal(t, 1, count)
+}
+
 func TestRiskBridgeMigrationReapplies(t *testing.T) {
 	pool := policyDatabase(t)
 	forward, err := os.ReadFile("../../../../../database/migrations/0014_risk_policy.sql")

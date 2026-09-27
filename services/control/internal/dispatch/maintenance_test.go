@@ -23,26 +23,28 @@ func TestTelemetryMaintenanceRunsOneBoundedPruneActivity(t *testing.T) {
 	environment.AssertExpectations(t)
 }
 
-func TestRiskOverridesRunsOneBoundedEvaluation(t *testing.T) {
+func TestRiskOverridesRunsBoundedEvaluations(t *testing.T) {
 	var suite testsuite.WorkflowTestSuite
 	environment := suite.NewTestWorkflowEnvironment()
 	environment.RegisterActivityWithOptions(func(context.Context, time.Time) error { return nil }, activity.RegisterOptions{Name: RiskOverridesActivity})
+	environment.RegisterActivityWithOptions(func(context.Context, time.Time) error { return nil }, activity.RegisterOptions{Name: RiskAnomaliesActivity})
 	environment.OnActivity(RiskOverridesActivity, mock.Anything, mock.Anything).Return(nil).Once()
+	environment.OnActivity(RiskAnomaliesActivity, mock.Anything, mock.Anything).Return(nil).Once()
 	environment.ExecuteWorkflow(RiskOverrides)
 	require.True(t, environment.IsWorkflowCompleted())
 	require.NoError(t, environment.GetWorkflowError())
 	environment.AssertExpectations(t)
 }
 
-func TestRiskOverridesEvaluatesAwayAnomalies(t *testing.T) {
+func TestRiskOverridesSurfacesAnomalyFailure(t *testing.T) {
 	var suite testsuite.WorkflowTestSuite
 	environment := suite.NewTestWorkflowEnvironment()
 	environment.RegisterActivityWithOptions(func(context.Context, time.Time) error { return nil }, activity.RegisterOptions{Name: RiskOverridesActivity})
-	environment.RegisterActivityWithOptions(func(context.Context, time.Time) error { return nil }, activity.RegisterOptions{Name: "EvaluateRiskAnomalies"})
+	environment.RegisterActivityWithOptions(func(context.Context, time.Time) error { return nil }, activity.RegisterOptions{Name: RiskAnomaliesActivity})
 	environment.OnActivity(RiskOverridesActivity, mock.Anything, mock.Anything).Return(nil).Once()
-	environment.OnActivity("EvaluateRiskAnomalies", mock.Anything, mock.Anything).Return(nil).Once()
+	environment.OnActivity(RiskAnomaliesActivity, mock.Anything, mock.Anything).Return(errors.New("anomaly evaluation failed")).Once()
 	environment.ExecuteWorkflow(RiskOverrides)
-	require.NoError(t, environment.GetWorkflowError())
+	require.ErrorContains(t, environment.GetWorkflowError(), "anomaly evaluation failed")
 	environment.AssertExpectations(t)
 }
 
