@@ -110,6 +110,13 @@ func (store *Store) AcceptCommand(ctx context.Context, command Command, now time
 		}
 		return finishWithoutCommit(Acknowledgement{RejectionReason: "CONFLICTING_REUSE"}, nil)
 	}
+	keyReused, err := idempotencyKeyStored(ctx, tx, command.IdempotencyKey)
+	if err != nil {
+		return finishWithoutCommit(Acknowledgement{}, err)
+	}
+	if keyReused {
+		return finishWithoutCommit(Acknowledgement{RejectionReason: "CONFLICTING_REUSE"}, nil)
+	}
 	latest, found, err := latestGeneration(ctx, tx, command.DeviceID)
 	if err != nil {
 		return finishWithoutCommit(Acknowledgement{}, err)
@@ -140,6 +147,12 @@ func commandByID(ctx context.Context, query commandQuerier, commandID string) (C
 		return Command{}, false, nil
 	}
 	return command, err == nil, err
+}
+
+func idempotencyKeyStored(ctx context.Context, query commandQuerier, idempotencyKey string) (bool, error) {
+	var stored bool
+	err := query.QueryRowContext(ctx, `SELECT EXISTS (SELECT 1 FROM commands WHERE idempotency_key = ?)`, idempotencyKey).Scan(&stored)
+	return stored, err
 }
 
 func latestGeneration(ctx context.Context, query commandQuerier, deviceID string) (uint64, bool, error) {
