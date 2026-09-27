@@ -14,6 +14,7 @@ import (
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/fleet"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 func memberDatabase(t *testing.T) *pgxpool.Pool {
@@ -60,6 +61,38 @@ func memberDatabase(t *testing.T) *pgxpool.Pool {
 		}
 	}
 	return pool
+}
+
+func TestMemberAwayCommandsAreScopedAndIdempotent(t *testing.T) {
+	ctx := context.Background()
+	pool := memberDatabase(t)
+	_, err := pool.Exec(ctx, `INSERT INTO member_sites(site_id, member_id, bound_at, source, provenance)
+		VALUES ('site-1', 'member-1', now(), 'SIMULATED', '{"provenance":"SIMULATED"}')`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	service := NewService(pool, fleet.NewTwin(time.Minute), nil, time.Now)
+	start := time.Now().UTC().Add(time.Hour).Truncate(time.Second)
+	request := connect.NewRequest(&gridosv1.ScheduleAwayRequest{MemberId: "member-1", IdempotencyKey: "away-1",
+		StartTime: timestamppb.New(start), EndTime: timestamppb.New(start.Add(2 * time.Hour)),
+		ConsentVersion: "consent-v1", CorrelationId: "corr-1"})
+	request.Header().Set("X-GridOS-Role", "member")
+	request.Header().Set("X-GridOS-Member-ID", "member-1")
+	for range 2 {
+		response, err := service.ScheduleAway(ctx, request)
+		if err != nil || response.Msg.GetAwayPeriodId() != "away-1" {
+			t.Fatalf("own away command: %v, %+v", err, response)
+		}
+	}
+	var count int
+	if err := pool.QueryRow(ctx, `SELECT count(*) FROM member_away_periods WHERE away_period_id = 'away-1'`).Scan(&count); err != nil || count != 1 {
+		t.Fatalf("away rows = %d, %v", count, err)
+	}
+	request.Msg.IdempotencyKey = "away-2"
+	request.Header().Set("X-GridOS-Member-ID", "member-2")
+	if _, err := service.ScheduleAway(ctx, request); connect.CodeOf(err) != connect.CodePermissionDenied {
+		t.Fatalf("other member command code = %v", connect.CodeOf(err))
+	}
 }
 
 func TestMemberStatusScopeAndSiteState(t *testing.T) {
