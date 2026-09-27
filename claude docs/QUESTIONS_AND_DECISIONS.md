@@ -2202,3 +2202,14 @@ shortfall is requested energy minus measured delivered energy per
 interval, in kWh, with that interval's measurement coverage, and is
 unknown wherever coverage is absent. Root, queued after the retry fix and
 4C.10.
+
+## 2026-09-27 09:53Z — Retry seed survives the anchor batch
+
+RED 8c6d97e (test only: the accepted launch command consumed the retry
+fault) then GREEN d7038af: the command that anchors the live schedule no
+longer consumes a next_command fault, so the seeded one-shot OFFLINE
+targets the following command even when the whole launch batch lands in
+the anchor's cadence slot. Focused failures tests ok (0.433s) here; root
+posted three consecutive isolated canonical passes (121.3 s, 117.3 s,
+118.4 s). The demo is rebuilt on this tree together with 5F.5 and the
+proof is rerun for all five kinds plus the WEATHER override row.
