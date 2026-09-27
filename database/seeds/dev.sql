@@ -78,9 +78,9 @@ INSERT INTO pricing_catalog_snapshots (
     battery_plan, battery_term_months, battery_monthly_charge_cents,
     flexibility_reward_cents, effective_at, expires_at, correlation_id, provenance
 ) VALUES
-    ('catalog-sim-1', 'essential', 'ERCOT', 'Essential', 10, '{"provenance":"SIMULATED","price_text":"SIMULATED","contract_version":"sim-1"}', 0, 0, '{"provenance":"SIMULATED"}', 0, 0, 0, '2020-01-01T00:00:00Z', '2100-01-01T00:00:00Z', 'seed:SIMULATED:catalog-sim-1', '{"provenance":"SIMULATED"}'),
-    ('catalog-sim-1', 'balanced', 'ERCOT', 'Balanced', 30, '{"provenance":"SIMULATED","price_text":"SIMULATED","contract_version":"sim-1"}', 0, 0, '{"provenance":"SIMULATED"}', 0, 0, 0, '2020-01-01T00:00:00Z', '2100-01-01T00:00:00Z', 'seed:SIMULATED:catalog-sim-1', '{"provenance":"SIMULATED"}'),
-    ('catalog-sim-1', 'maximum', 'ERCOT', 'Maximum', 60, '{"provenance":"SIMULATED","price_text":"SIMULATED","contract_version":"sim-1"}', 0, 0, '{"provenance":"SIMULATED"}', 0, 0, 0, '2020-01-01T00:00:00Z', '2100-01-01T00:00:00Z', 'seed:SIMULATED:catalog-sim-1', '{"provenance":"SIMULATED"}')
+    ('catalog-sim-1', 'essential', 'ERCOT', 'Essential', 10, '{"provenance":"SIMULATED","price_text":"SIMULATED","contract_version":"sim-1"}', 0, 0, '{"provenance":"SIMULATED"}', 0, 0, 500, '2020-01-01T00:00:00Z', '2100-01-01T00:00:00Z', 'seed:SIMULATED:catalog-sim-1', '{"provenance":"SIMULATED"}'),
+    ('catalog-sim-1', 'balanced', 'ERCOT', 'Balanced', 30, '{"provenance":"SIMULATED","price_text":"SIMULATED","contract_version":"sim-1"}', 0, 0, '{"provenance":"SIMULATED"}', 0, 0, 800, '2020-01-01T00:00:00Z', '2100-01-01T00:00:00Z', 'seed:SIMULATED:catalog-sim-1', '{"provenance":"SIMULATED"}'),
+    ('catalog-sim-1', 'maximum', 'ERCOT', 'Maximum', 60, '{"provenance":"SIMULATED","price_text":"SIMULATED","contract_version":"sim-1"}', 0, 0, '{"provenance":"SIMULATED"}', 0, 0, 1200, '2020-01-01T00:00:00Z', '2100-01-01T00:00:00Z', 'seed:SIMULATED:catalog-sim-1', '{"provenance":"SIMULATED"}')
 ON CONFLICT (catalog_version, member_plan_id) DO NOTHING;
 
 COMMIT;
