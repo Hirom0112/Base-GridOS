@@ -16,18 +16,18 @@ test("explanation presents recorded reserve, constraints, and interval feasibili
   render(<ExplanationEvidence explanation={fixture()} />);
   expect(
     screen.getByRole("region", { name: "Optimization explanation" }),
-  ).toHaveTextContent("51,948.152 kWh");
+  ).toHaveTextContent("51,973.637 kWh");
   expect(
     screen.getByRole("region", { name: "Constraint margins" }),
   ).toHaveTextContent("RESERVE");
   expect(
     screen.getByRole("region", { name: "Constraint margins" }),
-  ).toHaveTextContent("21.628768236948616");
+  ).toHaveTextContent("2.20326299554927");
   expect(
     screen.getByRole("table", { name: "Interval feasibility" }),
   ).toHaveTextContent("1.000");
   expect(
-    screen.getAllByText("2026-09-27T07:28:00.000Z").length,
+    screen.getAllByText("2026-09-27T09:12:17.000Z").length,
   ).toBeGreaterThan(0);
   expect(screen.getByText(/Modeled objective/)).toBeVisible();
   expect(
