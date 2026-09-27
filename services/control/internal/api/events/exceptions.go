@@ -45,12 +45,31 @@ func (source *PostgresSource) exceptions(ctx context.Context, eventID string) ([
 			audit.sequence::text AS evidence_id, audit.new_values::text AS detail
 		FROM audit_journal AS audit WHERE audit.resource_id = $1
 		AND audit.action IN ('REPLACEMENT_PLANNED', 'REPLACEMENT_SAFETY_REJECTED', 'EMERGENCY_STOP_REQUESTED')
+	), removed AS (
+		SELECT 'STALE_CAPACITY_REMOVED' AS kind, audit.occurred_at, prior.schedule->>'deviceId' AS device_id,
+			''::text AS command_id, audit.sequence::text AS evidence_id, 'removed from replacement plan' AS detail
+		FROM audit_journal AS audit
+		JOIN plan_versions AS current ON current.event_id = audit.resource_id
+			AND current.version = (audit.new_values->>'plan_version')::bigint
+		JOIN plan_versions AS previous ON previous.event_id = audit.resource_id AND previous.version = current.version - 1
+		CROSS JOIN LATERAL jsonb_array_elements(COALESCE(previous.plan->'deviceSchedules', '[]'::jsonb)) AS prior(schedule)
+		WHERE audit.resource_id = $1 AND audit.action = 'REPLACEMENT_PLANNED'
+		AND NOT EXISTS (SELECT 1 FROM jsonb_array_elements(COALESCE(current.plan->'deviceSchedules', '[]'::jsonb)) AS next(schedule)
+			WHERE next.schedule->>'deviceId' = prior.schedule->>'deviceId')
+	), rebalanced AS (
+		SELECT 'REBALANCED_COMMAND' AS kind, intent.issued_at AS occurred_at, intent.device_id,
+			intent.command_id, intent.command_id AS evidence_id, 'replacement command issued' AS detail
+		FROM command_intents AS intent WHERE intent.event_id = $1 AND intent.generation > 0
+		AND EXISTS (SELECT 1 FROM audit_journal AS audit WHERE audit.resource_id = intent.event_id
+			AND audit.action = 'REPLACEMENT_PLANNED' AND (audit.new_values->>'plan_version')::bigint = intent.plan_version)
 	)
 	SELECT kind, occurred_at, device_id, command_id, evidence_id, detail FROM missing
 	UNION ALL SELECT kind, occurred_at, device_id, command_id, evidence_id, detail FROM uncertain
 	UNION ALL SELECT kind, occurred_at, device_id, command_id, evidence_id, detail FROM late
 	UNION ALL SELECT kind, occurred_at, device_id, command_id, evidence_id, detail FROM retry
 	UNION ALL SELECT kind, occurred_at, device_id, command_id, evidence_id, detail FROM recovery
+	UNION ALL SELECT kind, occurred_at, device_id, command_id, evidence_id, detail FROM removed
+	UNION ALL SELECT kind, occurred_at, device_id, command_id, evidence_id, detail FROM rebalanced
 	ORDER BY occurred_at, kind, evidence_id`, eventID)
 	if err != nil {
 		return nil, err
