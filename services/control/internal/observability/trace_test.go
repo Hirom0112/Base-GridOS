@@ -2,6 +2,7 @@ package observability
 
 import (
 	"context"
+	"regexp"
 	"testing"
 
 	"go.opentelemetry.io/otel/attribute"
@@ -37,6 +38,36 @@ func TestTraceCarriesSafeCorrelationAndWorkflow(t *testing.T) {
 	}
 	if values["correlation_id"] != "correlation-1" || values["workflow_id"] != "workflow-1" {
 		t.Fatalf("missing trace identities: %+v", values)
+	}
+}
+
+func TestActivityTraceDerivesIdentityForInvalidCorrelation(t *testing.T) {
+	exporter := &capturedSpans{}
+	provider := NewTracerProvider(exporter)
+	ctx := WithActivityTraceIDs(context.Background(), "site-private-123", "event-1")
+	correlationID, workflowID := TraceIDs(ctx)
+	if correlationID != workflowID || !regexp.MustCompile(`^event-[0-9a-f]{32}$`).MatchString(correlationID) {
+		t.Fatalf("unsafe fallback identity: %q, %q", correlationID, workflowID)
+	}
+	_, span := provider.Tracer("gridos").Start(ctx, "dispatch.plan")
+	span.End()
+	if err := provider.ForceFlush(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if err := provider.Shutdown(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if len(exporter.spans) != 1 {
+		t.Fatalf("exported spans: %d", len(exporter.spans))
+	}
+	derived := false
+	for _, item := range exporter.spans[0].Attributes() {
+		if item.Key == "identity_derived" {
+			derived = item.Value.AsBool()
+		}
+	}
+	if !derived {
+		t.Fatal("fallback span did not mark its derived identity")
 	}
 }
 
