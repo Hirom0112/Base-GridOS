@@ -14,6 +14,7 @@ import { PlanExplanation } from "../dispatch/explanation";
 import { eventStateLabels } from "./events-timeline";
 import { AuditTimeline } from "./audit-timeline";
 import { EmergencyStopControl } from "./emergency-stop";
+import { ReportComparison } from "./comparison";
 import { EventReplay } from "./replay";
 import { EventReport } from "./report";
 import { LiveEvent } from "./events-live";
@@ -193,6 +194,7 @@ export function EventView({
         <>
           <EventReport eventId={eventId} />
           <EventReplay key={eventId} eventId={eventId} />
+          <ReportComparison key={`compare-${eventId}`} eventId={eventId} />
         </>
       )}
       <AuditTimeline event={event} />
