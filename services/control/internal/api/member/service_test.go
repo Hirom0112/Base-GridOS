@@ -108,7 +108,7 @@ func TestMemberStatusScopeAndSiteState(t *testing.T) {
 	twin := fleet.NewTwin(time.Minute)
 	twin.Accept(fleet.SiteState{SiteID: "site-1", ObservedAt: now, OperatingState: fleet.OnGrid,
 		Availability: fleet.Online, EnergyKWh: 8, BackupHoursCurrent: 4, BackupHours750W: 8})
-	sites := []*gridosv1.AuthorizedSite{{Site: &gridosv1.Site{SiteId: "site-1"}, Devices: []*gridosv1.Device{{BatteryParameters: &gridosv1.BatteryParameters{UsableEnergyKwh: 10}}}}}
+	sites := []*gridosv1.AuthorizedSite{{Site: &gridosv1.Site{SiteId: "site-1"}, Devices: []*gridosv1.Device{{DeviceId: "device-1", BatteryParameters: &gridosv1.BatteryParameters{UsableEnergyKwh: 10}}}}}
 	service := NewService(pool, twin, sites, func() time.Time { return now })
 	request := connect.NewRequest(&gridosv1.GetMemberStatusRequest{MemberId: "member-1", SiteId: "site-1"})
 	request.Header().Set("X-GridOS-Role", "member")
@@ -132,5 +132,58 @@ func TestMemberStatusScopeAndSiteState(t *testing.T) {
 	request.Header().Del("X-GridOS-Role")
 	if _, err := service.GetMemberStatus(ctx, request); connect.CodeOf(err) != connect.CodeUnauthenticated {
 		t.Fatalf("missing role code = %v", connect.CodeOf(err))
+	}
+}
+
+func TestMemberStatusRecentEventsContainOwnDeviceOnly(t *testing.T) {
+	ctx := context.Background()
+	pool := memberDatabase(t)
+	_, err := pool.Exec(ctx, `INSERT INTO member_sites(site_id, member_id, bound_at, source, provenance)
+		VALUES ('site-1', 'member-1', now(), 'SIMULATED', '{"provenance":"SIMULATED"}')`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	begin := time.Now().UTC().Truncate(time.Second)
+	for _, fixture := range []struct{ event, device string }{{"event-own", "device-1"}, {"event-other", "device-2"}} {
+		_, err = pool.Exec(ctx, `INSERT INTO dispatch_requests(request_id,event_type,begin_time,end_time,target_kw,measurement_boundary,load_zones,correlation_id)
+			VALUES ($1,'DEMAND_RESPONSE',$2,$3,1,'GATEWAY',ARRAY['LZ_AEN'],'corr')`, fixture.event, begin, begin.Add(time.Hour))
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, err = pool.Exec(ctx, `INSERT INTO dispatch_events(event_id,request_id,state,plan_version,correlation_id)
+			VALUES ($1,$1,'PLANNED',1,'corr')`, fixture.event)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, err = pool.Exec(ctx, `INSERT INTO input_snapshots(snapshot_id,event_id,captured_at,inputs,provenance,correlation_id)
+			VALUES ($1,$2,$3,'{}','{}','corr')`, fixture.event+":input", fixture.event, begin)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, err = pool.Exec(ctx, `INSERT INTO eligibility_snapshots(snapshot_id,event_id,captured_at,eligible_device_ids,exclusions,policy_version,correlation_id)
+			VALUES ($1,$2,$3,ARRAY[$4::text],'{}','policy-v1','corr')`, fixture.event+":eligibility", fixture.event, begin, fixture.device)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, err = pool.Exec(ctx, `INSERT INTO plan_versions(event_id,version,input_snapshot_id,eligibility_snapshot_id,plan,solver_version,model_version,correlation_id)
+			VALUES ($1,1,$2,$3,jsonb_build_object('deviceSchedules',jsonb_build_array(jsonb_build_object('deviceId',$4::text))),'solver-v1','model-v1','corr')`,
+			fixture.event, fixture.event+":input", fixture.event+":eligibility", fixture.device)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	twin := fleet.NewTwin(time.Minute)
+	twin.Accept(fleet.SiteState{SiteID: "site-1", ObservedAt: begin, OperatingState: fleet.OnGrid, Availability: fleet.Online})
+	sites := []*gridosv1.AuthorizedSite{{Site: &gridosv1.Site{SiteId: "site-1"}, Devices: []*gridosv1.Device{{DeviceId: "device-1"}}}}
+	service := NewService(pool, twin, sites, func() time.Time { return begin })
+	request := connect.NewRequest(&gridosv1.GetMemberStatusRequest{MemberId: "member-1", SiteId: "site-1"})
+	request.Header().Set("X-GridOS-Role", "member")
+	request.Header().Set("X-GridOS-Member-ID", "member-1")
+	response, err := service.GetMemberStatus(ctx, request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(response.Msg.GetRecentEvents()) != 1 || response.Msg.GetRecentEvents()[0].GetEventId() != "event-own" || !response.Msg.GetRecentEvents()[0].GetParticipated() {
+		t.Fatalf("member events = %+v", response.Msg.GetRecentEvents())
 	}
 }
