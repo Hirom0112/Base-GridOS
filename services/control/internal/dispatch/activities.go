@@ -13,6 +13,7 @@ import (
 	"connectrpc.com/connect"
 	gridosv1 "github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1"
 	controlapi "github.com/Hirom0112/Base-GridOS/services/control/internal/api"
+	"github.com/Hirom0112/Base-GridOS/services/control/internal/observability"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/replay"
 	reporting "github.com/Hirom0112/Base-GridOS/services/control/internal/report"
 	"github.com/Hirom0112/Base-GridOS/services/control/internal/storage"
@@ -137,7 +138,9 @@ func (activities *Activities) RequestPlan(ctx context.Context, frozen FrozenEven
 
 func (activities *Activities) requestFreshPlan(ctx context.Context, request *gridosv1.OptimizationRequest, budget time.Duration) (*gridosv1.DispatchPlan, error) {
 	planCtx, cancel := context.WithTimeout(ctx, budget+time.Second)
+	started := time.Now()
 	plan, err := activities.Dispatcher.RequestPlan(planCtx, controlapi.FrozenSnapshot{Optimization: request})
+	_ = observability.ProcessMetrics.ObserveSolverTime(time.Since(started))
 	cancel()
 	if errors.Is(err, context.DeadlineExceeded) || connect.CodeOf(err) == connect.CodeDeadlineExceeded {
 		if auditErr := activities.recordPlanningDecision(ctx, request, "OPTIMIZATION_TIMEOUT", "TRANSPORT_TIMEOUT"); auditErr != nil {
