@@ -101,8 +101,8 @@ func run() error {
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
-	if port := os.Getenv("GRIDOS_GATEWAY_METRICS_PORT"); port != "" {
-		listener, err := net.Listen("tcp", ":"+port)
+	if address := os.Getenv("GRIDOS_GATEWAY_METRICS_ADDRESS"); address != "" {
+		listener, err := net.Listen("tcp", address)
 		if err != nil {
 			return err
 		}

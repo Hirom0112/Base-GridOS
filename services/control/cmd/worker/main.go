@@ -43,8 +43,8 @@ func main() {
 	otel.SetTracerProvider(tracer)
 	defer func() { _ = tracer.Shutdown(context.Background()) }()
 	observability.ProcessMetrics = observability.NewEventMetrics()
-	if port := os.Getenv("GRIDOS_WORKER_METRICS_PORT"); port != "" {
-		if err := observability.ServeMetrics(ctx, ":"+port, observability.ProcessMetrics.Handler()); err != nil {
+	if address := os.Getenv("GRIDOS_WORKER_METRICS_ADDRESS"); address != "" {
+		if err := observability.ServeMetrics(ctx, address, observability.ProcessMetrics.Handler()); err != nil {
 			log.Fatal(err)
 		}
 	}
