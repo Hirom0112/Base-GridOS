@@ -117,6 +117,9 @@ func startStack(t *testing.T, scenarioName string) *stack {
 		"GRIDOS_DECISION_ADDR=" + stack.decisionURL, "GRIDOS_FLEET=" + scenario.Fleet.Path, "GRIDOS_GATEWAY_TOKEN=" + gatewayToken, "TEMPORAL_ADDRESS=" + temporalAddress,
 		"GRIDOS_TASK_QUEUE=" + name, "GRIDOS_SCENARIO=" + runtimeScenarioPath, "GRIDOS_STEP_UP_KEY=gridos-local-step-up-key-32-bytes-minimum",
 	}
+	if scenario.Name == "weather-stale-alarm-raise-floor" {
+		controlEnv = append(controlEnv, "GRIDOS_PUBLIC_CONTEXT_DIR="+writeWeatherRiskFixture(t, root, stack.logDir))
+	}
 	stack.start(t, "control", controlAddress, controlEnv, built.control)
 	stack.start(t, "worker", "", controlEnv, built.worker)
 	for _, name := range []string{"decision", "gateway", "control"} {
@@ -124,6 +127,30 @@ func startStack(t *testing.T, scenarioName string) *stack {
 	}
 	stack.assertRunning(t, "worker")
 	return stack
+}
+
+func writeWeatherRiskFixture(t *testing.T, repository, directory string) string {
+	t.Helper()
+	root := filepath.Join(directory, "weather-public")
+	if err := os.CopyFS(root, os.DirFS(filepath.Join(repository, "testdata/fixtures/public"))); err != nil {
+		t.Fatal(err)
+	}
+	weather := filepath.Join(root, "weather")
+	if err := os.WriteFile(filepath.Join(weather, "PROVENANCE.md"), []byte("Provenance: SIMULATED\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	for _, city := range []string{"dallas", "houston", "san_antonio"} {
+		if err := os.WriteFile(filepath.Join(weather, city+"_alerts.json"), []byte(`{"features":[]}`), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	now := time.Now().UTC()
+	alert := fmt.Sprintf(`{"features":[{"id":"travis-simulated-alert","properties":{"areaDesc":"Travis County","geocode":{"UGC":["TXZ192"],"SAME":["048453"]},"sent":%q,"effective":%q,"expires":%q,"event":"Heat Warning","severity":"Severe"}}]}`,
+		now.Add(-time.Minute).Format(time.RFC3339), now.Add(-time.Minute).Format(time.RFC3339), now.Add(time.Hour).Format(time.RFC3339))
+	if err := os.WriteFile(filepath.Join(weather, "austin_alerts.json"), []byte(alert), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	return root
 }
 
 func writeNegativePriceFixture(t *testing.T, directory string, scenario Scenario) string {

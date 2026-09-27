@@ -3,6 +3,8 @@ package integration
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -10,6 +12,7 @@ import (
 	gridosv1 "github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1"
 	"github.com/Hirom0112/Base-GridOS/contracts/gen/go/gridos/v1/gridosv1connect"
 	"google.golang.org/protobuf/types/known/timestamppb"
+	"gopkg.in/yaml.v3"
 )
 
 func TestWeatherStaleAlarmRaiseFloor(t *testing.T) {
@@ -39,6 +42,14 @@ func TestWeatherStaleAlarmRaiseFloor(t *testing.T) {
 	stack.publishOvercurrent(t, selected)
 	stack.evaluateRiskNow(t)
 	stack.assertRiskFloor(t, memberID, selected.SiteID, "ALARM", 100)
+	stack.scenario = stack.scenario.retime(time.Now().UTC())
+	runtimeScenario, err := yaml.Marshal(stack.scenario)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = os.WriteFile(filepath.Join(stack.logDir, "scenario.yaml"), runtimeScenario, 0o600); err != nil {
+		t.Fatal(err)
+	}
 	stack.restart(t, "gateway")
 
 	eventID := fmt.Sprintf("weather-risk-%d", time.Now().UnixNano())
