@@ -1330,3 +1330,7 @@ assumptions reported by workers land here too.
   an empty parent id stays valid, and a missing snapshot now answers
   Unavailable ("fleet not loaded") rather than a client fault. Found while
   landing the report-energy fix; verified here.
+- **Trace identity fix accepted (5C, 1c3c323):** activity trace context
+  uses the event id when it passes the privacy validator and a stable
+  derived value otherwise, marked as derived on scrubbed spans; the
+  activity never fails. Gate window resumed for the reruns.
