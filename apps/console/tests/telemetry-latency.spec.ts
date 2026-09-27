@@ -4,6 +4,13 @@ import AxeBuilder from "@axe-core/playwright";
 import { recordedApi } from "./recorded-api";
 
 function observation(at: string, deliveredMw: number, deliveredState: string) {
+  const metadata = {
+    timestamp: at,
+    freshness: "0s",
+    provenanceMix: [
+      { provenance: "DATA_PROVENANCE_SIMULATED", recordCount: "10" },
+    ],
+  };
   return {
     event: { eventId: "event-live", state: "DISPATCH_EVENT_STATE_SENT" },
     observedAt: at,
@@ -12,14 +19,21 @@ function observation(at: string, deliveredMw: number, deliveredState: string) {
       acknowledgedMw: 0.8,
       deliveredMw,
       deliveredState,
-      metadata: {
-        timestamp: at,
-        freshness: "0s",
-        provenanceMix: [
-          { provenance: "DATA_PROVENANCE_SIMULATED", recordCount: "10" },
-        ],
-      },
+      metadata,
     },
+    h3: [
+      {
+        h3Cell: "874898431ffffff",
+        power: {
+          sentMw: 0.1,
+          acknowledgedMw: 0.08,
+          deliveredMw: deliveredMw / 10,
+          deliveredState,
+          metadata,
+        },
+        metadata,
+      },
+    ],
   };
 }
 
@@ -38,7 +52,7 @@ for (const { width, mode } of [
 ]) {
   test(`streamed telemetry remains distinct and visible within five seconds at ${width} ${mode}`, async ({
     page,
-  }) => {
+  }, testInfo) => {
     let emittedAt = 0;
     let closed = 0;
     const server = createServer((request, response) => {
@@ -107,9 +121,23 @@ for (const { width, mode } of [
         ).violations,
       ).toEqual([]);
       await page.locator(".live-response").screenshot({
-        path: `test-results/live-response-${width}-${mode}.png`,
+        path: testInfo.outputPath(`live-response-${width}-${mode}.png`),
       });
-      await page.goto("/fleet");
+      await page.getByLabel("Geographic measure").selectOption("delivered");
+      await page.getByText("Inspect the geographic data").click();
+      const row = page.getByRole("row").filter({ hasText: "874898431ffffff" });
+      await expect(row).toContainText("0.065");
+      await expect(page.locator(".geography-table")).toContainText(
+        "Unavailable",
+      );
+      await page.getByText("Inspect the geographic data").click();
+      await page.locator(".living-grid").scrollIntoViewIfNeeded();
+      await page.locator(".living-grid").screenshot({
+        path: testInfo.outputPath(`live-geography-${width}-${mode}.png`),
+      });
+      await page
+        .getByRole("combobox", { name: "Demo role" })
+        .selectOption("member");
       await expect.poll(() => closed).toBeGreaterThan(0);
     } finally {
       server.closeAllConnections();
