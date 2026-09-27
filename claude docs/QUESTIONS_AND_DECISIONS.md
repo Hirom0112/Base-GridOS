@@ -2129,3 +2129,15 @@ SIMULATED severe-weather alert for TXZ192, so the bridge raises WEATHER on
 the demo through the same code path as production, labelled SIMULATED
 end to end. No database inserts, no console-side fabrication. Root after
 2A.13.
+
+## 2026-09-27 09:22Z — Canonical scenario gets a deterministic transient failure for RETRY
+
+With live faults persisting, the canonical scenario's RETRY assertion
+became timing dependent: root's diagnostic run passed with one command
+at two publish attempts, the first run had none, and the YAML has no
+injection that guarantees a retry. Decision: the canonical scenario adds a
+one-shot `next_command` OFFLINE_DEVICES injection at event start so the
+first command to that device fails once and is retried deterministically,
+before the persistent scheduled OFFLINE and the delayed receipt. RED
+scenario assertion first, then three consecutive isolated passes. The
+standing demo's live scenario picks the same file up.
