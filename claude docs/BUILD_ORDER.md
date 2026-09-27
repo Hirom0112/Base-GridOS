@@ -1130,6 +1130,15 @@ for the same item.
 - `claude docs/gate-reports/wave-2.md` written.
 
 ---
+- `[ ]` 2F.11 `[P]` Event exceptions in the timeline. The control plane
+  sees only effects, never injections, so `GetEventTimeline` and
+  `WatchEvent` gain typed exception entries derived from durable truth:
+  devices whose telemetry went MISSING inside the window, commands that
+  became UNCERTAIN past the acknowledgement deadline, late acceptances,
+  and the recovery actions taken (retry, stale capacity removed,
+  rebalance), each with device or command id, time, and evidence id. No
+  simulator label ever appears. The console's steps 11 to 15 assert these
+  entries on a demo started with a live scenario. Verify: `go test ./services/control/internal/api/events/ -run Exceptions` passes and the heat-event-canonical integration scenario asserts at least one MISSING and one UNCERTAIN entry.
 
 ## 5. Wave 3 — forecasting and optimization
 
